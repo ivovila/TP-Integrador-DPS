@@ -21,23 +21,12 @@ public class InspectionSchema {
         this.assetType = assetType;
     }
 
-    public void addSection(String sectionName) {
-        if (findSection(sectionName) != -1) {
-            throw new IllegalArgumentException("Ya existe la seccion '" + sectionName + "'");
+    public void addSection(Section section) {
+        boolean exists = sections.stream().anyMatch(s -> s.getName().equals(section.getName()));
+        if (exists) {
+            throw new IllegalArgumentException("Ya existe la seccion '" + section.getName() + "'");
         }
-        sections.add(new Section(sectionName, List.of()));
-        version++;
-    }
-
-    public void addCriterion(String sectionName, Criterion criterion) {
-        int index = findSection(sectionName);
-        if (index == -1) {
-            throw new IllegalArgumentException("No existe la seccion '" + sectionName + "'");
-        }
-        Section section = sections.get(index);
-        List<Criterion> criteria = new ArrayList<>(section.criteria());
-        criteria.add(criterion);
-        sections.set(index, new Section(sectionName, criteria));
+        sections.add(section);
         version++;
     }
 
@@ -47,14 +36,5 @@ public class InspectionSchema {
 
     public List<Section> getSections() {
         return List.copyOf(sections);
-    }
-
-    private int findSection(String sectionName) {
-        for (int i = 0; i < sections.size(); i++) {
-            if (sections.get(i).name().equals(sectionName)) {
-                return i;
-            }
-        }
-        return -1;
     }
 }
