@@ -23,7 +23,6 @@ import ar.edu.itba.certiflow.domain.model.inspection.InspectionStarted;
 import ar.edu.itba.certiflow.domain.model.schema.Criterion;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
 import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
-import ar.edu.itba.certiflow.domain.model.schema.Section;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
@@ -57,9 +56,9 @@ class InspectionLifecycleIT {
     }
 
     private void publishVersionWithLocationCriterion() {
-        Section location = new Section("Ubicacion");
-        location.addCriterion(new Criterion(CriterionId.generate(), "Accesible sin obstaculos", new BooleanRule(true)));
-        schema.addSection(location);
+        schema.addSection("Ubicacion");
+        schema.addCriterion("Ubicacion",
+                new Criterion(CriterionId.generate(), "Accesible sin obstaculos", new BooleanRule(true)));
         ctx.publishSchema.execute(schema.getId());
     }
 

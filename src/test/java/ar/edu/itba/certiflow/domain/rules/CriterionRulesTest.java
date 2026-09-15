@@ -58,12 +58,20 @@ class CriterionRulesTest {
 
     @Test
     void compositeRuleKeepsTheWorstOutcome() {
-        CriterionRule rule = CompositeRule.allOf(pressureRange,
+        CompositeRule rule = CompositeRule.allOf(pressureRange,
                 new EnumOptionRule(Set.of("rojo"), Set.of("desteñido")));
         Response response = pressureResponse("11").withOption("desteñido");
 
         assertEquals(CriterionOutcome.OBSERVED, rule.evaluate(response));
         assertTrue(rule.accepts(pressure("11")));
+    }
+
+    @Test
+    void compositeWithoutMeasurementRulesAcceptsNoMeasurement() {
+        CompositeRule signage = CompositeRule.allOf(new BooleanRule(true),
+                new RequiredEvidenceRule(Set.of(EvidenceType.PHOTO)));
+
+        assertFalse(signage.accepts(pressure("11")));
     }
 
     @Test

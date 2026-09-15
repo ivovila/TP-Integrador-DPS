@@ -1,11 +1,12 @@
 package ar.edu.itba.certiflow.domain.model.inspection.states;
 
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionState;
+import ar.edu.itba.certiflow.domain.model.schema.SchemaVersion;
 
-public class Assigned implements InspectionState {
+public record Assigned() implements InspectionState {
 
     @Override
-    public InspectionState start() {
-        return new InProgress();
+    public InspectionState start(SchemaVersion schema) {
+        return new InProgress(schema);
     }
 }

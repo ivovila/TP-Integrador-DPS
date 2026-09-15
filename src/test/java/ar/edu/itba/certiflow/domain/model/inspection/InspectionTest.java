@@ -87,7 +87,7 @@ class InspectionTest {
     void evaluationRequiresAClosedInspection() {
         Inspection inspection = started();
 
-        assertThrows(InvalidTransitionException.class, inspection::evaluate);
+        assertThrows(InvalidTransitionException.class, inspection::getEvaluation);
     }
 
     @Test
@@ -96,7 +96,7 @@ class InspectionTest {
         inspection.register(PRESSURE, pressureResponse("12.5"));
         inspection.close(NOW);
 
-        InspectionEvaluation evaluation = inspection.evaluate();
+        InspectionEvaluation evaluation = inspection.getEvaluation();
 
         assertEquals(CriterionOutcome.OBSERVED, evaluation.outcomeOf(PRESSURE));
         assertEquals(CriterionOutcome.REJECTED, evaluation.outcomeOf(SIGNAGE));
@@ -117,8 +117,28 @@ class InspectionTest {
 
         assertInstanceOf(Rectified.class, inspection.getState());
         assertEquals(pressureResponse("14").measurement(), inspection.getResponses().get(PRESSURE).measurement());
-        assertEquals(CriterionOutcome.APPROVED, inspection.evaluate().overall());
+        assertEquals(CriterionOutcome.APPROVED, inspection.getEvaluation().overall());
         assertEquals(1, inspection.getRectifications().size());
+    }
+
+    @Test
+    void closingFixesTheEvaluationWithTheEvidenceUsed() {
+        Inspection inspection = started();
+        inspection.register(SIGNAGE, signageWithPhoto());
+        inspection.close(NOW);
+
+        CriterionResult signage = inspection.getEvaluation().resultOf(SIGNAGE);
+
+        assertEquals(CriterionOutcome.APPROVED, signage.outcome());
+        assertEquals(1, signage.evidences().size());
+        assertEquals(inspection.getId(), inspection.getEvaluation().inspection());
+    }
+
+    @Test
+    void schemaIsOnlyKnownOnceStarted() {
+        Inspection inspection = assigned();
+
+        assertThrows(InvalidTransitionException.class, inspection::getSchema);
     }
 
     @Test

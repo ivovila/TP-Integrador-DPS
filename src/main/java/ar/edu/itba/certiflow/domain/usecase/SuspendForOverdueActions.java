@@ -1,9 +1,11 @@
 package ar.edu.itba.certiflow.domain.usecase;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetId;
 import ar.edu.itba.certiflow.domain.model.certificate.Certificate;
+import ar.edu.itba.certiflow.domain.model.finding.Finding;
 import ar.edu.itba.certiflow.domain.ports.CertificateRepository;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -25,18 +27,14 @@ public class SuspendForOverdueActions {
     }
 
     public List<Certificate> execute(AssetId assetId) {
-        boolean overdue = findings.findByAsset(assetId).stream()
-                .anyMatch(finding -> finding.isOpen() && finding.hasOverdueActions(clock.today()));
-        if (!overdue) {
-            return List.of();
-        }
-        List<Certificate> suspended = certificates.findByAsset(assetId).stream()
-                .filter(certificate -> certificate.isValidOn(clock.today()))
-                .toList();
-        for (Certificate certificate : suspended) {
-            certificate.suspend("Accion correctiva vencida sin verificar", clock.now());
-            certificates.save(certificate);
-            certificate.pullEvents().forEach(events::publish);
+        List<Finding> assetFindings = findings.findByAsset(assetId);
+        List<Certificate> suspended = new ArrayList<>();
+        for (Certificate certificate : certificates.findByAsset(assetId)) {
+            if (certificate.suspendIfActionsOverdue(assetFindings, clock.now())) {
+                certificates.save(certificate);
+                certificate.pullEvents().forEach(events::publish);
+                suspended.add(certificate);
+            }
         }
         return suspended;
     }

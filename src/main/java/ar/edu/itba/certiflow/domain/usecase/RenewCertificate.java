@@ -38,7 +38,7 @@ public class RenewCertificate {
                 .orElseThrow(() -> new NotFoundException("el certificado", certificateId.value()));
         Inspection inspection = inspections.findById(inspectionId)
                 .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
-        Certificate renewed = current.renew(CertificateId.generate(), inspection,
+        Certificate renewed = current.renew(CertificateId.generate(), inspection.getEvaluation(),
                 findings.findByInspection(inspectionId), policy, validity, clock.now());
         certificates.save(current);
         certificates.save(renewed);

@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -28,15 +29,39 @@ class FindingTest {
     private final PersonId responsible = PersonId.generate();
     private final LocalDate today = NOW.toLocalDate();
 
+    private FindingDetails pressureDetails() {
+        return new FindingDetails(PRESSURE, Severity.CRITICAL, "Presion fuera de rango", responsible);
+    }
+
     private Finding raise() {
-        return Finding.raise(FindingId.generate(), inspection, PRESSURE, Severity.CRITICAL,
-                "Presion fuera de rango", responsible, NOW);
+        return Finding.raise(FindingId.generate(), inspection.getEvaluation(), pressureDetails(), List.of(), NOW);
     }
 
     @Test
     void findingIsRaisedOnlyOnNonApprovedCriteria() {
-        assertThrows(DomainException.class, () -> Finding.raise(FindingId.generate(), inspection, SIGNAGE,
-                Severity.MINOR, "Cartel", responsible, NOW));
+        FindingDetails signage = new FindingDetails(SIGNAGE, Severity.MINOR, "Cartel", responsible);
+
+        assertThrows(DomainException.class, () -> Finding.raise(FindingId.generate(), inspection.getEvaluation(),
+                signage, List.of(), NOW));
+    }
+
+    @Test
+    void criterionCannotHaveTwoFindingsInTheSameInspection() {
+        List<Finding> existing = List.of(raise());
+
+        assertThrows(DomainException.class, () -> Finding.raise(FindingId.generate(), inspection.getEvaluation(),
+                pressureDetails(), existing, NOW));
+    }
+
+    @Test
+    void findingsFromAnotherInspectionAreRejected() {
+        Inspection other = Fixtures.closedInspection(Fixtures.extinguisher(), Fixtures.extinguisherSchema(),
+                pressureResponse("14"), signageWithPhoto());
+        List<Finding> foreign = List.of(Finding.raise(FindingId.generate(), other.getEvaluation(),
+                pressureDetails(), List.of(), NOW));
+
+        assertThrows(IllegalArgumentException.class, () -> Finding.raise(FindingId.generate(),
+                inspection.getEvaluation(), pressureDetails(), foreign, NOW));
     }
 
     @Test

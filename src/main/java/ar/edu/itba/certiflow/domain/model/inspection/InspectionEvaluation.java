@@ -2,21 +2,25 @@ package ar.edu.itba.certiflow.domain.model.inspection;
 
 import java.util.List;
 
+import ar.edu.itba.certiflow.domain.model.asset.AssetId;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 
-public record InspectionEvaluation(List<CriterionResult> results) {
+public record InspectionEvaluation(InspectionId inspection, AssetId asset, List<CriterionResult> results) {
 
     public InspectionEvaluation {
         results = List.copyOf(results);
     }
 
-    public CriterionOutcome outcomeOf(CriterionId criterionId) {
+    public CriterionResult resultOf(CriterionId criterionId) {
         return results.stream()
                 .filter(result -> result.criterionId().equals(criterionId))
-                .map(CriterionResult::outcome)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("El criterio no fue evaluado en esta inspeccion"));
+    }
+
+    public CriterionOutcome outcomeOf(CriterionId criterionId) {
+        return resultOf(criterionId).outcome();
     }
 
     public CriterionOutcome sectionOutcome(String section) {

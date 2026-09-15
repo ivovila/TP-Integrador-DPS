@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetId;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
-import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.model.inspection.InspectionEvaluation;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
@@ -16,6 +16,8 @@ import lombok.Getter;
 
 @Getter
 public class Certificate extends AggregateRoot {
+
+    public static final String OVERDUE_ACTIONS = "Accion correctiva vencida sin verificar";
 
     private final CertificateId id;
     private final AssetId asset;
@@ -31,16 +33,16 @@ public class Certificate extends AggregateRoot {
         this.validity = validity;
     }
 
-    public static Certificate issue(CertificateId id, Inspection inspection, List<Finding> findings,
+    public static Certificate issue(CertificateId id, InspectionEvaluation evaluation, List<Finding> inspectionFindings,
                                     CertificationPolicy policy, ValidityPeriod validity, LocalDateTime now) {
-        List<Finding> inspectionFindings = findings.stream()
-                .filter(finding -> finding.getInspection().equals(inspection.getId()))
-                .toList();
-        if (!policy.allows(inspection.evaluate(), inspectionFindings)) {
+        if (inspectionFindings.stream().anyMatch(finding -> !finding.getInspection().equals(evaluation.inspection()))) {
+            throw new IllegalArgumentException("Los hallazgos recibidos no son de esta inspeccion");
+        }
+        if (!policy.allows(evaluation, inspectionFindings)) {
             throw new DomainException("La inspeccion no cumple la politica de certificacion");
         }
-        Certificate certificate = new Certificate(id, inspection.getAsset(), inspection.getId(), validity);
-        certificate.recordEvent(new CertificateIssued(id, inspection.getAsset(), validity, now));
+        Certificate certificate = new Certificate(id, evaluation.asset(), evaluation.inspection(), validity);
+        certificate.recordEvent(new CertificateIssued(id, evaluation.asset(), validity, now));
         return certificate;
     }
 
@@ -62,15 +64,28 @@ public class Certificate extends AggregateRoot {
         transitionTo(CertificateStatus.EXPIRED, null, now);
     }
 
-    public Certificate renew(CertificateId newId, Inspection renewalInspection, List<Finding> findings,
+    public Certificate renew(CertificateId newId, InspectionEvaluation renewal, List<Finding> renewalFindings,
                              CertificationPolicy policy, ValidityPeriod newValidity, LocalDateTime now) {
-        if (!renewalInspection.getAsset().equals(asset)) {
+        if (!renewal.asset().equals(asset)) {
             throw new DomainException("La inspeccion de renovacion corresponde a otro activo");
         }
-        Certificate renewed = issue(newId, renewalInspection, findings, policy, newValidity, now);
+        Certificate renewed = issue(newId, renewal, renewalFindings, policy, newValidity, now);
         transitionTo(CertificateStatus.RENEWED, null, now);
         renewedBy = newId;
         return renewed;
+    }
+
+    public boolean suspendIfActionsOverdue(List<Finding> assetFindings, LocalDateTime now) {
+        if (assetFindings.stream().anyMatch(finding -> !finding.getAsset().equals(asset))) {
+            throw new IllegalArgumentException("Los hallazgos recibidos no son de este activo");
+        }
+        boolean overdue = assetFindings.stream()
+                .anyMatch(finding -> finding.isOpen() && finding.hasOverdueActions(now.toLocalDate()));
+        if (!overdue || !isValidOn(now.toLocalDate())) {
+            return false;
+        }
+        suspend(OVERDUE_ACTIONS, now);
+        return true;
     }
 
     public boolean isValidOn(LocalDate date) {

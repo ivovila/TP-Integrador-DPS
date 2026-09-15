@@ -26,6 +26,6 @@ public class CloseInspection {
         inspection.close(clock.now());
         inspections.save(inspection);
         inspection.pullEvents().forEach(events::publish);
-        return inspection.evaluate();
+        return inspection.getEvaluation();
     }
 }

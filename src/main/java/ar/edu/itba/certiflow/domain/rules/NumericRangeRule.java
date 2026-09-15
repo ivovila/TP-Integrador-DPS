@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.domain.model.shared.Response;
 
 public record NumericRangeRule(String magnitude, String unit,
                                BigDecimal min, BigDecimal max, BigDecimal tolerance)
-        implements CriterionRule {
+        implements MeasurementRule {
 
     public NumericRangeRule {
         if (min.compareTo(max) > 0) {

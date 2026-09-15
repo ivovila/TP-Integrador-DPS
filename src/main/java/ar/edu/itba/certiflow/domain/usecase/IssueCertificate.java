@@ -36,7 +36,7 @@ public class IssueCertificate {
     public Certificate execute(InspectionId inspectionId, ValidityPeriod validity) {
         Inspection inspection = inspections.findById(inspectionId)
                 .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
-        Certificate certificate = Certificate.issue(CertificateId.generate(), inspection,
+        Certificate certificate = Certificate.issue(CertificateId.generate(), inspection.getEvaluation(),
                 findings.findByInspection(inspectionId), policy, validity, clock.now());
         certificates.save(certificate);
         certificate.pullEvents().forEach(events::publish);

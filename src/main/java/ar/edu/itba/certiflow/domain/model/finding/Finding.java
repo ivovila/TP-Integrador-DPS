@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetId;
-import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.model.inspection.CriterionResult;
+import ar.edu.itba.certiflow.domain.model.inspection.InspectionEvaluation;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
 import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
@@ -34,28 +35,33 @@ public class Finding extends AggregateRoot {
     private Closure closure;
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
-    private Finding(FindingId id, InspectionId inspection, AssetId asset, CriterionId criterion, Severity severity,
-                    String description, List<Evidence> evidences, PersonId responsible, LocalDateTime raisedAt) {
+    private Finding(FindingId id, InspectionEvaluation evaluation, FindingDetails details,
+                    List<Evidence> evidences, LocalDateTime raisedAt) {
         this.id = id;
-        this.inspection = inspection;
-        this.asset = asset;
-        this.criterion = criterion;
-        this.severity = severity;
-        this.description = description;
+        this.inspection = evaluation.inspection();
+        this.asset = evaluation.asset();
+        this.criterion = details.criterion();
+        this.severity = details.severity();
+        this.description = details.description();
         this.evidences = List.copyOf(evidences);
-        this.responsible = responsible;
+        this.responsible = details.responsible();
         this.raisedAt = raisedAt;
     }
 
-    public static Finding raise(FindingId id, Inspection inspection, CriterionId criterion, Severity severity,
-                                String description, PersonId responsible, LocalDateTime now) {
-        if (inspection.evaluate().outcomeOf(criterion) == CriterionOutcome.APPROVED) {
+    public static Finding raise(FindingId id, InspectionEvaluation evaluation, FindingDetails details,
+                                List<Finding> inspectionFindings, LocalDateTime now) {
+        CriterionResult result = evaluation.resultOf(details.criterion());
+        if (result.outcome() == CriterionOutcome.APPROVED) {
             throw new DomainException("No se puede levantar un hallazgo sobre un criterio aprobado");
         }
-        List<Evidence> evidences = inspection.responseFor(criterion).evidences();
-        Finding finding = new Finding(id, inspection.getId(), inspection.getAsset(), criterion, severity,
-                description, evidences, responsible, now);
-        finding.recordEvent(new FindingRaised(id, inspection.getId(), severity, now));
+        if (inspectionFindings.stream().anyMatch(finding -> !finding.getInspection().equals(evaluation.inspection()))) {
+            throw new IllegalArgumentException("Los hallazgos recibidos no son de esta inspeccion");
+        }
+        if (inspectionFindings.stream().anyMatch(finding -> finding.getCriterion().equals(details.criterion()))) {
+            throw new DomainException("Ya existe un hallazgo para ese criterio en la inspeccion");
+        }
+        Finding finding = new Finding(id, evaluation, details, result.evidences(), now);
+        finding.recordEvent(new FindingRaised(id, evaluation.inspection(), details.severity(), now));
         return finding;
     }
 

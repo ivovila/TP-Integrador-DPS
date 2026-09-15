@@ -3,29 +3,19 @@ package ar.edu.itba.certiflow.domain.model.schema;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Getter;
+public record Section(String name, List<Criterion> criteria) {
 
-@Getter
-public class Section {
-
-    private final String name;
-    private final List<Criterion> criteria = new ArrayList<>();
-
-    public Section(String name) {
-        this.name = name;
+    public Section {
+        criteria = List.copyOf(criteria);
     }
 
-    public void addCriterion(Criterion criterion) {
-        criteria.add(criterion);
+    public static Section named(String name) {
+        return new Section(name, List.of());
     }
 
-    public List<Criterion> getCriteria() {
-        return List.copyOf(criteria);
-    }
-
-    public Section copy() {
-        Section copy = new Section(name);
-        copy.criteria.addAll(criteria);
-        return copy;
+    public Section with(Criterion criterion) {
+        List<Criterion> updated = new ArrayList<>(criteria);
+        updated.add(criterion);
+        return new Section(name, updated);
     }
 }

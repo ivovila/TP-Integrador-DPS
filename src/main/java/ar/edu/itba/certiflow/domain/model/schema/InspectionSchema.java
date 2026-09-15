@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetType;
 import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
@@ -25,16 +26,27 @@ public class InspectionSchema extends AggregateRoot {
         this.assetType = assetType;
     }
 
-    public void addSection(Section section) {
-        boolean exists = sections.stream().anyMatch(s -> s.getName().equals(section.getName()));
-        if (exists) {
-            throw new IllegalArgumentException("Ya existe la seccion '" + section.getName() + "'");
+    public void addSection(String sectionName) {
+        if (indexOf(sectionName).isPresent()) {
+            throw new IllegalArgumentException("Ya existe la seccion '" + sectionName + "'");
         }
-        sections.add(section);
+        sections.add(Section.named(sectionName));
+    }
+
+    public void addCriterion(String sectionName, Criterion criterion) {
+        int index = indexOf(sectionName)
+                .orElseThrow(() -> new IllegalArgumentException("No existe la seccion '" + sectionName + "'"));
+        boolean repeated = sections.stream()
+                .flatMap(section -> section.criteria().stream())
+                .anyMatch(existing -> existing.id().equals(criterion.id()));
+        if (repeated) {
+            throw new IllegalArgumentException("El criterio ya forma parte del esquema");
+        }
+        sections.set(index, sections.get(index).with(criterion));
     }
 
     public SchemaVersion publish(LocalDateTime now) {
-        boolean hasCriteria = sections.stream().anyMatch(section -> !section.getCriteria().isEmpty());
+        boolean hasCriteria = sections.stream().anyMatch(section -> !section.criteria().isEmpty());
         if (!hasCriteria) {
             throw new DomainException("No se puede publicar un esquema sin criterios");
         }
@@ -54,5 +66,12 @@ public class InspectionSchema extends AggregateRoot {
 
     public List<SchemaVersion> getVersions() {
         return List.copyOf(versions);
+    }
+
+    private Optional<Integer> indexOf(String sectionName) {
+        return IntStream.range(0, sections.size())
+                .filter(i -> sections.get(i).name().equals(sectionName))
+                .boxed()
+                .findFirst();
     }
 }

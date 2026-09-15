@@ -33,6 +33,6 @@ public class RectifyInspection {
         inspection.rectify(new Rectification(author, reason, clock.now(), corrections));
         inspections.save(inspection);
         inspection.pullEvents().forEach(events::publish);
-        return inspection.evaluate();
+        return inspection.getEvaluation();
     }
 }

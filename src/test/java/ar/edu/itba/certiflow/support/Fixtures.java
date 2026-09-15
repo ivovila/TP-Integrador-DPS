@@ -17,7 +17,6 @@ import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
 import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.model.schema.SchemaId;
 import ar.edu.itba.certiflow.domain.model.schema.SchemaVersion;
-import ar.edu.itba.certiflow.domain.model.schema.Section;
 import ar.edu.itba.certiflow.domain.model.shared.Evidence;
 import ar.edu.itba.certiflow.domain.model.shared.EvidenceType;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
@@ -46,14 +45,12 @@ public final class Fixtures {
 
     public static InspectionSchema extinguisherSchema() {
         InspectionSchema schema = new InspectionSchema(SchemaId.generate(), "Matafuegos", EXTINGUISHER);
-        Section pressure = new Section("Presion");
-        pressure.addCriterion(new Criterion(PRESSURE, "Presion de carga entre 10 y 12 bar",
+        schema.addSection("Presion");
+        schema.addCriterion("Presion", new Criterion(PRESSURE, "Presion de carga entre 10 y 12 bar",
                 new NumericRangeRule("presion", "bar", new BigDecimal("10"), new BigDecimal("12"), BigDecimal.ONE)));
-        Section signage = new Section("Senalizacion");
-        signage.addCriterion(new Criterion(SIGNAGE, "Cartel visible con foto",
+        schema.addSection("Senalizacion");
+        schema.addCriterion("Senalizacion", new Criterion(SIGNAGE, "Cartel visible con foto",
                 CompositeRule.allOf(new BooleanRule(true), new RequiredEvidenceRule(Set.of(EvidenceType.PHOTO)))));
-        schema.addSection(pressure);
-        schema.addSection(signage);
         return schema;
     }
 

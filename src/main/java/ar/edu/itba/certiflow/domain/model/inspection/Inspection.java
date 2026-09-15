@@ -32,7 +32,6 @@ public class Inspection extends AggregateRoot {
     private final PersonId inspector;
     private final LocalDate scheduledDate;
     private final String scope;
-    private SchemaVersion schema;
     private InspectionState state = new Assigned();
     private final Map<CriterionId, Response> responses = new LinkedHashMap<>();
     private final List<Rectification> rectifications = new ArrayList<>();
@@ -57,12 +56,10 @@ public class Inspection extends AggregateRoot {
     }
 
     public void start(SchemaVersion currentVersion, LocalDateTime now) {
-        InspectionState next = state.start();
         if (!currentVersion.schemaId().equals(schemaId)) {
             throw new IllegalArgumentException("La version no corresponde al esquema asignado");
         }
-        schema = currentVersion;
-        state = next;
+        state = state.start(currentVersion);
         recordEvent(new InspectionStarted(id, currentVersion.number(), now));
     }
 
@@ -77,30 +74,26 @@ public class Inspection extends AggregateRoot {
     }
 
     public void close(LocalDateTime now) {
-        state = state.close();
+        state = state.close(evaluate(effectiveResponses()));
         recordEvent(new InspectionClosed(id, now));
     }
 
     public void rectify(Rectification rectification) {
-        InspectionState next = state.rectify();
         rectification.corrections().forEach(this::checkApplies);
+        Map<CriterionId, Response> corrected = new LinkedHashMap<>(effectiveResponses());
+        corrected.putAll(rectification.corrections());
+        state = state.rectify(evaluate(corrected));
         rectifications.add(rectification);
-        state = next;
         recordEvent(new InspectionRectified(id, rectification.author(), rectification.reason(),
                 rectification.rectifiedAt()));
     }
 
-    public InspectionEvaluation evaluate() {
-        state.checkCanEvaluate();
-        Map<CriterionId, Response> effective = effectiveResponses();
-        List<CriterionResult> results = new ArrayList<>();
-        for (Section section : schema.sections()) {
-            for (Criterion criterion : section.getCriteria()) {
-                Response response = effective.getOrDefault(criterion.id(), Response.empty());
-                results.add(new CriterionResult(section.getName(), criterion.id(), criterion.evaluate(response)));
-            }
-        }
-        return new InspectionEvaluation(results);
+    public SchemaVersion getSchema() {
+        return state.schema();
+    }
+
+    public InspectionEvaluation getEvaluation() {
+        return state.evaluation();
     }
 
     public Map<CriterionId, Response> effectiveResponses() {
@@ -117,8 +110,20 @@ public class Inspection extends AggregateRoot {
         return List.copyOf(rectifications);
     }
 
+    private InspectionEvaluation evaluate(Map<CriterionId, Response> recorded) {
+        List<CriterionResult> results = new ArrayList<>();
+        for (Section section : getSchema().sections()) {
+            for (Criterion criterion : section.criteria()) {
+                Response response = recorded.getOrDefault(criterion.id(), Response.empty());
+                results.add(new CriterionResult(section.name(), criterion.id(), criterion.evaluate(response),
+                        response.evidences()));
+            }
+        }
+        return new InspectionEvaluation(id, asset, results);
+    }
+
     private void checkApplies(CriterionId criterionId, Response response) {
-        Criterion criterion = schema.findCriterion(criterionId)
+        Criterion criterion = getSchema().findCriterion(criterionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "El criterio no pertenece al esquema de la inspeccion"));
         response.measurement()

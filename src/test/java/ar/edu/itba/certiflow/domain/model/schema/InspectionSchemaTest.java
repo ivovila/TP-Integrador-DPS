@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.domain.model.schema;
 
 import static ar.edu.itba.certiflow.support.Fixtures.NOW;
+import static ar.edu.itba.certiflow.support.Fixtures.PRESSURE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -17,11 +18,9 @@ class InspectionSchemaTest {
         InspectionSchema schema = Fixtures.extinguisherSchema();
         SchemaVersion first = schema.publish(NOW);
 
-        Section location = new Section("Ubicacion");
-        location.addCriterion(new Criterion(CriterionId.generate(), "Accesible", new BooleanRule(true)));
-        schema.addSection(location);
-        schema.getSections().getFirst().addCriterion(
-                new Criterion(CriterionId.generate(), "Sin golpes", new BooleanRule(true)));
+        schema.addSection("Ubicacion");
+        schema.addCriterion("Ubicacion", new Criterion(CriterionId.generate(), "Accesible", new BooleanRule(true)));
+        schema.addCriterion("Presion", new Criterion(CriterionId.generate(), "Sin golpes", new BooleanRule(true)));
         SchemaVersion second = schema.publish(NOW);
 
         assertEquals(1, first.number());
@@ -34,7 +33,7 @@ class InspectionSchemaTest {
     @Test
     void schemaWithoutCriteriaCannotBePublished() {
         InspectionSchema schema = new InspectionSchema(SchemaId.generate(), "Vacio", Fixtures.EXTINGUISHER);
-        schema.addSection(new Section("Sin criterios"));
+        schema.addSection("Sin criterios");
 
         assertThrows(DomainException.class, () -> schema.publish(NOW));
     }
@@ -43,6 +42,22 @@ class InspectionSchemaTest {
     void sectionNamesAreUnique() {
         InspectionSchema schema = Fixtures.extinguisherSchema();
 
-        assertThrows(IllegalArgumentException.class, () -> schema.addSection(new Section("Presion")));
+        assertThrows(IllegalArgumentException.class, () -> schema.addSection("Presion"));
+    }
+
+    @Test
+    void criterionCannotBeRepeatedAcrossSections() {
+        InspectionSchema schema = Fixtures.extinguisherSchema();
+        Criterion duplicated = new Criterion(PRESSURE, "Otra presion", new BooleanRule(true));
+
+        assertThrows(IllegalArgumentException.class, () -> schema.addCriterion("Senalizacion", duplicated));
+    }
+
+    @Test
+    void criterionMustGoIntoAnExistingSection() {
+        InspectionSchema schema = Fixtures.extinguisherSchema();
+        Criterion criterion = new Criterion(CriterionId.generate(), "Accesible", new BooleanRule(true));
+
+        assertThrows(IllegalArgumentException.class, () -> schema.addCriterion("Inexistente", criterion));
     }
 }

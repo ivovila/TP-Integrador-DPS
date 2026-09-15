@@ -8,17 +8,12 @@ import ar.edu.itba.certiflow.domain.model.asset.AssetType;
 public record SchemaVersion(SchemaId schemaId, int number, String name, AssetType assetType, List<Section> sections) {
 
     public SchemaVersion {
-        sections = sections.stream().map(Section::copy).toList();
-    }
-
-    @Override
-    public List<Section> sections() {
-        return sections.stream().map(Section::copy).toList();
+        sections = List.copyOf(sections);
     }
 
     public List<Criterion> criteria() {
         return sections.stream()
-                .flatMap(section -> section.getCriteria().stream())
+                .flatMap(section -> section.criteria().stream())
                 .toList();
     }
 

@@ -29,14 +29,14 @@ ar.edu.itba.certiflow
 │   │   │                  SchemaVersionPublished
 │   │   ├── inspection     Inspection, InspectionState (+ states/), Rectification,
 │   │   │                  InspectionEvaluation, CriterionResult, eventos
-│   │   ├── finding        Finding, Closure, CorrectiveAction, Verification, Severity,
-│   │   │                  eventos
+│   │   ├── finding        Finding, FindingDetails, Closure, CorrectiveAction, Verification,
+│   │   │                  Severity, eventos
 │   │   ├── certificate    Certificate, CertificateStatus, ValidityPeriod,
 │   │   │                  CertificationPolicy, SeverityCertificationPolicy, eventos
 │   │   ├── audit          AuditLog
 │   │   └── shared         PersonId, Response, Measurement, Evidence, EvidenceType,
 │   │                      DomainEvent, AggregateRoot, excepciones de dominio
-│   ├── rules              CriterionRule y sus implementaciones, CriterionOutcome
+│   ├── rules              CriterionRule, MeasurementRule, implementaciones, CriterionOutcome
 │   ├── ports              Repositorios, Clock, EventPublisher
 │   └── usecase            Un caso de uso = una clase con execute(...)
 └── test
@@ -113,15 +113,19 @@ No hay setters públicos en las entidades. No existe `inspection.setStatus(CLOSE
 
 Requisito: *"Una inspección debe conservar las reglas que estaban vigentes cuando fue iniciada, aun cuando posteriormente se publique una versión nueva."*
 
-**Decisión:** `InspectionSchema` es la plantilla editable (`addSection`, `Section.addCriterion`). Editarla no genera versiones. `publish()` copia secciones y criterios en una `SchemaVersion` **inmutable** con número correlativo; toda colección se expone como copia. Al **iniciar** una inspección, la inspección **guarda la `SchemaVersion` completa** vigente en ese momento, no su identificador.
+**Decisión:** `InspectionSchema` es la plantilla editable y la única puerta para modificarla: `addSection(name)` y `addCriterion(sectionName, criterion)`, que controla que la sección exista y que el `CriterionId` no se repita en todo el esquema. `Section` es un `record` inmutable; agregar un criterio reemplaza la sección por una nueva, así que nadie puede modificar el esquema a través de una sección obtenida con `getSections()`. Editar la plantilla no genera versiones. `publish()` crea una `SchemaVersion` **inmutable** con número correlativo. Al **iniciar** una inspección, la inspección **guarda la `SchemaVersion` completa** vigente en ese momento, no su identificador.
 
 ```java
 public class Inspection {
     private final SchemaId schemaId;
-    private SchemaVersion schema;
+    private InspectionState state;
     ...
 }
+
+public record InProgress(SchemaVersion schema) implements InspectionState { ... }
 ```
+
+Al asignar solo se conoce el `SchemaId`. La `SchemaVersion` la guarda el estado desde que la inspección se inicia (`InProgress`, `Closed`, `Rectified`); pedir el esquema de una inspección asignada lanza `InvalidTransitionException`.
 
 **Por qué al iniciar y no al asignar:** el enunciado habla de las reglas vigentes *cuando fue iniciada*. Una inspección asignada hoy y comenzada dentro de un mes debe usar la versión publicada en ese momento. Al asignar solo se valida que el esquema aplique al tipo del activo.
 
@@ -135,6 +139,7 @@ public class Inspection {
 |---|---|
 | Referencia por id a `SchemaVersion` | La inmutabilidad pasa a ser una convención, no una garantía. Es exactamente el bug que la consigna busca. |
 | Incrementar la versión con cada edición | Cada cambio intermedio de la plantilla generaba una versión que nadie publicó; las inspecciones podían tomar un esquema a medio editar. |
+| `Section` mutable con su propio `addCriterion` | La lista de secciones se copiaba, pero cada sección seguía siendo el mismo objeto: se podía agregar criterios salteando al agregado, y `SchemaVersion` (un `record`) comparaba secciones por identidad. |
 | Esquema inmutable construido con Builder | Obliga a reconstruir el esquema entero para agregar un criterio. La plantilla editable + `publish()` separa mejor "diseñar" de "poner en vigencia". |
 | Versionado por *soft delete* / flag `activo` sobre un único esquema mutable | Se pierde el histórico real: no se puede reconstruir qué criterios existían en una fecha dada. |
 | Event sourcing del esquema | Reconstruir la versión vigente en cada evaluación agrega complejidad sin beneficio en este alcance. |
@@ -150,7 +155,10 @@ Requisito: *"Determinación automática de criterios aprobados, observados o rec
 ```java
 public interface CriterionRule {
     CriterionOutcome evaluate(Response response);
-    default boolean accepts(Measurement measurement) { return false; }
+}
+
+public interface MeasurementRule extends CriterionRule {
+    boolean accepts(Measurement measurement);
 }
 ```
 
@@ -168,13 +176,15 @@ Cada `Criterion` tiene una `CriterionRule`. Implementaciones:
 
 La evidencia obligatoria es una regla más: un criterio "cartel visible con foto" es `CompositeRule.allOf(new BooleanRule(true), new RequiredEvidenceRule(Set.of(PHOTO)))`.
 
-**Agregación.** `Inspection.evaluate()` produce una `InspectionEvaluation` con un `CriterionResult` por criterio de la versión en vigor (un criterio sin respuesta se evalúa contra una respuesta vacía y queda rechazado). El resultado de una sección y el global son el peor resultado de sus criterios.
+**Agregación.** Al cerrar (y al rectificar) la inspección calcula una `InspectionEvaluation` y la guarda en su estado: un `CriterionResult` por criterio de la versión en vigor, con el resultado y la evidencia en la que se basó (un criterio sin respuesta se evalúa contra una respuesta vacía y queda rechazado). El resultado de una sección y el global son el peor resultado de sus criterios. La evaluación queda fija: `getEvaluation()` no recalcula, y hallazgos y certificados trabajan sobre ese resultado.
 
 **Principios aplicados:** Strategy (cada tipo de criterio encapsula su algoritmo), Composite (`CompositeRule` se usa igual que una regla simple), **Open/Closed** (agregar un tipo de criterio es agregar una clase; ningún archivo existente se modifica).
 
 **Por qué:** es el eje de extensibilidad del sistema. Una entidad de certificación agrega tipos de criterio permanentemente. La alternativa natural — un `switch (criterio.getTipo())` dentro de un `EvaluationService` — obliga a tocar y re-testear el mismo método en cada incorporación, y ese método crece sin techo.
 
-**Validación al registrar.** `accepts(Measurement)` permite que la inspección rechace, al momento de registrar, una medición que el criterio no evalúa (otra magnitud u otra unidad). Sin eso, un error de carga se descubriría recién al evaluar, como un rechazo silencioso.
+**Validación al registrar.** La inspección rechaza, al momento de registrar, una medición que el criterio no evalúa (otra magnitud u otra unidad). Sin eso, un error de carga se descubriría recién al evaluar, como un rechazo silencioso. Esa capacidad vive en `MeasurementRule`, que implementan `NumericRangeRule` y `CompositeRule` (acepta si alguna de sus reglas de medición acepta), y no en `CriterionRule` (**ISP**): `BooleanRule`, `EnumOptionRule` y `RequiredEvidenceRule` no heredan un método que no les corresponde.
+
+**Alternativa descartada — `default boolean accepts(Measurement)` en `CriterionRule`:** obligaba a todas las reglas a cargar con la validación de mediciones, y cada validación nueva al registrar (opciones, evidencias) iba a sumar otro método por defecto a la misma interfaz. Costo asumido de separarla: `Criterion` y `CompositeRule` preguntan `instanceof MeasurementRule`.
 
 **Alternativa descartada — Interpreter / DSL de reglas:** permitiría definir reglas como texto configurable sin recompilar, que es hacia dónde tiende un producto real. Se descartó para esta entrega porque requiere parser, validación y manejo de errores de expresión, y **Strategy+Composite ya cubre todos los tipos previstos**. Consecuencia: cuando el negocio pida reglas configurables por el usuario, habrá que escribir el intérprete; el diseño lo permite sin romper nada, porque el DSL solo necesita producir un `CriterionRule`.
 
@@ -204,13 +214,14 @@ Los condicionales que aparecen alrededor de un ciclo de vida no son todos iguale
 **Tipo 1 — guardas de transición.** "¿Puedo pasar de este estado a aquel?"
 
 - En `Certificate` la tabla de transiciones vive en el enum: cada constante declara `next()`, el conjunto de estados a los que puede pasar, y `isValid()`. El agregado tiene un único método privado `transitionTo(target, reason, now)` que valida contra la tabla, cambia el estado y registra `CertificateStatusChanged`. `suspend`, `reinstate`, `expire` y `renew` delegan en él. La máquina de estados completa se lee en el enum, hay un solo `if` de transición y el evento se registra en un solo lugar.
-- En `Inspection` se aplicó el patrón State (`InspectionState` + `inspection/states`). Ahí lo que varía entre estados no es solo a dónde se puede ir sino **qué operaciones admite**: registrar respuestas solo en curso, evaluar solo cerrada o rectificada, rectificar solo después del cierre. Cada estado sobrescribe lo que permite y el resto lo rechaza por defecto.
+- En `Inspection` se aplicó el patrón State (`InspectionState` + `inspection/states`). Ahí lo que varía entre estados no es solo a dónde se puede ir sino **qué operaciones admite**: registrar respuestas solo en curso, consultar la evaluación solo cerrada o rectificada, rectificar solo después del cierre. Cada estado es un `record`, sobrescribe lo que permite y el resto lo rechaza por defecto. Los estados guardan sus propios datos: `InProgress(schema)`, `Closed(schema, evaluation)`, `Rectified(schema, evaluation)`.
 
 **Tipo 2 — datos que solo existen en un estado.** Se modelan como un Value Object opcional en lugar de un enum más campos que quedan en `null`:
 
 - `CorrectiveAction` tiene una `Verification(verifier, verifiedAt)`; está verificada si la tiene.
 - `Finding` tiene un `Closure(closedAt)`; está abierto si no lo tiene.
 - `Certificate.getRenewedBy()` devuelve `Optional<CertificateId>`.
+- En `Inspection` el esquema y la evaluación viven dentro de los estados que los tienen, así que no hay campos que valgan `null` mientras la inspección está asignada o en curso.
 
 El estado *es* el dato, no una etiqueta paralela que hay que mantener sincronizada. La comprobación queda encapsulada en una sola consulta (`isVerified()`, `isOpen()`) que el resto del código usa sin conocer la implementación. Así desaparecieron `ActionStatus` y `FindingStatus`.
 
@@ -230,7 +241,7 @@ El estado *es* el dato, no una etiqueta paralela que hay que mantener sincroniza
 
 Requisito: *"Una inspección no puede alterarse libremente luego de cerrarse. Las correcciones posteriores deben realizarse mediante una rectificación auditable."*
 
-**Decisión:** una inspección cerrada es de solo lectura (`register` lanza `InvalidTransitionException`). Corregirla no la modifica: agrega una `Rectification` con autor, motivo, fecha y las respuestas corregidas por criterio. La inspección pasa a `Rectified` y conserva sus respuestas originales intactas (`getResponses()`). El resultado efectivo se resuelve como *original + rectificaciones aplicadas en orden* (`effectiveResponses()`), y es lo que usa `evaluate()`.
+**Decisión:** una inspección cerrada es de solo lectura (`register` lanza `InvalidTransitionException`). Corregirla no la modifica: agrega una `Rectification` con autor, motivo, fecha y las respuestas corregidas por criterio. La inspección pasa a `Rectified` y conserva sus respuestas originales intactas (`getResponses()`). El resultado efectivo se resuelve como *original + rectificaciones aplicadas en orden* (`effectiveResponses()`); cada rectificación recalcula la evaluación y el estado `Rectified` guarda la nueva.
 
 **Analogía de diseño:** el asiento de ajuste contable. No se borra ni se edita el asiento original; se emite uno nuevo que lo corrige, y ambos quedan en el libro.
 
@@ -250,7 +261,7 @@ Requisitos: *"Creación de no conformidades con severidad, evidencia y responsab
 
 **Decisión: la severidad es del hallazgo, no del criterio.** Un mismo criterio puede fallar de forma leve o grave; lo que tiene gravedad es el problema encontrado. `Criterion` no tiene severidad y `Severity` vive en `finding`.
 
-**Cómo nace un hallazgo:** el sistema determina *qué* criterios no aprobaron (evaluación); una persona levanta el hallazgo sobre uno de ellos indicando severidad, descripción y responsable. `Finding.raise(...)` rechaza un criterio aprobado y copia la evidencia registrada para ese criterio. El caso de uso impide dos hallazgos para el mismo criterio de una inspección.
+**Cómo nace un hallazgo:** el sistema determina *qué* criterios no aprobaron (evaluación); una persona levanta el hallazgo sobre uno de ellos indicando severidad, descripción y responsable. `Finding.raise(id, evaluation, details, inspectionFindings, now)` recibe la `InspectionEvaluation` fija (no el agregado `Inspection`), los datos que declara la persona (`FindingDetails`: criterio, severidad, descripción, responsable) y los hallazgos ya levantados en esa inspección. Rechaza un criterio aprobado, rechaza un segundo hallazgo para el mismo criterio y copia la evidencia del `CriterionResult`. Las dos reglas viven en el agregado: ningún caso de uso tiene que acordarse de validarlas.
 
 **Finding es un agregado propio**, separado de la inspección: la inspección se cierra y queda inmutable, pero el hallazgo sigue cambiando de estado durante semanas. `CorrectiveAction` es una entidad dentro del agregado `Finding`.
 
@@ -263,18 +274,20 @@ Requisitos: *"Creación de no conformidades con severidad, evidencia y responsab
 
 **Alternativa descartada — generar los hallazgos automáticamente con la severidad del criterio:** obligaba a fijar la gravedad al diseñar el esquema, sin mirar lo que realmente se encontró.
 
+**Alternativa descartada — validar el duplicado en el caso de uso:** así estaba al principio; cualquier otro camino para levantar hallazgos se salteaba la regla (modelo anémico).
+
 **Alternativa descartada — hallazgo como parte de la inspección:** su ciclo de vida posterior al cierre chocaría con la inmutabilidad de §7.
 
 ---
 
 ## 9. Certificación: política intercambiable
 
-**Decisión:** `Certificate.issue(...)` consulta una `CertificationPolicy` (Strategy) con la evaluación de la inspección y sus hallazgos. La implementación `SeverityCertificationPolicy(blockingSeverity)` permite certificar si:
+**Decisión:** `Certificate.issue(id, evaluation, inspectionFindings, policy, validity, now)` consulta una `CertificationPolicy` (Strategy) con la evaluación fija de la inspección y sus hallazgos. Si recibe hallazgos de otra inspección lanza `IllegalArgumentException` en vez de filtrarlos en silencio. La implementación `SeverityCertificationPolicy(blockingSeverity)` permite certificar si:
 
 1. todo criterio rechazado tiene un hallazgo levantado, y
 2. no hay hallazgos abiertos de severidad igual o mayor a la bloqueante.
 
-Los criterios observados no bloquean. Un hallazgo menor abierto tampoco, pero su acción correctiva vencida suspende el certificado (`SuspendForOverdueActions`).
+Los criterios observados no bloquean. Un hallazgo menor abierto tampoco, pero una acción correctiva vencida sin verificar suspende el certificado. Esa regla vive en el agregado: `Certificate.suspendIfActionsOverdue(assetFindings, now)` decide y suspende con el motivo `OVERDUE_ACTIONS`; el caso de uso `SuspendForOverdueActions` solo carga los datos, guarda y publica.
 
 **Renovación:** solo un certificado vigente (`ISSUED`) se renueva, con una nueva inspección del mismo activo que también debe cumplir la política. El certificado anterior queda `RENEWED` y apunta al nuevo.
 
@@ -342,7 +355,7 @@ Casos centrales cubiertos:
 | **SRP** | Casos de uso que orquestan; agregados que deciden; `AuditLog` que registra |
 | **OCP** | `CriterionRule`: tipos de criterio nuevos sin tocar código existente; `CertificationPolicy`: políticas nuevas sin tocar `Certificate`; eventos nuevos sin tocar `AuditLog` |
 | **LSP** | Todas las implementaciones de `CriterionRule` son intercambiables; `CompositeRule` es una más |
-| **ISP** | Ports chicos y específicos (`Clock` con un método; repositorios por agregado) |
+| **ISP** | Ports chicos y específicos (`Clock` con un método; repositorios por agregado); `MeasurementRule` separada de `CriterionRule` |
 | **DIP** | El dominio define las interfaces; la infraestructura las implementa |
 | **Tell, Don't Ask** | Métodos de intención en los agregados; sin setters públicos |
 | **Inmutabilidad** | `SchemaVersion` publicada, `Response`, `Rectification`, `Verification`, `Closure`, Value Objects, colecciones defensivas |

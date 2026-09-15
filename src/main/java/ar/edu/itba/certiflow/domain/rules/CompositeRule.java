@@ -5,7 +5,7 @@ import java.util.List;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
 
-public record CompositeRule(List<CriterionRule> rules) implements CriterionRule {
+public record CompositeRule(List<CriterionRule> rules) implements MeasurementRule {
 
     public CompositeRule {
         rules = List.copyOf(rules);
@@ -27,6 +27,7 @@ public record CompositeRule(List<CriterionRule> rules) implements CriterionRule 
 
     @Override
     public boolean accepts(Measurement measurement) {
-        return rules.stream().anyMatch(rule -> rule.accepts(measurement));
+        return rules.stream()
+                .anyMatch(rule -> rule instanceof MeasurementRule measurementRule && measurementRule.accepts(measurement));
     }
 }

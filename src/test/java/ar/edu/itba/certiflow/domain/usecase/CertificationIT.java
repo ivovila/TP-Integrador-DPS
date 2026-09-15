@@ -21,6 +21,7 @@ import ar.edu.itba.certiflow.domain.model.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionPlanned;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionVerified;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
+import ar.edu.itba.certiflow.domain.model.finding.FindingDetails;
 import ar.edu.itba.certiflow.domain.model.finding.FindingClosed;
 import ar.edu.itba.certiflow.domain.model.finding.FindingRaised;
 import ar.edu.itba.certiflow.domain.model.finding.Severity;
@@ -71,8 +72,7 @@ class CertificationIT {
     void openCriticalFindingBlocksTheCertificateUntilItIsCorrected() {
         InspectionId id = inspect("14");
         ctx.closeInspection.execute(id);
-        Finding finding = ctx.raiseFinding.execute(id, PRESSURE, Severity.CRITICAL,
-                "Presion por encima del maximo admitido", responsible);
+        Finding finding = ctx.raiseFinding.execute(id, new FindingDetails(PRESSURE, Severity.CRITICAL, "Presion por encima del maximo admitido", responsible));
 
         assertThrows(DomainException.class, () -> ctx.issueCertificate.execute(id, oneYear()));
 
@@ -112,18 +112,17 @@ class CertificationIT {
     void findingCannotBeRaisedTwiceForTheSameCriterion() {
         InspectionId id = inspect("14");
         ctx.closeInspection.execute(id);
-        ctx.raiseFinding.execute(id, PRESSURE, Severity.MINOR, "Presion alta", responsible);
+        ctx.raiseFinding.execute(id, new FindingDetails(PRESSURE, Severity.MINOR, "Presion alta", responsible));
 
         assertThrows(DomainException.class,
-                () -> ctx.raiseFinding.execute(id, PRESSURE, Severity.MAJOR, "Presion alta", responsible));
+                () -> ctx.raiseFinding.execute(id, new FindingDetails(PRESSURE, Severity.MAJOR, "Presion alta", responsible)));
     }
 
     @Test
     void overdueCorrectiveActionSuspendsTheCertificate() {
         InspectionId id = inspect("14");
         ctx.closeInspection.execute(id);
-        Finding finding = ctx.raiseFinding.execute(id, PRESSURE, Severity.MINOR, "Presion levemente alta",
-                responsible);
+        Finding finding = ctx.raiseFinding.execute(id, new FindingDetails(PRESSURE, Severity.MINOR, "Presion levemente alta", responsible));
         ctx.planAction.execute(finding.getId(), "Ajustar valvula", responsible, ctx.clock.today().plusDays(30));
         Certificate certificate = ctx.issueCertificate.execute(id, oneYear());
 

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import ar.edu.itba.certiflow.domain.model.asset.Asset;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
+import ar.edu.itba.certiflow.domain.model.finding.FindingDetails;
 import ar.edu.itba.certiflow.domain.model.finding.FindingId;
 import ar.edu.itba.certiflow.domain.model.finding.Severity;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
@@ -40,12 +41,13 @@ class CertificateTest {
     }
 
     private Certificate issued() {
-        return Certificate.issue(CertificateId.generate(), approvedInspection(), List.of(), policy, oneYear, NOW);
+        return Certificate.issue(CertificateId.generate(), approvedInspection().getEvaluation(), List.of(), policy,
+                oneYear, NOW);
     }
 
     private Finding findingOn(Inspection inspection, Severity severity) {
-        return Finding.raise(FindingId.generate(), inspection, PRESSURE, severity, "Presion fuera de rango",
-                PersonId.generate(), NOW);
+        return Finding.raise(FindingId.generate(), inspection.getEvaluation(),
+                new FindingDetails(PRESSURE, severity, "Presion fuera de rango", PersonId.generate()), List.of(), NOW);
     }
 
     @Test
@@ -54,7 +56,7 @@ class CertificateTest {
         List<Finding> findings = List.of(findingOn(inspection, Severity.CRITICAL));
 
         assertThrows(DomainException.class,
-                () -> Certificate.issue(CertificateId.generate(), inspection, findings, policy, oneYear, NOW));
+                () -> Certificate.issue(CertificateId.generate(), inspection.getEvaluation(), findings, policy, oneYear, NOW));
     }
 
     @Test
@@ -62,7 +64,7 @@ class CertificateTest {
         Inspection inspection = rejectedInspection();
 
         assertThrows(DomainException.class,
-                () -> Certificate.issue(CertificateId.generate(), inspection, List.of(), policy, oneYear, NOW));
+                () -> Certificate.issue(CertificateId.generate(), inspection.getEvaluation(), List.of(), policy, oneYear, NOW));
     }
 
     @Test
@@ -70,10 +72,19 @@ class CertificateTest {
         Inspection inspection = rejectedInspection();
         List<Finding> findings = List.of(findingOn(inspection, Severity.MINOR));
 
-        Certificate certificate = Certificate.issue(CertificateId.generate(), inspection, findings, policy,
+        Certificate certificate = Certificate.issue(CertificateId.generate(), inspection.getEvaluation(), findings, policy,
                 oneYear, NOW);
 
         assertTrue(certificate.isValidOn(NOW.toLocalDate()));
+    }
+
+    @Test
+    void findingsFromAnotherInspectionAreRejected() {
+        Inspection approved = approvedInspection();
+        List<Finding> foreign = List.of(findingOn(rejectedInspection(), Severity.MINOR));
+
+        assertThrows(IllegalArgumentException.class, () -> Certificate.issue(CertificateId.generate(),
+                approved.getEvaluation(), foreign, policy, oneYear, NOW));
     }
 
     @Test
@@ -93,7 +104,7 @@ class CertificateTest {
         certificate.suspend("Accion correctiva vencida", NOW);
 
         assertThrows(InvalidTransitionException.class, () -> certificate.renew(CertificateId.generate(),
-                approvedInspection(), List.of(), policy, oneYear, NOW));
+                approvedInspection().getEvaluation(), List.of(), policy, oneYear, NOW));
     }
 
     @Test
@@ -117,7 +128,7 @@ class CertificateTest {
         Certificate current = issued();
         CertificateId newId = CertificateId.generate();
 
-        Certificate renewed = current.renew(newId, approvedInspection(), List.of(), policy,
+        Certificate renewed = current.renew(newId, approvedInspection().getEvaluation(), List.of(), policy,
                 ValidityPeriod.ofYears(NOW.toLocalDate().plusYears(1), 1), NOW.plusMonths(11));
 
         assertEquals(CertificateStatus.RENEWED, current.getStatus());
