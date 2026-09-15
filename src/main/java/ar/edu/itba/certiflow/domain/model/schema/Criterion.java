@@ -1,29 +1,17 @@
 package ar.edu.itba.certiflow.domain.model.schema;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-
-import ar.edu.itba.certiflow.domain.model.finding.Severity;
-import ar.edu.itba.certiflow.domain.model.shared.Answer;
-import ar.edu.itba.certiflow.domain.model.shared.EvidenceType;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
-import ar.edu.itba.certiflow.domain.rules.ApprovalRule;
+import ar.edu.itba.certiflow.domain.model.shared.Response;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
+import ar.edu.itba.certiflow.domain.rules.CriterionRule;
 
-public record Criterion(CriterionId id, String description, Severity severity, Set<EvidenceType> requiredEvidence, List<ApprovalRule> approvalRules) {
-    public Criterion {
-        requiredEvidence = Set.copyOf(requiredEvidence);
-        approvalRules = List.copyOf(approvalRules);
-    }
-    public boolean expects(Measurement measurement) {
-        return approvalRules.stream().anyMatch(rule -> rule.accepts(measurement));
+public record Criterion(CriterionId id, String description, CriterionRule rule) {
+
+    public boolean accepts(Measurement measurement) {
+        return rule.accepts(measurement);
     }
 
-    public CriterionOutcome evaluate(List<Answer> answers, List<Measurement> measurements) {
-        return approvalRules.stream()
-                .map(rule -> rule.evaluate(answers, measurements))
-                .max(Comparator.naturalOrder())
-                .orElse(CriterionOutcome.APPROVED);
+    public CriterionOutcome evaluate(Response response) {
+        return rule.evaluate(response);
     }
 }

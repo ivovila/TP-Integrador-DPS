@@ -2,11 +2,11 @@ package ar.edu.itba.certiflow.domain.model.inspection.states;
 
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionState;
 
-public class Closed implements InspectionState {
+public class Rectified implements InspectionState {
 
     @Override
     public InspectionState rectify() {
-        return new Rectified();
+        return this;
     }
 
     @Override

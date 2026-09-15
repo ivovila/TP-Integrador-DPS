@@ -1,23 +1,29 @@
 package ar.edu.itba.certiflow.domain.rules;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.List;
 
-import ar.edu.itba.certiflow.domain.model.shared.Answer;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
+import ar.edu.itba.certiflow.domain.model.shared.Response;
 
-public record MeasurementRangeRule(String magnitude, String unit,
-                                   BigDecimal min, BigDecimal max, BigDecimal tolerance)
-        implements ApprovalRule {
+public record NumericRangeRule(String magnitude, String unit,
+                               BigDecimal min, BigDecimal max, BigDecimal tolerance)
+        implements CriterionRule {
+
+    public NumericRangeRule {
+        if (min.compareTo(max) > 0) {
+            throw new IllegalArgumentException("El minimo no puede superar al maximo");
+        }
+        if (tolerance.signum() < 0) {
+            throw new IllegalArgumentException("La tolerancia no puede ser negativa");
+        }
+    }
 
     @Override
-    public CriterionOutcome evaluate(List<Answer> answers, List<Measurement> measurements) {
-        return measurements.stream()
+    public CriterionOutcome evaluate(Response response) {
+        return response.measurement()
                 .filter(this::accepts)
                 .map(m -> classify(m.value()))
-                .max(Comparator.naturalOrder())
-                .orElse(CriterionOutcome.OBSERVED);
+                .orElse(CriterionOutcome.REJECTED);
     }
 
     @Override
