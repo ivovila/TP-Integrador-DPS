@@ -226,7 +226,7 @@ Los condicionales que aparecen alrededor de un ciclo de vida no son todos iguale
 
 **Tipo 1 — guardas de transición.** "¿Puedo pasar de este estado a aquel?"
 
-- En `Certificate` la tabla de transiciones vive en el enum: cada constante declara `next()`, el conjunto de estados a los que puede pasar, y `isValid()`. El agregado tiene un único método privado `transitionTo(target, reason, now)` que valida contra la tabla, cambia el estado y registra `CertificateStatusChanged`. `suspend`, `reinstate`, `expire` y `renew` delegan en él. La máquina de estados completa se lee en el enum, hay un solo `if` de transición y el evento se registra en un solo lugar.
+- En `Certificate` la tabla de transiciones vive en el enum: cada constante declara `next()`, el conjunto de estados a los que puede pasar, y `isValid()`. El agregado tiene un único método privado `transitionTo(target, event)` que valida contra la tabla, cambia el estado y registra el evento que le pasa cada transición (`CertificateSuspended` con su motivo, o `CertificateStatusChanged` con origen y destino). Así ninguna transición pasa `null` para un dato que no tiene. `suspend`, `reinstate`, `expire` y `renew` delegan en él. La máquina de estados completa se lee en el enum, hay un solo `if` de transición y el evento se registra en un solo lugar.
 - En `Inspection` se aplicó el patrón State (`InspectionState` + `inspection/states`). Ahí lo que varía entre estados no es solo a dónde se puede ir sino **qué operaciones admite**: registrar respuestas solo en curso, consultar la evaluación solo cerrada o rectificada, rectificar solo después del cierre. Cada estado es un `record`, sobrescribe lo que permite y el resto lo rechaza por defecto. Los estados guardan sus propios datos: `InProgress(schema)`, `Closed(schema, evaluation)`, `Rectified(schema, evaluation)`.
 
 **Tipo 2 — datos que solo existen en un estado.** Se modelan como un Value Object opcional en lugar de un enum más campos que quedan en `null`:
@@ -254,7 +254,7 @@ El estado *es* el dato, no una etiqueta paralela que hay que mantener sincroniza
 
 Requisito: *"Una inspección no puede alterarse libremente luego de cerrarse. Las correcciones posteriores deben realizarse mediante una rectificación auditable."*
 
-**Decisión:** una inspección cerrada es de solo lectura (`register` lanza `InvalidTransitionException`). Corregirla no la modifica: agrega una `Rectification` con autor, motivo, fecha y las respuestas corregidas por criterio. La inspección pasa a `Rectified` y conserva sus respuestas originales intactas (`getResponses()`). El resultado efectivo se resuelve como *original + rectificaciones aplicadas en orden* (`effectiveResponses()`); cada rectificación recalcula la evaluación y el estado `Rectified` guarda la nueva.
+**Decisión:** una inspección cerrada es de solo lectura (`register` lanza `InvalidTransitionException`). Corregirla no la modifica: agrega una `Rectification` con autor, motivo, fecha y las respuestas corregidas por criterio. La inspección pasa a `Rectified` y conserva sus respuestas originales intactas (`getOriginalResponses()`). Las respuestas vigentes se resuelven como *original + rectificaciones aplicadas en orden* (`getResponses()`); cada rectificación recalcula la evaluación y el estado `Rectified` guarda la nueva.
 
 **Analogía de diseño:** el asiento de ajuste contable. No se borra ni se edita el asiento original; se emite uno nuevo que lo corrige, y ambos quedan en el libro.
 
@@ -334,7 +334,9 @@ El acta solo se puede generar de una inspección cerrada o rectificada: usa la e
 
 Requisito: *"Historial de modificaciones, decisiones y transiciones."*
 
-Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPublished`, `InspectionStarted`, `InspectionClosed`, `InspectionRectified`, `FindingRaised`, `CorrectiveActionPlanned`, `CorrectiveActionVerified`, `FindingClosed`, `CertificateIssued` y `CertificateStatusChanged` (con estado de origen, destino y motivo). El caso de uso los retira con `pullEvents()` y los publica a través del port `EventPublisher`; un `AuditLog` **append-only** los guarda tal cual y permite consultar el historial de un agregado (`history(aggregateId)`).
+Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPublished`, `InspectionStarted`, `InspectionClosed`, `InspectionRectified`, `FindingRaised`, `CorrectiveActionPlanned`, `CorrectiveActionVerified`, `FindingClosed`, `CertificateIssued`, `CertificateSuspended` (con el motivo) y `CertificateStatusChanged` (con estado de origen y destino). El caso de uso los publica con `events.publishFrom(aggregate)`; un `AuditLog` **append-only** los guarda tal cual y permite consultar el historial de un agregado (`history(aggregateId)`).
+
+**Ids de agregado tipados en los eventos.** `DomainEvent.aggregateId()` devuelve un `AggregateId`, interfaz que implementan `AssetId`, `SchemaId`, `InspectionId`, `FindingId` y `CertificateId`. El historial se consulta con el id tipado, no con un texto: `history(findingId)` no puede confundirse con el historial de una inspección que tenga el mismo UUID.
 
 **Principio aplicado:** Observer / Domain Events, y **SRP**: los agregados expresan qué pasó; no saben ni les importa quién lo registra.
 
@@ -344,7 +346,7 @@ Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPu
 
 **Alternativa descartada:** convertir cada evento en una `AuditEntry` con campos propios. Duplicaba los datos que el evento ya tiene y obtenía el tipo por reflexión; el evento de dominio ya es el registro de auditoría.
 
-**Alternativa descartada:** un evento por cada transición del certificado (`CertificateSuspended`, `CertificateReinstated`, …). Todas llevan la misma información; `CertificateStatusChanged` evita cuatro clases idénticas y el tipo de transición queda en `from`/`to`.
+**Alternativa descartada:** un evento por cada transición del certificado (`CertificateReinstated`, `CertificateExpired`, …). Salvo la suspensión, todas llevan la misma información; `CertificateStatusChanged` evita clases idénticas y el tipo de transición queda en `from`/`to`. La suspensión tiene su propio evento porque es la única con un dato propio (el motivo).
 
 **Costo asumido:** los eventos se publican dentro del caso de uso, no en el agregado, para no darle al modelo una dependencia con el publisher. El agregado *acumula* los eventos (`AggregateRoot`) y el caso de uso los publica con `events.publishFrom(aggregate)` después de guardar. El riesgo de que un caso de uso nuevo olvide publicar queda reducido a una línea, pero no eliminado. En la Entrega 2 se cierra con una *transactional outbox*: el adaptador de persistencia guarda el agregado y sus eventos en la misma transacción.
 

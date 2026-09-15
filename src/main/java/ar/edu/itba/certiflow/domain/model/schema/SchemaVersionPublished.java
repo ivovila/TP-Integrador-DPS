@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 public record SchemaVersionPublished(SchemaId schemaId, int number, LocalDateTime occurredAt) implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return schemaId.value().toString();
+    public SchemaId aggregateId() {
+        return schemaId;
     }
 }

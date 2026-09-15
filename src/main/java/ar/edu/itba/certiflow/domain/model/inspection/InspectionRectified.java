@@ -9,7 +9,7 @@ public record InspectionRectified(InspectionId inspectionId, PersonId author, St
                                   LocalDateTime occurredAt) implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return inspectionId.value().toString();
+    public InspectionId aggregateId() {
+        return inspectionId;
     }
 }

@@ -17,7 +17,7 @@ public record SeverityCertificationPolicy(Severity blockingSeverity) implements 
         Set<CriterionId> covered = findings.stream()
                 .map(Finding::getCriterion)
                 .collect(Collectors.toSet());
-        boolean everyRejectionHasFinding = covered.containsAll(evaluation.withOutcome(CriterionOutcome.REJECTED));
+        boolean everyRejectionHasFinding = covered.containsAll(evaluation.criteriaWith(CriterionOutcome.REJECTED));
         boolean noBlockingFindingOpen = findings.stream()
                 .filter(Finding::isOpen)
                 .noneMatch(finding -> finding.getSeverity().isAtLeast(blockingSeverity));

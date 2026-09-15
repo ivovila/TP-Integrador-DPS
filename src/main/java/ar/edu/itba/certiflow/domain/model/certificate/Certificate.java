@@ -10,6 +10,7 @@ import ar.edu.itba.certiflow.domain.model.finding.Finding;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionEvaluation;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
+import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
 import lombok.Getter;
@@ -50,18 +51,18 @@ public class Certificate extends AggregateRoot {
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("La suspension requiere un motivo");
         }
-        transitionTo(CertificateStatus.SUSPENDED, reason, now);
+        transitionTo(CertificateStatus.SUSPENDED, new CertificateSuspended(id, reason, now));
     }
 
     public void reinstate(LocalDateTime now) {
-        transitionTo(CertificateStatus.ISSUED, null, now);
+        transitionTo(CertificateStatus.ISSUED, statusChange(CertificateStatus.ISSUED, now));
     }
 
     public void expire(LocalDateTime now) {
         if (!validity.hasEndedBy(now.toLocalDate())) {
             throw new DomainException("El certificado sigue vigente hasta " + validity.until());
         }
-        transitionTo(CertificateStatus.EXPIRED, null, now);
+        transitionTo(CertificateStatus.EXPIRED, statusChange(CertificateStatus.EXPIRED, now));
     }
 
     public Certificate renew(CertificateId newId, InspectionEvaluation renewal, List<Finding> renewalFindings,
@@ -70,7 +71,7 @@ public class Certificate extends AggregateRoot {
             throw new DomainException("La inspeccion de renovacion corresponde a otro activo");
         }
         Certificate renewed = issue(newId, renewal, renewalFindings, policy, newValidity, now);
-        transitionTo(CertificateStatus.RENEWED, null, now);
+        transitionTo(CertificateStatus.RENEWED, statusChange(CertificateStatus.RENEWED, now));
         renewedBy = newId;
         return renewed;
     }
@@ -96,12 +97,15 @@ public class Certificate extends AggregateRoot {
         return Optional.ofNullable(renewedBy);
     }
 
-    private void transitionTo(CertificateStatus target, String reason, LocalDateTime now) {
+    private void transitionTo(CertificateStatus target, DomainEvent event) {
         if (!status.next().contains(target)) {
             throw new InvalidTransitionException("El certificado no puede pasar de " + status + " a " + target);
         }
-        CertificateStatus previous = status;
         status = target;
-        recordEvent(new CertificateStatusChanged(id, previous, target, reason, now));
+        recordEvent(event);
+    }
+
+    private CertificateStatusChanged statusChange(CertificateStatus target, LocalDateTime now) {
+        return new CertificateStatusChanged(id, status, target, now);
     }
 }

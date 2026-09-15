@@ -37,7 +37,7 @@ public record InspectionEvaluation(InspectionId inspection, AssetId asset, List<
                 .reduce(CriterionOutcome.APPROVED, CriterionOutcome::worst);
     }
 
-    public List<CriterionId> withOutcome(CriterionOutcome outcome) {
+    public List<CriterionId> criteriaWith(CriterionOutcome outcome) {
         return results.stream()
                 .filter(result -> result.outcome() == outcome)
                 .map(CriterionResult::criterionId)

@@ -123,8 +123,8 @@ class InspectionLifecycleIT {
 
         Inspection inspection = ctx.inspections.findById(id).orElseThrow();
         assertEquals(CriterionOutcome.APPROVED, corrected.overall());
-        assertEquals(pressure("14"), inspection.getResponses().get(PRESSURE).measurement().orElseThrow());
+        assertEquals(pressure("14"), inspection.getOriginalResponses().get(PRESSURE).measurement().orElseThrow());
         assertEquals(List.of(InspectionStarted.class, InspectionClosed.class, InspectionRectified.class),
-                ctx.audit.history(id.value().toString()).stream().map(Object::getClass).toList());
+                ctx.audit.history(id).stream().map(Object::getClass).toList());
     }
 }

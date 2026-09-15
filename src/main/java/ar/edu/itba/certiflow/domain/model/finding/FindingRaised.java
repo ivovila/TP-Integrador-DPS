@@ -9,7 +9,7 @@ public record FindingRaised(FindingId findingId, InspectionId inspectionId, Seve
                             LocalDateTime occurredAt) implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return findingId.value().toString();
+    public FindingId aggregateId() {
+        return findingId;
     }
 }

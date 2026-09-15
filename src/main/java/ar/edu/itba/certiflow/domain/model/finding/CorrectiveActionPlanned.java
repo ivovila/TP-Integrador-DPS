@@ -9,7 +9,7 @@ public record CorrectiveActionPlanned(FindingId findingId, CorrectiveActionId ac
                                       LocalDateTime occurredAt) implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return findingId.value().toString();
+    public FindingId aggregateId() {
+        return findingId;
     }
 }

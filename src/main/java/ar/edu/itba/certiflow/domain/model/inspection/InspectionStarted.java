@@ -8,7 +8,7 @@ public record InspectionStarted(InspectionId inspectionId, int schemaVersion, Lo
         implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return inspectionId.value().toString();
+    public InspectionId aggregateId() {
+        return inspectionId;
     }
 }

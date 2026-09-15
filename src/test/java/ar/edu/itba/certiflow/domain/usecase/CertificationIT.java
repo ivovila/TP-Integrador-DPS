@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 
 import ar.edu.itba.certiflow.domain.model.asset.Asset;
 import ar.edu.itba.certiflow.domain.model.certificate.Certificate;
+import ar.edu.itba.certiflow.domain.model.certificate.CertificateIssued;
 import ar.edu.itba.certiflow.domain.model.certificate.CertificateStatus;
+import ar.edu.itba.certiflow.domain.model.certificate.CertificateSuspended;
 import ar.edu.itba.certiflow.domain.model.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionPlanned;
@@ -86,7 +88,7 @@ class CertificationIT {
         assertEquals(CertificateStatus.ISSUED, certificate.getStatus());
         assertEquals(List.of(FindingRaised.class, CorrectiveActionPlanned.class, CorrectiveActionVerified.class,
                         FindingClosed.class),
-                ctx.audit.history(finding.getId().value().toString()).stream().map(Object::getClass).toList());
+                ctx.audit.history(finding.getId()).stream().map(Object::getClass).toList());
     }
 
     @Test
@@ -134,6 +136,8 @@ class CertificationIT {
 
         assertEquals(List.of(certificate), suspended);
         assertEquals(CertificateStatus.SUSPENDED, certificate.getStatus());
+        assertEquals(List.of(CertificateIssued.class, CertificateSuspended.class),
+                ctx.audit.history(certificate.getId()).stream().map(Object::getClass).toList());
     }
 
     @Test

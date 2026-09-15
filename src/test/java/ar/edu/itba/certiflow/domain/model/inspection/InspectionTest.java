@@ -116,7 +116,7 @@ class InspectionTest {
                 Map.of(PRESSURE, pressureResponse("11"))));
 
         assertInstanceOf(Rectified.class, inspection.getState());
-        assertEquals(pressureResponse("14").measurement(), inspection.getResponses().get(PRESSURE).measurement());
+        assertEquals(pressureResponse("14").measurement(), inspection.getOriginalResponses().get(PRESSURE).measurement());
         assertEquals(CriterionOutcome.APPROVED, inspection.getEvaluation().overall());
         assertEquals(1, inspection.getRectifications().size());
     }

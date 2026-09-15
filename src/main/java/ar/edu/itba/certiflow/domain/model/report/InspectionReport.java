@@ -30,7 +30,7 @@ public record InspectionReport(InspectionId inspection, AssetId asset, String sc
     public static InspectionReport of(Inspection inspection) {
         InspectionEvaluation evaluation = inspection.getEvaluation();
         SchemaVersion schema = inspection.getSchema();
-        Map<CriterionId, Response> responses = inspection.effectiveResponses();
+        Map<CriterionId, Response> responses = inspection.getResponses();
         List<SectionLine> sections = schema.sections().stream()
                 .map(section -> sectionLine(section, evaluation, responses))
                 .toList();

@@ -9,7 +9,7 @@ public record CertificateIssued(CertificateId certificateId, AssetId assetId, Va
                                 LocalDateTime occurredAt) implements DomainEvent {
 
     @Override
-    public String aggregateId() {
-        return certificateId.value().toString();
+    public CertificateId aggregateId() {
+        return certificateId;
     }
 }

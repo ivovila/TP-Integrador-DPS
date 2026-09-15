@@ -33,7 +33,7 @@ public class Inspection extends AggregateRoot {
     private final LocalDate scheduledDate;
     private final String scope;
     private InspectionState state = new Assigned();
-    private final Map<CriterionId, Response> responses = new LinkedHashMap<>();
+    private final Map<CriterionId, Response> originalResponses = new LinkedHashMap<>();
     private final List<Rectification> rectifications = new ArrayList<>();
 
     private Inspection(InspectionId id, AssetId asset, SchemaId schemaId, PersonId inspector,
@@ -65,22 +65,22 @@ public class Inspection extends AggregateRoot {
 
     public void register(CriterionId criterionId, Response response) {
         state.checkCanRegister();
-        checkApplies(criterionId, response);
-        responses.put(criterionId, response);
+        checkBelongsToSchema(criterionId, response);
+        originalResponses.put(criterionId, response);
     }
 
     public Response responseFor(CriterionId criterionId) {
-        return effectiveResponses().getOrDefault(criterionId, Response.empty());
+        return getResponses().getOrDefault(criterionId, Response.empty());
     }
 
     public void close(LocalDateTime now) {
-        state = state.close(evaluate(effectiveResponses()));
+        state = state.close(evaluate(getResponses()));
         recordEvent(new InspectionClosed(id, now));
     }
 
     public void rectify(Rectification rectification) {
-        rectification.corrections().forEach(this::checkApplies);
-        Map<CriterionId, Response> corrected = new LinkedHashMap<>(effectiveResponses());
+        rectification.corrections().forEach(this::checkBelongsToSchema);
+        Map<CriterionId, Response> corrected = new LinkedHashMap<>(getResponses());
         corrected.putAll(rectification.corrections());
         state = state.rectify(evaluate(corrected));
         rectifications.add(rectification);
@@ -96,14 +96,14 @@ public class Inspection extends AggregateRoot {
         return state.evaluation();
     }
 
-    public Map<CriterionId, Response> effectiveResponses() {
-        Map<CriterionId, Response> effective = new LinkedHashMap<>(responses);
+    public Map<CriterionId, Response> getResponses() {
+        Map<CriterionId, Response> effective = new LinkedHashMap<>(originalResponses);
         rectifications.forEach(rectification -> effective.putAll(rectification.corrections()));
         return Collections.unmodifiableMap(effective);
     }
 
-    public Map<CriterionId, Response> getResponses() {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(responses));
+    public Map<CriterionId, Response> getOriginalResponses() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(originalResponses));
     }
 
     public List<Rectification> getRectifications() {
@@ -122,7 +122,7 @@ public class Inspection extends AggregateRoot {
         return new InspectionEvaluation(id, asset, results);
     }
 
-    private void checkApplies(CriterionId criterionId, Response response) {
+    private void checkBelongsToSchema(CriterionId criterionId, Response response) {
         Criterion criterion = getSchema().findCriterion(criterionId)
                 .orElseThrow(() -> new DomainException("El criterio no pertenece al esquema de la inspeccion"));
         response.measurement()

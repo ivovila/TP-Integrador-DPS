@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public interface DomainEvent {
 
-    String aggregateId();
+    AggregateId aggregateId();
 
     LocalDateTime occurredAt();
 }
