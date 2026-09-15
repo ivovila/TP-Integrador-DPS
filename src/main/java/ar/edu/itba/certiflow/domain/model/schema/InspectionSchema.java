@@ -7,18 +7,23 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetType;
-import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
+import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
+import ar.edu.itba.certiflow.domain.model.shared.EventSource;
+import ar.edu.itba.certiflow.domain.model.shared.PendingEvents;
+import lombok.AccessLevel;
 import lombok.Getter;
 
 @Getter
-public class InspectionSchema extends AggregateRoot {
+public class InspectionSchema implements EventSource {
 
     private final SchemaId id;
     private final String name;
     private final AssetType assetType;
     private final List<Section> sections = new ArrayList<>();
     private final List<SchemaVersion> versions = new ArrayList<>();
+    @Getter(AccessLevel.NONE)
+    private final PendingEvents events = new PendingEvents();
 
     public InspectionSchema(SchemaId id, String name, AssetType assetType) {
         this.id = id;
@@ -52,7 +57,7 @@ public class InspectionSchema extends AggregateRoot {
         }
         SchemaVersion version = new SchemaVersion(id, versions.size() + 1, name, assetType, sections);
         versions.add(version);
-        recordEvent(new SchemaVersionPublished(id, version.number(), now));
+        events.add(new SchemaVersionPublished(id, version.number(), now));
         return version;
     }
 
@@ -73,5 +78,10 @@ public class InspectionSchema extends AggregateRoot {
                 .filter(i -> sections.get(i).name().equals(sectionName))
                 .boxed()
                 .findFirst();
+    }
+
+    @Override
+    public List<DomainEvent> pullEvents() {
+        return events.pull();
     }
 }

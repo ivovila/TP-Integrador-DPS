@@ -17,15 +17,18 @@ import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.model.schema.SchemaId;
 import ar.edu.itba.certiflow.domain.model.schema.SchemaVersion;
 import ar.edu.itba.certiflow.domain.model.schema.Section;
-import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
+import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
+import ar.edu.itba.certiflow.domain.model.shared.EventSource;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
+import ar.edu.itba.certiflow.domain.model.shared.PendingEvents;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
+import lombok.AccessLevel;
 import lombok.Getter;
 
 @Getter
-public class Inspection extends AggregateRoot {
+public class Inspection implements EventSource {
 
     private final InspectionId id;
     private final AssetId asset;
@@ -36,6 +39,8 @@ public class Inspection extends AggregateRoot {
     private InspectionState state = new Assigned();
     private final Map<CriterionId, Response> originalResponses = new LinkedHashMap<>();
     private final List<Rectification> rectifications = new ArrayList<>();
+    @Getter(AccessLevel.NONE)
+    private final PendingEvents events = new PendingEvents();
 
     private Inspection(InspectionId id, AssetId asset, SchemaId schemaId, PersonId inspector,
                        LocalDate scheduledDate, String scope) {
@@ -61,7 +66,7 @@ public class Inspection extends AggregateRoot {
             throw new DomainException("La version no corresponde al esquema asignado");
         }
         state = state.start(currentVersion);
-        recordEvent(new InspectionStarted(id, currentVersion.number(), now));
+        events.add(new InspectionStarted(id, currentVersion.number(), now));
     }
 
     public void register(CriterionId criterionId, Response response) {
@@ -76,7 +81,7 @@ public class Inspection extends AggregateRoot {
 
     public void close(LocalDateTime now) {
         state = state.close(evaluate(getResponses()));
-        recordEvent(new InspectionClosed(id, now));
+        events.add(new InspectionClosed(id, now));
     }
 
     public void rectify(Rectification rectification) {
@@ -85,7 +90,7 @@ public class Inspection extends AggregateRoot {
         corrected.putAll(rectification.corrections());
         state = state.rectify(evaluate(corrected));
         rectifications.add(rectification);
-        recordEvent(new InspectionRectified(id, rectification.author(), rectification.reason(),
+        events.add(new InspectionRectified(id, rectification.author(), rectification.reason(),
                 rectification.rectifiedAt()));
     }
 
@@ -133,5 +138,10 @@ public class Inspection extends AggregateRoot {
                     throw new DomainException("El criterio no evalua la medicion '"
                             + measurement.magnitude() + "' en " + measurement.unit());
                 });
+    }
+
+    @Override
+    public List<DomainEvent> pullEvents() {
+        return events.pull();
     }
 }

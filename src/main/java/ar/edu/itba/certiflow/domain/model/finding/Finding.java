@@ -11,17 +11,20 @@ import ar.edu.itba.certiflow.domain.model.inspection.CriterionResult;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionEvaluation;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
-import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
+import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
+import ar.edu.itba.certiflow.domain.model.shared.EventSource;
 import ar.edu.itba.certiflow.domain.model.shared.Evidence;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
 import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
+import ar.edu.itba.certiflow.domain.model.shared.PendingEvents;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
+import lombok.AccessLevel;
 import lombok.Getter;
 
 @Getter
-public class Finding extends AggregateRoot {
+public class Finding implements EventSource {
 
     private final FindingId id;
     private final InspectionId inspection;
@@ -34,6 +37,8 @@ public class Finding extends AggregateRoot {
     private final LocalDateTime raisedAt;
     private Closure closure;
     private final List<CorrectiveAction> actions = new ArrayList<>();
+    @Getter(AccessLevel.NONE)
+    private final PendingEvents events = new PendingEvents();
 
     private Finding(FindingId id, InspectionEvaluation evaluation, FindingDetails details,
                     List<Evidence> evidences, LocalDateTime raisedAt) {
@@ -61,7 +66,7 @@ public class Finding extends AggregateRoot {
             throw new DomainException("Ya existe un hallazgo para ese criterio en la inspeccion");
         }
         Finding finding = new Finding(id, evaluation, details, result.evidences(), now);
-        finding.recordEvent(new FindingRaised(id, evaluation.inspection(), details.severity(), now));
+        finding.events.add(new FindingRaised(id, evaluation.inspection(), details.severity(), now));
         return finding;
     }
 
@@ -73,7 +78,7 @@ public class Finding extends AggregateRoot {
         }
         CorrectiveAction action = new CorrectiveAction(actionId, actionDescription, assignee, dueDate);
         actions.add(action);
-        recordEvent(new CorrectiveActionPlanned(id, actionId, dueDate, now));
+        events.add(new CorrectiveActionPlanned(id, actionId, dueDate, now));
         return action;
     }
 
@@ -84,7 +89,7 @@ public class Finding extends AggregateRoot {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("la accion correctiva", actionId.value()));
         action.verify(verifier, now);
-        recordEvent(new CorrectiveActionVerified(id, actionId, verifier, now));
+        events.add(new CorrectiveActionVerified(id, actionId, verifier, now));
     }
 
     public void close(LocalDateTime now) {
@@ -93,7 +98,7 @@ public class Finding extends AggregateRoot {
             throw new DomainException("El hallazgo se cierra con todas sus acciones correctivas verificadas");
         }
         closure = new Closure(now);
-        recordEvent(new FindingClosed(id, now));
+        events.add(new FindingClosed(id, now));
     }
 
     public boolean isOpen() {
@@ -116,5 +121,10 @@ public class Finding extends AggregateRoot {
         if (!isOpen()) {
             throw new InvalidTransitionException("El hallazgo esta cerrado");
         }
+    }
+
+    @Override
+    public List<DomainEvent> pullEvents() {
+        return events.pull();
     }
 }

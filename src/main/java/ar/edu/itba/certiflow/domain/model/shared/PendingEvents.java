@@ -3,15 +3,15 @@ package ar.edu.itba.certiflow.domain.model.shared;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AggregateRoot {
+public final class PendingEvents {
 
     private final List<DomainEvent> events = new ArrayList<>();
 
-    protected void recordEvent(DomainEvent event) {
+    public void add(DomainEvent event) {
         events.add(event);
     }
 
-    public List<DomainEvent> pullEvents() {
+    public List<DomainEvent> pull() {
         List<DomainEvent> pulled = List.copyOf(events);
         events.clear();
         return pulled;

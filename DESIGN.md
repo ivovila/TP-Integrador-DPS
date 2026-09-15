@@ -36,7 +36,7 @@ ar.edu.itba.certiflow
 │   │   ├── report         InspectionReport, FindingsSummary, CertificateReport
 │   │   ├── audit          AuditLog
 │   │   └── shared         PersonId, Response, RecordedValue (Measurement, YesNo, SelectedOption),
-│   │                      Evidence, EvidenceType, AggregateId, DomainEvent, AggregateRoot,
+│   │                      Evidence, EvidenceType, AggregateId, DomainEvent, EventSource, PendingEvents,
 │   │                      excepciones de dominio
 │   ├── rules              CriterionRule, MeasurementRule, implementaciones, CriterionOutcome
 │   ├── ports              Repositorios, Clock, EventPublisher
@@ -351,13 +351,17 @@ Los agregados registran eventos en las modificaciones y transiciones relevantes:
 
 **Por qué:** la alternativa es que cada caso de uso escriba a mano su entrada de auditoría. Esa duplicación se olvida exactamente en el caso que después hace falta, y mezcla dos responsabilidades en cada clase.
 
+**Composición, no herencia.** Cada agregado implementa `EventSource` (`pullEvents()`) y tiene un campo `PendingEvents` que acumula y entrega los eventos; `EventPublisher.publishFrom(EventSource)` los publica. Ningún agregado extiende una clase base.
+
+**Alternativa descartada — clase base `AggregateRoot`:** la tuvimos al principio. Se heredaba solo para reutilizar una lista y dos métodos: gastaba la única herencia de Java en una relación que no es "es un", exponía un `recordEvent` protegido a toda subclase y obligaba a extenderla a cualquier clase que quisiera emitir eventos. Costo asumido de la composición: los cinco agregados repiten un `pullEvents()` de una línea.
+
 **Alternativa descartada:** auditoría por AOP / interceptores. Requiere framework (lo cual está fuera del alcance) y produce registros de bajo nivel ("se llamó al método X") en vez de hechos del negocio ("se suspendió el certificado por acción correctiva vencida").
 
 **Alternativa descartada:** convertir cada evento en una `AuditEntry` con campos propios. Duplicaba los datos que el evento ya tiene y obtenía el tipo por reflexión; el evento de dominio ya es el registro de auditoría.
 
 **Alternativa descartada:** un evento por cada transición del certificado (`CertificateReinstated`, `CertificateExpired`, …). Salvo la suspensión, todas llevan la misma información; `CertificateStatusChanged` evita clases idénticas y el tipo de transición queda en `from`/`to`. La suspensión tiene su propio evento porque es la única con un dato propio (el motivo).
 
-**Costo asumido:** los eventos se publican dentro del caso de uso, no en el agregado, para no darle al modelo una dependencia con el publisher. El agregado *acumula* los eventos (`AggregateRoot`) y el caso de uso los publica con `events.publishFrom(aggregate)` después de guardar. El riesgo de que un caso de uso nuevo olvide publicar queda reducido a una línea, pero no eliminado. En la Entrega 2 se cierra con una *transactional outbox*: el adaptador de persistencia guarda el agregado y sus eventos en la misma transacción.
+**Costo asumido:** los eventos se publican dentro del caso de uso, no en el agregado, para no darle al modelo una dependencia con el publisher. El agregado *acumula* los eventos y el caso de uso los publica con `events.publishFrom(aggregate)` después de guardar. El riesgo de que un caso de uso nuevo olvide publicar queda reducido a una línea, pero no eliminado. En la Entrega 2 se cierra con una *transactional outbox*: el adaptador de persistencia guarda el agregado y sus eventos en la misma transacción.
 
 ---
 
@@ -399,6 +403,7 @@ Casos centrales cubiertos:
 
 | Principio / patrón | Dónde |
 |---|---|
+| **Composición sobre herencia** | `PendingEvents` + `EventSource` en los agregados, en lugar de una clase base |
 | **SRP** | Casos de uso que orquestan; agregados que deciden; `AuditLog` que registra |
 | **OCP** | `CriterionRule`: tipos de criterio nuevos sin tocar código existente; `RecordedValue`: tipos de dato nuevos sin tocar `Response`; `CertificationPolicy`: políticas nuevas sin tocar `Certificate`; eventos nuevos sin tocar `AuditLog` |
 | **LSP** | Todas las implementaciones de `CriterionRule` son intercambiables; `CompositeRule` es una más |

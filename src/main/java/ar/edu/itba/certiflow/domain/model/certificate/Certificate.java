@@ -9,14 +9,16 @@ import ar.edu.itba.certiflow.domain.model.asset.AssetId;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionEvaluation;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
-import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
 import ar.edu.itba.certiflow.domain.model.shared.DomainEvent;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
+import ar.edu.itba.certiflow.domain.model.shared.EventSource;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
+import ar.edu.itba.certiflow.domain.model.shared.PendingEvents;
+import lombok.AccessLevel;
 import lombok.Getter;
 
 @Getter
-public class Certificate extends AggregateRoot {
+public class Certificate implements EventSource {
 
     public static final String OVERDUE_ACTIONS = "Accion correctiva vencida sin verificar";
 
@@ -26,6 +28,8 @@ public class Certificate extends AggregateRoot {
     private final ValidityPeriod validity;
     private CertificateStatus status = CertificateStatus.ISSUED;
     private CertificateId renewedBy;
+    @Getter(AccessLevel.NONE)
+    private final PendingEvents events = new PendingEvents();
 
     private Certificate(CertificateId id, AssetId asset, InspectionId inspection, ValidityPeriod validity) {
         this.id = id;
@@ -43,7 +47,7 @@ public class Certificate extends AggregateRoot {
             throw new DomainException("La inspeccion no cumple la politica de certificacion");
         }
         Certificate certificate = new Certificate(id, evaluation.asset(), evaluation.inspection(), validity);
-        certificate.recordEvent(new CertificateIssued(id, evaluation.asset(), validity, now));
+        certificate.events.add(new CertificateIssued(id, evaluation.asset(), validity, now));
         return certificate;
     }
 
@@ -102,10 +106,15 @@ public class Certificate extends AggregateRoot {
             throw new InvalidTransitionException("El certificado no puede pasar de " + status + " a " + target);
         }
         status = target;
-        recordEvent(event);
+        events.add(event);
     }
 
     private CertificateStatusChanged statusChange(CertificateStatus target, LocalDateTime now) {
         return new CertificateStatusChanged(id, status, target, now);
+    }
+
+    @Override
+    public List<DomainEvent> pullEvents() {
+        return events.pull();
     }
 }
