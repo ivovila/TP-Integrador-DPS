@@ -3,7 +3,6 @@ package ar.edu.itba.certiflow.domain.usecase;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.report.InspectionReport;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.ports.InspectionRepository;
 
 public class GenerateInspectionReport {
@@ -15,8 +14,7 @@ public class GenerateInspectionReport {
     }
 
     public InspectionReport execute(InspectionId inspectionId) {
-        Inspection inspection = inspections.findById(inspectionId)
-                .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
+        Inspection inspection = inspections.getById(inspectionId);
         return InspectionReport.of(inspection);
     }
 }

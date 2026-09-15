@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.model.certificate.CertificationPolicy;
 import ar.edu.itba.certiflow.domain.model.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.ports.CertificateRepository;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -34,16 +33,14 @@ public class RenewCertificate {
     }
 
     public Certificate execute(CertificateId certificateId, InspectionId inspectionId, ValidityPeriod validity) {
-        Certificate current = certificates.findById(certificateId)
-                .orElseThrow(() -> new NotFoundException("el certificado", certificateId.value()));
-        Inspection inspection = inspections.findById(inspectionId)
-                .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
+        Certificate current = certificates.getById(certificateId);
+        Inspection inspection = inspections.getById(inspectionId);
         Certificate renewed = current.renew(CertificateId.generate(), inspection.getEvaluation(),
                 findings.findByInspection(inspectionId), policy, validity, clock.now());
         certificates.save(current);
         certificates.save(renewed);
-        current.pullEvents().forEach(events::publish);
-        renewed.pullEvents().forEach(events::publish);
+        events.publishFrom(current);
+        events.publishFrom(renewed);
         return renewed;
     }
 }

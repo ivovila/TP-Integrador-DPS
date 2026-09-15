@@ -3,7 +3,6 @@ package ar.edu.itba.certiflow.domain.usecase;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
 import ar.edu.itba.certiflow.domain.model.finding.FindingId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -22,10 +21,9 @@ public class VerifyCorrectiveAction {
     }
 
     public void execute(FindingId findingId, CorrectiveActionId actionId, PersonId verifier) {
-        Finding finding = findings.findById(findingId)
-                .orElseThrow(() -> new NotFoundException("el hallazgo", findingId.value()));
+        Finding finding = findings.getById(findingId);
         finding.verifyAction(actionId, verifier, clock.now());
         findings.save(finding);
-        finding.pullEvents().forEach(events::publish);
+        events.publishFrom(finding);
     }
 }

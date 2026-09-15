@@ -2,7 +2,6 @@ package ar.edu.itba.certiflow.domain.usecase;
 
 import ar.edu.itba.certiflow.domain.model.certificate.Certificate;
 import ar.edu.itba.certiflow.domain.model.certificate.CertificateId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.ports.CertificateRepository;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -20,10 +19,9 @@ public class ExpireCertificate {
     }
 
     public void execute(CertificateId certificateId) {
-        Certificate certificate = certificates.findById(certificateId)
-                .orElseThrow(() -> new NotFoundException("el certificado", certificateId.value()));
+        Certificate certificate = certificates.getById(certificateId);
         certificate.expire(clock.now());
         certificates.save(certificate);
-        certificate.pullEvents().forEach(events::publish);
+        events.publishFrom(certificate);
     }
 }

@@ -4,7 +4,6 @@ import ar.edu.itba.certiflow.domain.model.asset.Asset;
 import ar.edu.itba.certiflow.domain.model.certificate.Certificate;
 import ar.edu.itba.certiflow.domain.model.certificate.CertificateId;
 import ar.edu.itba.certiflow.domain.model.report.CertificateReport;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.ports.AssetRepository;
 import ar.edu.itba.certiflow.domain.ports.CertificateRepository;
 import ar.edu.itba.certiflow.domain.ports.Clock;
@@ -22,10 +21,8 @@ public class GenerateCertificateReport {
     }
 
     public CertificateReport execute(CertificateId certificateId) {
-        Certificate certificate = certificates.findById(certificateId)
-                .orElseThrow(() -> new NotFoundException("el certificado", certificateId.value()));
-        Asset asset = assets.findById(certificate.getAsset())
-                .orElseThrow(() -> new NotFoundException("el activo", certificate.getAsset().value()));
+        Certificate certificate = certificates.getById(certificateId);
+        Asset asset = assets.getById(certificate.getAsset());
         return CertificateReport.of(certificate, asset, clock.today());
     }
 }

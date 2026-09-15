@@ -5,7 +5,6 @@ import java.util.function.UnaryOperator;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
 import ar.edu.itba.certiflow.domain.ports.InspectionRepository;
 
@@ -18,8 +17,7 @@ public class RegisterResponse {
     }
 
     public Response execute(InspectionId inspectionId, CriterionId criterionId, UnaryOperator<Response> change) {
-        Inspection inspection = inspections.findById(inspectionId)
-                .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
+        Inspection inspection = inspections.getById(inspectionId);
         Response updated = change.apply(inspection.responseFor(criterionId));
         inspection.register(criterionId, updated);
         inspections.save(inspection);

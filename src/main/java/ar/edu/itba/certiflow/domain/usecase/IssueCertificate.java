@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.model.certificate.CertificationPolicy;
 import ar.edu.itba.certiflow.domain.model.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.ports.CertificateRepository;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -34,12 +33,11 @@ public class IssueCertificate {
     }
 
     public Certificate execute(InspectionId inspectionId, ValidityPeriod validity) {
-        Inspection inspection = inspections.findById(inspectionId)
-                .orElseThrow(() -> new NotFoundException("la inspeccion", inspectionId.value()));
+        Inspection inspection = inspections.getById(inspectionId);
         Certificate certificate = Certificate.issue(CertificateId.generate(), inspection.getEvaluation(),
                 findings.findByInspection(inspectionId), policy, validity, clock.now());
         certificates.save(certificate);
-        certificate.pullEvents().forEach(events::publish);
+        events.publishFrom(certificate);
         return certificate;
     }
 }

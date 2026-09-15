@@ -32,7 +32,7 @@ public class SuspendForOverdueActions {
         for (Certificate certificate : certificates.findByAsset(assetId)) {
             if (certificate.suspendIfActionsOverdue(assetFindings, clock.now())) {
                 certificates.save(certificate);
-                certificate.pullEvents().forEach(events::publish);
+                events.publishFrom(certificate);
                 suspended.add(certificate);
             }
         }

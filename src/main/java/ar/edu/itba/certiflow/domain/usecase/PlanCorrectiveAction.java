@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.model.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
 import ar.edu.itba.certiflow.domain.model.finding.FindingId;
-import ar.edu.itba.certiflow.domain.model.shared.NotFoundException;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.ports.Clock;
 import ar.edu.itba.certiflow.domain.ports.EventPublisher;
@@ -25,12 +24,11 @@ public class PlanCorrectiveAction {
     }
 
     public CorrectiveAction execute(FindingId findingId, String description, PersonId assignee, LocalDate dueDate) {
-        Finding finding = findings.findById(findingId)
-                .orElseThrow(() -> new NotFoundException("el hallazgo", findingId.value()));
+        Finding finding = findings.getById(findingId);
         CorrectiveAction action = finding.planAction(CorrectiveActionId.generate(), description, assignee,
                 dueDate, clock.now());
         findings.save(finding);
-        finding.pullEvents().forEach(events::publish);
+        events.publishFrom(finding);
         return action;
     }
 }

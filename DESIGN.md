@@ -78,7 +78,7 @@ public interface Clock          { LocalDateTime now(); }
 public interface EventPublisher { void publish(DomainEvent event); }
 ```
 
-Repositorios: `AssetRepository`, `SchemaRepository`, `InspectionRepository`, `FindingRepository` (`findByInspection`, `findByAsset`) y `CertificateRepository` (`findByAsset`).
+Repositorios: `AssetRepository`, `SchemaRepository`, `InspectionRepository`, `FindingRepository` (`findByInspection`, `findByAsset`) y `CertificateRepository` (`findByAsset`). Cada repositorio tiene además un método por defecto `getById(id)` que lanza `NotFoundException`; los casos de uso lo usan en lugar de repetir `findById(...).orElseThrow(...)`.
 
 **Por qué:** invierte la dependencia (DIP). El dominio define el contrato; la infraestructura futura lo implementa. En esta entrega los únicos adaptadores son los in-memory de `test/support`, lo cual es suficiente para probar los casos de uso completos sin base de datos.
 
@@ -346,7 +346,7 @@ Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPu
 
 **Alternativa descartada:** un evento por cada transición del certificado (`CertificateSuspended`, `CertificateReinstated`, …). Todas llevan la misma información; `CertificateStatusChanged` evita cuatro clases idénticas y el tipo de transición queda en `from`/`to`.
 
-**Costo asumido:** los eventos se publican dentro del caso de uso, no en el agregado, para no darle al modelo una dependencia con el publisher. Es un compromiso consciente: el agregado *acumula* los eventos (`AggregateRoot`) y el caso de uso los publica. Si un caso de uso olvida publicarlos, se pierden.
+**Costo asumido:** los eventos se publican dentro del caso de uso, no en el agregado, para no darle al modelo una dependencia con el publisher. El agregado *acumula* los eventos (`AggregateRoot`) y el caso de uso los publica con `events.publishFrom(aggregate)` después de guardar. El riesgo de que un caso de uso nuevo olvide publicar queda reducido a una línea, pero no eliminado. En la Entrega 2 se cierra con una *transactional outbox*: el adaptador de persistencia guarda el agregado y sus eventos en la misma transacción.
 
 ---
 
