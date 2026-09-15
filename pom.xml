@@ -60,7 +60,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <!-- Desde JDK 23 los annotation processors no se activan solos -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -71,14 +70,12 @@
                 </configuration>
             </plugin>
 
-            <!-- Tests unitarios: *Test, corren en la fase test -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
             </plugin>
 
-            <!-- Tests de integracion: *IT, corren en la fase verify -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -93,7 +90,6 @@
                 </executions>
             </plugin>
 
-            <!-- Cobertura: reporte en target/site/jacoco (unitarios + integracion) -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
