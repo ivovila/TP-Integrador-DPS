@@ -29,6 +29,7 @@ import ar.edu.itba.certiflow.domain.model.report.InspectionReport;
 import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
+import ar.edu.itba.certiflow.domain.model.shared.YesNo;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 import ar.edu.itba.certiflow.support.Fixtures;
 import ar.edu.itba.certiflow.support.TestContext;
@@ -57,8 +58,8 @@ class ReportsIT {
         InspectionId id = inspection.getId();
         ctx.startInspection.execute(id);
         ctx.registerResponse.execute(id, PRESSURE,
-                r -> r.withMeasurement(pressure(bar)).withObservation("Manometro nuevo"));
-        ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(true).withEvidence(photo()));
+                r -> r.with(pressure(bar)).withObservation("Manometro nuevo"));
+        ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(true)).withEvidence(photo()));
         return id;
     }
 
@@ -102,7 +103,7 @@ class ReportsIT {
     @Test
     void findingsSummaryCountsOpenBySeverityAndOverdueActions() {
         InspectionId id = inspect("14");
-        ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(false));
+        ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(false)));
         ctx.closeInspection.execute(id);
         Finding pressureFinding = ctx.raiseFinding.execute(id,
                 new FindingDetails(PRESSURE, Severity.MAJOR, "Presion alta", responsible));

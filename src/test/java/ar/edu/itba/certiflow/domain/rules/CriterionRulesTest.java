@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import ar.edu.itba.certiflow.domain.model.shared.EvidenceType;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
+import ar.edu.itba.certiflow.domain.model.shared.SelectedOption;
+import ar.edu.itba.certiflow.domain.model.shared.YesNo;
 import ar.edu.itba.certiflow.support.Fixtures;
 
 class CriterionRulesTest {
@@ -52,7 +54,7 @@ class CriterionRulesTest {
         CriterionRule signage = CompositeRule.allOf(new BooleanRule(true),
                 new RequiredEvidenceRule(Set.of(EvidenceType.PHOTO)));
 
-        assertEquals(CriterionOutcome.REJECTED, signage.evaluate(Response.empty().withAnswer(true)));
+        assertEquals(CriterionOutcome.REJECTED, signage.evaluate(Response.empty().with(new YesNo(true))));
         assertEquals(CriterionOutcome.APPROVED, signage.evaluate(Fixtures.signageWithPhoto()));
     }
 
@@ -60,7 +62,7 @@ class CriterionRulesTest {
     void compositeRuleKeepsTheWorstOutcome() {
         CompositeRule rule = CompositeRule.allOf(pressureRange,
                 new EnumOptionRule(Set.of("rojo"), Set.of("desteñido")));
-        Response response = pressureResponse("11").withOption("desteñido");
+        Response response = pressureResponse("11").with(new SelectedOption("desteñido"));
 
         assertEquals(CriterionOutcome.OBSERVED, rule.evaluate(response));
         assertTrue(rule.accepts(pressure("11")));
@@ -75,9 +77,21 @@ class CriterionRulesTest {
     }
 
     @Test
+    void criterionWithTwoMeasurementsEvaluatesBoth() {
+        CompositeRule rule = CompositeRule.allOf(pressureRange,
+                new NumericRangeRule("temperatura", "C", BigDecimal.ZERO, new BigDecimal("40"), BigDecimal.ZERO));
+        Response bothInRange = pressureResponse("11").with(new Measurement("temperatura", new BigDecimal("35"), "C"));
+        Response hot = pressureResponse("11").with(new Measurement("temperatura", new BigDecimal("55"), "C"));
+
+        assertEquals(CriterionOutcome.APPROVED, rule.evaluate(bothInRange));
+        assertEquals(CriterionOutcome.REJECTED, rule.evaluate(hot));
+        assertEquals(CriterionOutcome.REJECTED, rule.evaluate(pressureResponse("11")));
+    }
+
+    @Test
     void unknownOptionIsRejected() {
         EnumOptionRule color = new EnumOptionRule(Set.of("rojo"), Set.of("desteñido"));
 
-        assertEquals(CriterionOutcome.REJECTED, color.evaluate(Response.empty().withOption("verde")));
+        assertEquals(CriterionOutcome.REJECTED, color.evaluate(Response.empty().with(new SelectedOption("verde"))));
     }
 }

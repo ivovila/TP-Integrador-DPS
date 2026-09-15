@@ -23,8 +23,8 @@ import ar.edu.itba.certiflow.domain.model.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionPlanned;
 import ar.edu.itba.certiflow.domain.model.finding.CorrectiveActionVerified;
 import ar.edu.itba.certiflow.domain.model.finding.Finding;
-import ar.edu.itba.certiflow.domain.model.finding.FindingDetails;
 import ar.edu.itba.certiflow.domain.model.finding.FindingClosed;
+import ar.edu.itba.certiflow.domain.model.finding.FindingDetails;
 import ar.edu.itba.certiflow.domain.model.finding.FindingRaised;
 import ar.edu.itba.certiflow.domain.model.finding.Severity;
 import ar.edu.itba.certiflow.domain.model.inspection.Inspection;
@@ -33,6 +33,7 @@ import ar.edu.itba.certiflow.domain.model.inspection.InspectionId;
 import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
+import ar.edu.itba.certiflow.domain.model.shared.YesNo;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 import ar.edu.itba.certiflow.support.Fixtures;
 import ar.edu.itba.certiflow.support.TestContext;
@@ -61,8 +62,8 @@ class CertificationIT {
                 ctx.clock.today(), "Relevamiento completo");
         InspectionId id = inspection.getId();
         ctx.startInspection.execute(id);
-        ctx.registerResponse.execute(id, PRESSURE, r -> r.withMeasurement(pressure(bar)).withEvidence(photo()));
-        ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(true).withEvidence(photo()));
+        ctx.registerResponse.execute(id, PRESSURE, r -> r.with(pressure(bar)).withEvidence(photo()));
+        ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(true)).withEvidence(photo()));
         return id;
     }
 

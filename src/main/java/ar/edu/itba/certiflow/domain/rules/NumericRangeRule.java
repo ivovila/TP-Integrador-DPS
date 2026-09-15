@@ -20,9 +20,10 @@ public record NumericRangeRule(String magnitude, String unit,
 
     @Override
     public CriterionOutcome evaluate(Response response) {
-        return response.measurement()
+        return response.all(Measurement.class).stream()
                 .filter(this::accepts)
-                .map(m -> classify(m.value()))
+                .map(measurement -> classify(measurement.value()))
+                .reduce(CriterionOutcome::worst)
                 .orElse(CriterionOutcome.REJECTED);
     }
 

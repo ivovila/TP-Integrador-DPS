@@ -22,6 +22,7 @@ import ar.edu.itba.certiflow.domain.model.shared.EvidenceType;
 import ar.edu.itba.certiflow.domain.model.shared.Measurement;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
+import ar.edu.itba.certiflow.domain.model.shared.YesNo;
 import ar.edu.itba.certiflow.domain.rules.BooleanRule;
 import ar.edu.itba.certiflow.domain.rules.CompositeRule;
 import ar.edu.itba.certiflow.domain.rules.NumericRangeRule;
@@ -75,10 +76,10 @@ public final class Fixtures {
     }
 
     public static Response pressureResponse(String bar) {
-        return Response.empty().withMeasurement(pressure(bar));
+        return Response.empty().with(pressure(bar));
     }
 
     public static Response signageWithPhoto() {
-        return Response.empty().withAnswer(true).withEvidence(photo());
+        return Response.empty().with(new YesNo(true)).withEvidence(photo());
     }
 }

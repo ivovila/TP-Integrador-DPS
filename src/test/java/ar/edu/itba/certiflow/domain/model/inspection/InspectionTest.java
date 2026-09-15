@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.domain.model.inspection;
 import static ar.edu.itba.certiflow.support.Fixtures.NOW;
 import static ar.edu.itba.certiflow.support.Fixtures.PRESSURE;
 import static ar.edu.itba.certiflow.support.Fixtures.SIGNAGE;
+import static ar.edu.itba.certiflow.support.Fixtures.pressure;
 import static ar.edu.itba.certiflow.support.Fixtures.pressureResponse;
 import static ar.edu.itba.certiflow.support.Fixtures.signageWithPhoto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -78,7 +80,7 @@ class InspectionTest {
     @Test
     void measurementMustBeOneTheCriterionEvaluates() {
         Inspection inspection = started();
-        Response temperature = Response.empty().withMeasurement(new Measurement("temperatura", BigDecimal.TEN, "C"));
+        Response temperature = Response.empty().with(new Measurement("temperatura", BigDecimal.TEN, "C"));
 
         assertThrows(DomainException.class, () -> inspection.register(PRESSURE, temperature));
     }
@@ -116,7 +118,7 @@ class InspectionTest {
                 Map.of(PRESSURE, pressureResponse("11"))));
 
         assertInstanceOf(Rectified.class, inspection.getState());
-        assertEquals(pressureResponse("14").measurement(), inspection.getOriginalResponses().get(PRESSURE).measurement());
+        assertEquals(List.of(pressure("14")), inspection.getOriginalResponses().get(PRESSURE).all(Measurement.class));
         assertEquals(CriterionOutcome.APPROVED, inspection.getEvaluation().overall());
         assertEquals(1, inspection.getRectifications().size());
     }

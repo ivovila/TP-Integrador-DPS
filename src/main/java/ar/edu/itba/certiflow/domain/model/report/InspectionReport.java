@@ -15,6 +15,7 @@ import ar.edu.itba.certiflow.domain.model.schema.SchemaVersion;
 import ar.edu.itba.certiflow.domain.model.schema.Section;
 import ar.edu.itba.certiflow.domain.model.shared.Evidence;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
+import ar.edu.itba.certiflow.domain.model.shared.RecordedValue;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 
@@ -51,7 +52,7 @@ public record InspectionReport(InspectionId inspection, AssetId asset, String sc
     private static CriterionLine criterionLine(Criterion criterion, InspectionEvaluation evaluation,
                                                Response response) {
         return new CriterionLine(criterion.description(), evaluation.outcomeOf(criterion.id()),
-                response.evidences(), response.observations());
+                response.values(), response.evidences(), response.observations());
     }
 
     public record SectionLine(String name, CriterionOutcome outcome, List<CriterionLine> criteria) {
@@ -61,10 +62,11 @@ public record InspectionReport(InspectionId inspection, AssetId asset, String sc
         }
     }
 
-    public record CriterionLine(String description, CriterionOutcome outcome, List<Evidence> evidences,
-                                List<String> observations) {
+    public record CriterionLine(String description, CriterionOutcome outcome, List<RecordedValue> values,
+                                List<Evidence> evidences, List<String> observations) {
 
         public CriterionLine {
+            values = List.copyOf(values);
             evidences = List.copyOf(evidences);
             observations = List.copyOf(observations);
         }

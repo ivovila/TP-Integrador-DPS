@@ -19,6 +19,7 @@ import ar.edu.itba.certiflow.domain.model.schema.SchemaVersion;
 import ar.edu.itba.certiflow.domain.model.schema.Section;
 import ar.edu.itba.certiflow.domain.model.shared.AggregateRoot;
 import ar.edu.itba.certiflow.domain.model.shared.DomainException;
+import ar.edu.itba.certiflow.domain.model.shared.Measurement;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
 import lombok.Getter;
@@ -125,8 +126,9 @@ public class Inspection extends AggregateRoot {
     private void checkBelongsToSchema(CriterionId criterionId, Response response) {
         Criterion criterion = getSchema().findCriterion(criterionId)
                 .orElseThrow(() -> new DomainException("El criterio no pertenece al esquema de la inspeccion"));
-        response.measurement()
+        response.all(Measurement.class).stream()
                 .filter(measurement -> !criterion.accepts(measurement))
+                .findFirst()
                 .ifPresent(measurement -> {
                     throw new DomainException("El criterio no evalua la medicion '"
                             + measurement.magnitude() + "' en " + measurement.unit());

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import ar.edu.itba.certiflow.domain.model.shared.Response;
+import ar.edu.itba.certiflow.domain.model.shared.SelectedOption;
 
 public record EnumOptionRule(Set<String> approvedOptions, Set<String> observedOptions) implements CriterionRule {
 
@@ -20,8 +21,9 @@ public record EnumOptionRule(Set<String> approvedOptions, Set<String> observedOp
 
     @Override
     public CriterionOutcome evaluate(Response response) {
-        return response.option()
-                .map(this::classify)
+        return response.all(SelectedOption.class).stream()
+                .map(option -> classify(option.value()))
+                .reduce(CriterionOutcome::worst)
                 .orElse(CriterionOutcome.REJECTED);
     }
 

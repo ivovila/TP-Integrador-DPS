@@ -24,8 +24,10 @@ import ar.edu.itba.certiflow.domain.model.schema.Criterion;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
 import ar.edu.itba.certiflow.domain.model.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.model.shared.InvalidTransitionException;
+import ar.edu.itba.certiflow.domain.model.shared.Measurement;
 import ar.edu.itba.certiflow.domain.model.shared.PersonId;
 import ar.edu.itba.certiflow.domain.model.shared.Response;
+import ar.edu.itba.certiflow.domain.model.shared.YesNo;
 import ar.edu.itba.certiflow.domain.rules.BooleanRule;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 import ar.edu.itba.certiflow.support.Fixtures;
@@ -70,8 +72,8 @@ class InspectionLifecycleIT {
         InspectionId underV2 = assignAndStart();
 
         for (InspectionId id : List.of(underV1, underV2)) {
-            ctx.registerResponse.execute(id, PRESSURE, r -> r.withMeasurement(pressure("11")));
-            ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(true).withEvidence(photo()));
+            ctx.registerResponse.execute(id, PRESSURE, r -> r.with(pressure("11")));
+            ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(true)).withEvidence(photo()));
         }
         InspectionEvaluation v1Result = ctx.closeInspection.execute(underV1);
         InspectionEvaluation v2Result = ctx.closeInspection.execute(underV2);
@@ -98,11 +100,11 @@ class InspectionLifecycleIT {
     void responsesAreRegisteredProgressively() {
         InspectionId id = assignAndStart();
 
-        ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(true));
+        ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(true)));
         ctx.registerResponse.execute(id, SIGNAGE, r -> r.withEvidence(photo()));
         Response signage = ctx.registerResponse.execute(id, SIGNAGE, r -> r.withObservation("Cartel algo gastado"));
 
-        assertEquals(true, signage.answer().orElseThrow());
+        assertEquals(List.of(new YesNo(true)), signage.all(YesNo.class));
         assertEquals(1, signage.evidences().size());
         assertEquals(1, signage.observations().size());
     }
@@ -110,12 +112,12 @@ class InspectionLifecycleIT {
     @Test
     void closedInspectionIsOnlyCorrectedThroughAnAuditableRectification() {
         InspectionId id = assignAndStart();
-        ctx.registerResponse.execute(id, PRESSURE, r -> r.withMeasurement(pressure("14")));
-        ctx.registerResponse.execute(id, SIGNAGE, r -> r.withAnswer(true).withEvidence(photo()));
+        ctx.registerResponse.execute(id, PRESSURE, r -> r.with(pressure("14")));
+        ctx.registerResponse.execute(id, SIGNAGE, r -> r.with(new YesNo(true)).withEvidence(photo()));
         assertEquals(CriterionOutcome.REJECTED, ctx.closeInspection.execute(id).overall());
 
         assertThrows(InvalidTransitionException.class,
-                () -> ctx.registerResponse.execute(id, PRESSURE, r -> r.withMeasurement(pressure("11"))));
+                () -> ctx.registerResponse.execute(id, PRESSURE, r -> r.with(pressure("11"))));
 
         ctx.clock.advanceDays(1);
         InspectionEvaluation corrected = ctx.rectifyInspection.execute(id, PersonId.generate(),
@@ -123,7 +125,7 @@ class InspectionLifecycleIT {
 
         Inspection inspection = ctx.inspections.findById(id).orElseThrow();
         assertEquals(CriterionOutcome.APPROVED, corrected.overall());
-        assertEquals(pressure("14"), inspection.getOriginalResponses().get(PRESSURE).measurement().orElseThrow());
+        assertEquals(List.of(pressure("14")), inspection.getOriginalResponses().get(PRESSURE).all(Measurement.class));
         assertEquals(List.of(InspectionStarted.class, InspectionClosed.class, InspectionRectified.class),
                 ctx.audit.history(id).stream().map(Object::getClass).toList());
     }

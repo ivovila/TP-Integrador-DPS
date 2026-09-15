@@ -35,8 +35,9 @@ ar.edu.itba.certiflow
 │   │   │                  CertificationPolicy, SeverityCertificationPolicy, eventos
 │   │   ├── report         InspectionReport, FindingsSummary, CertificateReport
 │   │   ├── audit          AuditLog
-│   │   └── shared         PersonId, Response, Measurement, Evidence, EvidenceType,
-│   │                      DomainEvent, AggregateRoot, excepciones de dominio
+│   │   └── shared         PersonId, Response, RecordedValue (Measurement, YesNo, SelectedOption),
+│   │                      Evidence, EvidenceType, AggregateId, DomainEvent, AggregateRoot,
+│   │                      excepciones de dominio
 │   ├── rules              CriterionRule, MeasurementRule, implementaciones, CriterionOutcome
 │   ├── ports              Repositorios, Clock, EventPublisher
 │   └── usecase            Un caso de uso = una clase con execute(...)
@@ -179,13 +180,17 @@ Cada `Criterion` tiene una `CriterionRule`. Implementaciones:
 
 | Regla | Aprobado | Observado | Rechazado |
 |---|---|---|---|
-| `NumericRangeRule` | medición dentro de `[min, max]` | dentro de la tolerancia | fuera de la tolerancia o sin medición |
-| `BooleanRule` | respuesta igual a la esperada | — | respuesta distinta o sin respuesta |
-| `EnumOptionRule` | opción aprobada | opción observada | otra opción o sin opción |
+| `NumericRangeRule` | toda medición de su magnitud dentro de `[min, max]` | dentro de la tolerancia | fuera de la tolerancia o sin medición de su magnitud |
+| `BooleanRule` | `YesNo` igual al esperado | — | distinto o sin respuesta |
+| `EnumOptionRule` | `SelectedOption` aprobada | opción observada | otra opción o sin opción |
 | `RequiredEvidenceRule` | están todos los tipos de evidencia exigidos | — | falta alguno |
 | `CompositeRule` | el peor resultado de sus reglas | | |
 
-`Response` es lo que el inspector registró para un criterio: medición, respuesta, opción, evidencias y observaciones. Es inmutable y se construye progresivamente (`withMeasurement`, `withEvidence`, …).
+`Response` es lo que el inspector registró para un criterio: una lista de `RecordedValue` más evidencias y observaciones. Es inmutable y se construye progresivamente (`with(value)`, `withEvidence`, `withObservation`). Los valores son `record` que implementan `RecordedValue`: `Measurement`, `YesNo` y `SelectedOption`. Cada regla pide los valores del tipo que evalúa con `response.all(Measurement.class)`.
+
+Cada tipo de valor decide si reemplaza a uno registrado antes (`supersedes`): una respuesta `YesNo` nueva reemplaza la anterior, una opción nueva también, y una medición reemplaza solo a la de la misma magnitud y unidad. Así se puede corregir un dato mientras la inspección está en curso y, a la vez, registrar varias mediciones distintas en un mismo criterio (presión y temperatura).
+
+**OCP en los tipos de dato:** un tipo de dato nuevo (texto libre, fecha, conteo) es un `record` que implementa `RecordedValue` más la regla que lo evalúa; `Response` y las reglas existentes no cambian.
 
 La evidencia obligatoria es una regla más: un criterio "cartel visible con foto" es `CompositeRule.allOf(new BooleanRule(true), new RequiredEvidenceRule(Set.of(PHOTO)))`.
 
@@ -203,7 +208,9 @@ La evidencia obligatoria es una regla más: un criterio "cartel visible con foto
 
 **Alternativa descartada — reglas embebidas en `Criterion`:** ata la definición del criterio a su forma de evaluarlo e impide reutilizar una misma regla en criterios distintos.
 
-**Alternativa descartada — jerarquía polimórfica de respuestas (`Answer` → `YesNoAnswer`, …):** la probamos y obligaba a las reglas a filtrar por tipo con `instanceof`. Un único `Response` con los datos opcionales deja que cada regla lea lo que necesita.
+**Alternativa descartada — `Response` con un campo por tipo de dato** (medición, respuesta, opción). Cada tipo nuevo obligaba a modificar `Response`, y un criterio no podía tener dos mediciones: registrar la temperatura pisaba la presión y el criterio quedaba rechazado aunque ambas estuvieran en rango.
+
+**Alternativa descartada — jerarquía polimórfica de respuestas (`Answer` → `YesNoAnswer`, …) con filtro en cada regla:** la probamos y cada regla hacía su propio `instanceof`. Con `RecordedValue` el filtro por tipo vive en un solo método genérico (`Response.all(Class)`).
 
 **Alternativa descartada — `SectionRule` / política de aprobación por severidad:** la severidad no es del criterio sino del hallazgo (§8). Sin severidad en el esquema, agregar secciones es tomar el peor resultado y no justifica una estrategia propia; la decisión que sí depende de la severidad es la de certificar, y vive en `CertificationPolicy`.
 
@@ -272,7 +279,9 @@ Requisito: *"Una inspección no puede alterarse libremente luego de cerrarse. La
 
 Requisitos: *"Creación de no conformidades con severidad, evidencia y responsable"* y *"Planificación, vencimiento, verificación y cierre"* de acciones correctivas.
 
-**Decisión: la severidad es del hallazgo, no del criterio.** Un mismo criterio puede fallar de forma leve o grave; lo que tiene gravedad es el problema encontrado. `Criterion` no tiene severidad y `Severity` vive en `finding`.
+**Decisión: la severidad es del hallazgo, no del criterio, y es una escala fija.** Un mismo criterio puede fallar de forma leve o grave; lo que tiene gravedad es el problema encontrado. `Criterion` no tiene severidad y `Severity` vive en `finding`. `Severity` es un enum (`MINOR`, `MAJOR`, `CRITICAL`) común a todos los esquemas: interpretamos los *niveles de severidad* del enunciado como la escala con la que la entidad certificadora clasifica sus hallazgos, y la política de certificación define desde qué nivel se bloquea.
+
+**Alternativa descartada — escala de severidad definida por cada esquema** (`SeverityLevel(name, rank, blocksCertification)` congelada en la `SchemaVersion`). Permitiría que cada norma tenga sus propios niveles y decida cuáles bloquean, pero pierde la verificación en compilación de los niveles y agrega validación en cada hallazgo. Consecuencia de no aplicarla: un esquema con niveles distintos obliga a modificar el enum y la política; si aparecen normas con escalas propias hay que migrar a esa alternativa.
 
 **Cómo nace un hallazgo:** el sistema determina *qué* criterios no aprobaron (evaluación); una persona levanta el hallazgo sobre uno de ellos indicando severidad, descripción y responsable. `Finding.raise(id, evaluation, details, inspectionFindings, now)` recibe la `InspectionEvaluation` fija (no el agregado `Inspection`), los datos que declara la persona (`FindingDetails`: criterio, severidad, descripción, responsable) y los hallazgos ya levantados en esa inspección. Rechaza un criterio aprobado, rechaza un segundo hallazgo para el mismo criterio y copia la evidencia del `CriterionResult`. Las dos reglas viven en el agregado: ningún caso de uso tiene que acordarse de validarlas.
 
@@ -391,7 +400,7 @@ Casos centrales cubiertos:
 | Principio / patrón | Dónde |
 |---|---|
 | **SRP** | Casos de uso que orquestan; agregados que deciden; `AuditLog` que registra |
-| **OCP** | `CriterionRule`: tipos de criterio nuevos sin tocar código existente; `CertificationPolicy`: políticas nuevas sin tocar `Certificate`; eventos nuevos sin tocar `AuditLog` |
+| **OCP** | `CriterionRule`: tipos de criterio nuevos sin tocar código existente; `RecordedValue`: tipos de dato nuevos sin tocar `Response`; `CertificationPolicy`: políticas nuevas sin tocar `Certificate`; eventos nuevos sin tocar `AuditLog` |
 | **LSP** | Todas las implementaciones de `CriterionRule` son intercambiables; `CompositeRule` es una más |
 | **ISP** | Ports chicos y específicos (`Clock` con un método; repositorios por agregado); `MeasurementRule` separada de `CriterionRule` |
 | **DIP** | El dominio define las interfaces; la infraestructura las implementa |
