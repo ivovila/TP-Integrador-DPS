@@ -4,6 +4,7 @@ import java.util.List;
 
 import ar.edu.itba.certiflow.domain.model.asset.AssetId;
 import ar.edu.itba.certiflow.domain.model.schema.CriterionId;
+import ar.edu.itba.certiflow.domain.model.shared.DomainException;
 import ar.edu.itba.certiflow.domain.rules.CriterionOutcome;
 
 public record InspectionEvaluation(InspectionId inspection, AssetId asset, List<CriterionResult> results) {
@@ -16,7 +17,7 @@ public record InspectionEvaluation(InspectionId inspection, AssetId asset, List<
         return results.stream()
                 .filter(result -> result.criterionId().equals(criterionId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("El criterio no fue evaluado en esta inspeccion"));
+                .orElseThrow(() -> new DomainException("El criterio no fue evaluado en esta inspeccion"));
     }
 
     public CriterionOutcome outcomeOf(CriterionId criterionId) {

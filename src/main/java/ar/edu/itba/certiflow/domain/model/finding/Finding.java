@@ -69,7 +69,7 @@ public class Finding extends AggregateRoot {
                                        LocalDate dueDate, LocalDateTime now) {
         checkOpen();
         if (dueDate.isBefore(now.toLocalDate())) {
-            throw new IllegalArgumentException("El vencimiento no puede ser anterior a hoy");
+            throw new DomainException("El vencimiento no puede ser anterior a hoy");
         }
         CorrectiveAction action = new CorrectiveAction(actionId, actionDescription, assignee, dueDate);
         actions.add(action);

@@ -71,7 +71,7 @@ class InspectionTest {
     void criterionMustBelongToTheSchema() {
         Inspection inspection = started();
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(DomainException.class,
                 () -> inspection.register(CriterionId.generate(), pressureResponse("11")));
     }
 
@@ -80,7 +80,7 @@ class InspectionTest {
         Inspection inspection = started();
         Response temperature = Response.empty().withMeasurement(new Measurement("temperatura", BigDecimal.TEN, "C"));
 
-        assertThrows(IllegalArgumentException.class, () -> inspection.register(PRESSURE, temperature));
+        assertThrows(DomainException.class, () -> inspection.register(PRESSURE, temperature));
     }
 
     @Test

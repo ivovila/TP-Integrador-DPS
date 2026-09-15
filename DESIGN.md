@@ -105,6 +105,17 @@ certificate.suspend(reason, clock.now());
 
 No hay setters públicos en las entidades. No existe `inspection.setStatus(CLOSED)`. Las colecciones se exponen como copias inmutables. Las entidades internas de un agregado (`CorrectiveAction` dentro de `Finding`) solo cambian a través de la raíz: `CorrectiveAction.verify` es de paquete.
 
+**Excepciones con un criterio único:**
+
+| Excepción | Cuándo | Ejemplos |
+|---|---|---|
+| `IllegalArgumentException` | El argumento es inválido en sí mismo, en cualquier estado del modelo | texto vacío, `min > max`, vigencia invertida, rectificación sin correcciones, hallazgos de otra inspección |
+| `DomainException` | El argumento es válido pero viola una regla del negocio dado el estado actual | criterio que no pertenece al esquema, sección repetida, vencimiento en el pasado, política de certificación no cumplida |
+| `InvalidTransitionException` (subtipo de `DomainException`) | La operación no está permitida en el estado actual | registrar en una inspección cerrada, renovar un certificado suspendido |
+| `NotFoundException` (subtipo de `DomainException`) | El caso de uso no encuentra el agregado | inspección inexistente |
+
+Así quien llama puede distinguir un error de programación (argumento mal armado) de una regla del negocio que el usuario puede corregir.
+
 **Por qué:** es la decisión de la que dependen todas las demás. Si el estado es público, las reglas ("una inspección cerrada no se modifica", "un certificado suspendido no se renueva") se dispersan entre los casos de uso y hay que confiar en que nadie se olvide. Encapsuladas en el agregado, se cumplen por construcción.
 
 **Alternativa descartada — y es la descartada más importante de este documento:** el modelo anémico (entidades con getters/setters + una capa de servicios que hace todo). Es el camino de menor resistencia y el que vuelve irrelevante la calidad del modelado. Consecuencia de haberlo evitado: los casos de uso quedan casi vacíos (buscar, invocar, guardar, publicar eventos), lo cual es correcto pero exige disciplina para no "ayudar un poquito" desde ellos.

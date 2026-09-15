@@ -42,7 +42,7 @@ class InspectionSchemaTest {
     void sectionNamesAreUnique() {
         InspectionSchema schema = Fixtures.extinguisherSchema();
 
-        assertThrows(IllegalArgumentException.class, () -> schema.addSection("Presion"));
+        assertThrows(DomainException.class, () -> schema.addSection("Presion"));
     }
 
     @Test
@@ -50,7 +50,7 @@ class InspectionSchemaTest {
         InspectionSchema schema = Fixtures.extinguisherSchema();
         Criterion duplicated = new Criterion(PRESSURE, "Otra presion", new BooleanRule(true));
 
-        assertThrows(IllegalArgumentException.class, () -> schema.addCriterion("Senalizacion", duplicated));
+        assertThrows(DomainException.class, () -> schema.addCriterion("Senalizacion", duplicated));
     }
 
     @Test
@@ -58,6 +58,6 @@ class InspectionSchemaTest {
         InspectionSchema schema = Fixtures.extinguisherSchema();
         Criterion criterion = new Criterion(CriterionId.generate(), "Accesible", new BooleanRule(true));
 
-        assertThrows(IllegalArgumentException.class, () -> schema.addCriterion("Inexistente", criterion));
+        assertThrows(DomainException.class, () -> schema.addCriterion("Inexistente", criterion));
     }
 }

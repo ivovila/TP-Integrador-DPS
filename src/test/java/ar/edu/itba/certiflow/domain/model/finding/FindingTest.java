@@ -116,7 +116,7 @@ class FindingTest {
     void dueDateCannotBeInThePast() {
         Finding finding = raise();
 
-        assertThrows(IllegalArgumentException.class, () -> finding.planAction(CorrectiveActionId.generate(),
+        assertThrows(DomainException.class, () -> finding.planAction(CorrectiveActionId.generate(),
                 "Recargar", responsible, today.minusDays(1), NOW));
     }
 }

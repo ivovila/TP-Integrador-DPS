@@ -57,7 +57,7 @@ public class Inspection extends AggregateRoot {
 
     public void start(SchemaVersion currentVersion, LocalDateTime now) {
         if (!currentVersion.schemaId().equals(schemaId)) {
-            throw new IllegalArgumentException("La version no corresponde al esquema asignado");
+            throw new DomainException("La version no corresponde al esquema asignado");
         }
         state = state.start(currentVersion);
         recordEvent(new InspectionStarted(id, currentVersion.number(), now));
@@ -124,12 +124,11 @@ public class Inspection extends AggregateRoot {
 
     private void checkApplies(CriterionId criterionId, Response response) {
         Criterion criterion = getSchema().findCriterion(criterionId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "El criterio no pertenece al esquema de la inspeccion"));
+                .orElseThrow(() -> new DomainException("El criterio no pertenece al esquema de la inspeccion"));
         response.measurement()
                 .filter(measurement -> !criterion.accepts(measurement))
                 .ifPresent(measurement -> {
-                    throw new IllegalArgumentException("El criterio no evalua la medicion '"
+                    throw new DomainException("El criterio no evalua la medicion '"
                             + measurement.magnitude() + "' en " + measurement.unit());
                 });
     }

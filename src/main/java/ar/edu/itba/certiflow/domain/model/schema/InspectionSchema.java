@@ -28,19 +28,19 @@ public class InspectionSchema extends AggregateRoot {
 
     public void addSection(String sectionName) {
         if (indexOf(sectionName).isPresent()) {
-            throw new IllegalArgumentException("Ya existe la seccion '" + sectionName + "'");
+            throw new DomainException("Ya existe la seccion '" + sectionName + "'");
         }
         sections.add(Section.named(sectionName));
     }
 
     public void addCriterion(String sectionName, Criterion criterion) {
         int index = indexOf(sectionName)
-                .orElseThrow(() -> new IllegalArgumentException("No existe la seccion '" + sectionName + "'"));
+                .orElseThrow(() -> new DomainException("No existe la seccion '" + sectionName + "'"));
         boolean repeated = sections.stream()
                 .flatMap(section -> section.criteria().stream())
                 .anyMatch(existing -> existing.id().equals(criterion.id()));
         if (repeated) {
-            throw new IllegalArgumentException("El criterio ya forma parte del esquema");
+            throw new DomainException("El criterio ya forma parte del esquema");
         }
         sections.set(index, sections.get(index).with(criterion));
     }
