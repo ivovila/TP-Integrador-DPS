@@ -16,9 +16,11 @@ import ar.edu.itba.certiflow.domain.usecase.IssueCertificate;
 import ar.edu.itba.certiflow.domain.usecase.PlanCorrectiveAction;
 import ar.edu.itba.certiflow.domain.usecase.PublishSchemaVersion;
 import ar.edu.itba.certiflow.domain.usecase.RaiseFinding;
+import ar.edu.itba.certiflow.domain.usecase.ReassignAssetResponsible;
 import ar.edu.itba.certiflow.domain.usecase.RectifyInspection;
 import ar.edu.itba.certiflow.domain.usecase.RegisterAsset;
 import ar.edu.itba.certiflow.domain.usecase.RegisterResponse;
+import ar.edu.itba.certiflow.domain.usecase.RelocateAsset;
 import ar.edu.itba.certiflow.domain.usecase.RenewCertificate;
 import ar.edu.itba.certiflow.domain.usecase.StartInspection;
 import ar.edu.itba.certiflow.domain.usecase.SuspendForOverdueActions;
@@ -38,6 +40,8 @@ public class TestContext {
     public final InMemoryCertificateRepository certificates = new InMemoryCertificateRepository();
 
     public final RegisterAsset registerAsset = new RegisterAsset(assets);
+    public final RelocateAsset relocateAsset = new RelocateAsset(assets, clock, events);
+    public final ReassignAssetResponsible reassignResponsible = new ReassignAssetResponsible(assets, clock, events);
     public final PublishSchemaVersion publishSchema = new PublishSchemaVersion(schemas, clock, events);
     public final AssignInspection assignInspection = new AssignInspection(assets, schemas, inspections);
     public final StartInspection startInspection = new StartInspection(inspections, schemas, clock, events);

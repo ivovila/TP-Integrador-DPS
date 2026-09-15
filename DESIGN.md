@@ -24,7 +24,7 @@ Consecuencia deliberada: cuando en la Entrega 2 se agregue persistencia y API, *
 ar.edu.itba.certiflow
 ├── domain
 │   ├── model
-│   │   ├── asset          Asset, AssetId, AssetType, Location, Characteristics
+│   │   ├── asset          Asset, AssetId, AssetType, Location, Characteristics, eventos
 │   │   ├── schema         InspectionSchema, SchemaVersion, Section, Criterion,
 │   │   │                  SchemaVersionPublished
 │   │   ├── inspection     Inspection, InspectionState (+ states/), Rectification,
@@ -334,7 +334,7 @@ El acta solo se puede generar de una inspección cerrada o rectificada: usa la e
 
 Requisito: *"Historial de modificaciones, decisiones y transiciones."*
 
-Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPublished`, `InspectionStarted`, `InspectionClosed`, `InspectionRectified`, `FindingRaised`, `CorrectiveActionPlanned`, `CorrectiveActionVerified`, `FindingClosed`, `CertificateIssued`, `CertificateSuspended` (con el motivo) y `CertificateStatusChanged` (con estado de origen y destino). El caso de uso los publica con `events.publishFrom(aggregate)`; un `AuditLog` **append-only** los guarda tal cual y permite consultar el historial de un agregado (`history(aggregateId)`).
+Los agregados registran eventos en las modificaciones y transiciones relevantes: `AssetRelocated`, `AssetResponsibleReassigned`, `SchemaVersionPublished`, `InspectionStarted`, `InspectionClosed`, `InspectionRectified`, `FindingRaised`, `CorrectiveActionPlanned`, `CorrectiveActionVerified`, `FindingClosed`, `CertificateIssued`, `CertificateSuspended` (con el motivo) y `CertificateStatusChanged` (con estado de origen y destino). El caso de uso los publica con `events.publishFrom(aggregate)`; un `AuditLog` **append-only** los guarda tal cual y permite consultar el historial de un agregado (`history(aggregateId)`).
 
 **Ids de agregado tipados en los eventos.** `DomainEvent.aggregateId()` devuelve un `AggregateId`, interfaz que implementan `AssetId`, `SchemaId`, `InspectionId`, `FindingId` y `CertificateId`. El historial se consulta con el id tipado, no con un texto: `history(findingId)` no puede confundirse con el historial de una inspección que tenga el mismo UUID.
 
