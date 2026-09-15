@@ -9,6 +9,9 @@ import ar.edu.itba.certiflow.domain.usecase.AssignInspection;
 import ar.edu.itba.certiflow.domain.usecase.CloseFinding;
 import ar.edu.itba.certiflow.domain.usecase.CloseInspection;
 import ar.edu.itba.certiflow.domain.usecase.ExpireCertificate;
+import ar.edu.itba.certiflow.domain.usecase.GenerateCertificateReport;
+import ar.edu.itba.certiflow.domain.usecase.GenerateFindingsSummary;
+import ar.edu.itba.certiflow.domain.usecase.GenerateInspectionReport;
 import ar.edu.itba.certiflow.domain.usecase.IssueCertificate;
 import ar.edu.itba.certiflow.domain.usecase.PlanCorrectiveAction;
 import ar.edu.itba.certiflow.domain.usecase.PublishSchemaVersion;
@@ -52,4 +55,8 @@ public class TestContext {
     public final ExpireCertificate expireCertificate = new ExpireCertificate(certificates, clock, events);
     public final SuspendForOverdueActions suspendForOverdueActions =
             new SuspendForOverdueActions(certificates, findings, clock, events);
+    public final GenerateInspectionReport inspectionReport = new GenerateInspectionReport(inspections);
+    public final GenerateFindingsSummary findingsSummary = new GenerateFindingsSummary(findings, clock);
+    public final GenerateCertificateReport certificateReport =
+            new GenerateCertificateReport(certificates, assets, clock);
 }

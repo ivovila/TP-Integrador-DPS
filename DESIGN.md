@@ -33,6 +33,7 @@ ar.edu.itba.certiflow
 │   │   │                  Severity, eventos
 │   │   ├── certificate    Certificate, CertificateStatus, ValidityPeriod,
 │   │   │                  CertificationPolicy, SeverityCertificationPolicy, eventos
+│   │   ├── report         InspectionReport, FindingsSummary, CertificateReport
 │   │   ├── audit          AuditLog
 │   │   └── shared         PersonId, Response, Measurement, Evidence, EvidenceType,
 │   │                      DomainEvent, AggregateRoot, excepciones de dominio
@@ -53,6 +54,7 @@ ar.edu.itba.certiflow
 shared ← asset ─┐
 shared ← rules ─┴─ schema ← inspection ← finding ← certificate
 shared ← audit
+inspection, finding, certificate, asset ← report
 ports ← usecase        (ports y usecase dependen de todo model; nadie depende de ellos)
 ```
 
@@ -251,7 +253,7 @@ Requisito: *"Una inspección no puede alterarse libremente luego de cerrarse. La
 
 - **Editar y loguear el cambio en una tabla de auditoría.** El log y el dato pueden divergir, y el estado original deja de ser reconstruible desde el modelo.
 - **Versionar la inspección entera (copia completa por corrección).** Funciona, pero pierde la intención: no queda explícito *qué* se corrigió ni *por qué*.
-- **Event sourcing completo de la inspección.** Da todo esto de forma natural, pero obliga a reconstruir el estado por replay en cada lectura y a versionar los eventos. Desproporcionado para la Entrega 1. Ver §10.
+- **Event sourcing completo de la inspección.** Da todo esto de forma natural, pero obliga a reconstruir el estado por replay en cada lectura y a versionar los eventos. Desproporcionado para la Entrega 1. Ver §12.
 
 ---
 
@@ -295,7 +297,29 @@ Los criterios observados no bloquean. Un hallazgo menor abierto tampoco, pero un
 
 ---
 
-## 10. Auditoría vía Domain Events
+## 10. Informes: vistas de lectura armadas desde los agregados
+
+Requisito: *"Acta de inspección, resumen de hallazgos y certificado"*.
+
+**Decisión:** cada informe es un `record` inmutable en `model/report` con una fábrica estática que lo arma a partir de los agregados, y un caso de uso que solo carga los datos:
+
+| Informe | Se arma con | Contiene |
+|---|---|---|
+| `InspectionReport` (acta) | `Inspection` cerrada | esquema y versión, inspector, fecha prevista, alcance, resultado global, cada sección con su resultado y cada criterio con resultado, evidencias y observaciones, rectificaciones |
+| `FindingsSummary` | hallazgos de una inspección + fecha | abiertos por severidad, cerrados, y por hallazgo: responsable, acciones y acciones vencidas |
+| `CertificateReport` | `Certificate` + `Asset` + fecha | activo (tipo, ubicación, responsable), inspección de origen, vigencia, estado y si vale en la fecha |
+
+El acta solo se puede generar de una inspección cerrada o rectificada: usa la evaluación fija, y pedirla antes lanza `InvalidTransitionException`. Los informes no modifican nada ni emiten eventos.
+
+**Por qué en el dominio y no en la aplicación:** decidir qué entra en un acta (resultado por sección, rectificaciones incluidas) es conocimiento del negocio. Los casos de uso `GenerateInspectionReport`, `GenerateFindingsSummary` y `GenerateCertificateReport` quedan en tres líneas.
+
+**Alternativa descartada — modelos de lectura separados (CQRS):** ver §12. Con el volumen actual recorrer los agregados alcanza.
+
+**Alternativa descartada — formato de salida (PDF, HTML):** fuera del alcance del dominio. Los `record` son la estructura que después cualquier adaptador puede renderizar.
+
+---
+
+## 11. Auditoría vía Domain Events
 
 Requisito: *"Historial de modificaciones, decisiones y transiciones."*
 
@@ -315,12 +339,12 @@ Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPu
 
 ---
 
-## 11. Patrones que decidimos NO aplicar
+## 12. Patrones que decidimos NO aplicar
 
 | Patrón | Por qué no | Consecuencia de no aplicarlo |
 |---|---|---|
 | **Event Sourcing (completo)** | Resolvería auditoría y rectificación de forma natural, pero exige replay para leer, versionado de eventos y snapshots. Desproporcionado para el alcance. | Tenemos el estado actual como fuente de verdad y la auditoría como derivada. Si el negocio exige reconstruir el estado a cualquier instante arbitrario, esta decisión hay que revisarla. |
-| **CQRS** | No hay presión de lectura ni modelos de consulta distintos del de escritura. | Los informes (acta, resumen de hallazgos) se arman recorriendo los agregados. Si los informes crecen en volumen o complejidad, van a forzar consultas ineficientes y CQRS pasará a estar justificado. |
+| **CQRS** | No hay presión de lectura ni modelos de consulta distintos del de escritura. | Los informes (`InspectionReport`, `FindingsSummary`, `CertificateReport`) se arman recorriendo los agregados (§10). Si los informes crecen en volumen o complejidad, van a forzar consultas ineficientes y CQRS pasará a estar justificado. |
 | **Patrón State en `Certificate`, `Finding` y `CorrectiveAction`** | Ver §6. La tabla de transiciones en el enum y los Value Objects opcionales quitan los condicionales de estado sin sumar clases, y State no mejora OCP. | Si el certificado empieza a variar qué operaciones admite en cada estado, la tabla se queda corta y hay que migrarlo a State. |
 | **Interpreter / DSL de reglas** | Ver §5. Strategy+Composite cubre los tipos previstos. | Las reglas nuevas requieren recompilar. No se pueden configurar desde la aplicación. |
 | **Repositorio genérico** | Expone operaciones que el negocio no debe permitir y filtra decisiones de persistencia. | Más interfaces para escribir, cada una con su puñado de métodos. Aceptado. |
@@ -330,7 +354,7 @@ Los agregados registran eventos en las transiciones relevantes: `SchemaVersionPu
 
 ---
 
-## 12. Estrategia de tests
+## 13. Estrategia de tests
 
 Tests **de los casos más relevantes del negocio**, no de getters. Los agregados y las reglas tienen tests unitarios (`*Test`, surefire). Los casos de uso se prueban de punta a punta contra los adaptadores in-memory (`*IT`, failsafe), lo cual los vuelve tests de integración del dominio sin infraestructura. `mvn verify` corre ambos y genera la cobertura con JaCoCo.
 
@@ -343,12 +367,13 @@ Casos centrales cubiertos:
 5. **Acción correctiva vencida sin verificar** → suspende el certificado. *(`CertificationIT`; usa el `FixedClock` para adelantar el tiempo.)*
 6. **Transiciones ilegales del certificado** (renovar uno suspendido, suspender uno vencido, vencer uno vigente) → excepción. *(`CertificateTest`.)*
 7. **Evaluación mixta**: criterios aprobados + observados → resultado global observado y certificable. *(`CertificationIT`.)*
+8. **Informes**: el acta muestra cada sección con sus criterios, observaciones y rectificaciones; el resumen cuenta hallazgos abiertos por severidad y acciones vencidas; el certificado refleja la vigencia según la fecha. *(`ReportsIT`.)*
 
 **Decisión:** no usamos librerías de mocking. Los adaptadores in-memory son unas pocas clases de `Map` y sirven para todos los tests; son más legibles que cadenas de `when(...).thenReturn(...)` y no acoplan los tests a la firma exacta de cada método.
 
 ---
 
-## 13. Resumen de principios y dónde se aplican
+## 14. Resumen de principios y dónde se aplican
 
 | Principio / patrón | Dónde |
 |---|---|
