@@ -25,7 +25,7 @@ mvn clean test
 | S9 | Vencimiento del certificado | `ValidityPeriod(from, to)` con ambos extremos incluidos. La vigencia arranca el día de emisión. `EXPIRED` se deriva de la fecha consultada. | Vigente todo el día `to`, vencido el siguiente. No existe un booleano que pueda quedar desactualizado. |
 | S10 | Unicidad | Un activo tiene a lo sumo un certificado vigente. Un certificado suspendido dentro de su validez sigue ocupando ese lugar. | No se puede esquivar una suspensión emitiendo otro certificado; la salida es renovar. |
 | S11 | Renovación | Emite un certificado nuevo, basado en otra inspección cerrada y sujeto a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". | La historia no se borra. Menos transiciones que probar. |
-| S12 | Límites numéricos | `Range[min, max]` cerrado en ambos extremos; `min > max` es configuración inválida. No hay conversión de unidades. | Una medición en otra unidad se rechaza al registrarla (`UnitMismatchException`), no al cerrar. |
+| S12 | Límites numéricos | `Range[min, max]` cerrado en ambos extremos; `min > max` es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`. | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(name)`. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara personas sin conversiones entre tipos de rol. |
 | S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo) y `CertificateNumber`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
@@ -73,7 +73,7 @@ determinista y los tests usan un reloj controlable.
 
 - **Principios:** OCP, LSP, ISP.
 - **Dónde:** `ApprovalRule<A extends Answer>`, `NumericRangeRule`, `YesNoRule`, `OptionInListRule`, `Criterion<A>`, `CriterionResponse<A>`, `Inspection.recordAnswer(Criterion<A>, A, ...)`.
-- **Por qué:** agregar una regla es agregar una clase; nada más cambia. El contrato LSP es explícito en el tipo: `ApprovalRule<Measurement>` declara qué acepta. Ofrecerle un `YesNoAnswer` a un criterio numérico **no compila**, así que ese error no necesita excepción ni test de ejecución. `CriterionResponse<A>` lleva consigo su `Criterion<A>`, de modo que evaluar no requiere ningún cast.
+- **Por qué:** agregar una regla es agregar una clase; nada más cambia. El contrato LSP es explícito en el tipo: `ApprovalRule<NumericAnswer>` declara qué acepta. Ofrecerle un `YesNoAnswer` a un criterio numérico **no compila**, así que ese error no necesita excepción ni test de ejecución. La unidad pertenece a la regla del criterio y la respuesta solo conserva el valor. `CriterionResponse<A>` lleva consigo su `Criterion<A>`, de modo que evaluar no requiere ningún cast.
 - **Alternativas descartadas:**
   - *Double dispatch con métodos `default` que lanzan excepción:* funcionaba, pero la interfaz prometía tres capacidades y cada regla cumplía una. Es la violación de ISP de la clase 2 maquillada.
   - *Visitor con métodos abstractos:* obliga a cada regla a implementar "no soy yo" para los otros tipos.
@@ -200,12 +200,12 @@ determinista y los tests usan un reloj controlable.
 | Una rectificación altera hallazgos ya levantados | `RectificationTest.rectificationLeavesFindingsAlreadyRaisedUntouched` |
 | Los informes no reflejan el estado real | `EndToEndFlowTest.assetGoesFromInspectionToCertificateAndEveryReportTellsTheSameStory` |
 | Límites del rango mal interpretados | `NumericRangeRuleTest.rangeLimitsAreInclusiveAndAnythingBeyondThemFails` |
-| Unidad incorrecta o regla mal configurada | `NumericRangeRuleTest.measurementInAnotherUnitCannotBeEvaluated`, `rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration`, `OptionInListRuleTest.ruleWithoutAcceptedOptionsIsAnInvalidConfiguration` |
+| Regla numérica mal configurada | `NumericRangeRuleTest.rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration`, `OptionInListRuleTest.ruleWithoutAcceptedOptionsIsAnInvalidConfiguration` |
 | Tipo de respuesta incorrecto para un criterio | No compila: `ApprovalRule<A>` y `recordAnswer(Criterion<A>, A, ...)`. Ver D1. |
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 69 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 68 tests.
 
 ---
 

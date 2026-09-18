@@ -9,13 +9,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * Ofrecerle a esta regla una respuesta que no sea una medición (un YesNoAnswer, por ejemplo) no compila:
- * ApprovalRule<Measurement> lo impide en la firma, por eso ese riesgo no tiene test de ejecución.
+ * Ofrecerle a esta regla una respuesta que no sea numérica (un YesNoAnswer, por ejemplo) no compila:
+ * ApprovalRule<NumericAnswer> lo impide en la firma, por eso ese riesgo no tiene test de ejecución.
  */
 class NumericRangeRuleTest {
 
     private static final Unit BAR = new Unit("bar");
-    private static final Unit PSI = new Unit("psi");
 
     private final NumericRangeRule rule = new NumericRangeRule(BAR, new Range(new BigDecimal("6.00"), new BigDecimal("8.00")));
 
@@ -28,31 +27,29 @@ class NumericRangeRuleTest {
             "8.01, false"
     })
     void rangeLimitsAreInclusiveAndAnythingBeyondThemFails(String value, boolean expected) {
-        Measurement measurement = new Measurement(new BigDecimal(value), BAR);
+        NumericAnswer answer = new NumericAnswer(new BigDecimal(value));
 
-        boolean satisfied = rule.isSatisfiedBy(measurement);
+        boolean satisfied = rule.isSatisfiedBy(answer);
 
         assertEquals(expected, satisfied);
     }
 
     @Test
     void sameValueWithDifferentScaleIsStillInsideTheRange() {
-        Measurement measurement = new Measurement(new BigDecimal("8"), BAR);
+        NumericAnswer answer = new NumericAnswer(new BigDecimal("8"));
 
-        assertEquals(true, rule.isSatisfiedBy(measurement));
-    }
-
-    @Test
-    void measurementInAnotherUnitCannotBeEvaluated() {
-        Measurement inPsi = new Measurement(new BigDecimal("7.00"), PSI);
-
-        assertThrows(UnitMismatchException.class, () -> rule.isSatisfiedBy(inPsi));
+        assertEquals(true, rule.isSatisfiedBy(answer));
     }
 
     @Test
     void rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration() {
         assertThrows(InvalidRuleConfigurationException.class,
                 () -> new Range(new BigDecimal("8.00"), new BigDecimal("6.00")));
+    }
+
+    @Test
+    void unitIsPartOfTheRuleConfigurationRatherThanTheAnswer() {
+        assertEquals(BAR, rule.unit());
     }
 
     @Test

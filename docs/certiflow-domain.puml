@@ -51,10 +51,8 @@ package "domain.asset" {
 
 package "domain.evaluation" {
   interface Answer
-  class Measurement <<value object>> {
+  class NumericAnswer <<value object>> {
     value: BigDecimal
-    unit: Unit
-    +valueIn(Unit): BigDecimal
   }
   enum YesNoAnswer {
     YES
@@ -67,7 +65,7 @@ package "domain.evaluation" {
   interface "ApprovalRule<A extends Answer>" as ApprovalRule {
     +isSatisfiedBy(A): boolean
   }
-  class NumericRangeRule <<regla de Measurement>> {
+  class NumericRangeRule <<regla de NumericAnswer>> {
     unit: Unit
     range: Range
   }
@@ -117,10 +115,9 @@ package "domain.evaluation" {
     minimum: int
     +isSatisfiedBy(List<Evidence>): boolean
   }
-  Answer <|.. Measurement
+  Answer <|.. NumericAnswer
   Answer <|.. YesNoAnswer
   Answer <|.. OptionAnswer
-  Measurement --> Unit
   ApprovalRule <|.. NumericRangeRule
   ApprovalRule <|.. YesNoRule
   ApprovalRule <|.. OptionInListRule
@@ -159,7 +156,6 @@ package "domain.schema" {
     severity: Severity
     requiredEvidence: List<EvidenceRequirement>
     +outcomeOf(A): Outcome
-    +ensureEvaluable(A)
     +evidenceRequirementsMetBy(List<Evidence>): boolean
   }
   InspectionSchema "1" *-- "1..*" SchemaVersion

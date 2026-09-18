@@ -27,7 +27,7 @@ class RectificationTest {
         app.majorFindingOf(inspection);
         app.clock.advanceDays(2);
 
-        app.rectifyInspection.execute(inspection, app.pressure, app.bars("7.00"), REASON, app.certifier);
+        app.rectifyInspection.execute(inspection, app.pressure, app.numericAnswer("7.00"), REASON, app.certifier);
 
         assertEquals(Outcome.APPROVED, inspection.evaluate().outcomeOf(app.pressure));
         Revision original = inspection.originalRevision();
@@ -53,7 +53,7 @@ class RectificationTest {
         Inspection inProgress = app.assignedInspection();
 
         assertThrows(InspectionNotClosedException.class,
-                () -> app.rectifyInspection.execute(inProgress, app.pressure, app.bars("7.00"), REASON, app.certifier));
+                () -> app.rectifyInspection.execute(inProgress, app.pressure, app.numericAnswer("7.00"), REASON, app.certifier));
     }
 
     @Test
@@ -62,7 +62,7 @@ class RectificationTest {
         app.majorFindingOf(inspection);
 
         assertThrows(RectificationReasonRequiredException.class,
-                () -> app.rectifyInspection.execute(inspection, app.pressure, app.bars("7.00"), "  ", app.certifier));
+                () -> app.rectifyInspection.execute(inspection, app.pressure, app.numericAnswer("7.00"), "  ", app.certifier));
 
         assertEquals(Outcome.REJECTED, inspection.evaluate().outcomeOf(app.pressure));
         assertEquals(1, inspection.revisions().size());
@@ -73,7 +73,7 @@ class RectificationTest {
         Inspection inspection = app.assignedInspection();
         Finding finding = app.majorFindingOf(inspection);
 
-        app.rectifyInspection.execute(inspection, app.pressure, app.bars("7.00"), REASON, app.certifier);
+        app.rectifyInspection.execute(inspection, app.pressure, app.numericAnswer("7.00"), REASON, app.certifier);
 
         assertTrue(finding.isOpen());
         assertTrue(finding.blocksCertification());

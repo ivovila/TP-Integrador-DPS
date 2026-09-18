@@ -31,11 +31,6 @@ public record Criterion<A extends Answer>(String code, String text, ApprovalRule
         return rule.isSatisfiedBy(answer) ? Outcome.APPROVED : severity.outcomeWhenUnmet();
     }
 
-    /** Una respuesta que la regla no puede evaluar, como una medición en otra unidad, se rechaza al registrarla y no al cerrar. */
-    public void ensureEvaluable(A answer) {
-        rule.isSatisfiedBy(answer);
-    }
-
     public boolean evidenceRequirementsMetBy(List<Evidence> attached) {
         return requiredEvidence.stream().allMatch(requirement -> requirement.isSatisfiedBy(attached));
     }

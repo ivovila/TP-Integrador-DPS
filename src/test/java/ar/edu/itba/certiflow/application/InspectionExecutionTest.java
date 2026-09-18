@@ -5,17 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.domain.evaluation.Measurement;
 import ar.edu.itba.certiflow.domain.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
-import ar.edu.itba.certiflow.domain.evaluation.UnitMismatchException;
 import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAudit;
 import ar.edu.itba.certiflow.domain.inspection.InspectionIncompleteException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +35,7 @@ class InspectionExecutionTest {
     @Test
     void answeredCriterionStaysPendingUntilItsRequiredEvidenceIsAttached() {
         Inspection inspection = app.assignedInspection();
-        app.recordAnswer.execute(inspection, app.pressure, app.bars("7.00"), app.inspector);
+        app.recordAnswer.execute(inspection, app.pressure, app.numericAnswer("7.00"), app.inspector);
         app.recordAnswer.execute(inspection, app.sealIntact, YesNoAnswer.YES, app.inspector);
         app.recordAnswer.execute(inspection, app.signage, new OptionAnswer("VISIBLE"), app.inspector);
 
@@ -56,7 +53,7 @@ class InspectionExecutionTest {
         app.answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
         assertEquals(Outcome.REJECTED, inspection.evaluate().outcomeOf(app.pressure));
 
-        app.recordAnswer.execute(inspection, app.pressure, app.bars("7.10"), app.inspector);
+        app.recordAnswer.execute(inspection, app.pressure, app.numericAnswer("7.10"), app.inspector);
 
         assertEquals(Outcome.APPROVED, inspection.evaluate().outcomeOf(app.pressure));
         List<AuditEntry> pressureEntries = app.auditService.entriesFor(inspection).stream()
@@ -73,26 +70,13 @@ class InspectionExecutionTest {
         int entriesAtClosure = app.auditService.entriesFor(closed).size();
 
         assertThrows(InspectionAlreadyClosedException.class,
-                () -> app.recordAnswer.execute(closed, app.pressure, app.bars("6.50"), app.inspector));
+                () -> app.recordAnswer.execute(closed, app.pressure, app.numericAnswer("6.50"), app.inspector));
         assertThrows(InspectionAlreadyClosedException.class,
                 () -> app.attachEvidence.execute(closed, app.pressure, app.gaugePhoto(), app.inspector));
         assertThrows(InspectionAlreadyClosedException.class,
                 () -> app.addObservation.execute(closed, app.signage, "Late note", app.inspector));
         assertThrows(InspectionAlreadyClosedException.class, () -> app.closeInspection.execute(closed, app.inspector));
         assertEquals(entriesAtClosure, app.auditService.entriesFor(closed).size());
-    }
-
-    @Test
-    void measurementInAnotherUnitIsRejectedWhenRecordedAndLeavesNoTrace() {
-        Inspection inspection = app.assignedInspection();
-        Measurement inPsi = new Measurement(new BigDecimal("101.5"), CertiflowFixture.PSI);
-
-        assertThrows(UnitMismatchException.class,
-                () -> app.recordAnswer.execute(inspection, app.pressure, inPsi, app.inspector));
-
-        assertEquals(Outcome.PENDING, inspection.evaluate().outcomeOf(app.pressure));
-        assertEquals(List.of(InspectionAudit.ASSIGNED),
-                app.auditService.entriesFor(inspection).stream().map(AuditEntry::action).toList());
     }
 
     @Test

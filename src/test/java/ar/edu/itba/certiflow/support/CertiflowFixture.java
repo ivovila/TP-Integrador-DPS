@@ -25,7 +25,7 @@ import ar.edu.itba.certiflow.domain.asset.Location;
 import ar.edu.itba.certiflow.domain.certificate.AuditedCertificateGenerator;
 import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.EvidenceRequirement;
-import ar.edu.itba.certiflow.domain.evaluation.Measurement;
+import ar.edu.itba.certiflow.domain.evaluation.NumericAnswer;
 import ar.edu.itba.certiflow.domain.evaluation.NumericRangeRule;
 import ar.edu.itba.certiflow.domain.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.domain.evaluation.OptionInListRule;
@@ -64,7 +64,6 @@ import java.util.Set;
 public final class CertiflowFixture {
 
     public static final Unit BAR = new Unit("bar");
-    public static final Unit PSI = new Unit("psi");
     public static final AssetType EXTINGUISHER = new AssetType("Fire extinguisher");
     public static final LocalDate TODAY = LocalDate.of(2026, 3, 10);
 
@@ -75,7 +74,7 @@ public final class CertiflowFixture {
     public final Person verifier = new Person("Victor Verifier");
     public final Person certifier = new Person("Carla Certifier");
 
-    public final Criterion<Measurement> pressure = new Criterion<>("EXT-01", "Gauge pressure within range",
+    public final Criterion<NumericAnswer> pressure = new Criterion<>("EXT-01", "Gauge pressure within range",
             new NumericRangeRule(BAR, new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),
             StandardSeverity.MAJOR, List.of(new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1)));
     public final Criterion<YesNoAnswer> sealIntact = new Criterion<>("EXT-02", "Safety seal is intact",
@@ -133,8 +132,8 @@ public final class CertiflowFixture {
                 planner);
     }
 
-    public Measurement bars(String value) {
-        return new Measurement(new BigDecimal(value), BAR);
+    public NumericAnswer numericAnswer(String value) {
+        return new NumericAnswer(new BigDecimal(value));
     }
 
     public Evidence gaugePhoto() {
@@ -142,7 +141,7 @@ public final class CertiflowFixture {
     }
 
     public void answerAll(Inspection inspection, String pressureInBars, YesNoAnswer seal, String signageOption) {
-        recordAnswer.execute(inspection, pressure, bars(pressureInBars), inspector);
+        recordAnswer.execute(inspection, pressure, numericAnswer(pressureInBars), inspector);
         attachEvidence.execute(inspection, pressure, gaugePhoto(), inspector);
         recordAnswer.execute(inspection, sealIntact, seal, inspector);
         recordAnswer.execute(inspection, signage, new OptionAnswer(signageOption), inspector);

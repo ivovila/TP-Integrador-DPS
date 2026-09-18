@@ -34,7 +34,7 @@ class EndToEndFlowTest {
     @Test
     void assetGoesFromInspectionToCertificateAndEveryReportTellsTheSameStory() {
         Inspection inspection = app.assignedInspection();
-        app.recordAnswer.execute(inspection, app.pressure, app.bars("5.20"), app.inspector);
+        app.recordAnswer.execute(inspection, app.pressure, app.numericAnswer("5.20"), app.inspector);
         app.attachEvidence.execute(inspection, app.pressure, app.gaugePhoto(), app.inspector);
         app.addObservation.execute(inspection, app.pressure, "Needle sits below the green band", app.inspector);
         app.recordAnswer.execute(inspection, app.sealIntact, YesNoAnswer.YES, app.inspector);
@@ -49,7 +49,7 @@ class EndToEndFlowTest {
         assertEquals(List.of(Outcome.REJECTED, Outcome.APPROVED, Outcome.OBSERVED),
                 act.lines().stream().map(ActLine::outcome).toList());
         ActLine pressureLine = act.lines().getFirst();
-        assertEquals(app.bars("5.20"), pressureLine.answer());
+        assertEquals(app.numericAnswer("5.20"), pressureLine.answer());
         assertEquals(1, pressureLine.evidenceCount());
         assertEquals(List.of("Needle sits below the green band"), pressureLine.observations());
         assertEquals(List.of(InspectionAudit.ASSIGNED, InspectionAudit.ANSWER_RECORDED,

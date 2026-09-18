@@ -2,7 +2,8 @@ package ar.edu.itba.certiflow.domain.evaluation;
 
 import java.util.Objects;
 
-public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<Measurement> {
+/** The schema fixes the unit; the inspector records only the numeric value. */
+public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<NumericAnswer> {
 
     public NumericRangeRule {
         Objects.requireNonNull(unit, "unit");
@@ -10,7 +11,7 @@ public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<M
     }
 
     @Override
-    public boolean isSatisfiedBy(Measurement measurement) {
-        return range.contains(measurement.valueIn(unit));
+    public boolean isSatisfiedBy(NumericAnswer answer) {
+        return range.contains(answer.value());
     }
 }

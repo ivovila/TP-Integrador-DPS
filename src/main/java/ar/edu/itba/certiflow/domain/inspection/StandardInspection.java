@@ -109,7 +109,6 @@ final class StandardInspection implements Inspection {
 
     private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer) {
         schemaVersion.ensureContains(criterion);
-        criterion.ensureEvaluable(answer);
         responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer));
     }
 
