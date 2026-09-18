@@ -1,6 +1,4 @@
-package ar.edu.itba.certiflow.details.evaluation;
-
-import ar.edu.itba.certiflow.domain.evaluation.Answer;
+package ar.edu.itba.certiflow.domain.evaluation;
 
 import java.math.BigDecimal;
 
