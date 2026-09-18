@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.support;
 import ar.edu.itba.certiflow.application.asset.RegisterAsset;
 import ar.edu.itba.certiflow.application.certificate.CertificationEligibility;
 import ar.edu.itba.certiflow.application.certificate.IssueCertificate;
+import ar.edu.itba.certiflow.application.certificate.NoBlockingFindingsEligibility;
 import ar.edu.itba.certiflow.application.certificate.RenewCertificate;
 import ar.edu.itba.certiflow.application.certificate.SuspendCertificate;
 import ar.edu.itba.certiflow.application.finding.PlanCorrectiveAction;
@@ -103,7 +104,7 @@ public final class CertiflowFixture {
     public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(findings, clock);
     public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(clock);
 
-    private final CertificationEligibility eligibility = new CertificationEligibility(findings);
+    private final CertificationEligibility eligibility = new NoBlockingFindingsEligibility(findings);
     private final SequentialCertificateNumbering numbering = new SequentialCertificateNumbering();
     public final IssueCertificate issueCertificate = new IssueCertificate(certificates, eligibility, numbering,
             new AuditedCertificateGenerator(auditService), clock);

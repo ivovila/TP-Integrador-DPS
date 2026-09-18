@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.application.inspection;
 
 import ar.edu.itba.certiflow.application.finding.FindingRepository;
-import ar.edu.itba.certiflow.domain.finding.AuditedFindingGenerator;
 import ar.edu.itba.certiflow.domain.finding.Finding;
+import ar.edu.itba.certiflow.domain.finding.FindingGenerator;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
@@ -13,11 +13,11 @@ public final class CloseInspection {
 
     private final InspectionRepository inspections;
     private final FindingRepository findings;
-    private final AuditedFindingGenerator findingGenerator;
+    private final FindingGenerator findingGenerator;
     private final Clock clock;
 
     public CloseInspection(InspectionRepository inspections, FindingRepository findings,
-                           AuditedFindingGenerator findingGenerator, Clock clock) {
+                           FindingGenerator findingGenerator, Clock clock) {
         this.inspections = inspections;
         this.findings = findings;
         this.findingGenerator = findingGenerator;

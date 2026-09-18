@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.application.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.certificate.AuditedCertificateGenerator;
 import ar.edu.itba.certiflow.domain.certificate.Certificate;
+import ar.edu.itba.certiflow.domain.certificate.CertificateGenerator;
 import ar.edu.itba.certiflow.domain.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
@@ -14,11 +14,11 @@ public final class IssueCertificate {
     private final CertificateRepository certificates;
     private final CertificationEligibility eligibility;
     private final CertificateNumbering numbering;
-    private final AuditedCertificateGenerator certificateGenerator;
+    private final CertificateGenerator certificateGenerator;
     private final Clock clock;
 
     public IssueCertificate(CertificateRepository certificates, CertificationEligibility eligibility,
-                            CertificateNumbering numbering, AuditedCertificateGenerator certificateGenerator,
+                            CertificateNumbering numbering, CertificateGenerator certificateGenerator,
                             Clock clock) {
         this.certificates = certificates;
         this.eligibility = eligibility;

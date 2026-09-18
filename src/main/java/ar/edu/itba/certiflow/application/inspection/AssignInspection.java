@@ -3,9 +3,9 @@ package ar.edu.itba.certiflow.application.inspection;
 import ar.edu.itba.certiflow.application.schema.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.application.schema.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.inspection.AuditedInspectionGenerator;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAssignment;
+import ar.edu.itba.certiflow.domain.inspection.InspectionGenerator;
 import ar.edu.itba.certiflow.domain.schema.InspectionSchema;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
@@ -14,11 +14,11 @@ public final class AssignInspection {
 
     private final InspectionSchemaRepository schemas;
     private final InspectionRepository inspections;
-    private final AuditedInspectionGenerator inspectionGenerator;
+    private final InspectionGenerator inspectionGenerator;
     private final Clock clock;
 
     public AssignInspection(InspectionSchemaRepository schemas, InspectionRepository inspections,
-                            AuditedInspectionGenerator inspectionGenerator, Clock clock) {
+                            InspectionGenerator inspectionGenerator, Clock clock) {
         this.schemas = schemas;
         this.inspections = inspections;
         this.inspectionGenerator = inspectionGenerator;
