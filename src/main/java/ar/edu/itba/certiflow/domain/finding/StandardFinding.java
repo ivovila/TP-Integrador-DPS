@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Abierto es un estado derivado: el hallazgo se cierra cuando una de sus acciones es verificada con éxito. */
 final class StandardFinding implements Finding {
 
     private final Inspection inspection;
@@ -23,8 +22,8 @@ final class StandardFinding implements Finding {
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
     StandardFinding(Inspection inspection, CriterionResponse<?> nonConformity, Person responsible) {
-        this.inspection = Objects.requireNonNull(inspection, "inspection");
-        this.responsible = Objects.requireNonNull(responsible, "responsible");
+        this.inspection = inspection;
+        this.responsible = responsible;
         this.criterion = nonConformity.criterion();
         this.evidence = nonConformity.evidence();
         if (!nonConformity.outcome().raisesFinding()) {

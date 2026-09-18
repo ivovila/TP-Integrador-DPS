@@ -5,14 +5,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Inmutable: publicar una versión nueva crea otro objeto, por lo que una inspección
- * conserva exactamente las reglas con las que fue iniciada.
- */
+
 public record SchemaVersion(int number, List<Section> sections, Instant publishedAt) {
 
     public SchemaVersion {
-        Objects.requireNonNull(publishedAt, "publishedAt");
         sections = List.copyOf(sections);
         if (sections.isEmpty()) {
             throw new InvalidSchemaException("A schema version needs at least one section");

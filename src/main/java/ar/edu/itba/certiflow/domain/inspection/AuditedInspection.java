@@ -11,10 +11,6 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Decorator: registra cada operación después de que la inspección decorada la aceptó.
- * Si la operación lanza una excepción, no queda entrada de auditoría.
- */
 final class AuditedInspection implements Inspection {
 
     private final Inspection inspection;
