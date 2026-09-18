@@ -1,93 +1,56 @@
 @startuml certiflow-domain
-title Certiflow - Modelo de dominio propuesto (Entrega 1)
+!pragma layout smetana
+title Certiflow - Modelo de dominio (Entrega 1)
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
-skinparam linetype ortho
 hide empty members
 
-' ===================== SHARED / AUDIT =====================
 package "domain.shared" {
-  class PersonId <<value object>>
-  class DomainException <<exception>>
-  class Preconditions {
-    +{static} require(boolean, Supplier<RuntimeException>)
+  class Person <<value object>> {
+    name: String
   }
+  abstract class DomainException <<exception>>
 }
 
 package "domain.audit" {
-  class AuditTrail <<first-class collection>> {
+  interface AuditService <<puerto>> {
     +record(AuditEntry)
-    +entries(): List<AuditEntry>
+    +entriesFor(subject): List<AuditEntry>
   }
   class AuditEntry <<value object>> {
-    at: Instant
-    by: PersonId
+    subject: Object
     action: AuditAction
+    by: Person
+    at: Instant
     detail: String
+    +concerns(candidate): boolean
   }
-  enum AuditAction {
-    ASSIGNED
-    ANSWER_RECORDED
-    EVIDENCE_ATTACHED
-    OBSERVATION_ADDED
-    CLOSED
-    RECTIFIED
-    FINDING_RAISED
-    FINDING_CLOSED
-    ACTION_PLANNED
-    VERIFICATION_ACCEPTED
-    VERIFICATION_REJECTED
-    ISSUED
-    SUSPENDED
-    RENEWED
+  interface AuditAction <<enum extensible>> {
+    +label(): String
   }
-  AuditTrail o-- "*" AuditEntry
+  AuditService ..> AuditEntry
   AuditEntry --> AuditAction
 }
 
-' ===================== ASSET =====================
 package "domain.asset" {
-  class Asset <<aggregate root>> {
-    -id: AssetId
-    -name: String
-    -type: AssetType
-    -location: Location
-    -responsible: PersonId
-    -characteristics: Map<String,String>
+  class Asset <<entidad inmutable>> {
+    code: AssetCode
+    name: String
+    type: AssetType
+    location: Location
+    responsible: Person
+    characteristics: Map<String,String>
   }
+  class AssetCode <<identificador de negocio>>
   class AssetType <<value object>>
   class Location <<value object>>
+  Asset --> AssetCode
   Asset --> AssetType
   Asset --> Location
 }
 
-' ===================== EVALUATION (reglas y respuestas) =====================
 package "domain.evaluation" {
-  interface ApprovalRule {
-    ..double dispatch: cada regla sobrescribe solo lo que acepta..
-    +isSatisfiedBy(Measurement): boolean
-    +isSatisfiedBy(YesNoAnswer): boolean
-    +isSatisfiedBy(OptionAnswer): boolean
-    ..default: lanza IncompatibleAnswerException..
-  }
-  class NumericRangeRule <<value object>> {
-    -unit: Unit
-    -range: Range
-  }
-  class YesNoRule <<value object>> {
-    -expected: YesNoAnswer
-  }
-  class OptionInListRule <<value object>> {
-    -accepted: Set<String>
-  }
-  class Range <<value object>> {
-    min: BigDecimal
-    max: BigDecimal
-    +contains(BigDecimal): boolean
-  }
-  interface Answer <<sealed>> {
-    +satisfies(ApprovalRule): boolean
-  }
+  interface Answer
   class Measurement <<value object>> {
     value: BigDecimal
     unit: Unit
@@ -101,6 +64,24 @@ package "domain.evaluation" {
     option: String
   }
   class Unit <<value object>>
+  interface "ApprovalRule<A extends Answer>" as ApprovalRule {
+    +isSatisfiedBy(A): boolean
+  }
+  class NumericRangeRule <<regla de Measurement>> {
+    unit: Unit
+    range: Range
+  }
+  class YesNoRule <<regla de YesNoAnswer>> {
+    expected: YesNoAnswer
+  }
+  class OptionInListRule <<regla de OptionAnswer>> {
+    acceptedOptions: Set<String>
+  }
+  class Range <<value object>> {
+    min: BigDecimal
+    max: BigDecimal
+    +contains(BigDecimal): boolean
+  }
   enum Outcome {
     PENDING
     APPROVED
@@ -108,246 +89,276 @@ package "domain.evaluation" {
     REJECTED
     +raisesFinding(): boolean
   }
-  enum Severity {
+  interface Severity <<enum extensible>> {
+    +label(): String
+    +outcomeWhenUnmet(): Outcome
+    +blocksCertification(): boolean
+  }
+  enum StandardSeverity {
     MINOR
     MAJOR
     CRITICAL
-    +outcomeWhenUnmet(): Outcome
+  }
+  interface EvidenceKind <<enum extensible>> {
+    +label(): String
+  }
+  enum StandardEvidenceKind {
+    PHOTO
+    DOCUMENT
   }
   class Evidence <<value object>> {
     kind: EvidenceKind
     reference: String
     description: String
+    +isOfKind(EvidenceKind): boolean
   }
-  enum EvidenceKind {
-    PHOTO
-    DOCUMENT
-  }
-  enum EvidenceRequirement {
-    REQUIRED
-    OPTIONAL
+  class EvidenceRequirement <<value object>> {
+    kind: EvidenceKind
+    minimum: int
     +isSatisfiedBy(List<Evidence>): boolean
   }
-  ApprovalRule <|.. NumericRangeRule
-  ApprovalRule <|.. YesNoRule
-  ApprovalRule <|.. OptionInListRule
-  NumericRangeRule --> Range
   Answer <|.. Measurement
   Answer <|.. YesNoAnswer
   Answer <|.. OptionAnswer
   Measurement --> Unit
+  ApprovalRule <|.. NumericRangeRule
+  ApprovalRule <|.. YesNoRule
+  ApprovalRule <|.. OptionInListRule
+  NumericRangeRule --> Range
+  Severity <|.. StandardSeverity
   Severity ..> Outcome
+  EvidenceKind <|.. StandardEvidenceKind
   Evidence --> EvidenceKind
+  EvidenceRequirement --> EvidenceKind
 }
 
-' ===================== SCHEMA (versionado) =====================
 package "domain.schema" {
   class InspectionSchema <<aggregate root>> {
-    -id: SchemaId
     -name: String
     -assetType: AssetType
     -versions: List<SchemaVersion>
     +publish(List<Section>, Instant): SchemaVersion
     +currentVersion(): SchemaVersion
+    +appliesTo(AssetType): boolean
   }
-  class SchemaVersion <<value object, inmutable>> {
+  class SchemaVersion <<value object inmutable>> {
     number: int
     sections: List<Section>
     publishedAt: Instant
-    +criterion(CriterionId): Optional<Criterion>
-    +criteria(): List<Criterion>
+    +criteria(): List<Criterion<?>>
+    +ensureContains(Criterion<?>)
   }
   class Section <<value object>> {
     title: String
-    criteria: List<Criterion>
+    criteria: List<Criterion<?>>
   }
-  class Criterion <<value object>> {
-    id: CriterionId
+  class "Criterion<A extends Answer>" as Criterion <<value object>> {
+    code: String
     text: String
-    rule: ApprovalRule
+    rule: ApprovalRule<A>
     severity: Severity
-    evidence: EvidenceRequirement
-    +outcomeOf(Answer): Outcome
-    +evidenceRequirementMetBy(List<Evidence>): boolean
-    +validate(Answer)
+    requiredEvidence: List<EvidenceRequirement>
+    +outcomeOf(A): Outcome
+    +ensureEvaluable(A)
+    +evidenceRequirementsMetBy(List<Evidence>): boolean
   }
-  class CriterionId <<value object>>
   InspectionSchema "1" *-- "1..*" SchemaVersion
   SchemaVersion *-- "1..*" Section
   Section *-- "1..*" Criterion
   Criterion --> ApprovalRule
   Criterion --> Severity
-  Criterion --> EvidenceRequirement
-  Criterion --> CriterionId
+  Criterion --> "*" EvidenceRequirement
   InspectionSchema --> AssetType
 }
 
-' ===================== INSPECTION =====================
 package "domain.inspection" {
-  class Inspection <<aggregate root>> {
-    -id: InspectionId
-    -assetId: AssetId
-    -inspector: PersonId
-    -plannedDate: LocalDate
-    -scope: InspectionScope
-    -schemaVersion: SchemaVersion  (fijada al asignar)
-    -responses: Map<CriterionId, CriterionResponse>
-    -rectifications: List<Rectification>
-    -state: InspectionState
-    -audit: AuditTrail
-    +recordAnswer(CriterionId, Answer, PersonId, Instant)
-    +attachEvidence(CriterionId, Evidence, PersonId, Instant)
-    +addObservation(CriterionId, String, PersonId, Instant)
-    +evaluate(): Evaluation   (derivado, nunca almacenado)
-    +close(PersonId, Instant)
-    +rectify(CriterionId, Answer, String reason, PersonId, Instant)
-    +evaluationAtClosure(): Evaluation
-    +history(): List<AuditEntry>
+  interface Inspection {
+    +recordAnswer(Criterion<A>, A, Person, Instant)
+    +attachEvidence(Criterion<?>, Evidence, Person, Instant)
+    +addObservation(Criterion<?>, String, Person, Instant)
+    +close(Person, Instant)
+    +rectify(Criterion<A>, A, reason, Person, Instant)
+    +evaluate(): Evaluation
+    +isClosed(): boolean
+    +originalRevision(): Revision
+    +revisions(): List<Revision>
+    +asset(): Asset
+    +assignment(): InspectionAssignment
+    +schemaVersion(): SchemaVersion
   }
-  interface InspectionState <<sealed>> {
-    +ensureAcceptsRecords()
-    +close(Evaluation, PersonId, Instant): Closed
-    +closure(): Closed
+  class StandardInspection <<de paquete>> {
+    -responses: Map<Criterion<?>, CriterionResponse<?>>
+    -revisions: List<Revision>
+    -ensureOpen()
+    -ensureClosed()
   }
-  class Open <<state>>
-  class Closed <<state>> {
-    by: PersonId
-    at: Instant
-    evaluationAtClosure: Evaluation
+  class AuditedInspection <<decorator, de paquete>>
+  class AuditedInspectionGenerator {
+    -auditService: AuditService
+    +generate(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
   }
-  class CriterionResponse <<value object, inmutable>> {
-    answer: Optional<Answer>
+  class InspectionAssignment <<value object>> {
+    inspector: Person
+    plannedDate: LocalDate
+    scope: String
+  }
+  class "CriterionResponse<A extends Answer>" as CriterionResponse <<value object inmutable>> {
+    criterion: Criterion<A>
+    answer: Optional<A>
     evidence: List<Evidence>
     observations: List<Observation>
-    +withAnswer(Answer): CriterionResponse
-    +plusEvidence(Evidence): CriterionResponse
-    +plusObservation(Observation): CriterionResponse
-    +evaluatedAgainst(Criterion): Outcome
+    +answeredWith(Criterion<B>, B): CriterionResponse<B>
+    +withEvidence(Evidence)
+    +withObservation(Observation)
+    +outcome(): Outcome
   }
-  class Observation <<value object>>
-  class Rectification <<value object>> {
-    criterionId: CriterionId
-    before: CriterionResponse
-    after: CriterionResponse
-    reason: String
-    by: PersonId
+  class Observation <<value object>> {
+    text: String
+    by: Person
     at: Instant
   }
   class Evaluation <<value object>> {
-    +outcomeOf(CriterionId): Outcome
-    +pending(): List<CriterionId>
-    +nonConformities(): List<CriterionEvaluation>
+    responses: List<CriterionResponse<?>>
+    +outcomeOf(Criterion<?>): Outcome
+    +pending(): List<CriterionResponse<?>>
+    +nonConformities(): List<CriterionResponse<?>>
     +ensureComplete()
   }
-  class CriterionEvaluation <<value object>> {
-    criterion: Criterion
-    response: CriterionResponse
-    outcome: Outcome
+  class Revision <<value object>> {
+    number: int
+    reason: String
+    evaluation: Evaluation
+    by: Person
+    at: Instant
   }
-  class InspectionScope <<value object>>
-  Inspection --> "1" SchemaVersion
-  Inspection --> InspectionState
-  InspectionState <|.. Open
-  InspectionState <|.. Closed
-  Inspection *-- "*" CriterionResponse
-  Inspection *-- "*" Rectification
-  Inspection *-- AuditTrail
-  Inspection ..> Evaluation : produce
-  Evaluation *-- "*" CriterionEvaluation
-  Closed --> Evaluation
+  enum InspectionAudit {
+    ASSIGNED
+    ANSWER_RECORDED
+    EVIDENCE_ATTACHED
+    OBSERVATION_ADDED
+    CLOSED
+    RECTIFIED
+  }
+  Inspection <|.. StandardInspection
+  Inspection <|.. AuditedInspection
+  AuditedInspection o--> Inspection : decora
+  AuditedInspection --> AuditService
+  AuditedInspectionGenerator ..> AuditedInspection : compone
+  AuditedInspectionGenerator ..> StandardInspection : compone
+  AuditedInspectionGenerator --> AuditService
+  StandardInspection --> Asset
+  StandardInspection --> InspectionAssignment
+  StandardInspection --> SchemaVersion : fijada al asignar
+  StandardInspection *-- "*" CriterionResponse
+  StandardInspection *-- "*" Revision
+  StandardInspection ..> Evaluation : deriva
+  Revision --> Evaluation
+  Evaluation o-- "*" CriterionResponse
+  CriterionResponse --> Criterion
   CriterionResponse --> "0..1" Answer
   CriterionResponse --> "*" Evidence
   CriterionResponse --> "*" Observation
+  AuditAction <|.. InspectionAudit
 }
 
-' ===================== FINDING =====================
 package "domain.finding" {
-  class Finding <<aggregate root>> {
-    -id: FindingId
-    -inspectionId: InspectionId
-    -assetId: AssetId
-    -criterionId: CriterionId
-    -description: String
-    -severity: Severity
-    -evidence: List<Evidence>
-    -responsible: PersonId
-    -status: FindingStatus
-    -audit: AuditTrail
-    +{static} raisedFrom(CriterionEvaluation, ...): Finding
-    +close(PersonId, Instant)
+  interface Finding {
+    +planAction(description, Person, LocalDate, Person, Instant): CorrectiveAction
+    +verifyAction(CorrectiveAction, Person, VerificationResult, notes, Instant): Verification
+    +isOpen(): boolean
+    +blocksCertification(): boolean
+    +concerns(Asset): boolean
+    +inspection(): Inspection
+    +criterion(): Criterion<?>
+    +severity(): Severity
+    +evidence(): List<Evidence>
+    +responsible(): Person
+    +actions(): List<CorrectiveAction>
   }
-  enum FindingStatus {
-    OPEN
-    CLOSED
+  class StandardFinding <<de paquete>>
+  class AuditedFinding <<decorator, de paquete>>
+  class AuditedFindingGenerator {
+    -auditService: AuditService
+    +generate(CriterionResponse<?>, Inspection, Person, Instant): Finding
   }
-  Finding --> FindingStatus
-  Finding --> Severity
-  Finding ..> CriterionEvaluation : se crea a partir de
-}
-
-' ===================== CORRECTIVE ACTION =====================
-package "domain.correctiveaction" {
-  class CorrectiveAction <<aggregate root>> {
-    -id: CorrectiveActionId
-    -findingId: FindingId
+  class CorrectiveAction <<entidad interna>> {
     -description: String
-    -responsible: PersonId
+    -responsible: Person
     -dueDate: LocalDate
     -verifications: List<Verification>
-    -status: CorrectiveActionStatus
-    -audit: AuditTrail
-    +isOverdueOn(LocalDate): boolean   (derivado)
-    +verify(PersonId verifier, VerificationResult, String notes, Instant): Verification
+    ~verify(Person, VerificationResult, notes, Instant): Verification
+    +isClosed(): boolean
+    +isOverdueOn(LocalDate): boolean
   }
   class Verification <<value object>> {
-    verifier: PersonId
+    verifier: Person
     result: VerificationResult
     notes: String
     at: Instant
-    +applyTo(Finding, Instant)
+    +isAccepted(): boolean
   }
   enum VerificationResult {
     ACCEPTED
     REJECTED
-    +statusAfter(): CorrectiveActionStatus
-    +applyTo(Finding, PersonId, Instant)
+    +closesAction(): boolean
   }
-  enum CorrectiveActionStatus {
-    OPEN
-    CLOSED
-    +ensureOpen()
+  enum FindingAudit {
+    RAISED
+    ACTION_PLANNED
+    VERIFICATION_ACCEPTED
+    VERIFICATION_REJECTED
   }
-  CorrectiveAction --> "1" Finding : findingId
+  Finding <|.. StandardFinding
+  Finding <|.. AuditedFinding
+  AuditedFinding o--> Finding : decora
+  AuditedFinding --> AuditService
+  AuditedFindingGenerator ..> AuditedFinding : compone
+  AuditedFindingGenerator ..> StandardFinding : compone
+  StandardFinding --> Inspection
+  StandardFinding --> Criterion
+  StandardFinding *-- "*" CorrectiveAction
   CorrectiveAction *-- "*" Verification
   Verification --> VerificationResult
-  CorrectiveAction --> CorrectiveActionStatus
+  AuditAction <|.. FindingAudit
 }
 
-' ===================== CERTIFICATE =====================
 package "domain.certificate" {
-  class Certificate <<aggregate root>> {
-    -id: CertificateId
-    -assetId: AssetId
-    -basedOn: InspectionId
-    -validity: ValidityPeriod
-    -issuedBy: PersonId
-    -lifecycle: CertificateLifecycle
-    -audit: AuditTrail
-    +{static} issue(...): Certificate
-    +suspend(String reason, PersonId, Instant)
-    +renew(ValidityPeriod, InspectionId, PersonId, Instant): Certificate
-    +statusOn(LocalDate): CertificateStatus   (derivado)
+  interface Certificate {
+    +suspend(reason, Person, Instant)
+    +renew(CertificateNumber, ValidityPeriod, Inspection, Person, Instant): Certificate
+    +statusOn(LocalDate): CertificateStatus
     +isCurrentOn(LocalDate): boolean
+    +certifies(Asset): boolean
+    +number(): CertificateNumber
+    +asset(): Asset
+    +basedOn(): Inspection
+    +validity(): ValidityPeriod
+    +suspensions(): List<Suspension>
   }
+  class StandardCertificate <<de paquete>> {
+    -lifecycle: CertificateLifecycle
+  }
+  class AuditedCertificate <<decorator, de paquete>>
+  class AuditedCertificateGenerator {
+    -auditService: AuditService
+    +generate(CertificateNumber, Asset, Inspection, ValidityPeriod, Person, Instant): Certificate
+  }
+  class CertificateNumber <<identificador de negocio>>
   class ValidityPeriod <<value object>> {
     from: LocalDate
-    to: LocalDate (inclusive)
+    to: LocalDate
     +covers(LocalDate): boolean
   }
-  enum CertificateLifecycle {
+  class Suspension <<value object>> {
+    reason: String
+    by: Person
+    at: Instant
+  }
+  enum CertificateLifecycle <<de paquete>> {
     ISSUED
     SUSPENDED
     RENEWED
+    ~statusOn(ValidityPeriod, LocalDate): CertificateStatus
   }
   enum CertificateStatus {
     ACTIVE
@@ -355,59 +366,77 @@ package "domain.certificate" {
     SUSPENDED
     RENEWED
   }
-  Certificate --> ValidityPeriod
-  Certificate --> CertificateLifecycle
-  Certificate ..> CertificateStatus : deriva
+  enum CertificateAudit {
+    ISSUED
+    SUSPENDED
+    RENEWED
+  }
+  Certificate <|.. StandardCertificate
+  Certificate <|.. AuditedCertificate
+  AuditedCertificate o--> Certificate : decora
+  AuditedCertificate --> AuditService
+  AuditedCertificateGenerator ..> AuditedCertificate : compone
+  AuditedCertificateGenerator ..> StandardCertificate : compone
+  StandardCertificate --> CertificateNumber
+  StandardCertificate --> Asset
+  StandardCertificate --> Inspection : basedOn
+  StandardCertificate --> ValidityPeriod
+  StandardCertificate --> CertificateLifecycle
+  StandardCertificate *-- "*" Suspension
+  CertificateLifecycle ..> CertificateStatus : deriva
+  AuditAction <|.. CertificateAudit
 }
 
-' ===================== APPLICATION =====================
 package "application" {
   interface AssetRepository {
     +save(Asset)
-    +findById(AssetId): Optional<Asset>
+    +findByCode(AssetCode): Optional<Asset>
   }
   interface InspectionSchemaRepository {
     +save(InspectionSchema)
-    +findById(SchemaId): Optional<InspectionSchema>
     +findByAssetType(AssetType): Optional<InspectionSchema>
   }
   interface InspectionRepository {
     +save(Inspection)
-    +findById(InspectionId): Optional<Inspection>
+    +findByAsset(Asset): List<Inspection>
   }
   interface FindingRepository {
-    +saveAll(List<Finding>)
     +save(Finding)
-    +findById(FindingId): Optional<Finding>
-    +findOpenByAsset(AssetId): List<Finding>
-  }
-  interface CorrectiveActionRepository {
-    +save(CorrectiveAction)
-    +findById(CorrectiveActionId): Optional<CorrectiveAction>
+    +saveAll(List<Finding>)
+    +findByAsset(Asset): List<Finding>
   }
   interface CertificateRepository {
     +save(Certificate)
-    +findById(CertificateId): Optional<Certificate>
-    +findCurrentFor(AssetId, LocalDate): Optional<Certificate>
+    +findCurrentFor(Asset, LocalDate): Optional<Certificate>
+  }
+  interface CertificateNumbering {
+    +next(): CertificateNumber
+  }
+  class CertificationEligibility {
+    +ensureEligible(Inspection)
   }
   class "Casos de uso (uno por clase)" as UseCases {
     RegisterAsset
     CreateInspectionSchema / PublishSchemaVersion
     AssignInspection
     RecordAnswer / AttachEvidence / AddObservation
-    CloseInspection (cierra + genera Findings)
-    RectifyInspection
+    CloseInspection / RectifyInspection
     PlanCorrectiveAction / VerifyCorrectiveAction
     IssueCertificate / SuspendCertificate / RenewCertificate
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..dependen de puertos + java.time.Clock..
+    ..reciben objetos del dominio, puertos y java.time.Clock..
   }
   UseCases ..> AssetRepository
   UseCases ..> InspectionSchemaRepository
   UseCases ..> InspectionRepository
   UseCases ..> FindingRepository
-  UseCases ..> CorrectiveActionRepository
   UseCases ..> CertificateRepository
+  UseCases ..> CertificateNumbering
+  UseCases ..> CertificationEligibility
+  CertificationEligibility ..> FindingRepository
+  UseCases ..> AuditedInspectionGenerator
+  UseCases ..> AuditedFindingGenerator
+  UseCases ..> AuditedCertificateGenerator
 }
 
 package "infrastructure.inmemory" {
@@ -415,18 +444,15 @@ package "infrastructure.inmemory" {
   class InMemoryInspectionSchemaRepository
   class InMemoryInspectionRepository
   class InMemoryFindingRepository
-  class InMemoryCorrectiveActionRepository
   class InMemoryCertificateRepository
+  class InMemoryAuditService
+  class SequentialCertificateNumbering
   AssetRepository <|.. InMemoryAssetRepository
   InspectionSchemaRepository <|.. InMemoryInspectionSchemaRepository
   InspectionRepository <|.. InMemoryInspectionRepository
   FindingRepository <|.. InMemoryFindingRepository
-  CorrectiveActionRepository <|.. InMemoryCorrectiveActionRepository
   CertificateRepository <|.. InMemoryCertificateRepository
+  AuditService <|.. InMemoryAuditService
+  CertificateNumbering <|.. SequentialCertificateNumbering
 }
-
-Inspection --> Asset : assetId
-Finding --> Inspection : inspectionId
-Certificate --> Asset : assetId
-Certificate --> Inspection : basedOn
 @enduml

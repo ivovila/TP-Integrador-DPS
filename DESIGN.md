@@ -1,0 +1,222 @@
+# Certiflow · Decisiones de diseño (Entrega 1)
+
+Módulo de dominio de una plataforma de inspección, habilitación y certificación de activos.
+Java 25, Maven, JUnit 5. Sin frameworks: el código es el documento de diseño principal y este
+archivo explica por qué tiene la forma que tiene.
+
+```bash
+mvn clean test
+```
+
+---
+
+## 1. Supuestos de negocio donde el enunciado es ambiguo
+
+| # | Tema | Decisión | Consecuencia |
+|---|---|---|---|
+| S1 | "Inspección iniciada" | La inspección nace asignada y abierta en un solo paso, y en ese momento captura la `SchemaVersion` vigente, que es inmutable. | Publicar una versión nueva crea otro objeto; la inspección conserva su referencia. Un criterio agregado en v2 lanza `CriterionNotInSchemaException` en una inspección abierta con v1. |
+| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
+| S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
+| S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. |
+| S5 | Qué bloquea la certificación | Solo los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. |
+| S6 | Rectificación y hallazgos | Rectificar corrige el acta y su evaluación derivada; no regenera ni elimina hallazgos ya levantados. | Sin efectos en cascada entre agregados. Queda como limitación conocida (ver sección 6). |
+| S7 | Revisión original | Cerrar crea la `Revision` 1; cada rectificación agrega otra; ninguna se modifica. | `originalRevision()` devuelve siempre lo que se firmó al cerrar. |
+| S8 | Acción correctiva | Vive dentro de su hallazgo. Está cerrada cuando tiene una verificación aceptada; está vencida cuando sigue abierta y la fecha es posterior a `dueDate`. El verificador debe ser distinto del responsable de la acción. | Una verificación aceptada cierra acción y hallazgo a la vez, sin coordinación externa. El día `dueDate` todavía no está vencida. |
+| S9 | Vencimiento del certificado | `ValidityPeriod(from, to)` con ambos extremos incluidos. La vigencia arranca el día de emisión. `EXPIRED` se deriva de la fecha consultada. | Vigente todo el día `to`, vencido el siguiente. No existe un booleano que pueda quedar desactualizado. |
+| S10 | Unicidad | Un activo tiene a lo sumo un certificado vigente. Un certificado suspendido dentro de su validez sigue ocupando ese lugar. | No se puede esquivar una suspensión emitiendo otro certificado; la salida es renovar. |
+| S11 | Renovación | Emite un certificado nuevo, basado en otra inspección cerrada y sujeto a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". | La historia no se borra. Menos transiciones que probar. |
+| S12 | Límites numéricos | `Range[min, max]` cerrado en ambos extremos; `min > max` es configuración inválida. No hay conversión de unidades. | Una medición en otra unidad se rechaza al registrarla (`UnitMismatchException`), no al cerrar. |
+| S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`. | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. |
+| S14 | Personas | Inspector, responsable, verificador y emisor son `Person(name)`. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara personas sin conversiones entre tipos de rol. |
+| S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo) y `CertificateNumber`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
+| S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
+
+---
+
+## 2. Arquitectura y dirección de dependencias
+
+```
+domain  <──  application  <──  infrastructure.inmemory
+  ▲               ▲                      ▲
+  └───────────────┴──── tests (fixture = raíz de composición)
+```
+
+- **`domain`**: entidades, value objects, reglas y el puerto `AuditService`. No importa nada de las otras capas ni consulta relojes.
+- **`application`**: un caso de uso por clase, los puertos de repositorio definidos según lo que esos casos de uso necesitan, `CertificateNumbering` y `java.time.Clock`.
+- **`infrastructure.inmemory`**: implementaciones de los puertos.
+
+Dependencias entre paquetes del dominio, sin ciclos:
+
+```
+shared      <──  audit, asset, evaluation
+asset, evaluation  <──  schema
+schema, audit      <──  inspection
+inspection         <──  finding
+inspection         <──  certificate
+```
+
+`domain` no importa `application` ni `infrastructure`, y `application` no importa `infrastructure`.
+
+**Dónde vive cada validación.** Lo que involucra un solo agregado vive en el agregado: cerrar con criterios
+pendientes, verificador distinto del responsable, renovar dos veces. Lo que cruza agregados vive en la capa
+de aplicación: hallazgos bloqueantes (`CertificationEligibility`), unicidad del certificado vigente
+(`IssueCertificate`), un esquema por tipo de activo (`CreateInspectionSchema`).
+
+**Tiempo.** Los casos de uso leen el `Clock` y le pasan `Instant` o `LocalDate` al dominio. El dominio es
+determinista y los tests usan un reloj controlable.
+
+---
+
+## 3. Decisiones principales
+
+### D1. Reglas de aprobación: Strategy con el tipo de respuesta en la firma
+
+- **Principios:** OCP, LSP, ISP.
+- **Dónde:** `ApprovalRule<A extends Answer>`, `NumericRangeRule`, `YesNoRule`, `OptionInListRule`, `Criterion<A>`, `CriterionResponse<A>`, `Inspection.recordAnswer(Criterion<A>, A, ...)`.
+- **Por qué:** agregar una regla es agregar una clase; nada más cambia. El contrato LSP es explícito en el tipo: `ApprovalRule<Measurement>` declara qué acepta. Ofrecerle un `YesNoAnswer` a un criterio numérico **no compila**, así que ese error no necesita excepción ni test de ejecución. `CriterionResponse<A>` lleva consigo su `Criterion<A>`, de modo que evaluar no requiere ningún cast.
+- **Alternativas descartadas:**
+  - *Double dispatch con métodos `default` que lanzan excepción:* funcionaba, pero la interfaz prometía tres capacidades y cada regla cumplía una. Es la violación de ISP de la clase 2 maquillada.
+  - *Visitor con métodos abstractos:* obliga a cada regla a implementar "no soy yo" para los otros tipos.
+  - *`instanceof` en la regla:* viola OCP y el objetivo de la materia.
+- **Costo:** comodines (`Criterion<?>`) en `Section` y `SchemaVersion`; `Answer` queda como interfaz sin métodos, cuyo único fin es acotar los genéricos. Cuando exista una API, el adaptador que traduzca la entrada a un `Answer` deberá construir el tipo correcto para el criterio.
+
+### D2. Conjuntos extensibles con interfaz más enum; vocabulario cerrado con enum simple
+
+- **Principio:** OCP aplicado donde el cambio es previsible.
+- **Dónde:** `Severity` + `StandardSeverity`; `EvidenceKind` + `StandardEvidenceKind`; `AuditAction` + `InspectionAudit`, `FindingAudit`, `CertificateAudit`.
+- **Por qué:** las escalas de severidad y los tipos de evidencia los define cada entidad certificadora, y las acciones de auditoría crecen con cada agregado. Con la interfaz, sumar valores es sumar un enum, sin tocar el existente. Frente a un `record` con constantes, el enum evita crear un tipo nuevo por un error de tipeo. Los tests `customSeverityScaleIsHonouredWithoutChangingTheDomain` y `schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` lo demuestran.
+- **Qué quedó como enum simple y por qué:** `Outcome`, `YesNoAnswer`, `VerificationResult`, `CertificateStatus`. Son vocabulario cerrado por el enunciado; si cambian, cambió el lenguaje del negocio y el dominio debe cambiar. Un punto de extensión ahí sería especulativo.
+- **Costo:** quien implemente `Severity` o `EvidenceKind` fuera de un enum debe definir `equals`, porque `Criterion` se usa como clave.
+
+### D3. Identidad de negocio y referencias por objeto
+
+- **Principio:** modelar objetos que colaboran, no filas.
+- **Dónde:** `Person`, `AssetCode`, `CertificateNumber`; `Finding` referencia su `Inspection` y su `Criterion`; `Certificate` referencia su `Asset` y su `Inspection`; los casos de uso reciben objetos.
+- **Por qué:** una entidad tiene identidad solo si el negocio la identifica, y con su identificador real. Los value objects nunca tienen id. Los repositorios quedaron con entre dos y tres métodos cada uno.
+- **Alternativa descartada:** un `XxxId` sintético por agregado y casos de uso que reciben ids. Es el estilo habitual con persistencia, pero trataba a los objetos como registros de una base que todavía no existe.
+- **Costo:** con persistencia real algunas referencias entre agregados probablemente vuelvan a ser identificadores para no cargar grafos completos. Las entidades sin identificador de negocio se comparan por identidad de objeto.
+
+### D4. `CorrectiveAction` dentro del agregado `Finding`
+
+- **Principio:** frontera de consistencia; Tell, Don't Ask.
+- **Dónde:** `Finding.planAction`, `Finding.verifyAction`; `CorrectiveAction.verify` es de paquete.
+- **Por qué:** verificar con éxito una acción cierra el hallazgo. Si fueran dos agregados, esa reacción la tendría que orquestar un caso de uso. Adentro del mismo agregado es una consecuencia: `Finding.isOpen()` se deriva de sus acciones.
+- **Costo:** un hallazgo con muchísimas acciones se carga entero; irrelevante a esta escala.
+
+### D5. Estado derivado en lugar de almacenado
+
+- **Dónde:** `Inspection.isClosed()` = tiene revisiones; `Finding.isOpen()` = ninguna acción verificada con éxito; `CorrectiveAction.isClosed()` e `isOverdueOn(date)`; `Certificate.statusOn(date)`; `Inspection.evaluate()`.
+- **Por qué:** lo que no se guarda no puede quedar inconsistente. La evaluación se recalcula siempre desde las respuestas y las reglas, por eso corregir una respuesta cambia el resultado sin pasos extra.
+- **Alternativa descartada:** `boolean closed`, `boolean expired`, enums de estado para hallazgos y acciones, resultados guardados junto a respuestas editables.
+- **Excepción deliberada:** `CertificateLifecycle` (`ISSUED`, `SUSPENDED`, `RENEWED`) sí se guarda, porque suspender y renovar son decisiones de alguien y no se pueden deducir del calendario.
+
+### D6. Ciclo de vida de la inspección: revisiones y guardas
+
+- **Dónde:** `StandardInspection.revisions`, `ensureOpen()`, `ensureClosed()`, `Revision`.
+- **Por qué:** una inspección cerrada es una inspección con al menos una revisión. `Revision` concentra lo que de otro modo serían un estado "cerrado" con datos y un registro de rectificación aparte. El antes y el después de una rectificación se obtienen comparando dos revisiones consecutivas.
+- **Alternativa descartada:** patrón State con `Open` y `Closed`. Los dos estados no comparten ninguna operación válida, así que la interfaz común obligaba a implementar métodos que solo lanzan excepción. Ver sección 4.
+
+### D7. Auditoría con Decorator, separando hechos de dominio de bitácora
+
+- **Principios:** SRP, OCP, DIP; patrón Decorator.
+- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; puerto `AuditService`; `InMemoryAuditService`.
+- **Por qué:**
+  - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`. Una rectificación no puede ocurrir sin su revisión.
+  - La **bitácora** cronológica de quién hizo qué es transversal y vive en los decoradores. `StandardInspection` no tiene una sola línea de auditoría.
+  - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
+  - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige un `AuditService` por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación. El generador también registra la entrada de alta, de modo que ningún caso de uso escribe auditoría.
+  - `AuditService` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
+- **Alternativas descartadas:**
+  - *Auditoría dentro del agregado* (`audit.record(...)` en cada método): más barata, y defendible porque la auditoría es requisito de negocio, pero mezcla dos niveles de abstracción en cada operación.
+  - *Decorar casos de uso:* exige una interfaz genérica común a los 17 casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce dos hechos distintos.
+  - *Método estático de creación en la interfaz:* hacía que la abstracción conociera a sus implementaciones y obligaba a los casos de uso a transportar el servicio de auditoría.
+  - *Herencia* (`AuditedInspection extends Inspection`): menos código, pero contradice composición sobre herencia y audita dos veces si un método público llama a otro.
+- **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres generadores y `InMemoryAuditService`. Reenvío manual de las consultas en cada decorador. `AuditEntry.subject` es de tipo `Object`.
+- **Nombres:** `AuditService`, `...Generator` y `generate` fueron elegidos por el equipo.
+
+### D8. Política de condicionales
+
+- **Regla:** `if` solo como cláusula de guarda que lanza una excepción. Nunca `if`, `switch` ni `instanceof` para decidir por tipo o por estado.
+- **Verificación:** en `src/main` hay 41 `if` y los 41 preceden a un `throw`; cero `instanceof`, cero `switch`, cero `return null`, cero setters, cero métodos estáticos.
+- **Qué reemplaza a los condicionales:** genéricos (D1), enums con comportamiento (`Severity`, `Outcome.raisesFinding`, `VerificationResult.closesAction`, `CertificateLifecycle.statusOn`), estado derivado (D5), `Optional.orElseThrow` e `ifPresent` en búsquedas, streams para selección, y una tabla `Map<VerificationResult, FindingAudit>`.
+- **Tres ternarios declarados**, los tres sobre un predicado de negocio y ninguno sobre un tipo o un estado: `Criterion.outcomeOf` (cumple → aprobado; si no, lo que diga la severidad), `CriterionResponse.outcomeOfAnswered` (con la evidencia exigida → resultado; si no, pendiente) y `CertificateLifecycle.ISSUED.statusOn` (dentro de la vigencia → activo; si no, vencido).
+- **`Optional`** se usa solo donde la ausencia es un resultado legítimo: `CriterionResponse.answer()` y las búsquedas de repositorio. No se usa como control de flujo.
+
+### D9. Puertos segregados
+
+- **Principios:** ISP, DIP.
+- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditService {record, entriesFor}`.
+- **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
+
+### D10. Errores explícitos
+
+- Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, entre otras).
+- Argumentos mal formados (nulos, textos vacíos): `NullPointerException` e `IllegalArgumentException`, que es la convención de Java para precondiciones.
+- Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
+
+---
+
+## 4. Patrones que se decidió no aplicar
+
+| Patrón | Por qué no | Consecuencia |
+|---|---|---|
+| **State** para la inspección | Abierta y cerrada no comparten operaciones válidas; la interfaz común forzaba métodos que solo lanzan excepción. Con guardas permitidas y el estado derivado de las revisiones, eran dos clases de estructura sin comportamiento. | Si aparecen más estados con comportamiento compartido (por ejemplo "en revisión"), habría que reconsiderarlo. |
+| **Factory de la clase 2** (selección por `applyFor`) | Resuelve elegir en ejecución entre implementaciones. Acá no hay nada que elegir: hay una sola clase de inspección y la selección regla-respuesta la resolvieron los genéricos. | Los `...Generator` componen, no seleccionan, y por eso no se llaman Factory. Son clases concretas; si aparece una segunda forma de crear agregados se extrae la interfaz en ese momento, como ocurrió en la clase con `CallCostCalculatorFactory`. |
+| **Event Sourcing / eventos de dominio** | La bitácora por decorador alcanza y la única reacción entre agregados desapareció al mover `CorrectiveAction` dentro de `Finding`. | No se puede reconstruir el estado desde el historial. |
+| **Builder** | Los records con constructores compactos validados alcanzan; el fixture de tests cubre la comodidad. | Construcciones con cinco o seis argumentos en algunos lugares. |
+| **Repositorio genérico `Repository<T, ID>`** | Viola ISP: ningún caso de uso necesita CRUD completo, y la mayoría de los agregados no tiene id. | Una interfaz por agregado. |
+| **Herencia para tipos de activo o de evidencia** | El tipo es un dato. | `AssetType` es un value object; `EvidenceKind` un enum extensible. |
+| **Interfaces con una sola implementación sin motivo** | `Inspection`, `Finding` y `Certificate` son interfaces porque el Decorator exige dos implementaciones. Los casos de uso, `Asset`, `InspectionSchema` y los generadores son clases concretas. | Ninguna `XxxImpl`. |
+| **Estados "planificada" y "en ejecución"** | El enunciado no los pide y cada estado suma transiciones que probar. | La inspección nace abierta; la acción correctiva nace planificada. |
+
+---
+
+## 5. Riesgo de negocio → test que lo cubre
+
+| Riesgo | Test |
+|---|---|
+| Una versión nueva del esquema altera una inspección en curso | `SchemaVersioningTest.newSchemaVersionDoesNotAffectAnInspectionAlreadyStarted` |
+| Las inspecciones nuevas no toman la última versión | `SchemaVersioningTest.inspectionsAssignedAfterPublishingUseTheNewVersion` |
+| Se cierra con criterios sin responder | `InspectionExecutionTest.inspectionCannotBeClosedWhileCriteriaRemainUnanswered` |
+| Se cierra sin la evidencia obligatoria | `InspectionExecutionTest.answeredCriterionStaysPendingUntilItsRequiredEvidenceIsAttached` |
+| Corregir una respuesta no cambia la evaluación o no deja rastro | `InspectionExecutionTest.correctingAnAnswerBeforeClosingChangesTheEvaluationAndIsAudited` |
+| Una inspección cerrada acepta cambios directos | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
+| Una operación rechazada deja igual una entrada de auditoría | `InspectionExecutionTest.measurementInAnotherUnitIsRejectedWhenRecordedAndLeavesNoTrace` |
+| Hallazgos con severidad, evidencia o responsable incorrectos | `FindingsTest.closingRaisesOneFindingPerNonConformityWithItsSeverityEvidenceAndAssetResponsible` |
+| Acción vencida un día antes o un día después | `CorrectiveActionTest.actionIsNotOverdueOnItsDueDateButIsTheDayAfter` |
+| Una verificación rechazada cierra algo | `CorrectiveActionTest.rejectedVerificationKeepsActionAndFindingOpenAndIsAudited` |
+| El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
+| Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
+| Un hallazgo menor impide certificar | `CertificationTest.openMinorFindingsDoNotPreventCertification` |
+| No se puede certificar después de corregir | `CertificationTest.assetBecomesEligibleOnceItsBlockingFindingIsClosed` |
+| Se certifica sobre una inspección sin cerrar | `CertificationTest.inspectionStillInProgressCannotBackACertificate` |
+| Dos certificados vigentes para el mismo activo | `CertificationTest.assetHoldsASingleCurrentCertificate` |
+| Se esquiva una suspensión emitiendo otro certificado | `CertificationTest.suspendedCertificateStillOccupiesTheAssetSoANewOneCannotBeIssuedAroundIt` |
+| Vence un día antes o un día después | `CertificationTest.certificateIsActiveThroughItsLastDayAndExpiredTheDayAfter` |
+| Suspender dos veces, o sin motivo registrado | `CertificationTest.suspensionIsRecordedWithItsReasonAndCannotBeRepeated` |
+| Renovar pierde el certificado anterior o se saltea la elegibilidad | `CertificationTest.renewalIssuesANewCertificateAndRetiresThePreviousOne`, `renewalIsSubjectToTheSameEligibilityAsIssuance` |
+| La rectificación pierde la revisión original o no queda auditada | `RectificationTest.rectificationPreservesTheOriginalRevisionAndIsAudited` |
+| Una rectificación inválida modifica el acta | `RectificationTest.rectificationWithoutReasonIsRejectedAndChangesNothing` |
+| Una rectificación altera hallazgos ya levantados | `RectificationTest.rectificationLeavesFindingsAlreadyRaisedUntouched` |
+| Los informes no reflejan el estado real | `EndToEndFlowTest.assetGoesFromInspectionToCertificateAndEveryReportTellsTheSameStory` |
+| Límites del rango mal interpretados | `NumericRangeRuleTest.rangeLimitsAreInclusiveAndAnythingBeyondThemFails` |
+| Unidad incorrecta o regla mal configurada | `NumericRangeRuleTest.measurementInAnotherUnitCannotBeEvaluated`, `rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration`, `OptionInListRuleTest.ruleWithoutAcceptedOptionsIsAnInvalidConfiguration` |
+| Tipo de respuesta incorrecto para un criterio | No compila: `ApprovalRule<A>` y `recordAnswer(Criterion<A>, A, ...)`. Ver D1. |
+| Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
+
+Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
+`CertiflowFixture` es la raíz de composición compartida. Total: 69 tests.
+
+---
+
+## 6. Limitaciones conocidas y concesiones
+
+- **Concurrencia.** Los agregados no son seguros para uso concurrente y los repositorios en memoria tampoco. Dos cierres simultáneos de la misma inspección no están contemplados. `SequentialCertificateNumbering` es la única pieza con un contador atómico.
+- **Transacciones.** `CloseInspection` guarda la inspección y los hallazgos en dos llamadas; `RenewCertificate` guarda dos certificados. Con persistencia real hace falta una unidad de trabajo.
+- **Persistencia.** Las referencias por objeto entre agregados (D3) y la igualdad por identidad suponen un único proceso en memoria. `Criterion` se usa como clave de mapa gracias a la igualdad por valor de los records.
+- **Parámetros `by` y `at` sin uso en el núcleo.** `recordAnswer`, `attachEvidence` y `planAction` los reciben porque la interfaz declara que todo cambio es atribuible y el decorador los necesita. `StandardInspection` y `StandardFinding` no los usan en esas tres operaciones.
+- **Garantía de auditoría.** Está dada por la API (el generador exige un `AuditService`), no por la operación misma. Un `AuditService` que descarte entradas la anula.
+- **Rectificación.** No revisa hallazgos ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
+- **Suspensión.** No se puede levantar; la salida es renovar (S11).
+- **Navegación en modelos de lectura.** Los casos de uso de informes y los generadores leen dos niveles (`finding.criterion().code()`, `inspection.asset()` y luego `asset.responsible()`). Es una concesión a la Ley de Demeter aceptada en lectura, no en lógica de negocio.
+- **Entorno.** Si un IDE compila en paralelo hacia `target/` con un JDK anterior al 21, pisa las clases de Maven y los tests fallan con "Unresolved compilation problem". `mvn clean test` lo resuelve.
