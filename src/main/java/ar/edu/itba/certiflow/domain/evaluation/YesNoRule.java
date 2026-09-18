@@ -1,7 +1,4 @@
-package ar.edu.itba.certiflow.details.evaluation;
-
-import ar.edu.itba.certiflow.domain.evaluation.ApprovalRule;
-import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
+package ar.edu.itba.certiflow.domain.evaluation;
 
 public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswer> {
 

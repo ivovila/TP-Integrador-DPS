@@ -1,10 +1,8 @@
-package ar.edu.itba.certiflow.details.evaluation;
+package ar.edu.itba.certiflow.domain.evaluation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ar.edu.itba.certiflow.domain.evaluation.InvalidRuleConfigurationException;
-import ar.edu.itba.certiflow.domain.evaluation.OptionAnswer;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

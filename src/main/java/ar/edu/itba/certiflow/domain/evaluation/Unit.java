@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.details.evaluation;
+package ar.edu.itba.certiflow.domain.evaluation;
 
 public record Unit(String symbol) {
 
