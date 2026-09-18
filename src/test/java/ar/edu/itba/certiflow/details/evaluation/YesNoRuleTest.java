@@ -1,7 +1,8 @@
-package ar.edu.itba.certiflow.domain.evaluation;
+package ar.edu.itba.certiflow.details.evaluation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 

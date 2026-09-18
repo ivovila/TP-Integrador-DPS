@@ -1,10 +1,12 @@
-package ar.edu.itba.certiflow.domain.evaluation;
+package ar.edu.itba.certiflow.details.evaluation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ar.edu.itba.certiflow.domain.evaluation.InvalidRuleConfigurationException;
+import ar.edu.itba.certiflow.domain.evaluation.NumericAnswer;
+import ar.edu.itba.certiflow.domain.evaluation.Range;
 import java.math.BigDecimal;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -13,7 +15,8 @@ class NumericRangeRuleTest {
 
     private static final Unit BAR = new Unit("bar");
 
-    private final NumericRangeRule rule = new NumericRangeRule(BAR, new Range(new BigDecimal("6.00"), new BigDecimal("8.00")));
+    private final NumericRangeRule rule = new NumericRangeRule(BAR,
+            new Range(new BigDecimal("6.00"), new BigDecimal("8.00")));
 
     @ParameterizedTest(name = "{0} bar satisfies the rule: {1}")
     @CsvSource({

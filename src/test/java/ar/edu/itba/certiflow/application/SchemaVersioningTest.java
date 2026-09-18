@@ -9,7 +9,7 @@ import ar.edu.itba.certiflow.application.schema.SchemaAlreadyDefinedForAssetType
 import ar.edu.itba.certiflow.domain.asset.AssetType;
 import ar.edu.itba.certiflow.domain.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
-import ar.edu.itba.certiflow.domain.evaluation.YesNoRule;
+import ar.edu.itba.certiflow.details.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.schema.exceptions.CriterionNotInSchemaException;

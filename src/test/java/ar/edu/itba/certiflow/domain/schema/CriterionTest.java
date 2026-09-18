@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.domain.evaluation.Outcome;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
 import ar.edu.itba.certiflow.domain.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
-import ar.edu.itba.certiflow.domain.evaluation.YesNoRule;
+import ar.edu.itba.certiflow.details.evaluation.YesNoRule;
 import java.time.Instant;
 import java.util.List;
 
