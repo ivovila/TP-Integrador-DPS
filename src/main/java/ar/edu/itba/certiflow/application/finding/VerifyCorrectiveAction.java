@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.finding.Verification;
 import ar.edu.itba.certiflow.domain.finding.VerificationResult;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
-import java.util.Objects;
 
 public final class VerifyCorrectiveAction {
 
@@ -14,8 +13,8 @@ public final class VerifyCorrectiveAction {
     private final Clock clock;
 
     public VerifyCorrectiveAction(FindingRepository findings, Clock clock) {
-        this.findings = Objects.requireNonNull(findings, "findings");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.findings = findings;
+        this.clock = clock;
     }
 
     public Verification execute(Finding finding, CorrectiveAction action, Person verifier, VerificationResult result,

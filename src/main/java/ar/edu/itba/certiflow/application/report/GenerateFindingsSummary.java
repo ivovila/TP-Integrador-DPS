@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.finding.Finding;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Objects;
 
 public final class GenerateFindingsSummary {
 

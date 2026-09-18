@@ -4,7 +4,6 @@ import ar.edu.itba.certiflow.domain.asset.AssetType;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class InspectionSchema {
 

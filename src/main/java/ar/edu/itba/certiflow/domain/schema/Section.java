@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.domain.schema;
 
 import java.util.List;
-import java.util.Objects;
 
 public record Section(String title, List<Criterion<?>> criteria) {
 

@@ -5,14 +5,11 @@ import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-
 public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Optional<A> answer,
                                                   List<Evidence> evidence, List<Observation> observations) {
-
 
     public CriterionResponse(Criterion<A> criterion) {
         this(criterion, Optional.empty(), List.of(), List.of());

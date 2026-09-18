@@ -2,8 +2,6 @@ package ar.edu.itba.certiflow.domain.asset;
 
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.util.Map;
-import java.util.Objects;
-
 
 public record Asset(AssetCode code, String name, AssetType type, Location location, Person responsible,
                     Map<String, String> characteristics) {

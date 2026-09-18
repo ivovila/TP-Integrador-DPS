@@ -6,10 +6,6 @@ import ar.edu.itba.certiflow.domain.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.domain.inspection.Revision;
 import java.util.List;
 
-/**
- * Modelo de lectura sin formato. Las líneas reflejan el acta vigente; las revisiones conservan
- * la original y cada rectificación; el historial es la bitácora de auditoría de la inspección.
- */
 public record InspectionAct(AssetCode assetCode, String assetName, InspectionAssignment assignment,
                             int schemaVersion, List<ActLine> lines, List<Revision> revisions,
                             List<AuditEntry> history) {

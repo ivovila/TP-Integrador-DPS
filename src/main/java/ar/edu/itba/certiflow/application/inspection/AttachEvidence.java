@@ -5,7 +5,6 @@ import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
-import java.util.Objects;
 
 public final class AttachEvidence {
 
@@ -13,8 +12,8 @@ public final class AttachEvidence {
     private final Clock clock;
 
     public AttachEvidence(InspectionRepository inspections, Clock clock) {
-        this.inspections = Objects.requireNonNull(inspections, "inspections");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.inspections = inspections;
+        this.clock = clock;
     }
 
     public void execute(Inspection inspection, Criterion<?> criterion, Evidence evidence, Person by) {

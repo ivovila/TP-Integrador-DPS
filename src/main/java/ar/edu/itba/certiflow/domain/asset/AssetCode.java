@@ -1,7 +1,5 @@
 package ar.edu.itba.certiflow.domain.asset;
 
-import java.util.Objects;
-
 public record AssetCode(String value) {
 
     public AssetCode {

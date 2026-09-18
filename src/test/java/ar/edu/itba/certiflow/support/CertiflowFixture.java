@@ -57,10 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Raíz de composición de los tests: arma la aplicación con repositorios reales en memoria y un reloj
- * controlable, y deja registrado un matafuego con su esquema de inspección publicado.
- */
 public final class CertiflowFixture {
 
     public static final Unit BAR = new Unit("bar");
@@ -154,7 +150,6 @@ public final class CertiflowFixture {
         return inspection;
     }
 
-    /** Presión fuera de rango: deja un hallazgo MAJOR, que bloquea la certificación. */
     public Finding majorFindingOf(Inspection inspection) {
         answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
         return closeInspection.execute(inspection, inspector).getFirst();

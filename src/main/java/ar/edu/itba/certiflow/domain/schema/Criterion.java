@@ -7,8 +7,6 @@ import ar.edu.itba.certiflow.domain.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
 import java.util.List;
-import java.util.Objects;
-
 
 public record Criterion<A extends Answer>(String code, String text, ApprovalRule<A> rule, Severity severity,
                                           List<EvidenceRequirement> requiredEvidence) {

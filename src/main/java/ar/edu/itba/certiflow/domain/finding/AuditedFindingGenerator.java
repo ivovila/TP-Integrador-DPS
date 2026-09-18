@@ -7,8 +7,6 @@ import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
-import java.util.Objects;
-
 
 public final class AuditedFindingGenerator {
 

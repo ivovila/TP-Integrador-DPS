@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.application.asset;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import java.util.Objects;
 
 public final class RegisterAsset {
 

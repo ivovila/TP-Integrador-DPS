@@ -1,7 +1,5 @@
 package ar.edu.itba.certiflow.domain.certificate;
 
-import java.util.Objects;
-
 public record CertificateNumber(String value) {
 
     public CertificateNumber {

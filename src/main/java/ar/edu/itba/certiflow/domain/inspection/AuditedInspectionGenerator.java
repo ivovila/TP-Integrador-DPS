@@ -6,8 +6,6 @@ import ar.edu.itba.certiflow.domain.audit.AuditService;
 import ar.edu.itba.certiflow.domain.schema.SchemaVersion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
-import java.util.Objects;
-
 
 public final class AuditedInspectionGenerator {
 

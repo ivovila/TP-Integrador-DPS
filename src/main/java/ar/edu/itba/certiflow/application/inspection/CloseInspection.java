@@ -8,7 +8,6 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 public final class CloseInspection {
 
@@ -19,13 +18,12 @@ public final class CloseInspection {
 
     public CloseInspection(InspectionRepository inspections, FindingRepository findings,
                            AuditedFindingGenerator findingGenerator, Clock clock) {
-        this.inspections = Objects.requireNonNull(inspections, "inspections");
-        this.findings = Objects.requireNonNull(findings, "findings");
-        this.findingGenerator = Objects.requireNonNull(findingGenerator, "findingGenerator");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.inspections = inspections;
+        this.findings = findings;
+        this.findingGenerator = findingGenerator;
+        this.clock = clock;
     }
 
-    /** Cerrar sella el acta y levanta un hallazgo por cada criterio observado o rechazado. */
     public List<Finding> execute(Inspection inspection, Person closedBy) {
         Instant now = clock.instant();
         inspection.close(closedBy, now);

@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.Objects;
 
 public final class RenewCertificate {
 

@@ -16,7 +16,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class CriterionTest {
 
-    /** Una entidad certificadora puede definir su propia escala sin modificar StandardSeverity. */
     private enum AdvisorySeverity implements Severity {
         ADVISORY;
 
