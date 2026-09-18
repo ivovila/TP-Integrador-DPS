@@ -1,4 +1,7 @@
-package ar.edu.itba.certiflow.domain.evaluation;
+package ar.edu.itba.certiflow.details.evaluation;
+
+import ar.edu.itba.certiflow.domain.evaluation.ApprovalRule;
+import ar.edu.itba.certiflow.domain.evaluation.InvalidRuleConfigurationException;
 
 import java.util.Set;
 

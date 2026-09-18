@@ -1,4 +1,6 @@
-package ar.edu.itba.certiflow.domain.evaluation;
+package ar.edu.itba.certiflow.details.evaluation;
+
+import ar.edu.itba.certiflow.domain.evaluation.Answer;
 
 import java.util.Objects;
 

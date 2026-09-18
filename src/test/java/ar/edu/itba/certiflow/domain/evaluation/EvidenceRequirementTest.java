@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
+import ar.edu.itba.certiflow.details.evaluation.StandardEvidenceKind;
 import org.junit.jupiter.api.Test;
 
 class EvidenceRequirementTest {
