@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.domain.Certificate;
+import ar.edu.itba.certiflow.domain.AssetType;
 import ar.edu.itba.certiflow.domain.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.DomainException;
 import ar.edu.itba.certiflow.domain.Inspection;
@@ -172,7 +173,11 @@ class CertificationWorkflowTest {
         var old = f.certificates.issue(f.closed("20").id(), "issuer");
         var other =
                 f.catalog.registerAsset(
-                        "Otro laboratorio", "LAB", "Edificio 2", "owner", java.util.Map.of());
+                        "Otro laboratorio",
+                        new AssetType("LAB", "Laboratorio"),
+                        "Edificio 2",
+                        "owner",
+                        java.util.Map.of());
         var assigned =
                 f.inspections.assign(
                         other.id(),

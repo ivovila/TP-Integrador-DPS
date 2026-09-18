@@ -7,10 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.domain.Answer;
+import ar.edu.itba.certiflow.domain.AssetType;
 import ar.edu.itba.certiflow.domain.DomainException;
 import ar.edu.itba.certiflow.domain.Evidence;
-import ar.edu.itba.certiflow.domain.Outcome;
-import ar.edu.itba.certiflow.domain.Severity;
 import ar.edu.itba.certiflow.domain.Submission;
 
 import org.junit.jupiter.api.Test;
@@ -30,9 +29,9 @@ class InspectionWorkflowTest {
         f.publish("40");
         f.inspections.record(started.id(), "TEMP", f.numeric("43"), "inspector");
         var evaluated = f.inspections.evaluate(started.id(), "inspector");
-        assertEquals(2, evaluated.version().orElseThrow().number());
+        assertEquals(2, evaluated.version().orElseThrow().versionNumber());
         assertEquals(Outcome.OBSERVED, evaluated.evaluations().get("TEMP").outcome());
-        assertEquals(3, f.started().version().orElseThrow().number());
+        assertEquals(3, f.started().version().orElseThrow().versionNumber());
     }
 
     @Test
@@ -74,7 +73,7 @@ class InspectionWorkflowTest {
         assertEquals(original.submissions(), preserved.submissions());
         assertEquals(original.evaluations(), preserved.evaluations());
         assertEquals(original.findings(), preserved.findings());
-        assertEquals(1, corrected.version().orElseThrow().number());
+        assertEquals(1, corrected.version().orElseThrow().versionNumber());
         assertTrue(
                 corrected.history().stream()
                         .anyMatch(
@@ -116,7 +115,9 @@ class InspectionWorkflowTest {
     @Test
     void assignmentRequiresCompatibleAssetTypeAndKnownScheme() {
         var f = new Fixture();
-        var other = f.catalog.registerAsset("Motor", "ENGINE", "Plant", "owner", Map.of());
+        var other =
+                f.catalog.registerAsset(
+                        "Motor", new AssetType("ENGINE", "Engine"), "Plant", "owner", Map.of());
         assertThrows(
                 DomainException.class,
                 () ->
@@ -165,6 +166,11 @@ class InspectionWorkflowTest {
                 DomainException.class,
                 () ->
                         f.catalog.publish(
-                                f.schemeId, "Other", "ENGINE", v.sections(), 365, "author"));
+                                f.schemeId,
+                                "Other",
+                                new ar.edu.itba.certiflow.domain.AssetType("ENGINE", "Engine"),
+                                v.sections(),
+                                365,
+                                "author"));
     }
 }

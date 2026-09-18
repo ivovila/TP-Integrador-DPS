@@ -1,0 +1,227 @@
+@startuml Certiflow-v1-Domain
+title Certiflow v1 — modelo de dominio, casos de uso y puertos
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+package "domain.model.asset" {
+  class Asset <<aggregate>>
+  class AssetId <<value object>>
+  class AssetType <<value object>>
+}
+
+package "domain.model.schema" {
+  class InspectionSchema <<aggregate>> {
+    +addSection()
+    +addCriterion()
+    +publish()
+    +latestVersion()
+  }
+  class SchemaId <<value object>>
+  class SchemaVersion <<immutable snapshot>>
+  class Section <<value object>>
+  class Criterion <<value object>>
+  class CriterionId <<value object>>
+}
+
+package "domain.rules" {
+  interface CriterionRule <<strategy>> {
+    +evaluate(response): CriterionOutcome
+  }
+  interface MeasurementRule
+  class BooleanRule
+  class EnumOptionRule
+  class NumericRangeRule
+  class RequiredEvidenceRule
+  class CompositeRule
+  enum CriterionOutcome
+}
+
+package "domain.model.inspection" {
+  class Inspection <<aggregate, event source>> {
+    +assign()
+    +start(version)
+    +register(criterion, response)
+    +close()
+    +rectify()
+  }
+  class InspectionId <<value object>>
+  interface InspectionState <<State>>
+  class InspectionEvaluation <<value object>>
+  class CriterionResult <<value object>>
+  class Rectification <<value object>>
+}
+
+package "domain.model.inspection.states" {
+  class Assigned
+  class InProgress
+  class Closed
+  class Rectified
+}
+
+package "domain.model.finding" {
+  class Finding <<aggregate, event source>> {
+    +raise()
+    +planAction()
+    +verifyAction()
+    +close()
+  }
+  class FindingId <<value object>>
+  class CorrectiveAction <<entity>>
+  class CorrectiveActionId <<value object>>
+  class Verification <<value object>>
+  class Closure <<value object>>
+  enum Severity
+}
+
+package "domain.model.certificate" {
+  class Certificate <<aggregate, event source>> {
+    +issue()
+    +suspend()
+    +renew()
+    +expire()
+  }
+  class CertificateId <<value object>>
+  interface CertificationPolicy <<strategy>> {
+    +allows(evaluation, findings): boolean
+  }
+  class SeverityCertificationPolicy
+  class ValidityPeriod <<value object>>
+  enum CertificateStatus
+}
+
+package "domain.model.shared" {
+  interface EventSource
+  interface DomainEvent
+  class PendingEvents
+  class Response <<value object>>
+  class Evidence <<value object>>
+  class PersonId <<value object>>
+}
+
+InspectionSchema *-- SchemaVersion
+InspectionSchema *-- Section
+Section *-- Criterion
+Criterion --> CriterionRule
+MeasurementRule --|> CriterionRule
+BooleanRule ..|> CriterionRule
+EnumOptionRule ..|> CriterionRule
+NumericRangeRule ..|> MeasurementRule
+RequiredEvidenceRule ..|> CriterionRule
+CompositeRule ..|> CriterionRule
+
+Inspection --> AssetId
+Inspection --> SchemaId
+Inspection --> InspectionState
+Inspection --> Rectification
+Inspection --> InspectionEvaluation
+InspectionState --> SchemaVersion
+InspectionState --> InspectionEvaluation
+Assigned ..|> InspectionState
+InProgress ..|> InspectionState
+Closed ..|> InspectionState
+Rectified ..|> InspectionState
+InspectionEvaluation *-- CriterionResult
+CriterionResult --> CriterionOutcome
+Inspection ..|> EventSource
+
+Finding --> InspectionEvaluation : created from
+Finding *-- CorrectiveAction
+CorrectiveAction --> Verification
+Finding --> Closure
+Finding ..|> EventSource
+
+Certificate --> InspectionEvaluation : issued / renewed from
+Certificate --> CertificationPolicy
+Certificate --> ValidityPeriod
+Certificate --> CertificateStatus
+SeverityCertificationPolicy ..|> CertificationPolicy
+Certificate ..|> EventSource
+EventSource --> DomainEvent : pullEvents()
+EventSource *-- PendingEvents
+@enduml
+
+@startuml Certiflow-v1-Workflow
+title Certiflow v1 — flujo principal y eventos
+skinparam linetype ortho
+actor Coordinator
+actor Inspector
+actor Responsible
+actor Verifier
+participant AssignInspection
+participant StartInspection
+participant RegisterResponse
+participant CloseInspection
+participant RaiseFinding
+participant PlanCorrectiveAction
+participant VerifyCorrectiveAction
+participant CloseFinding
+participant IssueCertificate
+database "Repositories\n(ports)" as Repositories
+queue EventPublisher
+
+Coordinator -> AssignInspection : execute(asset, schema, inspector, date, scope)
+AssignInspection -> Repositories : AssetRepository + SchemaRepository
+AssignInspection -> Repositories : InspectionRepository.save(inspection)
+
+Inspector -> StartInspection : execute(inspectionId)
+StartInspection -> Repositories : load inspection + schema
+note right: Toma latestVersion() y la\ncongela en InProgress.
+StartInspection -> Repositories : save(inspection)
+StartInspection -> EventPublisher : publishFrom(InspectionStarted)
+
+loop Respuestas progresivas
+  Inspector -> RegisterResponse : execute(inspection, criterion, change)
+  RegisterResponse -> Repositories : save(inspection)
+end
+
+Inspector -> CloseInspection : execute(inspectionId)
+CloseInspection -> Repositories : save(inspection)
+CloseInspection -> EventPublisher : publishFrom(InspectionClosed)
+
+alt Resultado no aprobado
+  Coordinator -> RaiseFinding : execute(inspection, details)
+  RaiseFinding -> Repositories : FindingRepository.save(finding)
+  RaiseFinding -> EventPublisher : publishFrom(FindingRaised)
+  Responsible -> PlanCorrectiveAction : execute(finding, action, due date)
+  PlanCorrectiveAction -> Repositories : save(finding)
+  Verifier -> VerifyCorrectiveAction : execute(finding, action, verifier)
+  Verifier -> CloseFinding : execute(finding)
+end
+
+Coordinator -> IssueCertificate : execute(inspection, validity)
+IssueCertificate -> Repositories : load inspection + findings
+IssueCertificate -> IssueCertificate : CertificationPolicy.allows(...)
+IssueCertificate -> Repositories : CertificateRepository.save(certificate)
+IssueCertificate -> EventPublisher : publishFrom(CertificateIssued)
+@enduml
+
+@startuml Certiflow-v1-State
+title Certiflow v1 — estados implementados
+
+state "Inspection" as Inspection {
+  [*] --> Assigned : assign
+  Assigned --> InProgress : start(SchemaVersion)
+  InProgress --> InProgress : register(Response)
+  InProgress --> Closed : close(evaluation)
+  Closed --> Rectified : rectify(corrected evaluation)
+  Rectified --> Rectified : rectify(corrected evaluation)
+}
+
+state "Finding" as Finding {
+  [*] --> Open : raise
+  Open --> Open : planAction / verifyAction
+  Open --> Closed : close\n[todas las acciones verificadas]
+}
+
+state "Certificate" as Certificate {
+  [*] --> ISSUED : issue
+  ISSUED --> SUSPENDED : suspend / overdue actions
+  SUSPENDED --> ISSUED : reinstate
+  ISSUED --> EXPIRED : expire [validity ended]
+  SUSPENDED --> EXPIRED : expire [validity ended]
+  ISSUED --> RENEWED : renew
+  SUSPENDED --> RENEWED : renew
+  EXPIRED --> RENEWED : renew
+}
+@enduml

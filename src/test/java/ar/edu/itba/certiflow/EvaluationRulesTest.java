@@ -7,12 +7,10 @@ import ar.edu.itba.certiflow.domain.Answer;
 import ar.edu.itba.certiflow.domain.Criterion;
 import ar.edu.itba.certiflow.domain.DomainException;
 import ar.edu.itba.certiflow.domain.Evidence;
-import ar.edu.itba.certiflow.domain.Outcome;
-import ar.edu.itba.certiflow.domain.Severity;
 import ar.edu.itba.certiflow.domain.Submission;
-import ar.edu.itba.certiflow.domain.rule.BooleanRule;
-import ar.edu.itba.certiflow.domain.rule.DocumentaryRule;
-import ar.edu.itba.certiflow.domain.rule.NumericRangeRule;
+import ar.edu.itba.certiflow.details.rules.BooleanRule;
+import ar.edu.itba.certiflow.details.rules.DocumentaryRule;
+import ar.edu.itba.certiflow.details.rules.NumericRangeRule;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -133,7 +131,7 @@ class EvaluationRulesTest {
                         f.catalog.publish(
                                 f.schemeId,
                                 "Bad",
-                                "LAB",
+                                new ar.edu.itba.certiflow.domain.AssetType("LAB", "Laboratorio"),
                                 List.of(section, section),
                                 365,
                                 "author"));

@@ -1,0 +1,176 @@
+@startuml Certiflow-Architecture-and-Workflow
+title Certiflow — arquitectura y flujo del dominio
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+package "Application" {
+  class CatalogService
+  class InspectionService
+  class CorrectiveActionService
+  class CertificationService
+  class ReportService
+
+  interface AssetRepository
+  interface SchemeRepository
+  interface InspectionRepository
+  interface ActionRepository
+  interface CertificateRepository
+}
+
+package "Domain" {
+  class Asset <<value>>
+  class SchemeVersion <<immutable snapshot>>
+  class Section <<value>>
+  class Criterion <<value>>
+  interface EvaluationRule <<strategy>> {
+    +evaluate(answer): Evaluation
+  }
+  class NumericRangeRule
+  class BooleanRule
+  class DocumentaryRule
+  class Inspection <<aggregate, immutable>> {
+    +assign()
+    +start(version)
+    +record(code, submission)
+    +evaluate()
+    +close()
+    +rectify()
+  }
+  class Finding <<value>>
+  class CorrectiveAction <<aggregate, immutable>> {
+    +plan()
+    +submit()
+    +verify()
+    +close()
+  }
+  class Certificate <<aggregate, immutable>> {
+    +issue()
+    +suspend()
+    +supersede()
+    +statusAt()
+  }
+  class AuditEntry <<value>>
+  class Submission <<value>>
+  class Evidence <<value>>
+  class Evaluation <<value>>
+}
+
+package "Infrastructure" {
+  class InMemoryAssetRepository
+  class InMemorySchemeRepository
+  class InMemoryInspectionRepository
+  class InMemoryActionRepository
+  class InMemoryCertificateRepository
+}
+
+CatalogService --> AssetRepository
+CatalogService --> SchemeRepository
+InspectionService --> AssetRepository
+InspectionService --> SchemeRepository
+InspectionService --> InspectionRepository
+CorrectiveActionService --> InspectionRepository
+CorrectiveActionService --> ActionRepository
+CertificationService --> InspectionRepository
+CertificationService --> ActionRepository
+CertificationService --> CertificateRepository
+ReportService --> InspectionRepository
+ReportService --> ActionRepository
+ReportService --> CertificateRepository
+
+InMemoryAssetRepository ..|> AssetRepository
+InMemorySchemeRepository ..|> SchemeRepository
+InMemoryInspectionRepository ..|> InspectionRepository
+InMemoryActionRepository ..|> ActionRepository
+InMemoryCertificateRepository ..|> CertificateRepository
+
+SchemeVersion *-- Section
+Section *-- Criterion
+Criterion *-- EvaluationRule
+NumericRangeRule ..|> EvaluationRule
+BooleanRule ..|> EvaluationRule
+DocumentaryRule ..|> EvaluationRule
+Inspection --> Asset : snapshot
+Inspection --> SchemeVersion : frozen at start
+Inspection *-- Submission
+Inspection *-- Evaluation
+Inspection *-- Finding
+Inspection *-- AuditEntry
+CorrectiveAction --> Finding
+CorrectiveAction *-- Evidence
+CorrectiveAction *-- AuditEntry
+Certificate --> Inspection : id + revision
+Certificate *-- AuditEntry
+@enduml
+
+@startuml Certiflow-Sequence
+title Flujo principal: inspección, corrección y certificación
+actor Coordinator
+actor Inspector
+actor Responsible
+actor Verifier
+participant CatalogService as Catalog
+participant InspectionService as Inspections
+participant "Inspection\n(aggregate)" as Inspection
+participant CorrectiveActionService as Actions
+participant CertificationService as Certificates
+
+Coordinator -> Catalog : registerAsset(...)
+Coordinator -> Catalog : publish(scheme v1)
+Coordinator -> Inspections : assign(asset, scheme, inspector, date, scope)
+Inspector -> Inspections : start(inspection)
+Inspections -> Inspection : start(latest effective version)
+note right: La versión queda congelada\nen la inspección.
+loop Por cada criterio
+  Inspector -> Inspections : record(code, answer + evidence)
+  Inspections -> Inspection : record(...)
+end
+Inspector -> Inspections : close()
+Inspections -> Inspection : evaluate() y close()
+Inspection --> Inspections : evaluaciones + hallazgos
+
+alt Tiene hallazgos
+  Responsible -> Actions : plan(finding, due date)
+  Responsible -> Actions : submit(proof)
+  Verifier -> Actions : verify(accepted)
+  Verifier -> Actions : close()
+end
+Coordinator -> Certificates : issue(inspection)
+Certificates -> Certificates : validar inspección cerrada\ny todas las acciones cerradas
+Certificates --> Coordinator : Certificate ACTIVE
+
+opt Rectificación posterior
+  Coordinator -> Inspections : rectify(reason)
+  Inspections -> Inspection : guardar revisión cerrada y reabrir
+  note right: El certificado previo queda\nSUSPENDED por revisión distinta.
+end
+@enduml
+
+@startuml Certiflow-State-Machines
+title Estados relevantes
+
+state "Inspection" as I {
+  [*] --> ASSIGNED
+  ASSIGNED --> IN_PROGRESS : start(version)
+  IN_PROGRESS --> IN_PROGRESS : record / evaluate
+  IN_PROGRESS --> CLOSED : close [sin INCOMPLETE]
+  CLOSED --> IN_PROGRESS : rectify\n[guarda revisión previa]
+}
+
+state "CorrectiveAction" as A {
+  [*] --> PLANNED
+  PLANNED --> SUBMITTED : submit(evidence)
+  SUBMITTED --> VERIFIED : verify(accepted)
+  SUBMITTED --> PLANNED : verify(rejected)
+  VERIFIED --> CLOSED : close
+}
+
+state "Certificate" as C {
+  [*] --> ACTIVE : issue
+  ACTIVE --> SUSPENDED : suspend / source rectified
+  ACTIVE --> EXPIRED : expiresAt reached
+  SUSPENDED --> EXPIRED : expiresAt reached
+  ACTIVE --> SUPERSEDED : renew
+  SUSPENDED --> SUPERSEDED : renew
+  EXPIRED --> SUPERSEDED : renew
+}
+@enduml

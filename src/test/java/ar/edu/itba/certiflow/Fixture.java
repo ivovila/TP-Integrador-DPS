@@ -11,14 +11,9 @@ import ar.edu.itba.certiflow.domain.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.Criterion;
 import ar.edu.itba.certiflow.domain.Evidence;
 import ar.edu.itba.certiflow.domain.Inspection;
-import ar.edu.itba.certiflow.domain.Outcome;
-import ar.edu.itba.certiflow.domain.SchemeVersion;
-import ar.edu.itba.certiflow.domain.Section;
-import ar.edu.itba.certiflow.domain.Severity;
-import ar.edu.itba.certiflow.domain.Submission;
-import ar.edu.itba.certiflow.domain.rule.BooleanRule;
-import ar.edu.itba.certiflow.domain.rule.DocumentaryRule;
-import ar.edu.itba.certiflow.domain.rule.NumericRangeRule;
+import ar.edu.itba.certiflow.details.rules.BooleanRule;
+import ar.edu.itba.certiflow.details.rules.DocumentaryRule;
+import ar.edu.itba.certiflow.details.rules.NumericRangeRule;
 import ar.edu.itba.certiflow.infrastructure.memory.InMemoryActionRepository;
 import ar.edu.itba.certiflow.infrastructure.memory.InMemoryAssetRepository;
 import ar.edu.itba.certiflow.infrastructure.memory.InMemoryCertificateRepository;
@@ -129,8 +124,8 @@ final class Fixture {
                 clock.instant());
     }
 
-    Submission numeric(String value) {
-        return new Submission(
+    InspectorSubmission numeric(String value) {
+        return new InspectorSubmission(
                 new Answer.Numeric(new BigDecimal(value), "C"),
                 List.of(evidence(Evidence.Kind.PHOTO)),
                 "");
@@ -154,11 +149,11 @@ final class Fixture {
         var i = started();
         inspections.record(i.id(), "TEMP", numeric(measurement), "inspector");
         inspections.record(
-                i.id(), "EXIT", new Submission(new Answer.YesNo(true), List.of(), ""), "inspector");
+                i.id(), "EXIT", new InspectorSubmission(new Answer.YesNo(true), List.of(), ""), "inspector");
         inspections.record(
                 i.id(),
                 "DOC",
-                new Submission(
+                new InspectorSubmission(
                         new Answer.Documentary(), List.of(evidence(Evidence.Kind.DOCUMENT)), ""),
                 "inspector");
         return inspections.close(i.id(), "inspector");
