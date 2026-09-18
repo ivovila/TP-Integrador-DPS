@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.domain.evaluation;
 
-/** Vocabulario cerrado por el enunciado; PENDING cubre al criterio que todavía no puede evaluarse. */
 public enum Outcome {
     PENDING(false),
     APPROVED(false),

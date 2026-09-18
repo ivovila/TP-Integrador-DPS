@@ -14,8 +14,8 @@ public final class GenerateFindingsSummary {
     private final Clock clock;
 
     public GenerateFindingsSummary(FindingRepository findings, Clock clock) {
-        this.findings = Objects.requireNonNull(findings, "findings");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.findings = findings;
+        this.clock = clock;
     }
 
     public FindingsSummary execute(Asset asset) {

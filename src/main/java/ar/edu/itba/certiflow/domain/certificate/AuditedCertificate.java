@@ -27,7 +27,6 @@ final class AuditedCertificate implements Certificate {
         auditService.record(new AuditEntry(this, CertificateAudit.SUSPENDED, by, at, reason));
     }
 
-    /** La renovación nace de este certificado y no del generador, así que se decora acá para que también quede auditada. */
     @Override
     public Certificate renew(CertificateNumber number, ValidityPeriod validity, Inspection basedOn, Person by,
                              Instant at) {

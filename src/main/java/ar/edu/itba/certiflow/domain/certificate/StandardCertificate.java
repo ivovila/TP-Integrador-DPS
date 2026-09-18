@@ -23,12 +23,12 @@ final class StandardCertificate implements Certificate {
 
     StandardCertificate(CertificateNumber number, Asset asset, Inspection basedOn, ValidityPeriod validity,
                         Person issuedBy, Instant issuedAt) {
-        this.number = Objects.requireNonNull(number, "number");
-        this.asset = Objects.requireNonNull(asset, "asset");
-        this.basedOn = Objects.requireNonNull(basedOn, "basedOn");
-        this.validity = Objects.requireNonNull(validity, "validity");
-        this.issuedBy = Objects.requireNonNull(issuedBy, "issuedBy");
-        this.issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
+        this.number = number;
+        this.asset = asset;
+        this.basedOn = basedOn;
+        this.validity = validity;
+        this.issuedBy = issuedBy;
+        this.issuedAt = issuedAt;
         if (!basedOn.isClosed()) {
             throw new InspectionNotClosedException();
         }

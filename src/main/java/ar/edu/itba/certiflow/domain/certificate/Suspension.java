@@ -7,9 +7,6 @@ import java.util.Objects;
 public record Suspension(String reason, Person by, Instant at) {
 
     public Suspension {
-        Objects.requireNonNull(reason, "reason");
-        Objects.requireNonNull(by, "by");
-        Objects.requireNonNull(at, "at");
         if (reason.isBlank()) {
             throw new IllegalArgumentException("A suspension must state its reason");
         }
