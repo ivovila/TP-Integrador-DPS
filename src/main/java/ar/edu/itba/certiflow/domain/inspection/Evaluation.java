@@ -18,7 +18,7 @@ public record Evaluation(List<CriterionResponse<?>> responses) {
     public Outcome outcomeOf(Criterion<?> criterion) {
         return responses.stream()
                 .filter(response -> response.isFor(criterion))
-                .map(response -> response.outcome())
+                .map(CriterionResponse::outcome)
                 .findFirst()
                 .orElseThrow(() -> new CriterionNotInSchemaException(criterion));
     }

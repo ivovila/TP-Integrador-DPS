@@ -7,6 +7,5 @@ package ar.edu.itba.certiflow.domain.evaluation;
  * el mismo resultado, porque la evaluación de una inspección se deriva cada vez que se la pide.
  */
 public interface ApprovalRule<A extends Answer> {
-
     boolean isSatisfiedBy(A answer);
 }

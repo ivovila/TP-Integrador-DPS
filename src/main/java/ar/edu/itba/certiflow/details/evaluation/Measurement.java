@@ -1,4 +1,8 @@
-package ar.edu.itba.certiflow.domain.evaluation;
+package ar.edu.itba.certiflow.details.evaluation;
+
+import ar.edu.itba.certiflow.domain.evaluation.Answer;
+import ar.edu.itba.certiflow.domain.evaluation.Unit;
+import ar.edu.itba.certiflow.domain.evaluation.UnitMismatchException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
