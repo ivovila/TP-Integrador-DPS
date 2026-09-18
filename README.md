@@ -28,7 +28,7 @@ src/main/java/ar/edu/itba/certiflow
 │   ├── finding       Finding con sus CorrectiveAction, decorador y generador
 │   └── certificate   Certificate, vigencia, ciclo de vida, decorador y generador
 ├── application       un caso de uso por clase y los puertos que necesitan
-└── infrastructure    implementaciones en memoria de los puertos
+└── details           implementaciones en memoria de los puertos
 
 src/test/java/ar/edu/itba/certiflow
 ├── domain            tests unitarios de reglas, evidencia y criterios

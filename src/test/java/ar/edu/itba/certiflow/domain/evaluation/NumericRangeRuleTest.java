@@ -5,9 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 
-import ar.edu.itba.certiflow.details.evaluation.Measurement;
-import ar.edu.itba.certiflow.details.evaluation.NumericRangeRule;
-import ar.edu.itba.certiflow.details.evaluation.Range;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

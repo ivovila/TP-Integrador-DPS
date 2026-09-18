@@ -12,7 +12,7 @@ import ar.edu.itba.certiflow.domain.certificate.CertificateAlreadyRenewedExcepti
 import ar.edu.itba.certiflow.domain.certificate.CertificateAudit;
 import ar.edu.itba.certiflow.domain.certificate.CertificateNotActiveException;
 import ar.edu.itba.certiflow.domain.certificate.CertificateStatus;
-import ar.edu.itba.certiflow.details.evaluation.YesNoAnswer;
+import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.domain.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.domain.finding.Finding;
 import ar.edu.itba.certiflow.domain.finding.VerificationResult;

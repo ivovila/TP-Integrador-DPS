@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Set;
 
-import ar.edu.itba.certiflow.details.evaluation.OptionAnswer;
-import ar.edu.itba.certiflow.details.evaluation.OptionInListRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

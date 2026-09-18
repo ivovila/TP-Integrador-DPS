@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.infrastructure.inmemory;
+package ar.edu.itba.certiflow.details.inmemory;
 
 import ar.edu.itba.certiflow.domain.audit.AuditEntry;
 import ar.edu.itba.certiflow.domain.audit.AuditService;

@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.details.evaluation.OptionAnswer;
+import ar.edu.itba.certiflow.domain.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
-import ar.edu.itba.certiflow.details.evaluation.YesNoAnswer;
+import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAudit;

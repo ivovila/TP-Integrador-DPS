@@ -435,7 +435,7 @@ package "application" {
   UseCases ..> AuditedCertificateGenerator
 }
 
-package "infrastructure.inmemory" {
+package "details.inmemory" {
   class InMemoryAssetRepository
   class InMemoryInspectionSchemaRepository
   class InMemoryInspectionRepository

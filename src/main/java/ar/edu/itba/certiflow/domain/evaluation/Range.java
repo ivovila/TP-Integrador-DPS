@@ -1,6 +1,5 @@
-package ar.edu.itba.certiflow.details.evaluation;
+package ar.edu.itba.certiflow.domain.evaluation;
 
-import ar.edu.itba.certiflow.domain.evaluation.InvalidRuleConfigurationException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
