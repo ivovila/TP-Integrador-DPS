@@ -2,7 +2,6 @@ package ar.edu.itba.certiflow.domain.certificate;
 
 import java.time.LocalDate;
 
-/** Solo registra los hechos que alguien decidió (suspender, renovar); el vencimiento lo decide el calendario. */
 enum CertificateLifecycle {
     ISSUED {
         @Override

@@ -15,8 +15,8 @@ public final class InspectionSchema {
     private final List<SchemaVersion> versions = new ArrayList<>();
 
     public InspectionSchema(String name, AssetType assetType, List<Section> sections, Instant at) {
-        this.name = Objects.requireNonNull(name, "name");
-        this.assetType = Objects.requireNonNull(assetType, "assetType");
+        this.name = name;
+        this.assetType = assetType;
         if (name.isBlank()) {
             throw new InvalidSchemaException("An inspection schema needs a name");
         }

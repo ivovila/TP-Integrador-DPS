@@ -8,7 +8,7 @@ public final class RegisterAsset {
     private final AssetRepository assets;
 
     public RegisterAsset(AssetRepository assets) {
-        this.assets = Objects.requireNonNull(assets, "assets");
+        this.assets = assets;
     }
 
     public Asset execute(Asset asset) {

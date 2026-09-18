@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.infrastructure.inmemory;
+package ar.edu.itba.certiflow.details.inmemory;
 
 import ar.edu.itba.certiflow.application.finding.FindingRepository;
 import ar.edu.itba.certiflow.domain.asset.Asset;

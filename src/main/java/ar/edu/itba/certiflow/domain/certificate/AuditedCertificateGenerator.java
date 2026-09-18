@@ -8,13 +8,12 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.util.Objects;
 
-/** Único punto público donde nace un certificado que no proviene de una renovación. */
 public final class AuditedCertificateGenerator {
 
     private final AuditService auditService;
 
     public AuditedCertificateGenerator(AuditService auditService) {
-        this.auditService = Objects.requireNonNull(auditService, "auditService");
+        this.auditService = auditService;
     }
 
     public Certificate generate(CertificateNumber number, Asset asset, Inspection basedOn, ValidityPeriod validity,

@@ -9,16 +9,13 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Único punto público donde nace un hallazgo. El responsable es el del activo inspeccionado
- * y la severidad es la del criterio incumplido.
- */
+
 public final class AuditedFindingGenerator {
 
     private final AuditService auditService;
 
     public AuditedFindingGenerator(AuditService auditService) {
-        this.auditService = Objects.requireNonNull(auditService, "auditService");
+        this.auditService = auditService;
     }
 
     public Finding generate(CriterionResponse<?> nonConformity, Inspection inspection, Person by, Instant at) {

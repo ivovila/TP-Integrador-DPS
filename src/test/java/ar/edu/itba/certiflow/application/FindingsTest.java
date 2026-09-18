@@ -3,8 +3,8 @@ package ar.edu.itba.certiflow.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.details.evaluation.StandardSeverity;
-import ar.edu.itba.certiflow.details.evaluation.YesNoAnswer;
+import ar.edu.itba.certiflow.domain.evaluation.StandardSeverity;
+import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.domain.finding.Finding;
 import ar.edu.itba.certiflow.domain.finding.FindingAudit;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;

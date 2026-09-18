@@ -6,7 +6,6 @@ import java.util.Objects;
 public record EvidenceRequirement(EvidenceKind kind, int minimum) {
 
     public EvidenceRequirement {
-        Objects.requireNonNull(kind, "kind");
         if (minimum < 1) {
             throw new InvalidRuleConfigurationException("An evidence requirement must ask for at least one item");
         }

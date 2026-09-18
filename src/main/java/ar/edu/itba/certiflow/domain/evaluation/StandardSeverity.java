@@ -1,7 +1,5 @@
-package ar.edu.itba.certiflow.details.evaluation;
+package ar.edu.itba.certiflow.domain.evaluation;
 
-import ar.edu.itba.certiflow.domain.evaluation.Outcome;
-import ar.edu.itba.certiflow.domain.evaluation.Severity;
 
 public enum StandardSeverity implements Severity {
     MINOR("Minor", Outcome.OBSERVED, false),

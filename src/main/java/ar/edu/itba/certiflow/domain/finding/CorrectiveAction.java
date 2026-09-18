@@ -9,10 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Vive dentro de su hallazgo: solo Finding puede planificarla o verificarla, porque una
- * verificación aceptada cierra ambos a la vez. Cerrada y vencida son estados derivados.
- */
+
 public final class CorrectiveAction {
 
     private final String description;
@@ -21,9 +18,9 @@ public final class CorrectiveAction {
     private final List<Verification> verifications = new ArrayList<>();
 
     CorrectiveAction(String description, Person responsible, LocalDate dueDate) {
-        this.description = Objects.requireNonNull(description, "description");
-        this.responsible = Objects.requireNonNull(responsible, "responsible");
-        this.dueDate = Objects.requireNonNull(dueDate, "dueDate");
+        this.description = description;
+        this.responsible = responsible;
+        this.dueDate = dueDate;
         if (description.isBlank()) {
             throw new IllegalArgumentException("A corrective action must describe what will be done");
         }

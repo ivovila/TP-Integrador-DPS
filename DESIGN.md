@@ -36,14 +36,23 @@ mvn clean test
 ## 2. Arquitectura y dirección de dependencias
 
 ```
-domain  <──  application  <──  infrastructure.inmemory
-  ▲               ▲                      ▲
+domain  <──  application  <──  details.inmemory
+  ▲               ▲                  ▲
   └───────────────┴──── tests (fixture = raíz de composición)
 ```
 
 - **`domain`**: entidades, value objects, reglas y el puerto `AuditService`. No importa nada de las otras capas ni consulta relojes.
 - **`application`**: un caso de uso por clase, los puertos de repositorio definidos según lo que esos casos de uso necesitan, `CertificateNumbering` y `java.time.Clock`.
-- **`infrastructure.inmemory`**: implementaciones de los puertos.
+- **`details.inmemory`**: implementaciones de los puertos.
+
+**Negocio y detalles.** Se sigue la separación de la clase 3 (ejemplo del cifrado César): `domain` y
+`application` son el negocio y `details` son los detalles. Un detalle es un mecanismo técnico que el negocio
+necesita pero cuyo funcionamiento no le importa: cómo se guardan los agregados, cómo se numeran los
+certificados, dónde queda la bitácora. Las reglas de aprobación (`NumericRangeRule`, `YesNoRule`,
+`OptionInListRule`), las respuestas y las escalas estándar de severidad y evidencia son negocio aunque se
+enchufen detrás de una interfaz, igual que `CesarCipher` es negocio siendo una clase concreta. Por eso viven
+en `domain.evaluation`. Los detalles implementan interfaces que declara el negocio y nunca al revés. El fixture
+de tests cumple el rol del componente `Main`: crea los detalles y se los entrega a los casos de uso.
 
 Dependencias entre paquetes del dominio, sin ciclos:
 
@@ -55,7 +64,7 @@ inspection         <──  finding
 inspection         <──  certificate
 ```
 
-`domain` no importa `application` ni `infrastructure`, y `application` no importa `infrastructure`.
+`domain` no importa `application` ni `details`, y `application` no importa `details`.
 
 **Dónde vive cada validación.** Lo que involucra un solo agregado vive en el agregado: cerrar con criterios
 pendientes, verificador distinto del responsable, renovar dos veces. Lo que cruza agregados vive en la capa
@@ -181,7 +190,7 @@ determinista y los tests usan un reloj controlable.
 | Se cierra sin la evidencia obligatoria | `InspectionExecutionTest.answeredCriterionStaysPendingUntilItsRequiredEvidenceIsAttached` |
 | Corregir una respuesta no cambia la evaluación o no deja rastro | `InspectionExecutionTest.correctingAnAnswerBeforeClosingChangesTheEvaluationAndIsAudited` |
 | Una inspección cerrada acepta cambios directos | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
-| Una operación rechazada deja igual una entrada de auditoría | `InspectionExecutionTest.measurementInAnotherUnitIsRejectedWhenRecordedAndLeavesNoTrace` |
+| Una operación rechazada deja igual una entrada de auditoría | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
 | Hallazgos con severidad, evidencia o responsable incorrectos | `FindingsTest.closingRaisesOneFindingPerNonConformityWithItsSeverityEvidenceAndAssetResponsible` |
 | Acción vencida un día antes o un día después | `CorrectiveActionTest.actionIsNotOverdueOnItsDueDateButIsTheDayAfter` |
 | Una verificación rechazada cierra algo | `CorrectiveActionTest.rejectedVerificationKeepsActionAndFindingOpenAndIsAudited` |

@@ -9,10 +9,7 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Toda operación que cambia el estado recibe quién la ejecuta y cuándo: el dominio no consulta
- * relojes y cada cambio es atribuible. Se obtiene únicamente a través de AuditedInspectionGenerator.
- */
+
 public interface Inspection {
 
     <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person by, Instant at);

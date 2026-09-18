@@ -17,13 +17,12 @@ public final class RenewCertificate {
 
     public RenewCertificate(CertificateRepository certificates, CertificationEligibility eligibility,
                             CertificateNumbering numbering, Clock clock) {
-        this.certificates = Objects.requireNonNull(certificates, "certificates");
-        this.eligibility = Objects.requireNonNull(eligibility, "eligibility");
-        this.numbering = Objects.requireNonNull(numbering, "numbering");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.certificates = certificates;
+        this.eligibility = eligibility;
+        this.numbering = numbering;
+        this.clock = clock;
     }
 
-    /** Renovar exige una inspección nueva y cerrada; el certificado anterior queda reemplazado, no borrado. */
     public Certificate execute(Certificate current, Inspection inspection, LocalDate validUntil, Person renewedBy) {
         eligibility.ensureEligible(inspection);
         Certificate renewal = current.renew(numbering.next(), new ValidityPeriod(LocalDate.now(clock), validUntil),

@@ -1,16 +1,12 @@
-package ar.edu.itba.certiflow.details.evaluation;
+package ar.edu.itba.certiflow.domain.evaluation;
 
-import ar.edu.itba.certiflow.domain.evaluation.InvalidRuleConfigurationException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/** Intervalo cerrado: ambos extremos pertenecen al rango. */
 public record Range(BigDecimal min, BigDecimal max) {
 
     public Range {
-        Objects.requireNonNull(min, "min");
-        Objects.requireNonNull(max, "max");
         if (min.compareTo(max) > 0) {
             throw new InvalidRuleConfigurationException("Range minimum " + min + " exceeds maximum " + max);
         }

@@ -16,7 +16,7 @@ public final class CertificationEligibility {
     private final FindingRepository findings;
 
     public CertificationEligibility(FindingRepository findings) {
-        this.findings = Objects.requireNonNull(findings, "findings");
+        this.findings = findings;
     }
 
     public void ensureEligible(Inspection inspection) {

@@ -6,10 +6,6 @@ import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.schema.exceptions.CriterionNotInSchemaException;
 import java.util.List;
 
-/**
- * Fotografía inmutable de las respuestas de una inspección. Los resultados no se almacenan:
- * cada consulta los deriva de la respuesta y de la regla del criterio.
- */
 public record Evaluation(List<CriterionResponse<?>> responses) {
 
     public Evaluation {

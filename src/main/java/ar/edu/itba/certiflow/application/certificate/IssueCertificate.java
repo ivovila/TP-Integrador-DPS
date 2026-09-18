@@ -8,7 +8,6 @@ import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.Objects;
 
 public final class IssueCertificate {
 
@@ -21,14 +20,13 @@ public final class IssueCertificate {
     public IssueCertificate(CertificateRepository certificates, CertificationEligibility eligibility,
                             CertificateNumbering numbering, AuditedCertificateGenerator certificateGenerator,
                             Clock clock) {
-        this.certificates = Objects.requireNonNull(certificates, "certificates");
-        this.eligibility = Objects.requireNonNull(eligibility, "eligibility");
-        this.numbering = Objects.requireNonNull(numbering, "numbering");
-        this.certificateGenerator = Objects.requireNonNull(certificateGenerator, "certificateGenerator");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.certificates = certificates;
+        this.eligibility = eligibility;
+        this.numbering = numbering;
+        this.certificateGenerator = certificateGenerator;
+        this.clock = clock;
     }
 
-    /** La vigencia arranca el día de emisión. Un activo no puede tener dos certificados vigentes a la vez. */
     public Certificate execute(Inspection inspection, LocalDate validUntil, Person issuedBy) {
         LocalDate today = LocalDate.now(clock);
         Asset asset = inspection.asset();

@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-/** No conformidad detectada al cerrar una inspección. Se obtiene únicamente a través de AuditedFindingGenerator. */
 public interface Finding {
 
     CorrectiveAction planAction(String description, Person responsible, LocalDate dueDate, Person by, Instant at);

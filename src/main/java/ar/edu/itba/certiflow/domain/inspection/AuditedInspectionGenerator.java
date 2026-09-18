@@ -8,17 +8,13 @@ import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Único punto público donde nace una inspección: compone la implementación de negocio con su
- * decorador de auditoría y registra el alta. Al exigir un AuditService por constructor,
- * no existe forma de obtener una inspección sin auditar.
- */
+
 public final class AuditedInspectionGenerator {
 
     private final AuditService auditService;
 
     public AuditedInspectionGenerator(AuditService auditService) {
-        this.auditService = Objects.requireNonNull(auditService, "auditService");
+        this.auditService = auditService;
     }
 
     public Inspection generate(Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion,

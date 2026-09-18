@@ -15,9 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-/**
- * El estado no se almacena: una inspección está cerrada cuando tiene al menos una revisión.
- */
+
 final class StandardInspection implements Inspection {
 
     private static final String CLOSURE_REASON = "Inspection closed";
@@ -29,9 +27,9 @@ final class StandardInspection implements Inspection {
     private final List<Revision> revisions = new ArrayList<>();
 
     StandardInspection(Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion) {
-        this.asset = Objects.requireNonNull(asset, "asset");
-        this.assignment = Objects.requireNonNull(assignment, "assignment");
-        this.schemaVersion = Objects.requireNonNull(schemaVersion, "schemaVersion");
+        this.asset = asset;
+        this.assignment = assignment;
+        this.schemaVersion = schemaVersion;
         schemaVersion.criteria().forEach(criterion -> responses.put(criterion, new CriterionResponse<>(criterion)));
     }
 
