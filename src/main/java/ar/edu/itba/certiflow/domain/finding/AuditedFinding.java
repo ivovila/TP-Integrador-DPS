@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.domain.finding;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.domain.audit.AuditService;
+import ar.edu.itba.certiflow.domain.audit.AuditAction;
+import ar.edu.itba.certiflow.domain.audit.AuditTrail;
 import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
@@ -20,11 +20,11 @@ final class AuditedFinding implements Finding {
             VerificationResult.REJECTED, FindingAudit.VERIFICATION_REJECTED);
 
     private final Finding finding;
-    private final AuditService auditService;
+    private final AuditTrail audit;
 
-    AuditedFinding(Finding finding, AuditService auditService) {
+    AuditedFinding(Finding finding, AuditTrail audit) {
         this.finding = finding;
-        this.auditService = auditService;
+        this.audit = audit;
     }
 
     @Override
@@ -88,7 +88,7 @@ final class AuditedFinding implements Finding {
         return finding.actions();
     }
 
-    private void record(FindingAudit action, Person by, Instant at, String detail) {
-        auditService.record(new AuditEntry(this, action, by, at, detail));
+    private void record(AuditAction action, Person by, Instant at, String detail) {
+        audit.record(this, action, by, at, detail);
     }
 }

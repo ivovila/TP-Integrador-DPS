@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.domain.inspection;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.domain.audit.AuditService;
+import ar.edu.itba.certiflow.domain.audit.AuditAction;
+import ar.edu.itba.certiflow.domain.audit.AuditTrail;
 import ar.edu.itba.certiflow.domain.evaluation.Answer;
 import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
@@ -14,11 +14,11 @@ import java.util.List;
 final class AuditedInspection implements Inspection {
 
     private final Inspection inspection;
-    private final AuditService auditService;
+    private final AuditTrail audit;
 
-    AuditedInspection(Inspection inspection, AuditService auditService) {
+    AuditedInspection(Inspection inspection, AuditTrail audit) {
         this.inspection = inspection;
-        this.auditService = auditService;
+        this.audit = audit;
     }
 
     @Override
@@ -86,7 +86,7 @@ final class AuditedInspection implements Inspection {
         return inspection.schemaVersion();
     }
 
-    private void record(InspectionAudit action, Person by, Instant at, String detail) {
-        auditService.record(new AuditEntry(this, action, by, at, detail));
+    private void record(AuditAction action, Person by, Instant at, String detail) {
+        audit.record(this, action, by, at, detail);
     }
 }
