@@ -7,14 +7,13 @@ import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.domain.inspection.Observation;
 import java.util.List;
-import java.util.Objects;
 
 public final class GenerateInspectionAct {
 
     private final AuditService auditService;
 
     public GenerateInspectionAct(AuditService auditService) {
-        this.auditService = Objects.requireNonNull(auditService, "auditService");
+        this.auditService = auditService;
     }
 
     public InspectionAct execute(Inspection inspection) {

@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 class EvidenceRequirementTest {
 
-    /** Un esquema puede aportar sus propios tipos de evidencia sin modificar StandardEvidenceKind. */
     private enum LabEvidenceKind implements EvidenceKind {
         CALIBRATION_CERTIFICATE;
 

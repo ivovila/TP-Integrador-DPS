@@ -6,8 +6,6 @@ import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-
 
 public record SchemaVersion(int number, List<Section> sections, Instant publishedAt) {
 

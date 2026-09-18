@@ -5,12 +5,7 @@ import ar.edu.itba.certiflow.domain.finding.Finding;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import java.util.List;
-import java.util.Objects;
 
-/**
- * Regla que cruza agregados: un activo es certificable si la inspección que lo respalda está cerrada
- * y no le quedan hallazgos abiertos cuya severidad bloquee la certificación.
- */
 public final class CertificationEligibility {
 
     private final FindingRepository findings;

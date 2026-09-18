@@ -9,10 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-/**
- * Ofrecerle a esta regla una respuesta que no sea numérica (un YesNoAnswer, por ejemplo) no compila:
- * ApprovalRule<NumericAnswer> lo impide en la firma, por eso ese riesgo no tiene test de ejecución.
- */
 class NumericRangeRuleTest {
 
     private static final Unit BAR = new Unit("bar");

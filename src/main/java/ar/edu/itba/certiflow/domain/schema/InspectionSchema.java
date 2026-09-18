@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class InspectionSchema {
 

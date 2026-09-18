@@ -3,7 +3,6 @@ package ar.edu.itba.certiflow.domain.certificate;
 import ar.edu.itba.certiflow.domain.certificate.exceptions.InvalidValidityPeriodException;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 public record ValidityPeriod(LocalDate from, LocalDate to) {
 

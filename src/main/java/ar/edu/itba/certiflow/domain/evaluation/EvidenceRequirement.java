@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.domain.evaluation;
 
 import java.util.List;
-import java.util.Objects;
 
 public record EvidenceRequirement(EvidenceKind kind, int minimum) {
 

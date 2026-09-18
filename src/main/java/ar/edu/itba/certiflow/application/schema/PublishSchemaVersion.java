@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.domain.schema.SchemaVersion;
 import ar.edu.itba.certiflow.domain.schema.Section;
 import java.time.Clock;
 import java.util.List;
-import java.util.Objects;
 
 public final class PublishSchemaVersion {
 
@@ -14,8 +13,8 @@ public final class PublishSchemaVersion {
     private final Clock clock;
 
     public PublishSchemaVersion(InspectionSchemaRepository schemas, Clock clock) {
-        this.schemas = Objects.requireNonNull(schemas, "schemas");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this.schemas = schemas;
+        this.clock = clock;
     }
 
     public SchemaVersion execute(AssetType assetType, List<Section> sections) {
