@@ -34,7 +34,7 @@ final class StandardFinding implements Finding {
     public CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person by,
                                        Instant at) {
         ensureOpen();
-        CorrectiveAction action = new CorrectiveAction(description, actionResponsible, dueDate);
+        CorrectiveAction action = new CorrectiveAction(description, actionResponsible, dueDate, by, at);
         actions.add(action);
         return action;
     }
