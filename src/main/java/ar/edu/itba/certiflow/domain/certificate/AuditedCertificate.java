@@ -1,8 +1,7 @@
 package ar.edu.itba.certiflow.domain.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.domain.audit.AuditService;
+import ar.edu.itba.certiflow.domain.audit.AuditTrail;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -12,27 +11,27 @@ import java.util.List;
 final class AuditedCertificate implements Certificate {
 
     private final Certificate certificate;
-    private final AuditService auditService;
-    private final AuditedCertificateGenerator generator;
+    private final AuditTrail audit;
 
-    AuditedCertificate(Certificate certificate, AuditService auditService, AuditedCertificateGenerator generator) {
+    AuditedCertificate(Certificate certificate, AuditTrail audit) {
         this.certificate = certificate;
-        this.auditService = auditService;
-        this.generator = generator;
+        this.audit = audit;
     }
 
     @Override
     public void suspend(String reason, Person by, Instant at) {
         certificate.suspend(reason, by, at);
-        auditService.record(new AuditEntry(this, CertificateAudit.SUSPENDED, by, at, reason));
+        audit.record(this, CertificateAudit.SUSPENDED, by, at, reason);
     }
 
     @Override
     public Certificate renew(CertificateNumber number, ValidityPeriod validity, Inspection basedOn, Person by,
                              Instant at) {
-        Certificate renewal = certificate.renew(number, validity, basedOn, by, at);
-        auditService.record(new AuditEntry(this, CertificateAudit.RENEWED, by, at, "Renewed by " + number.value()));
-        return generator.audited(renewal, by, at);
+        Certificate rawRenewal = certificate.renew(number, validity, basedOn, by, at);
+        audit.record(this, CertificateAudit.RENEWED, by, at, "Renewed by " + number.value());
+        Certificate renewal = new AuditedCertificate(rawRenewal, audit);
+        audit.record(renewal, CertificateAudit.ISSUED, by, at, "Number " + number.value());
+        return renewal;
     }
 
     @Override
