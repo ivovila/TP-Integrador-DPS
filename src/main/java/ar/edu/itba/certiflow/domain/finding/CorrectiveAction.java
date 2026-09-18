@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.domain.finding;
 
+import ar.edu.itba.certiflow.domain.finding.exceptions.CorrectiveActionAlreadyClosedException;
+import ar.edu.itba.certiflow.domain.finding.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;

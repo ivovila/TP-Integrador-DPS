@@ -6,6 +6,8 @@ import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
+import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
+
 import java.util.List;
 import java.util.Objects;
 

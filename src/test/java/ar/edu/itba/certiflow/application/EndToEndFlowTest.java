@@ -21,7 +21,7 @@ import ar.edu.itba.certiflow.domain.finding.Finding;
 import ar.edu.itba.certiflow.domain.finding.VerificationResult;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAudit;
-import ar.edu.itba.certiflow.domain.inspection.InspectionNotClosedException;
+import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.time.LocalDate;
 import java.util.List;

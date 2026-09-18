@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.application.certificate;
 import ar.edu.itba.certiflow.application.finding.FindingRepository;
 import ar.edu.itba.certiflow.domain.finding.Finding;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
-import ar.edu.itba.certiflow.domain.inspection.InspectionNotClosedException;
+import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import java.util.List;
 import java.util.Objects;
 

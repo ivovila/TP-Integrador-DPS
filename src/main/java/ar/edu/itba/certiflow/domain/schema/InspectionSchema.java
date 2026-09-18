@@ -1,6 +1,8 @@
 package ar.edu.itba.certiflow.domain.schema;
 
 import ar.edu.itba.certiflow.domain.asset.AssetType;
+import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

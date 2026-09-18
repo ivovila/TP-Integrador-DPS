@@ -1,8 +1,11 @@
 package ar.edu.itba.certiflow.domain.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
+import ar.edu.itba.certiflow.domain.certificate.exceptions.CertificateAlreadyRenewedException;
+import ar.edu.itba.certiflow.domain.certificate.exceptions.CertificateNotActiveException;
+import ar.edu.itba.certiflow.domain.certificate.exceptions.InspectionOfAnotherAssetException;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
-import ar.edu.itba.certiflow.domain.inspection.InspectionNotClosedException;
+import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;

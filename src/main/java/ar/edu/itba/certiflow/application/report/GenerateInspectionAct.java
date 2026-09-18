@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.audit.AuditService;
 import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
-import ar.edu.itba.certiflow.domain.inspection.InspectionNotClosedException;
+import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.domain.inspection.Observation;
 import java.util.List;
 import java.util.Objects;

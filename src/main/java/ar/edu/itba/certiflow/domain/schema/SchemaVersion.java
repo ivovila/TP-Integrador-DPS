@@ -1,5 +1,8 @@
 package ar.edu.itba.certiflow.domain.schema;
 
+import ar.edu.itba.certiflow.domain.schema.exceptions.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
+
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;

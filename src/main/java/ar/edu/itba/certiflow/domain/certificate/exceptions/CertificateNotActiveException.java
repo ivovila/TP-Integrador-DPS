@@ -1,5 +1,6 @@
-package ar.edu.itba.certiflow.domain.certificate;
+package ar.edu.itba.certiflow.domain.certificate.exceptions;
 
+import ar.edu.itba.certiflow.domain.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.domain.shared.DomainException;
 
 public class CertificateNotActiveException extends DomainException {

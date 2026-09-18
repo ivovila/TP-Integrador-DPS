@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.domain.finding;
+package ar.edu.itba.certiflow.domain.finding.exceptions;
 
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.DomainException;

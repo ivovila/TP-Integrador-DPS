@@ -12,7 +12,7 @@ import ar.edu.itba.certiflow.details.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.details.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
-import ar.edu.itba.certiflow.domain.schema.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.domain.schema.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.domain.schema.Section;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.util.List;

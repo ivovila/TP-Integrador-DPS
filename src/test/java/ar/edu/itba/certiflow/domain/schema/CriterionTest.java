@@ -10,6 +10,8 @@ import ar.edu.itba.certiflow.details.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.details.evaluation.YesNoRule;
 import java.time.Instant;
 import java.util.List;
+
+import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

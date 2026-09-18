@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.domain.finding.CorrectiveAction;
-import ar.edu.itba.certiflow.domain.finding.CorrectiveActionNotInFindingException;
+import ar.edu.itba.certiflow.domain.finding.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.domain.finding.Finding;
-import ar.edu.itba.certiflow.domain.finding.FindingAlreadyClosedException;
+import ar.edu.itba.certiflow.domain.finding.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.domain.finding.FindingAudit;
 import ar.edu.itba.certiflow.domain.finding.VerificationResult;
-import ar.edu.itba.certiflow.domain.finding.VerifierMustDifferFromResponsibleException;
+import ar.edu.itba.certiflow.domain.finding.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;

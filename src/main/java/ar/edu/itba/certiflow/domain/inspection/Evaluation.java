@@ -1,8 +1,9 @@
 package ar.edu.itba.certiflow.domain.inspection;
 
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
+import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionIncompleteException;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
-import ar.edu.itba.certiflow.domain.schema.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.domain.schema.exceptions.CriterionNotInSchemaException;
 import java.util.List;
 
 /**

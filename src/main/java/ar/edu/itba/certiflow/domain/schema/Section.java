@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.domain.schema;
 
+import ar.edu.itba.certiflow.domain.schema.exceptions.InvalidSchemaException;
+
 import java.util.List;
 import java.util.Objects;
 
