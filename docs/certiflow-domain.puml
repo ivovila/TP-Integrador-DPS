@@ -5,34 +5,49 @@ skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 hide empty members
 
-package "domain.shared" {
+note as ExceptionsNote
+  Las excepciones de dominio no se dibujan.
+  Viven en el subpaquete exceptions de cada concepto
+  (models.inspection.exceptions, models.finding.exceptions,
+  models.certificate.exceptions, models.schema.exceptions)
+  y extienden DomainException. Las de aplicacion viven en
+  application.exceptions.
+end note
+
+package "models.shared" {
   class Person <<value object>> {
     name: String
   }
   abstract class DomainException <<exception>>
 }
 
-package "domain.audit" {
+package "models.audit" {
   interface AuditService <<puerto>> {
     +record(AuditEntry)
     +entriesFor(subject): List<AuditEntry>
   }
+  class AuditTrail {
+    -auditService: AuditService
+    +record(subject, AuditAction, Person, Instant, detail)
+  }
   class AuditEntry <<value object>> {
     subject: Object
     action: AuditAction
-    by: Person
-    at: Instant
+    performedBy: Person
+    occurredAt: Instant
     detail: String
     +concerns(candidate): boolean
   }
   interface AuditAction <<enum extensible>> {
     +label(): String
   }
+  AuditTrail --> AuditService : entrega cada entrada
+  AuditTrail ..> AuditEntry : construye
   AuditService ..> AuditEntry
   AuditEntry --> AuditAction
 }
 
-package "domain.asset" {
+package "models.asset" {
   class Asset <<entidad inmutable>> {
     code: AssetCode
     name: String
@@ -49,7 +64,7 @@ package "domain.asset" {
   Asset --> Location
 }
 
-package "domain.evaluation" {
+package "models.evaluation" {
   interface Answer
   class NumericAnswer <<value object>> {
     value: BigDecimal
@@ -76,8 +91,8 @@ package "domain.evaluation" {
     acceptedOptions: Set<String>
   }
   class Range <<value object>> {
-    min: BigDecimal
-    max: BigDecimal
+    minimum: BigDecimal
+    maximum: BigDecimal
     +contains(BigDecimal): boolean
   }
   enum Outcome {
@@ -129,7 +144,7 @@ package "domain.evaluation" {
   EvidenceRequirement --> EvidenceKind
 }
 
-package "domain.schema" {
+package "models.schema" {
   class InspectionSchema <<aggregate root>> {
     -name: String
     -assetType: AssetType
@@ -167,13 +182,8 @@ package "domain.schema" {
   InspectionSchema --> AssetType
 }
 
-package "domain.inspection" {
-  interface Inspection {
-    +recordAnswer(Criterion<A>, A, Person, Instant)
-    +attachEvidence(Criterion<?>, Evidence, Person, Instant)
-    +addObservation(Criterion<?>, String, Person, Instant)
-    +close(Person, Instant)
-    +rectify(Criterion<A>, A, reason, Person, Instant)
+package "models.inspection" {
+  interface InspectionView <<solo lectura>> {
     +evaluate(): Evaluation
     +isClosed(): boolean
     +originalRevision(): Revision
@@ -182,15 +192,25 @@ package "domain.inspection" {
     +assignment(): InspectionAssignment
     +schemaVersion(): SchemaVersion
   }
+  interface Inspection {
+    +recordAnswer(Criterion<A>, A, Person, Instant)
+    +attachEvidence(Criterion<?>, Evidence, Person, Instant)
+    +addObservation(Criterion<?>, String, Person, Instant)
+    +close(Person, Instant)
+    +rectify(Criterion<A>, A, reason, Person, Instant)
+  }
   class StandardInspection <<de paquete>> {
     -responses: Map<Criterion<?>, CriterionResponse<?>>
     -revisions: List<Revision>
     -ensureOpen()
     -ensureClosed()
   }
-  class AuditedInspection <<decorator, de paquete>>
+  class AuditedInspection <<decorator, de paquete>> {
+    -auditTrail: AuditTrail
+  }
   class AuditedInspectionGenerator {
-    -auditService: AuditService
+    -auditTrail: AuditTrail
+    +AuditedInspectionGenerator(AuditService)
     +generate(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
   }
   class InspectionAssignment <<value object>> {
@@ -200,18 +220,29 @@ package "domain.inspection" {
   }
   class "CriterionResponse<A extends Answer>" as CriterionResponse <<value object inmutable>> {
     criterion: Criterion<A>
-    answer: Optional<A>
-    evidence: List<Evidence>
+    given: Optional<GivenAnswer<A>>
+    attachments: List<AttachedEvidence>
     observations: List<Observation>
-    +answeredWith(Criterion<B>, B): CriterionResponse<B>
-    +withEvidence(Evidence)
+    +answeredWith(Criterion<B>, B, Person, Instant): CriterionResponse<B>
+    +withEvidence(Evidence, Person, Instant)
     +withObservation(Observation)
     +outcome(): Outcome
+    +isFor(Criterion<?>): boolean
+  }
+  class "GivenAnswer<A extends Answer>" as GivenAnswer <<value object>> {
+    value: A
+    answeredBy: Person
+    answeredAt: Instant
+  }
+  class AttachedEvidence <<value object>> {
+    evidence: Evidence
+    attachedBy: Person
+    attachedAt: Instant
   }
   class Observation <<value object>> {
     text: String
-    by: Person
-    at: Instant
+    observedBy: Person
+    observedAt: Instant
   }
   class Evaluation <<value object>> {
     responses: List<CriterionResponse<?>>
@@ -224,8 +255,8 @@ package "domain.inspection" {
     number: int
     reason: String
     evaluation: Evaluation
-    by: Person
-    at: Instant
+    sealedBy: Person
+    sealedAt: Instant
   }
   enum InspectionAudit {
     ASSIGNED
@@ -235,13 +266,14 @@ package "domain.inspection" {
     CLOSED
     RECTIFIED
   }
+  InspectionView <|-- Inspection
   Inspection <|.. StandardInspection
   Inspection <|.. AuditedInspection
   AuditedInspection o--> Inspection : decora
-  AuditedInspection --> AuditService
+  AuditedInspection --> AuditTrail
   AuditedInspectionGenerator ..> AuditedInspection : compone
   AuditedInspectionGenerator ..> StandardInspection : compone
-  AuditedInspectionGenerator --> AuditService
+  AuditedInspectionGenerator --> AuditTrail : crea a partir del AuditService
   StandardInspection --> Asset
   StandardInspection --> InspectionAssignment
   StandardInspection --> SchemaVersion : fijada al asignar
@@ -251,36 +283,43 @@ package "domain.inspection" {
   Revision --> Evaluation
   Evaluation o-- "*" CriterionResponse
   CriterionResponse --> Criterion
-  CriterionResponse --> "0..1" Answer
-  CriterionResponse --> "*" Evidence
+  CriterionResponse --> "0..1" GivenAnswer
+  CriterionResponse --> "*" AttachedEvidence
   CriterionResponse --> "*" Observation
+  GivenAnswer --> Answer
+  AttachedEvidence --> Evidence
   AuditAction <|.. InspectionAudit
 }
 
-package "domain.finding" {
+package "models.finding" {
   interface Finding {
     +planAction(description, Person, LocalDate, Person, Instant): CorrectiveAction
     +verifyAction(CorrectiveAction, Person, VerificationResult, notes, Instant): Verification
     +isOpen(): boolean
     +blocksCertification(): boolean
     +concerns(Asset): boolean
-    +inspection(): Inspection
+    +inspection(): InspectionView
     +criterion(): Criterion<?>
     +severity(): Severity
-    +evidence(): List<Evidence>
+    +evidence(): List<AttachedEvidence>
     +responsible(): Person
     +actions(): List<CorrectiveAction>
   }
   class StandardFinding <<de paquete>>
-  class AuditedFinding <<decorator, de paquete>>
+  class AuditedFinding <<decorator, de paquete>> {
+    -auditTrail: AuditTrail
+  }
   class AuditedFindingGenerator {
-    -auditService: AuditService
-    +generate(CriterionResponse<?>, Inspection, Person, Instant): Finding
+    -auditTrail: AuditTrail
+    +AuditedFindingGenerator(AuditService)
+    +generate(CriterionResponse<?>, InspectionView, Person, Instant): Finding
   }
   class CorrectiveAction <<entidad interna>> {
     -description: String
     -responsible: Person
     -dueDate: LocalDate
+    -plannedBy: Person
+    -plannedAt: Instant
     -verifications: List<Verification>
     ~verify(Person, VerificationResult, notes, Instant): Verification
     +isClosed(): boolean
@@ -290,7 +329,7 @@ package "domain.finding" {
     verifier: Person
     result: VerificationResult
     notes: String
-    at: Instant
+    verifiedAt: Instant
     +isAccepted(): boolean
   }
   enum VerificationResult {
@@ -307,48 +346,56 @@ package "domain.finding" {
   Finding <|.. StandardFinding
   Finding <|.. AuditedFinding
   AuditedFinding o--> Finding : decora
-  AuditedFinding --> AuditService
+  AuditedFinding --> AuditTrail
   AuditedFindingGenerator ..> AuditedFinding : compone
   AuditedFindingGenerator ..> StandardFinding : compone
-  StandardFinding --> Inspection
+  AuditedFindingGenerator --> AuditTrail : crea a partir del AuditService
+  StandardFinding --> InspectionView : solo lectura
   StandardFinding --> Criterion
+  StandardFinding --> "*" AttachedEvidence
   StandardFinding *-- "*" CorrectiveAction
   CorrectiveAction *-- "*" Verification
   Verification --> VerificationResult
   AuditAction <|.. FindingAudit
 }
 
-package "domain.certificate" {
+package "models.certificate" {
   interface Certificate {
     +suspend(reason, Person, Instant)
-    +renew(CertificateNumber, ValidityPeriod, Inspection, Person, Instant): Certificate
+    +renew(CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
     +statusOn(LocalDate): CertificateStatus
     +isCurrentOn(LocalDate): boolean
     +certifies(Asset): boolean
     +number(): CertificateNumber
     +asset(): Asset
-    +basedOn(): Inspection
+    +basedOn(): InspectionView
     +validity(): ValidityPeriod
+    +issuedBy(): Person
+    +issuedAt(): Instant
     +suspensions(): List<Suspension>
   }
   class StandardCertificate <<de paquete>> {
     -lifecycle: CertificateLifecycle
   }
-  class AuditedCertificate <<decorator, de paquete>>
+  class AuditedCertificate <<decorator, de paquete>> {
+    -auditTrail: AuditTrail
+    ..al renovar decora y audita el certificado nuevo..
+  }
   class AuditedCertificateGenerator {
-    -auditService: AuditService
-    +generate(CertificateNumber, Asset, Inspection, ValidityPeriod, Person, Instant): Certificate
+    -auditTrail: AuditTrail
+    +AuditedCertificateGenerator(AuditService)
+    +generate(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
   }
   class CertificateNumber <<identificador de negocio>>
   class ValidityPeriod <<value object>> {
-    from: LocalDate
-    to: LocalDate
+    validFrom: LocalDate
+    validUntil: LocalDate
     +covers(LocalDate): boolean
   }
   class Suspension <<value object>> {
     reason: String
-    by: Person
-    at: Instant
+    suspendedBy: Person
+    suspendedAt: Instant
   }
   enum CertificateLifecycle <<de paquete>> {
     ISSUED
@@ -370,12 +417,13 @@ package "domain.certificate" {
   Certificate <|.. StandardCertificate
   Certificate <|.. AuditedCertificate
   AuditedCertificate o--> Certificate : decora
-  AuditedCertificate --> AuditService
+  AuditedCertificate --> AuditTrail
   AuditedCertificateGenerator ..> AuditedCertificate : compone
   AuditedCertificateGenerator ..> StandardCertificate : compone
+  AuditedCertificateGenerator --> AuditTrail : crea a partir del AuditService
   StandardCertificate --> CertificateNumber
   StandardCertificate --> Asset
-  StandardCertificate --> Inspection : basedOn
+  StandardCertificate --> InspectionView : basedOn, solo lectura
   StandardCertificate --> ValidityPeriod
   StandardCertificate --> CertificateLifecycle
   StandardCertificate *-- "*" Suspension
@@ -383,7 +431,7 @@ package "domain.certificate" {
   AuditAction <|.. CertificateAudit
 }
 
-package "application" {
+package "ports" {
   interface AssetRepository {
     +save(Asset)
     +findByCode(AssetCode): Optional<Asset>
@@ -408,9 +456,22 @@ package "application" {
   interface CertificateNumbering {
     +next(): CertificateNumber
   }
-  class CertificationEligibility {
+}
+
+package "application" {
+  interface CertificationEligibility <<politica intercambiable>> {
     +ensureEligible(Inspection)
   }
+  class NoBlockingFindingsEligibility
+  class "Modelos de lectura (application.report)" as ReadModels {
+    InspectionAct / ActLine
+    FindingsSummary / FindingLine
+    CertificateDocument
+    ..records sin formato..
+  }
+}
+
+package "usecases" {
   class "Casos de uso (uno por clase)" as UseCases {
     RegisterAsset
     CreateInspectionSchema / PublishSchemaVersion
@@ -420,20 +481,24 @@ package "application" {
     PlanCorrectiveAction / VerifyCorrectiveAction
     IssueCertificate / SuspendCertificate / RenewCertificate
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..reciben objetos del dominio, puertos y java.time.Clock..
+    ..reciben objetos del modelo, puertos y java.time.Clock..
   }
-  UseCases ..> AssetRepository
-  UseCases ..> InspectionSchemaRepository
-  UseCases ..> InspectionRepository
-  UseCases ..> FindingRepository
-  UseCases ..> CertificateRepository
-  UseCases ..> CertificateNumbering
-  UseCases ..> CertificationEligibility
-  CertificationEligibility ..> FindingRepository
-  UseCases ..> AuditedInspectionGenerator
-  UseCases ..> AuditedFindingGenerator
-  UseCases ..> AuditedCertificateGenerator
 }
+
+CertificationEligibility <|.. NoBlockingFindingsEligibility
+NoBlockingFindingsEligibility ..> FindingRepository
+UseCases ..> AssetRepository
+UseCases ..> InspectionSchemaRepository
+UseCases ..> InspectionRepository
+UseCases ..> FindingRepository
+UseCases ..> CertificateRepository
+UseCases ..> CertificateNumbering
+UseCases ..> CertificationEligibility
+UseCases ..> ReadModels : los informes los construyen
+UseCases ..> AuditService : el acta lee el historial
+UseCases ..> AuditedInspectionGenerator
+UseCases ..> AuditedFindingGenerator
+UseCases ..> AuditedCertificateGenerator
 
 package "details.inmemory" {
   class InMemoryAssetRepository

@@ -22,10 +22,10 @@ mvn clean test
 | S6 | Rectificación y hallazgos | Rectificar corrige el acta y su evaluación derivada; no regenera ni elimina hallazgos ya levantados. | Sin efectos en cascada entre agregados. Queda como limitación conocida (ver sección 6). |
 | S7 | Revisión original | Cerrar crea la `Revision` 1; cada rectificación agrega otra; ninguna se modifica. | `originalRevision()` devuelve siempre lo que se firmó al cerrar. |
 | S8 | Acción correctiva | Vive dentro de su hallazgo. Está cerrada cuando tiene una verificación aceptada; está vencida cuando sigue abierta y la fecha es posterior a `dueDate`. El verificador debe ser distinto del responsable de la acción. | Una verificación aceptada cierra acción y hallazgo a la vez, sin coordinación externa. El día `dueDate` todavía no está vencida. |
-| S9 | Vencimiento del certificado | `ValidityPeriod(from, to)` con ambos extremos incluidos. La vigencia arranca el día de emisión. `EXPIRED` se deriva de la fecha consultada. | Vigente todo el día `to`, vencido el siguiente. No existe un booleano que pueda quedar desactualizado. |
+| S9 | Vencimiento del certificado | `ValidityPeriod(validFrom, validUntil)` con ambos extremos incluidos. La vigencia arranca el día de emisión. `EXPIRED` se deriva de la fecha consultada. | Vigente todo el día `validUntil`, vencido el siguiente. No existe un booleano que pueda quedar desactualizado. |
 | S10 | Unicidad | Un activo tiene a lo sumo un certificado vigente. Un certificado suspendido dentro de su validez sigue ocupando ese lugar. | No se puede esquivar una suspensión emitiendo otro certificado; la salida es renovar. |
 | S11 | Renovación | Emite un certificado nuevo, basado en otra inspección cerrada y sujeto a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". | La historia no se borra. Menos transiciones que probar. |
-| S12 | Límites numéricos | `Range[min, max]` cerrado en ambos extremos; `min > max` es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
+| S12 | Límites numéricos | `Range[minimum, maximum]` cerrado en ambos extremos; un mínimo mayor que el máximo es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`. | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(name)`. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara personas sin conversiones entre tipos de rol. |
 | S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo) y `CertificateNumber`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
@@ -36,25 +36,42 @@ mvn clean test
 ## 2. Arquitectura y dirección de dependencias
 
 ```
-domain  <──  application  <──  details.inmemory
-  ▲               ▲                  ▲
-  └───────────────┴──── tests (fixture = raíz de composición)
+models  <──  ports  <──  application  <──  usecases
+   ▲           ▲
+   └───────────┴──────  details.inmemory
+
+tests: el fixture es la raíz de composición y es el único que conoce todos los paquetes
 ```
 
-- **`domain`**: entidades, value objects, reglas y el puerto `AuditService`. No importa nada de las otras capas ni consulta relojes.
-- **`application`**: un caso de uso por clase, los puertos de repositorio definidos según lo que esos casos de uso necesitan, `CertificateNumbering` y `java.time.Clock`.
+Cada flecha se lee "es importado por". Además `application` y `usecases` importan `models` directamente.
+
+- **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditService`. No importa ningún otro paquete ni consulta relojes.
+- **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
+- **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`). Son los únicos que leen `java.time.Clock`.
+- **`application`**: lo que acompaña a los casos de uso sin ser uno: la política de elegibilidad (`application.certification`), los modelos de lectura de los informes (`application.report`) y las excepciones de las reglas que cruzan agregados (`application.exceptions`).
 - **`details.inmemory`**: implementaciones de los puertos.
 
-**Negocio y detalles.** Se sigue la separación de la clase 3 (ejemplo del cifrado César): `domain` y
-`application` son el negocio y `details` son los detalles. Un detalle es un mecanismo técnico que el negocio
+Los nombres `models`, `usecases`, `ports` y `application` son los que la cátedra propone para un módulo de
+negocio, el equivalente al módulo `domain` de DDD: todo el módulo es negocio, sin base de datos, controllers
+ni framework. Dentro de `models` y de `usecases` se agrupa por concepto y no por tipo de clase, porque
+`Standard...`, `Audited...` y su generador comparten visibilidad de paquete (ver D7) y separarlos obligaría a
+hacerlos públicos.
+
+**Por qué `AuditService` no está en `ports`.** Es un puerto, pero quienes lo usan son `AuditTrail` y los
+generadores, que viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
+`models`: un ciclo. Se queda en `models.audit`, al lado del código que lo consume, que es donde la inversión
+de dependencias ubica la interfaz.
+
+**Negocio y detalles.** Se sigue la separación de la clase 3 (ejemplo del cifrado César): `models`,
+`ports`, `usecases` y `application` son el negocio y `details` son los detalles. Un detalle es un mecanismo técnico que el negocio
 necesita pero cuyo funcionamiento no le importa: cómo se guardan los agregados, cómo se numeran los
 certificados, dónde queda la bitácora. Las reglas de aprobación (`NumericRangeRule`, `YesNoRule`,
 `OptionInListRule`), las respuestas y las escalas estándar de severidad y evidencia son negocio aunque se
 enchufen detrás de una interfaz, igual que `CesarCipher` es negocio siendo una clase concreta. Por eso viven
-en `domain.evaluation`. Los detalles implementan interfaces que declara el negocio y nunca al revés. El fixture
+en `models.evaluation`. Los detalles implementan interfaces que declara el negocio y nunca al revés. El fixture
 de tests cumple el rol del componente `Main`: crea los detalles y se los entrega a los casos de uso.
 
-Dependencias entre paquetes del dominio, sin ciclos:
+Dependencias entre los paquetes de `models`, sin ciclos:
 
 ```
 shared      <──  audit, asset, evaluation
@@ -64,12 +81,13 @@ inspection         <──  finding
 inspection         <──  certificate
 ```
 
-`domain` no importa `application` ni `details`, y `application` no importa `details`.
+`models` no importa ningún otro paquete, `ports` solo importa `models` y nadie importa `details`. Ambos
+grafos se verificaron recorriendo los `import` de todo `src/main`.
 
 **Dónde vive cada validación.** Lo que involucra un solo agregado vive en el agregado: cerrar con criterios
-pendientes, verificador distinto del responsable, renovar dos veces. Lo que cruza agregados vive en la capa
-de aplicación: hallazgos bloqueantes (`CertificationEligibility`), unicidad del certificado vigente
-(`IssueCertificate`), un esquema por tipo de activo (`CreateInspectionSchema`).
+pendientes, verificador distinto del responsable, renovar dos veces. Lo que cruza agregados vive fuera
+del modelo: hallazgos bloqueantes (`CertificationEligibility`, en `application`), unicidad del certificado
+vigente (`IssueCertificate`), un esquema por tipo de activo (`CreateInspectionSchema`).
 
 **Tiempo.** Los casos de uso leen el `Clock` y le pasan `Instant` o `LocalDate` al dominio. El dominio es
 determinista y los tests usan un reloj controlable.
@@ -128,26 +146,28 @@ determinista y los tests usan un reloj controlable.
 ### D7. Auditoría con Decorator, separando hechos de dominio de bitácora
 
 - **Principios:** SRP, OCP, DIP; patrón Decorator.
-- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; puerto `AuditService`; `InMemoryAuditService`.
+- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; `AuditTrail`; puerto `AuditService`; `InMemoryAuditService`.
 - **Por qué:**
   - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`, y desde D12 también el autor y la fecha de cada respuesta, evidencia adjunta y acción planificada. Una rectificación no puede ocurrir sin su revisión.
   - La **bitácora** cronológica de quién hizo qué es transversal y vive en los decoradores. `StandardInspection` no tiene una sola línea de auditoría.
   - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
   - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige un `AuditService` por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación. El generador también registra la entrada de alta, de modo que ningún caso de uso escribe auditoría.
   - `AuditService` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
+  - Decoradores y generadores no hablan con el puerto directamente sino con `AuditTrail`, que arma el `AuditEntry` y se lo entrega a `AuditService`. El generador recibe el `AuditService` por constructor y crea su `AuditTrail`. Así la construcción de una entrada está en un solo lugar y el puerto queda reducido a guardar y devolver entradas.
+  - La renovación nace del certificado y no del generador. Por eso `AuditedCertificate.renew` decora el certificado nuevo y registra su emisión él mismo, sin guardar una referencia a su generador. El costo son dos líneas repetidas respecto de `AuditedCertificateGenerator.generate`; la alternativa era una dependencia del decorador hacia quien lo crea.
 - **Alternativas descartadas:**
   - *Auditoría dentro del agregado* (`audit.record(...)` en cada método): más barata, y defendible porque la auditoría es requisito de negocio, pero mezcla dos niveles de abstracción en cada operación.
   - *Decorar casos de uso:* exige una interfaz genérica común a los 17 casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce dos hechos distintos.
   - *Método estático de creación en la interfaz:* hacía que la abstracción conociera a sus implementaciones y obligaba a los casos de uso a transportar el servicio de auditoría.
   - *Herencia* (`AuditedInspection extends Inspection`): menos código, pero contradice composición sobre herencia y audita dos veces si un método público llama a otro.
   - *Interfaces delante de los generadores* (`InspectionGenerator`, `FindingGenerator`, `CertificateGenerator`): se probaron y se retiraron. Tenían una sola implementación y ninguna variante a la vista, que es el anti-patrón que este diseño evita. Tampoco las pedía DIP: los generadores son negocio, viven en `domain`, y que un caso de uso dependa de una clase concreta del dominio ya respeta la dirección de dependencias. Lo único que aportaban era que los casos de uso dejaran de nombrar una clase llamada `Audited...`, y eso no justificaba tres tipos más. Si aparece una segunda forma de crear agregados, la interfaz se extrae en ese momento.
-- **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres generadores y `InMemoryAuditService`. Reenvío manual de las consultas en cada decorador. `AuditEntry.subject` es de tipo `Object`.
-- **Nombres:** `AuditService`, `...Generator` y `generate` fueron elegidos por el equipo.
+- **Costo:** once clases más que la versión interna: tres interfaces, tres decoradores, tres generadores, `AuditTrail` e `InMemoryAuditService`. Reenvío manual de las consultas en cada decorador. `AuditEntry.subject` es de tipo `Object`.
+- **Nombres:** `AuditService`, `AuditTrail`, `...Generator` y `generate` fueron elegidos por el equipo.
 
 ### D8. Política de condicionales
 
 - **Regla:** `if` solo como cláusula de guarda que lanza una excepción. Nunca `if`, `switch` ni `instanceof` para decidir por tipo o por estado.
-- **Verificación:** en `src/main` hay 41 `if` y los 41 preceden a un `throw`; cero `instanceof`, cero `switch`, cero `return null`, cero setters, cero métodos estáticos.
+- **Verificación:** en `src/main` hay 40 `if` y los 40 preceden a un `throw`; cero `instanceof`, cero `switch`, cero `return null`, cero setters, cero métodos estáticos.
 - **Qué reemplaza a los condicionales:** genéricos (D1), enums con comportamiento (`Severity`, `Outcome.raisesFinding`, `VerificationResult.closesAction`, `CertificateLifecycle.statusOn`), estado derivado (D5), `Optional.orElseThrow` e `ifPresent` en búsquedas, streams para selección, y una tabla `Map<VerificationResult, FindingAudit>`.
 - **Tres ternarios declarados**, los tres sobre un predicado de negocio y ninguno sobre un tipo o un estado: `Criterion.outcomeOf` (cumple → aprobado; si no, lo que diga la severidad), `CriterionResponse.outcomeOfAnswered` (con la evidencia exigida → resultado; si no, pendiente) y `CertificateLifecycle.ISSUED.statusOn` (dentro de la vigencia → activo; si no, vencido).
 - **`Optional`** se usa solo donde la ausencia es un resultado legítimo: `CriterionResponse.answer()` y las búsquedas de repositorio. No se usa como control de flujo.
@@ -155,7 +175,7 @@ determinista y los tests usan un reloj controlable.
 ### D9. Puertos segregados
 
 - **Principios:** ISP, DIP.
-- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditService {record, entriesFor}`.
+- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditService {record, entriesFor}`. Los seis primeros viven en `ports`; `AuditService` vive en `models.audit` por el motivo explicado en la sección 2.
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
 ### D10. Elegibilidad para certificar como política intercambiable
@@ -168,13 +188,15 @@ determinista y los tests usan un reloj controlable.
 ### D11. Errores explícitos
 
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, entre otras).
-- Argumentos mal formados (nulos, textos vacíos): `NullPointerException` e `IllegalArgumentException`, que es la convención de Java para precondiciones.
+- Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador. La única excepción es `AuditTrail`, que exige su `AuditService`.
+- Los textos vacíos sí se validan, porque un código de activo, un motivo o un alcance en blanco no significan nada para el negocio: `IllegalArgumentException` en los value objects, `InvalidSchemaException` en el esquema y `RectificationReasonRequiredException` al rectificar.
+- Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza, y las de reglas que cruzan agregados viven en `application.exceptions`.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
 
 ### D12. Quién y cuándo como hechos de dominio
 
 - **Principio:** coherencia del modelo; ningún parámetro existe solo para otro objeto.
-- **Dónde:** `GivenAnswer(value, by, at)`, `AttachedEvidence(evidence, by, at)`, `CorrectiveAction.plannedBy()` y `plannedAt()`; `CriterionResponse` guarda `given` y `attachments`.
+- **Dónde:** `GivenAnswer(value, answeredBy, answeredAt)`, `AttachedEvidence(evidence, attachedBy, attachedAt)`, `CorrectiveAction.plannedBy()` y `plannedAt()`; `CriterionResponse` guarda `given` y `attachments`.
 - **Por qué:** registrar una respuesta, adjuntar evidencia y planificar una acción recibían quién y cuándo, pero el núcleo los descartaba y solo el decorador los usaba para la bitácora. Observaciones, revisiones, verificaciones y suspensiones ya guardaban su autor y su fecha, así que era una inconsistencia. Ahora el dato vive en el agregado: corregir una respuesta produce un `GivenAnswer` nuevo, y el acta muestra quién respondió cada criterio sin consultar la auditoría.
 - **Una sola representación pública.** `CriterionResponse` expone únicamente `given()` y `attachments()`. La respuesta y la evidencia "peladas" que necesita la evaluación son métodos privados del record. `Finding` conserva la evidencia con su procedencia (`List<AttachedEvidence>`) y `ActLine` muestra autor y fecha de la respuesta.
 - **Alternativa descartada:** exponer además `answer()` y `evidence()` públicos. Evitaba tocar `Finding` y el acta, pero ofrecía dos formas de pedir lo mismo y dejaba el dato nuevo sin ningún consumidor en producción.

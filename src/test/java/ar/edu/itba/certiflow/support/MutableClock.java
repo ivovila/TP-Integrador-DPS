@@ -9,23 +9,23 @@ import java.time.ZoneOffset;
 
 public final class MutableClock extends Clock {
 
-    private Instant now;
+    private Instant currentInstant;
 
-    public MutableClock(Instant start) {
-        this.now = start;
+    public MutableClock(Instant startInstant) {
+        this.currentInstant = startInstant;
     }
 
-    public void advanceDays(long days) {
-        now = now.plus(Duration.ofDays(days));
+    public void advanceDays(long numberOfDays) {
+        currentInstant = currentInstant.plus(Duration.ofDays(numberOfDays));
     }
 
-    public void moveTo(LocalDate date) {
-        now = date.atTime(9, 0).toInstant(ZoneOffset.UTC);
+    public void moveTo(LocalDate targetDate) {
+        currentInstant = targetDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
     }
 
     @Override
     public Instant instant() {
-        return now;
+        return currentInstant;
     }
 
     @Override

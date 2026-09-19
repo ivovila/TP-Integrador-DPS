@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.details.inmemory;
 
-import ar.edu.itba.certiflow.application.inspection.InspectionRepository;
-import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.inspection.Inspection;
+import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.ports.InspectionRepository;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;

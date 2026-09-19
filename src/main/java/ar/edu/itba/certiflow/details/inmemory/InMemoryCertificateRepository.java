@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.details.inmemory;
 
-import ar.edu.itba.certiflow.application.certificate.CertificateRepository;
-import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.certificate.Certificate;
+import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.ports.CertificateRepository;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -18,10 +18,10 @@ public final class InMemoryCertificateRepository implements CertificateRepositor
     }
 
     @Override
-    public Optional<Certificate> findCurrentFor(Asset asset, LocalDate date) {
+    public Optional<Certificate> findCurrentFor(Asset asset, LocalDate referenceDate) {
         return certificates.stream()
                 .filter(certificate -> certificate.certifies(asset))
-                .filter(certificate -> certificate.isCurrentOn(date))
+                .filter(certificate -> certificate.isCurrentOn(referenceDate))
                 .findFirst();
     }
 }

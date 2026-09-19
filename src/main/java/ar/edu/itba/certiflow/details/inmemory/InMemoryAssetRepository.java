@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.details.inmemory;
 
-import ar.edu.itba.certiflow.application.asset.AssetRepository;
-import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.asset.AssetCode;
+import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.ports.AssetRepository;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;

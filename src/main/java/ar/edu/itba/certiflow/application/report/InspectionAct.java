@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.application.report;
 
-import ar.edu.itba.certiflow.domain.asset.AssetCode;
-import ar.edu.itba.certiflow.domain.audit.AuditEntry;
-import ar.edu.itba.certiflow.domain.inspection.InspectionAssignment;
-import ar.edu.itba.certiflow.domain.inspection.Revision;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.audit.AuditEntry;
+import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
+import ar.edu.itba.certiflow.models.inspection.Revision;
 import java.util.List;
 
 public record InspectionAct(AssetCode assetCode, String assetName, InspectionAssignment assignment,

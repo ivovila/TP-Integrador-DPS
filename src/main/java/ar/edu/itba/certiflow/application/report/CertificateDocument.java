@@ -1,11 +1,11 @@
 package ar.edu.itba.certiflow.application.report;
 
-import ar.edu.itba.certiflow.domain.asset.AssetCode;
-import ar.edu.itba.certiflow.domain.certificate.CertificateNumber;
-import ar.edu.itba.certiflow.domain.certificate.CertificateStatus;
-import ar.edu.itba.certiflow.domain.certificate.Suspension;
-import ar.edu.itba.certiflow.domain.certificate.ValidityPeriod;
-import ar.edu.itba.certiflow.domain.shared.Person;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
+import ar.edu.itba.certiflow.models.certificate.CertificateStatus;
+import ar.edu.itba.certiflow.models.certificate.Suspension;
+import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
+import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
