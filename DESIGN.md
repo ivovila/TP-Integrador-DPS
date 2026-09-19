@@ -47,7 +47,7 @@ Cada flecha se lee "es importado por". Además `application` y `usecases` import
 
 - **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditService`. No importa ningún otro paquete ni consulta relojes.
 - **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
-- **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`). Son los únicos que leen `java.time.Clock`.
+- **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`).
 - **`application`**: lo que acompaña a los casos de uso sin ser uno: la política de elegibilidad (`application.certification`), los modelos de lectura de los informes (`application.report`) y las excepciones de las reglas que cruzan agregados (`application.exceptions`).
 - **`details.inmemory`**: implementaciones de los puertos.
 
