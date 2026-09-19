@@ -47,8 +47,8 @@ class FindingsTest {
         Finding finding = fixture.majorFindingOf(inspection);
 
         assertEquals(List.of(finding), fixture.findingRepository.findByAsset(fixture.extinguisher));
-        assertEquals(FindingAudit.RAISED, fixture.auditService.entriesFor(finding).getFirst().action());
-        assertEquals(fixture.inspector, fixture.auditService.entriesFor(finding).getFirst().performedBy());
+        assertEquals(FindingAudit.RAISED, fixture.findingLog.historyOf(finding).getFirst().action());
+        assertEquals(fixture.inspector, fixture.findingLog.historyOf(finding).getFirst().performedBy());
     }
 
     @Test

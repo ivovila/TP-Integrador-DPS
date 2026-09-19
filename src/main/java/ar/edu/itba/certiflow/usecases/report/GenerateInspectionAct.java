@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.usecases.report;
 import ar.edu.itba.certiflow.application.report.ActLine;
 import ar.edu.itba.certiflow.application.report.InspectionAct;
 import ar.edu.itba.certiflow.models.asset.Asset;
-import ar.edu.itba.certiflow.models.audit.AuditService;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
 import ar.edu.itba.certiflow.models.inspection.GivenAnswer;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
@@ -13,10 +13,10 @@ import java.util.List;
 
 public final class GenerateInspectionAct {
 
-    private final AuditService auditService;
+    private final AuditLog<Inspection> inspectionLog;
 
-    public GenerateInspectionAct(AuditService auditService) {
-        this.auditService = auditService;
+    public GenerateInspectionAct(AuditLog<Inspection> inspectionLog) {
+        this.inspectionLog = inspectionLog;
     }
 
     public InspectionAct execute(Inspection inspection) {
@@ -27,7 +27,7 @@ public final class GenerateInspectionAct {
         List<ActLine> actLines = inspection.evaluate().responses().stream().map(this::lineOf).toList();
         return new InspectionAct(asset.code(), asset.name(), inspection.assignment(),
                 inspection.schemaVersion().number(), actLines, inspection.revisions(),
-                auditService.entriesFor(inspection));
+                inspectionLog.historyOf(inspection));
     }
 
     private ActLine lineOf(CriterionResponse<?> response) {

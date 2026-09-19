@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.models.inspection;
 import ar.edu.itba.certiflow.models.evaluation.Answer;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.evaluation.Outcome;
+import ar.edu.itba.certiflow.models.inspection.exceptions.DuplicateEvidenceException;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -30,6 +31,9 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
     }
 
     public CriterionResponse<A> withEvidence(Evidence evidence, Person attachedBy, Instant attachedAt) {
+        if (evidence().stream().anyMatch(evidence::isSameFileAs)) {
+            throw new DuplicateEvidenceException(criterion.code(), evidence.reference());
+        }
         return new CriterionResponse<>(criterion, given,
                 Stream.concat(attachments.stream(), Stream.of(new AttachedEvidence(evidence, attachedBy, attachedAt))).toList(),
                 observations);

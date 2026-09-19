@@ -63,7 +63,7 @@ class CertificationTest {
         assertEquals("CERT-00001", certificate.number().value());
         assertEquals(fixture.extinguisher, certificate.asset());
         assertEquals(inspection, certificate.basedOn());
-        AuditEntry issuanceEntry = fixture.auditService.entriesFor(certificate).getFirst();
+        AuditEntry issuanceEntry = fixture.certificateLog.historyOf(certificate).getFirst();
         assertEquals(CertificateAudit.ISSUED, issuanceEntry.action());
         assertEquals(fixture.certifier, issuanceEntry.performedBy());
     }
@@ -130,7 +130,7 @@ class CertificationTest {
 
         assertEquals(CertificateStatus.SUSPENDED, certificate.statusOn(LocalDate.now(fixture.clock)));
         assertEquals("Extinguisher discharged during a drill", certificate.suspensions().getFirst().reason());
-        assertEquals(CertificateAudit.SUSPENDED, fixture.auditService.entriesFor(certificate).getLast().action());
+        assertEquals(CertificateAudit.SUSPENDED, fixture.certificateLog.historyOf(certificate).getLast().action());
         assertThrows(CertificateNotActiveException.class,
                 () -> fixture.suspendCertificate.execute(certificate, "Again", fixture.certifier));
     }
@@ -150,8 +150,8 @@ class CertificationTest {
         assertEquals(CertificateStatus.ACTIVE, renewedCertificate.statusOn(currentDate));
         assertEquals(reinspection, renewedCertificate.basedOn());
         assertEquals(renewedCertificate, fixture.certificateRepository.findCurrentFor(fixture.extinguisher, currentDate).orElseThrow());
-        assertEquals(CertificateAudit.RENEWED, fixture.auditService.entriesFor(originalCertificate).getLast().action());
-        assertEquals(CertificateAudit.ISSUED, fixture.auditService.entriesFor(renewedCertificate).getFirst().action());
+        assertEquals(CertificateAudit.RENEWED, fixture.certificateLog.historyOf(originalCertificate).getLast().action());
+        assertEquals(CertificateAudit.ISSUED, fixture.certificateLog.historyOf(renewedCertificate).getFirst().action());
         assertThrows(CertificateAlreadyRenewedException.class, () -> fixture.renewCertificate.execute(originalCertificate,
                 reinspection, VALID_UNTIL.plusYears(2), fixture.certifier));
     }

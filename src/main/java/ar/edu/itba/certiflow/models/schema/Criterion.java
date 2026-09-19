@@ -17,6 +17,9 @@ public record Criterion<A extends Answer>(String code, String text, ApprovalRule
         if (code.isBlank() || text.isBlank()) {
             throw new InvalidSchemaException("A criterion needs a code and a text");
         }
+        if (requiredEvidence.stream().map(EvidenceRequirement::kind).distinct().count() < requiredEvidence.size()) {
+            throw new InvalidSchemaException("Criterion " + code + " requires the same evidence kind more than once");
+        }
     }
 
     public Outcome outcomeOf(A answer) {

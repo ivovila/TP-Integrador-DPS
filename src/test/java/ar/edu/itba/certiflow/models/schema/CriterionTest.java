@@ -3,8 +3,10 @@ package ar.edu.itba.certiflow.models.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ar.edu.itba.certiflow.models.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.models.evaluation.Outcome;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
+import ar.edu.itba.certiflow.models.evaluation.StandardEvidenceKind;
 import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
@@ -71,6 +73,16 @@ class CriterionTest {
 
         assertThrows(InvalidSchemaException.class, () -> new SchemaVersion(1,
                 List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode))), Instant.EPOCH));
+    }
+
+    @Test
+    void criterionCannotRequireTheSameEvidenceKindTwice() {
+        List<EvidenceRequirement> repeatedRequirements = List.of(
+                new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1),
+                new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1));
+
+        assertThrows(InvalidSchemaException.class, () -> new Criterion<>("C-1", "Guard is in place",
+                new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, repeatedRequirements));
     }
 
     @Test
