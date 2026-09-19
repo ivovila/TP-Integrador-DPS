@@ -35,15 +35,31 @@ mvn clean test
 
 ## 2. Arquitectura y dirección de dependencias
 
+```mermaid
+flowchart TD
+    usecases --> application
+    usecases --> ports
+    usecases --> models
+    application --> ports
+    application --> models
+    ports --> models
+    details["details.inmemory"] --> ports
+    details --> models
 ```
-models  <──  ports  <──  application  <──  usecases
-   ▲           ▲
-   └───────────┴──────  details.inmemory
 
-tests: el fixture es la raíz de composición y es el único que conoce todos los paquetes
-```
+Cada flecha se lee "importa" y el gráfico muestra todas las dependencias directas. En los tests, el fixture
+es la raíz de composición y es el único que conoce todos los paquetes.
 
-Cada flecha se lee "es importado por". Además `application` y `usecases` importan `models` directamente.
+| Paquete | Importa |
+|---|---|
+| `usecases` | `application`, `ports`, `models` |
+| `application` | `ports`, `models` |
+| `ports` | `models` |
+| `models` | nada |
+| `details.inmemory` | `ports`, `models` |
+
+Nada importa hacia arriba, y ningún paquete del negocio importa `details`: los detalles implementan los
+puertos y el fixture los conecta.
 
 - **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditLog<S>`. No importa ningún otro paquete ni consulta relojes.
 - **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
@@ -71,14 +87,17 @@ enchufen detrás de una interfaz, igual que `CesarCipher` es negocio siendo una 
 en `models.evaluation`. Los detalles implementan interfaces que declara el negocio y nunca al revés. El fixture
 de tests cumple el rol del componente `Main`: crea los detalles y se los entrega a los casos de uso.
 
-Dependencias entre los paquetes de `models`, sin ciclos:
+Dependencias directas entre los paquetes de `models`, sin ciclos (cada línea se lee "importa"):
 
 ```
-shared      <──  audit, asset, evaluation
-asset, evaluation  <──  schema
-schema, audit      <──  inspection
-inspection         <──  finding
-inspection         <──  certificate
+shared       ->  (nada)
+audit        ->  shared
+asset        ->  shared
+evaluation   ->  shared
+schema       ->  shared, asset, evaluation
+inspection   ->  shared, asset, evaluation, schema, audit
+finding      ->  shared, asset, evaluation, schema, audit, inspection
+certificate  ->  shared, asset, audit, inspection
 ```
 
 `models` no importa ningún otro paquete, `ports` solo importa `models` y nadie importa `details`. Ambos
