@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.domain.finding;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
-import ar.edu.itba.certiflow.domain.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.inspection.AttachedEvidence;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -23,13 +23,13 @@ public interface Finding {
 
     boolean concerns(Asset asset);
 
-    Inspection inspection();
+    InspectionView inspection();
 
     Criterion<?> criterion();
 
     Severity severity();
 
-    List<Evidence> evidence();
+    List<AttachedEvidence> evidence();
 
     Person responsible();
 

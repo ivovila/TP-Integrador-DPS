@@ -3,9 +3,9 @@ package ar.edu.itba.certiflow.domain.finding;
 import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.audit.AuditAction;
 import ar.edu.itba.certiflow.domain.audit.AuditTrail;
-import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
-import ar.edu.itba.certiflow.domain.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.inspection.AttachedEvidence;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -59,7 +59,7 @@ final class AuditedFinding implements Finding {
     }
 
     @Override
-    public Inspection inspection() {
+    public InspectionView inspection() {
         return finding.inspection();
     }
 
@@ -74,7 +74,7 @@ final class AuditedFinding implements Finding {
     }
 
     @Override
-    public List<Evidence> evidence() {
+    public List<AttachedEvidence> evidence() {
         return finding.evidence();
     }
 

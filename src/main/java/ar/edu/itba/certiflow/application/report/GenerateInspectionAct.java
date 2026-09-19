@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.application.report;
 import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.audit.AuditService;
 import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
+import ar.edu.itba.certiflow.domain.inspection.GivenAnswer;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.domain.inspection.Observation;
@@ -28,8 +29,9 @@ public final class GenerateInspectionAct {
     }
 
     private ActLine lineOf(CriterionResponse<?> response) {
-        return new ActLine(response.criterion().code(), response.criterion().text(), response.answer().orElseThrow(),
-                response.evidence().size(), response.observations().stream().map(Observation::text).toList(),
-                response.outcome());
+        GivenAnswer<?> given = response.given().orElseThrow();
+        return new ActLine(response.criterion().code(), response.criterion().text(), given.value(), given.by(),
+                given.at(), response.attachments().size(),
+                response.observations().stream().map(Observation::text).toList(), response.outcome());
     }
 }

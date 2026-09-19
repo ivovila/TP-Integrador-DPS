@@ -1,13 +1,13 @@
 package ar.edu.itba.certiflow.domain.finding;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
 import ar.edu.itba.certiflow.domain.finding.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.domain.finding.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.domain.finding.exceptions.FindingRequiresNonConformityException;
+import ar.edu.itba.certiflow.domain.inspection.AttachedEvidence;
 import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.domain.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -17,17 +17,17 @@ import java.util.List;
 
 final class StandardFinding implements Finding {
 
-    private final Inspection inspection;
+    private final InspectionView inspection;
     private final Criterion<?> criterion;
-    private final List<Evidence> evidence;
+    private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
-    StandardFinding(Inspection inspection, CriterionResponse<?> nonConformity, Person responsible) {
+    StandardFinding(InspectionView inspection, CriterionResponse<?> nonConformity, Person responsible) {
         this.inspection = inspection;
         this.responsible = responsible;
         this.criterion = nonConformity.criterion();
-        this.evidence = nonConformity.evidence();
+        this.evidence = nonConformity.attachments();
         if (!nonConformity.outcome().raisesFinding()) {
             throw new FindingRequiresNonConformityException(criterion);
         }
@@ -37,7 +37,7 @@ final class StandardFinding implements Finding {
     public CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person by,
                                        Instant at) {
         ensureOpen();
-        CorrectiveAction action = new CorrectiveAction(description, actionResponsible, dueDate);
+        CorrectiveAction action = new CorrectiveAction(description, actionResponsible, dueDate, by, at);
         actions.add(action);
         return action;
     }
@@ -68,7 +68,7 @@ final class StandardFinding implements Finding {
     }
 
     @Override
-    public Inspection inspection() {
+    public InspectionView inspection() {
         return inspection;
     }
 
@@ -83,7 +83,7 @@ final class StandardFinding implements Finding {
     }
 
     @Override
-    public List<Evidence> evidence() {
+    public List<AttachedEvidence> evidence() {
         return evidence;
     }
 

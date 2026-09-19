@@ -103,4 +103,10 @@ class CorrectiveActionTest {
         assertEquals(FindingAudit.ACTION_PLANNED, app.auditService.entriesFor(finding).getLast().action());
         assertEquals(app.assetResponsible, app.auditService.entriesFor(finding).getLast().by());
     }
+
+    @Test
+    void actionRemembersWhoPlannedItAndWhen() {
+        assertEquals(app.assetResponsible, recharge.plannedBy());
+        assertEquals(app.clock.instant(), recharge.plannedAt());
+    }
 }

@@ -50,6 +50,7 @@ class EndToEndFlowTest {
                 act.lines().stream().map(ActLine::outcome).toList());
         ActLine pressureLine = act.lines().getFirst();
         assertEquals(app.numericAnswer("5.20"), pressureLine.answer());
+        assertEquals(app.inspector, pressureLine.answeredBy());
         assertEquals(1, pressureLine.evidenceCount());
         assertEquals(List.of("Needle sits below the green band"), pressureLine.observations());
         assertEquals(List.of(InspectionAudit.ASSIGNED, InspectionAudit.ANSWER_RECORDED,

@@ -13,12 +13,16 @@ public final class CorrectiveAction {
     private final String description;
     private final Person responsible;
     private final LocalDate dueDate;
+    private final Person plannedBy;
+    private final Instant plannedAt;
     private final List<Verification> verifications = new ArrayList<>();
 
-    CorrectiveAction(String description, Person responsible, LocalDate dueDate) {
+    CorrectiveAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt) {
         this.description = description;
         this.responsible = responsible;
         this.dueDate = dueDate;
+        this.plannedBy = plannedBy;
+        this.plannedAt = plannedAt;
         if (description.isBlank()) {
             throw new IllegalArgumentException("A corrective action must describe what will be done");
         }
@@ -54,6 +58,14 @@ public final class CorrectiveAction {
 
     public LocalDate dueDate() {
         return dueDate;
+    }
+
+    public Person plannedBy() {
+        return plannedBy;
+    }
+
+    public Instant plannedAt() {
+        return plannedAt;
     }
 
     public List<Verification> verifications() {

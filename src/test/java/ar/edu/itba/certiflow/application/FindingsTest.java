@@ -27,7 +27,9 @@ class FindingsTest {
         Finding lowPressure = findings.getFirst();
         assertEquals(app.pressure, lowPressure.criterion());
         assertEquals(StandardSeverity.MAJOR, lowPressure.severity());
-        assertEquals(List.of(app.gaugePhoto()), lowPressure.evidence());
+        assertEquals(1, lowPressure.evidence().size());
+        assertEquals(app.gaugePhoto(), lowPressure.evidence().getFirst().evidence());
+        assertEquals(app.inspector, lowPressure.evidence().getFirst().by());
         assertEquals(app.assetResponsible, lowPressure.responsible());
         assertTrue(lowPressure.blocksCertification());
 

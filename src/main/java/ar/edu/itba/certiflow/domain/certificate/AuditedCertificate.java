@@ -2,7 +2,7 @@ package ar.edu.itba.certiflow.domain.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.audit.AuditTrail;
-import ar.edu.itba.certiflow.domain.inspection.Inspection;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,7 +25,7 @@ final class AuditedCertificate implements Certificate {
     }
 
     @Override
-    public Certificate renew(CertificateNumber number, ValidityPeriod validity, Inspection basedOn, Person by,
+    public Certificate renew(CertificateNumber number, ValidityPeriod validity, InspectionView basedOn, Person by,
                              Instant at) {
         Certificate rawRenewal = certificate.renew(number, validity, basedOn, by, at);
         audit.record(this, CertificateAudit.RENEWED, by, at, "Renewed by " + number.value());
@@ -60,7 +60,7 @@ final class AuditedCertificate implements Certificate {
     }
 
     @Override
-    public Inspection basedOn() {
+    public InspectionView basedOn() {
         return certificate.basedOn();
     }
 

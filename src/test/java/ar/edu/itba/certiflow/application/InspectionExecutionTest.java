@@ -8,11 +8,15 @@ import ar.edu.itba.certiflow.domain.audit.AuditEntry;
 import ar.edu.itba.certiflow.domain.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.domain.evaluation.Outcome;
 import ar.edu.itba.certiflow.domain.evaluation.YesNoAnswer;
+import ar.edu.itba.certiflow.domain.inspection.AttachedEvidence;
+import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
+import ar.edu.itba.certiflow.domain.inspection.GivenAnswer;
 import ar.edu.itba.certiflow.domain.inspection.Inspection;
 import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.domain.inspection.InspectionAudit;
 import ar.edu.itba.certiflow.domain.inspection.exceptions.InspectionIncompleteException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -88,5 +92,25 @@ class InspectionExecutionTest {
         assertEquals(InspectionAudit.ASSIGNED, first.action());
         assertEquals(app.planner, first.by());
         assertEquals(app.clock.instant(), first.at());
+    }
+
+    @Test
+    void answersAndEvidenceRememberWhoGaveThemAndWhen() {
+        Inspection inspection = app.assignedInspection();
+        app.recordAnswer.execute(inspection, app.pressure, app.numericAnswer("7.00"), app.inspector);
+        app.clock.advanceDays(1);
+        app.attachEvidence.execute(inspection, app.pressure, app.gaugePhoto(), app.inspector);
+
+        CriterionResponse<?> response = inspection.evaluate().responses().stream()
+                .filter(candidate -> candidate.isFor(app.pressure))
+                .findFirst()
+                .orElseThrow();
+        GivenAnswer<?> given = response.given().orElseThrow();
+        AttachedEvidence attached = response.attachments().getFirst();
+
+        assertEquals(app.inspector, given.by());
+        assertEquals(app.clock.instant().minus(Duration.ofDays(1)), given.at());
+        assertEquals(app.inspector, attached.by());
+        assertEquals(app.clock.instant(), attached.at());
     }
 }

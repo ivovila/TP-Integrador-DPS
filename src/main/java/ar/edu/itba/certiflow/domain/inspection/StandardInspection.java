@@ -35,14 +35,14 @@ final class StandardInspection implements Inspection {
     @Override
     public <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person by, Instant at) {
         ensureOpen();
-        replaceAnswer(criterion, answer);
+        replaceAnswer(criterion, answer, by, at);
     }
 
     @Override
     public void attachEvidence(Criterion<?> criterion, Evidence evidence, Person by, Instant at) {
         ensureOpen();
         schemaVersion.ensureContains(criterion);
-        responses.put(criterion, responses.get(criterion).withEvidence(evidence));
+        responses.put(criterion, responses.get(criterion).withEvidence(evidence, by, at));
     }
 
     @Override
@@ -66,7 +66,7 @@ final class StandardInspection implements Inspection {
         if (reason.isBlank()) {
             throw new RectificationReasonRequiredException();
         }
-        replaceAnswer(criterion, answer);
+        replaceAnswer(criterion, answer, by, at);
         revisions.add(new Revision(revisions.size() + 1, reason, evaluate(), by, at));
     }
 
@@ -106,9 +106,9 @@ final class StandardInspection implements Inspection {
         return schemaVersion;
     }
 
-    private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer) {
+    private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer, Person by, Instant at) {
         schemaVersion.ensureContains(criterion);
-        responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer));
+        responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer, by, at));
     }
 
     private void ensureOpen() {
