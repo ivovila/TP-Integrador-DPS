@@ -6,7 +6,7 @@ import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 
-public interface Inspection extends InspectionRecord {
+public interface Inspection extends InspectionView {
 
     <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person by, Instant at);
 

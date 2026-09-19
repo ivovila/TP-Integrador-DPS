@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.schema.SchemaVersion;
 import java.util.List;
 
-public interface InspectionRecord {
+public interface InspectionView {
 
     Evaluation evaluate();
 

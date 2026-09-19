@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.domain.audit.AuditEntry;
 import ar.edu.itba.certiflow.domain.audit.AuditService;
 import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
-import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -59,7 +59,7 @@ final class AuditedFinding implements Finding {
     }
 
     @Override
-    public InspectionRecord inspection() {
+    public InspectionView inspection() {
         return finding.inspection();
     }
 

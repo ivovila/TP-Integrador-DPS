@@ -1,7 +1,7 @@
 package ar.edu.itba.certiflow.domain.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
-import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,7 +11,7 @@ public interface Certificate {
 
     void suspend(String reason, Person by, Instant at);
 
-    Certificate renew(CertificateNumber number, ValidityPeriod validity, InspectionRecord basedOn, Person by,
+    Certificate renew(CertificateNumber number, ValidityPeriod validity, InspectionView basedOn, Person by,
                       Instant at);
 
     CertificateStatus statusOn(LocalDate date);
@@ -24,7 +24,7 @@ public interface Certificate {
 
     Asset asset();
 
-    InspectionRecord basedOn();
+    InspectionView basedOn();
 
     ValidityPeriod validity();
 

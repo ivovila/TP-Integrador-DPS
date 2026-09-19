@@ -2,7 +2,7 @@ package ar.edu.itba.certiflow.domain.certificate;
 
 import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.inspection.InspectionNotClosedException;
-import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,14 +13,14 @@ final class StandardCertificate implements Certificate {
 
     private final CertificateNumber number;
     private final Asset asset;
-    private final InspectionRecord basedOn;
+    private final InspectionView basedOn;
     private final ValidityPeriod validity;
     private final Person issuedBy;
     private final Instant issuedAt;
     private final List<Suspension> suspensions = new ArrayList<>();
     private CertificateLifecycle lifecycle = CertificateLifecycle.ISSUED;
 
-    StandardCertificate(CertificateNumber number, Asset asset, InspectionRecord basedOn, ValidityPeriod validity,
+    StandardCertificate(CertificateNumber number, Asset asset, InspectionView basedOn, ValidityPeriod validity,
                         Person issuedBy, Instant issuedAt) {
         this.number = number;
         this.asset = asset;
@@ -46,7 +46,7 @@ final class StandardCertificate implements Certificate {
     }
 
     @Override
-    public Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionRecord newBasis,
+    public Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
                              Person by, Instant at) {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
@@ -82,7 +82,7 @@ final class StandardCertificate implements Certificate {
     }
 
     @Override
-    public InspectionRecord basedOn() {
+    public InspectionView basedOn() {
         return basedOn;
     }
 

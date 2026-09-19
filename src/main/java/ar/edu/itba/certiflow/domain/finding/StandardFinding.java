@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.domain.asset.Asset;
 import ar.edu.itba.certiflow.domain.evaluation.Evidence;
 import ar.edu.itba.certiflow.domain.evaluation.Severity;
 import ar.edu.itba.certiflow.domain.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
+import ar.edu.itba.certiflow.domain.inspection.InspectionView;
 import ar.edu.itba.certiflow.domain.schema.Criterion;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
@@ -14,13 +14,13 @@ import java.util.List;
 
 final class StandardFinding implements Finding {
 
-    private final InspectionRecord inspection;
+    private final InspectionView inspection;
     private final Criterion<?> criterion;
     private final List<Evidence> evidence;
     private final Person responsible;
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
-    StandardFinding(InspectionRecord inspection, CriterionResponse<?> nonConformity, Person responsible) {
+    StandardFinding(InspectionView inspection, CriterionResponse<?> nonConformity, Person responsible) {
         this.inspection = inspection;
         this.responsible = responsible;
         this.criterion = nonConformity.criterion();
@@ -65,7 +65,7 @@ final class StandardFinding implements Finding {
     }
 
     @Override
-    public InspectionRecord inspection() {
+    public InspectionView inspection() {
         return inspection;
     }
 
