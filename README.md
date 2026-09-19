@@ -18,9 +18,9 @@ pisa las clases de Maven y los tests fallan con "Unresolved compilation problem"
 
 ```
 src/main/java/ar/edu/itba/certiflow
-├── models            entidades, value objects, reglas y el puerto AuditService
+├── models            entidades, value objects, reglas y el puerto AuditLog
 │   ├── shared        Person, DomainException
-│   ├── audit         AuditService, AuditTrail, AuditEntry, AuditAction
+│   ├── audit         AuditLog, AuditEntry, AuditAction
 │   ├── asset         Asset, AssetCode, AssetType, Location
 │   ├── evaluation    respuestas, reglas de aprobación, severidad, evidencia
 │   ├── schema        InspectionSchema, SchemaVersion, Section, Criterion

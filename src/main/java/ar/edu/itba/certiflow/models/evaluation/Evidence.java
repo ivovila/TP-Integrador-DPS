@@ -11,4 +11,8 @@ public record Evidence(EvidenceKind kind, String reference, String description) 
     public boolean isOfKind(EvidenceKind expectedKind) {
         return kind.equals(expectedKind);
     }
+
+    public boolean isSameFileAs(Evidence other) {
+        return reference.equals(other.reference);
+    }
 }

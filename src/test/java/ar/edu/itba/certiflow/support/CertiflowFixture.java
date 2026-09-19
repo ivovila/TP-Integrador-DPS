@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.support;
 import ar.edu.itba.certiflow.application.certification.CertificationEligibility;
 import ar.edu.itba.certiflow.application.certification.NoBlockingFindingsEligibility;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryAssetRepository;
-import ar.edu.itba.certiflow.details.inmemory.InMemoryAuditService;
+import ar.edu.itba.certiflow.details.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryCertificateRepository;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryFindingRepository;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryInspectionRepository;
@@ -13,7 +13,9 @@ import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.asset.AssetType;
 import ar.edu.itba.certiflow.models.asset.Location;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.AuditedCertificateGenerator;
+import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.models.evaluation.NumericAnswer;
@@ -80,7 +82,9 @@ public final class CertiflowFixture {
             new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of());
 
     public final MutableClock clock = new MutableClock(Instant.parse("2026-03-10T09:00:00Z"));
-    public final InMemoryAuditService auditService = new InMemoryAuditService();
+    public final AuditLog<Inspection> inspectionLog = new InMemoryAuditLog<>();
+    public final AuditLog<Finding> findingLog = new InMemoryAuditLog<>();
+    public final AuditLog<Certificate> certificateLog = new InMemoryAuditLog<>();
     public final InMemoryAssetRepository assetRepository = new InMemoryAssetRepository();
     public final InMemoryInspectionSchemaRepository inspectionSchemaRepository = new InMemoryInspectionSchemaRepository();
     public final InMemoryInspectionRepository inspectionRepository = new InMemoryInspectionRepository();
@@ -91,23 +95,23 @@ public final class CertiflowFixture {
     public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, clock);
     public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, clock);
     public final AssignInspection assignInspection = new AssignInspection(inspectionSchemaRepository, inspectionRepository,
-            new AuditedInspectionGenerator(auditService), clock);
+            new AuditedInspectionGenerator(inspectionLog), clock);
     public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, clock);
     public final AttachEvidence attachEvidence = new AttachEvidence(inspectionRepository, clock);
     public final AddObservation addObservation = new AddObservation(inspectionRepository, clock);
     public final CloseInspection closeInspection = new CloseInspection(inspectionRepository, findingRepository,
-            new AuditedFindingGenerator(auditService), clock);
+            new AuditedFindingGenerator(findingLog), clock);
     public final RectifyInspection rectifyInspection = new RectifyInspection(inspectionRepository, clock);
     public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveAction(findingRepository, clock);
     public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveAction(findingRepository, clock);
-    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionAct(auditService);
+    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionAct(inspectionLog);
     public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(findingRepository, clock);
     public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(clock);
 
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility(findingRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
     public final IssueCertificate issueCertificate = new IssueCertificate(certificateRepository, certificationEligibility, certificateNumbering,
-            new AuditedCertificateGenerator(auditService), clock);
+            new AuditedCertificateGenerator(certificateLog), clock);
     public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, clock);
     public final RenewCertificate renewCertificate = new RenewCertificate(certificateRepository, certificationEligibility, certificateNumbering, clock);
 

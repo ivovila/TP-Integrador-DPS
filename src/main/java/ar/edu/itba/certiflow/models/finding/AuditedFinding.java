@@ -2,7 +2,8 @@ package ar.edu.itba.certiflow.models.finding;
 
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.audit.AuditAction;
-import ar.edu.itba.certiflow.models.audit.AuditTrail;
+import ar.edu.itba.certiflow.models.audit.AuditEntry;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
 import ar.edu.itba.certiflow.models.inspection.InspectionView;
@@ -20,11 +21,11 @@ final class AuditedFinding implements Finding {
             VerificationResult.REJECTED, FindingAudit.VERIFICATION_REJECTED);
 
     private final Finding finding;
-    private final AuditTrail auditTrail;
+    private final AuditLog<Finding> auditLog;
 
-    AuditedFinding(Finding finding, AuditTrail auditTrail) {
+    AuditedFinding(Finding finding, AuditLog<Finding> auditLog) {
         this.finding = finding;
-        this.auditTrail = auditTrail;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -89,6 +90,6 @@ final class AuditedFinding implements Finding {
     }
 
     private void record(AuditAction auditAction, Person performedBy, Instant occurredAt, String detail) {
-        auditTrail.record(this, auditAction, performedBy, occurredAt, detail);
+        auditLog.record(this, new AuditEntry(auditAction, performedBy, occurredAt, detail));
     }
 }

@@ -1,7 +1,8 @@
 package ar.edu.itba.certiflow.models.certificate;
 
 import ar.edu.itba.certiflow.models.asset.Asset;
-import ar.edu.itba.certiflow.models.audit.AuditTrail;
+import ar.edu.itba.certiflow.models.audit.AuditEntry;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.inspection.InspectionView;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -11,26 +12,26 @@ import java.util.List;
 final class AuditedCertificate implements Certificate {
 
     private final Certificate certificate;
-    private final AuditTrail auditTrail;
+    private final AuditLog<Certificate> auditLog;
 
-    AuditedCertificate(Certificate certificate, AuditTrail auditTrail) {
+    AuditedCertificate(Certificate certificate, AuditLog<Certificate> auditLog) {
         this.certificate = certificate;
-        this.auditTrail = auditTrail;
+        this.auditLog = auditLog;
     }
 
     @Override
     public void suspend(String reason, Person suspendedBy, Instant suspendedAt) {
         certificate.suspend(reason, suspendedBy, suspendedAt);
-        auditTrail.record(this, CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason);
+        auditLog.record(this, new AuditEntry(CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason));
     }
 
     @Override
     public Certificate renew(CertificateNumber renewalNumber, ValidityPeriod renewalValidity, InspectionView basedOn, Person renewedBy,
                              Instant renewedAt) {
         Certificate standardRenewal = certificate.renew(renewalNumber, renewalValidity, basedOn, renewedBy, renewedAt);
-        auditTrail.record(this, CertificateAudit.RENEWED, renewedBy, renewedAt, "Renewed by " + renewalNumber.value());
-        Certificate auditedRenewal = new AuditedCertificate(standardRenewal, auditTrail);
-        auditTrail.record(auditedRenewal, CertificateAudit.ISSUED, renewedBy, renewedAt, "Number " + renewalNumber.value());
+        auditLog.record(this, new AuditEntry(CertificateAudit.RENEWED, renewedBy, renewedAt, "Renewed by " + renewalNumber.value()));
+        Certificate auditedRenewal = new AuditedCertificate(standardRenewal, auditLog);
+        auditLog.record(auditedRenewal, new AuditEntry(CertificateAudit.ISSUED, renewedBy, renewedAt, "Number " + renewalNumber.value()));
         return auditedRenewal;
     }
 

@@ -22,28 +22,20 @@ package "models.shared" {
 }
 
 package "models.audit" {
-  interface AuditService <<puerto>> {
-    +record(AuditEntry)
-    +entriesFor(subject): List<AuditEntry>
-  }
-  class AuditTrail {
-    -auditService: AuditService
-    +record(subject, AuditAction, Person, Instant, detail)
+  interface "AuditLog<S>" as AuditLog <<puerto>> {
+    +record(S, AuditEntry)
+    +historyOf(S): List<AuditEntry>
   }
   class AuditEntry <<value object>> {
-    subject: Object
     action: AuditAction
     performedBy: Person
     occurredAt: Instant
     detail: String
-    +concerns(candidate): boolean
   }
   interface AuditAction <<enum extensible>> {
     +label(): String
   }
-  AuditTrail --> AuditService : entrega cada entrada
-  AuditTrail ..> AuditEntry : construye
-  AuditService ..> AuditEntry
+  AuditLog ..> AuditEntry
   AuditEntry --> AuditAction
 }
 
@@ -124,6 +116,7 @@ package "models.evaluation" {
     reference: String
     description: String
     +isOfKind(EvidenceKind): boolean
+    +isSameFileAs(Evidence): boolean
   }
   class EvidenceRequirement <<value object>> {
     kind: EvidenceKind
@@ -206,11 +199,11 @@ package "models.inspection" {
     -ensureClosed()
   }
   class AuditedInspection <<decorator, de paquete>> {
-    -auditTrail: AuditTrail
+    -auditLog: AuditLog<Inspection>
   }
   class AuditedInspectionGenerator {
-    -auditTrail: AuditTrail
-    +AuditedInspectionGenerator(AuditService)
+    -auditLog: AuditLog<Inspection>
+    +AuditedInspectionGenerator(AuditLog<Inspection>)
     +generate(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
   }
   class InspectionAssignment <<value object>> {
@@ -270,10 +263,10 @@ package "models.inspection" {
   Inspection <|.. StandardInspection
   Inspection <|.. AuditedInspection
   AuditedInspection o--> Inspection : decora
-  AuditedInspection --> AuditTrail
+  AuditedInspection --> AuditLog : registra en AuditLog<Inspection>
   AuditedInspectionGenerator ..> AuditedInspection : compone
   AuditedInspectionGenerator ..> StandardInspection : compone
-  AuditedInspectionGenerator --> AuditTrail : crea a partir del AuditService
+  AuditedInspectionGenerator --> AuditLog : registra el alta
   StandardInspection --> Asset
   StandardInspection --> InspectionAssignment
   StandardInspection --> SchemaVersion : fijada al asignar
@@ -307,11 +300,11 @@ package "models.finding" {
   }
   class StandardFinding <<de paquete>>
   class AuditedFinding <<decorator, de paquete>> {
-    -auditTrail: AuditTrail
+    -auditLog: AuditLog<Finding>
   }
   class AuditedFindingGenerator {
-    -auditTrail: AuditTrail
-    +AuditedFindingGenerator(AuditService)
+    -auditLog: AuditLog<Finding>
+    +AuditedFindingGenerator(AuditLog<Finding>)
     +generate(CriterionResponse<?>, InspectionView, Person, Instant): Finding
   }
   class CorrectiveAction <<entidad interna>> {
@@ -346,10 +339,10 @@ package "models.finding" {
   Finding <|.. StandardFinding
   Finding <|.. AuditedFinding
   AuditedFinding o--> Finding : decora
-  AuditedFinding --> AuditTrail
+  AuditedFinding --> AuditLog : registra en AuditLog<Finding>
   AuditedFindingGenerator ..> AuditedFinding : compone
   AuditedFindingGenerator ..> StandardFinding : compone
-  AuditedFindingGenerator --> AuditTrail : crea a partir del AuditService
+  AuditedFindingGenerator --> AuditLog : registra el alta
   StandardFinding --> InspectionView : solo lectura
   StandardFinding --> Criterion
   StandardFinding --> "*" AttachedEvidence
@@ -378,12 +371,12 @@ package "models.certificate" {
     -lifecycle: CertificateLifecycle
   }
   class AuditedCertificate <<decorator, de paquete>> {
-    -auditTrail: AuditTrail
+    -auditLog: AuditLog<Certificate>
     ..al renovar decora y audita el certificado nuevo..
   }
   class AuditedCertificateGenerator {
-    -auditTrail: AuditTrail
-    +AuditedCertificateGenerator(AuditService)
+    -auditLog: AuditLog<Certificate>
+    +AuditedCertificateGenerator(AuditLog<Certificate>)
     +generate(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
   }
   class CertificateNumber <<identificador de negocio>>
@@ -417,10 +410,10 @@ package "models.certificate" {
   Certificate <|.. StandardCertificate
   Certificate <|.. AuditedCertificate
   AuditedCertificate o--> Certificate : decora
-  AuditedCertificate --> AuditTrail
+  AuditedCertificate --> AuditLog : registra en AuditLog<Certificate>
   AuditedCertificateGenerator ..> AuditedCertificate : compone
   AuditedCertificateGenerator ..> StandardCertificate : compone
-  AuditedCertificateGenerator --> AuditTrail : crea a partir del AuditService
+  AuditedCertificateGenerator --> AuditLog : registra el alta
   StandardCertificate --> CertificateNumber
   StandardCertificate --> Asset
   StandardCertificate --> InspectionView : basedOn, solo lectura
@@ -495,7 +488,7 @@ UseCases ..> CertificateRepository
 UseCases ..> CertificateNumbering
 UseCases ..> CertificationEligibility
 UseCases ..> ReadModels : los informes los construyen
-UseCases ..> AuditService : el acta lee el historial
+UseCases ..> AuditLog : el acta lee AuditLog<Inspection>
 UseCases ..> AuditedInspectionGenerator
 UseCases ..> AuditedFindingGenerator
 UseCases ..> AuditedCertificateGenerator
@@ -506,14 +499,14 @@ package "details.inmemory" {
   class InMemoryInspectionRepository
   class InMemoryFindingRepository
   class InMemoryCertificateRepository
-  class InMemoryAuditService
+  class "InMemoryAuditLog<S>" as InMemoryAuditLog
   class SequentialCertificateNumbering
   AssetRepository <|.. InMemoryAssetRepository
   InspectionSchemaRepository <|.. InMemoryInspectionSchemaRepository
   InspectionRepository <|.. InMemoryInspectionRepository
   FindingRepository <|.. InMemoryFindingRepository
   CertificateRepository <|.. InMemoryCertificateRepository
-  AuditService <|.. InMemoryAuditService
+  AuditLog <|.. InMemoryAuditLog
   CertificateNumbering <|.. SequentialCertificateNumbering
 }
 @enduml

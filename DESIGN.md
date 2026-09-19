@@ -26,7 +26,7 @@ mvn clean test
 | S10 | Unicidad | Un activo tiene a lo sumo un certificado vigente. Un certificado suspendido dentro de su validez sigue ocupando ese lugar. | No se puede esquivar una suspensión emitiendo otro certificado; la salida es renovar. |
 | S11 | Renovación | Emite un certificado nuevo, basado en otra inspección cerrada y sujeto a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". | La historia no se borra. Menos transiciones que probar. |
 | S12 | Límites numéricos | `Range[minimum, maximum]` cerrado en ambos extremos; un mínimo mayor que el máximo es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
-| S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`. | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. |
+| S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`, a lo sumo un requisito por tipo. Cada evidencia exigida tiene que ser un archivo distinto: adjuntar dos veces la misma referencia al mismo criterio se rechaza (`DuplicateEvidenceException`). | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. "Dos fotos" no se cumple con la misma foto dos veces, y un criterio con dos requisitos del mismo tipo es un esquema inválido (`InvalidSchemaException`) en lugar de dos requisitos que se cumplen con una sola foto. El mismo archivo sí puede respaldar criterios distintos. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(name)`. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara personas sin conversiones entre tipos de rol. |
 | S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo) y `CertificateNumber`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
@@ -45,7 +45,7 @@ tests: el fixture es la raíz de composición y es el único que conoce todos lo
 
 Cada flecha se lee "es importado por". Además `application` y `usecases` importan `models` directamente.
 
-- **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditService`. No importa ningún otro paquete ni consulta relojes.
+- **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditLog<S>`. No importa ningún otro paquete ni consulta relojes.
 - **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
 - **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`). Son los únicos que leen `java.time.Clock`.
 - **`application`**: lo que acompaña a los casos de uso sin ser uno: la política de elegibilidad (`application.certification`), los modelos de lectura de los informes (`application.report`) y las excepciones de las reglas que cruzan agregados (`application.exceptions`).
@@ -57,7 +57,7 @@ ni framework. Dentro de `models` y de `usecases` se agrupa por concepto y no por
 `Standard...`, `Audited...` y su generador comparten visibilidad de paquete (ver D7) y separarlos obligaría a
 hacerlos públicos.
 
-**Por qué `AuditService` no está en `ports`.** Es un puerto, pero quienes lo usan son `AuditTrail` y los
+**Por qué `AuditLog` no está en `ports`.** Es un puerto, pero quienes lo usan son los decoradores y los
 generadores, que viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
 `models`: un ciclo. Se queda en `models.audit`, al lado del código que lo consume, que es donde la inversión
 de dependencias ubica la interfaz.
@@ -146,28 +146,30 @@ determinista y los tests usan un reloj controlable.
 ### D7. Auditoría con Decorator, separando hechos de dominio de bitácora
 
 - **Principios:** SRP, OCP, DIP; patrón Decorator.
-- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; `AuditTrail`; puerto `AuditService`; `InMemoryAuditService`.
+- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; puerto `AuditLog<S>`; `AuditEntry`; `InMemoryAuditLog<S>`.
 - **Por qué:**
   - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`, y desde D12 también el autor y la fecha de cada respuesta, evidencia adjunta y acción planificada. Una rectificación no puede ocurrir sin su revisión.
   - La **bitácora** cronológica de quién hizo qué es transversal y vive en los decoradores. `StandardInspection` no tiene una sola línea de auditoría.
   - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
-  - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige un `AuditService` por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación. El generador también registra la entrada de alta, de modo que ningún caso de uso escribe auditoría.
-  - `AuditService` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
-  - Decoradores y generadores no hablan con el puerto directamente sino con `AuditTrail`, que arma el `AuditEntry` y se lo entrega a `AuditService`. El generador recibe el `AuditService` por constructor y crea su `AuditTrail`. Así la construcción de una entrada está en un solo lugar y el puerto queda reducido a guardar y devolver entradas.
+  - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige el `AuditLog` de su tipo por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación. El generador también registra la entrada de alta, de modo que ningún caso de uso escribe auditoría.
+  - El `AuditLog` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
+  - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); historyOf(S) }` y cada agregado auditado tiene el suyo: `AuditLog<Inspection>`, `AuditLog<Finding>` y `AuditLog<Certificate>`. `AuditEntry` no sabe de qué objeto habla, porque el sujeto es la clave del historial. Así `historyOf(asset)` o `historyOf("texto")` no compilan, con la misma garantía que D1 da para las reglas, y cada cliente depende solo del historial que usa (ISP): `GenerateInspectionAct` recibe `AuditLog<Inspection>`. `InMemoryAuditLog<S>` es una sola clase genérica en `details`, y el fixture crea una instancia por tipo. Guarda por identidad (`IdentityHashMap`): el historial es de esa instancia, no de otra que resulte igual.
   - La renovación nace del certificado y no del generador. Por eso `AuditedCertificate.renew` decora el certificado nuevo y registra su emisión él mismo, sin guardar una referencia a su generador. El costo son dos líneas repetidas respecto de `AuditedCertificateGenerator.generate`; la alternativa era una dependencia del decorador hacia quien lo crea.
 - **Alternativas descartadas:**
   - *Auditoría dentro del agregado* (`audit.record(...)` en cada método): más barata, y defendible porque la auditoría es requisito de negocio, pero mezcla dos niveles de abstracción en cada operación.
   - *Decorar casos de uso:* exige una interfaz genérica común a los 17 casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce dos hechos distintos.
   - *Método estático de creación en la interfaz:* hacía que la abstracción conociera a sus implementaciones y obligaba a los casos de uso a transportar el servicio de auditoría.
   - *Herencia* (`AuditedInspection extends Inspection`): menos código, pero contradice composición sobre herencia y audita dos veces si un método público llama a otro.
+  - *Bitácora global con `AuditEntry(Object subject, ...)` y `entriesFor(Object)`:* era la versión anterior. Compilaba `entriesFor(asset)` y devolvía una lista vacía sin aviso, y el tipo no decía qué se podía auditar. Además, `AuditTrail` solo existía para armar la entrada con ese `Object`, y desapareció junto con él. Lo que se pierde es la vista cronológica única de todo el sistema, que ningún caso de uso ni informe consultaba: el enunciado pide el historial de cada objeto.
+  - *Interfaz marcadora `Auditable`* (vacía, implementada por `Inspection`, `Finding` y `Certificate`) en lugar de `Object`: resolvía el tipo, pero agregaba una interfaz sin métodos cuyo único propósito era tapar el `Object`. Con el sujeto como parámetro genérico del puerto no hace falta ninguna marca.
   - *Interfaces delante de los generadores* (`InspectionGenerator`, `FindingGenerator`, `CertificateGenerator`): se probaron y se retiraron. Tenían una sola implementación y ninguna variante a la vista, que es el anti-patrón que este diseño evita. Tampoco las pedía DIP: los generadores son negocio, viven en `domain`, y que un caso de uso dependa de una clase concreta del dominio ya respeta la dirección de dependencias. Lo único que aportaban era que los casos de uso dejaran de nombrar una clase llamada `Audited...`, y eso no justificaba tres tipos más. Si aparece una segunda forma de crear agregados, la interfaz se extrae en ese momento.
-- **Costo:** once clases más que la versión interna: tres interfaces, tres decoradores, tres generadores, `AuditTrail` e `InMemoryAuditService`. Reenvío manual de las consultas en cada decorador. `AuditEntry.subject` es de tipo `Object`.
-- **Nombres:** `AuditService`, `AuditTrail`, `...Generator` y `generate` fueron elegidos por el equipo.
+- **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres generadores e `InMemoryAuditLog`. Reenvío manual de las consultas en cada decorador. Tres historiales para armar en la raíz de composición en lugar de uno.
+- **Nombres:** `...Generator` y `generate` fueron elegidos por el equipo.
 
 ### D8. Política de condicionales
 
 - **Regla:** `if` solo como cláusula de guarda que lanza una excepción. Nunca `if`, `switch` ni `instanceof` para decidir por tipo o por estado.
-- **Verificación:** en `src/main` hay 40 `if` y los 40 preceden a un `throw`; cero `instanceof`, cero `switch`, cero `return null`, cero setters, cero métodos estáticos.
+- **Verificación:** en `src/main` hay 42 `if` y los 42 preceden a un `throw`; cero `instanceof`, cero `switch`, cero `return null`, cero setters, cero métodos estáticos.
 - **Qué reemplaza a los condicionales:** genéricos (D1), enums con comportamiento (`Severity`, `Outcome.raisesFinding`, `VerificationResult.closesAction`, `CertificateLifecycle.statusOn`), estado derivado (D5), `Optional.orElseThrow` e `ifPresent` en búsquedas, streams para selección, y una tabla `Map<VerificationResult, FindingAudit>`.
 - **Tres ternarios declarados**, los tres sobre un predicado de negocio y ninguno sobre un tipo o un estado: `Criterion.outcomeOf` (cumple → aprobado; si no, lo que diga la severidad), `CriterionResponse.outcomeOfAnswered` (con la evidencia exigida → resultado; si no, pendiente) y `CertificateLifecycle.ISSUED.statusOn` (dentro de la vigencia → activo; si no, vencido).
 - **`Optional`** se usa solo donde la ausencia es un resultado legítimo: `CriterionResponse.answer()` y las búsquedas de repositorio. No se usa como control de flujo.
@@ -175,7 +177,7 @@ determinista y los tests usan un reloj controlable.
 ### D9. Puertos segregados
 
 - **Principios:** ISP, DIP.
-- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditService {record, entriesFor}`. Los seis primeros viven en `ports`; `AuditService` vive en `models.audit` por el motivo explicado en la sección 2.
+- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, historyOf}`. Los seis primeros viven en `ports`; `AuditLog` vive en `models.audit` por el motivo explicado en la sección 2.
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
 ### D10. Elegibilidad para certificar como política intercambiable
@@ -188,7 +190,7 @@ determinista y los tests usan un reloj controlable.
 ### D11. Errores explícitos
 
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, entre otras).
-- Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador. La única excepción es `AuditTrail`, que exige su `AuditService`.
+- Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador.
 - Los textos vacíos sí se validan, porque un código de activo, un motivo o un alcance en blanco no significan nada para el negocio: `IllegalArgumentException` en los value objects, `InvalidSchemaException` en el esquema y `RectificationReasonRequiredException` al rectificar.
 - Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza, y las de reglas que cruzan agregados viven en `application.exceptions`.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
@@ -235,6 +237,8 @@ determinista y los tests usan un reloj controlable.
 | Las inspecciones nuevas no toman la última versión | `SchemaVersioningTest.inspectionsAssignedAfterPublishingUseTheNewVersion` |
 | Se cierra con criterios sin responder | `InspectionExecutionTest.inspectionCannotBeClosedWhileCriteriaRemainUnanswered` |
 | Se cierra sin la evidencia obligatoria | `InspectionExecutionTest.answeredCriterionStaysPendingUntilItsRequiredEvidenceIsAttached` |
+| La misma evidencia adjunta dos veces cuenta como dos | `InspectionExecutionTest.sameEvidenceCannotBeAttachedTwiceToTheSameCriterion` |
+| Dos requisitos del mismo tipo se cumplen con una sola evidencia | `CriterionTest.criterionCannotRequireTheSameEvidenceKindTwice` |
 | Corregir una respuesta no cambia la evaluación o no deja rastro | `InspectionExecutionTest.correctingAnAnswerBeforeClosingChangesTheEvaluationAndIsAudited` |
 | Una inspección cerrada acepta cambios directos | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
 | Una operación rechazada deja igual una entrada de auditoría | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
@@ -258,11 +262,12 @@ determinista y los tests usan un reloj controlable.
 | Límites del rango mal interpretados | `NumericRangeRuleTest.rangeLimitsAreInclusiveAndAnythingBeyondThemFails` |
 | Regla numérica mal configurada | `NumericRangeRuleTest.rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration`, `OptionInListRuleTest.ruleWithoutAcceptedOptionsIsAnInvalidConfiguration` |
 | Tipo de respuesta incorrecto para un criterio | No compila: `ApprovalRule<A>` y `recordAnswer(Criterion<A>, A, ...)`. Ver D1. |
+| Pedir el historial de algo que no es el agregado auditado | No compila: `AuditLog<Inspection>.historyOf(...)` solo acepta una inspección. Ver D7. |
 | Se pierde quién registró una respuesta, adjuntó una evidencia o planificó una acción | `InspectionExecutionTest.answersAndEvidenceRememberWhoGaveThemAndWhen`, `CorrectiveActionTest.actionRemembersWhoPlannedItAndWhen` |
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 70 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 72 tests.
 
 ---
 
@@ -271,7 +276,8 @@ Los tests de integración usan los repositorios en memoria reales, sin mocks, y 
 - **Concurrencia.** Los agregados no son seguros para uso concurrente y los repositorios en memoria tampoco. Dos cierres simultáneos de la misma inspección no están contemplados. `SequentialCertificateNumbering` es la única pieza con un contador atómico.
 - **Transacciones.** `CloseInspection` guarda la inspección y los hallazgos en dos llamadas; `RenewCertificate` guarda dos certificados. Con persistencia real hace falta una unidad de trabajo.
 - **Persistencia.** Las referencias por objeto entre agregados (D3) y la igualdad por identidad suponen un único proceso en memoria. `Criterion` se usa como clave de mapa gracias a la igualdad por valor de los records.
-- **Garantía de auditoría.** Está dada por la API (el generador exige un `AuditService`), no por la operación misma. Un `AuditService` que descarte entradas la anula.
+- **Garantía de auditoría.** Está dada por la API (el generador exige un `AuditLog`), no por la operación misma. Un `AuditLog` que descarte entradas la anula.
+- **Sin vista cronológica global.** Cada tipo de agregado tiene su propio historial (D7). Una consulta del estilo "todo lo que pasó el martes" exigiría recorrer los tres historiales o sumar un puerto de lectura global cuando algún caso de uso lo pida.
 - **Rectificación.** No revisa hallazgos ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).
 - **Navegación en modelos de lectura.** Los casos de uso de informes y los generadores leen dos niveles (`finding.criterion().code()`, `inspection.asset()` y luego `asset.responsible()`). Es una concesión a la Ley de Demeter aceptada en lectura, no en lógica de negocio.
