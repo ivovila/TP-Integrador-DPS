@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 
-public final class AuditedCertificateGenerator implements CertificateGenerator {
+public final class AuditedCertificateGenerator {
 
     private final AuditService auditService;
 
@@ -15,7 +15,6 @@ public final class AuditedCertificateGenerator implements CertificateGenerator {
         this.auditService = auditService;
     }
 
-    @Override
     public Certificate generate(CertificateNumber number, Asset asset, InspectionRecord basedOn,
                                 ValidityPeriod validity, Person by, Instant at) {
         return audited(new StandardCertificate(number, asset, basedOn, validity, by, at), by, at);

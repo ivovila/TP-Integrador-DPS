@@ -8,7 +8,7 @@ import ar.edu.itba.certiflow.domain.inspection.InspectionRecord;
 import ar.edu.itba.certiflow.domain.shared.Person;
 import java.time.Instant;
 
-public final class AuditedFindingGenerator implements FindingGenerator {
+public final class AuditedFindingGenerator {
 
     private final AuditService auditService;
 
@@ -16,7 +16,6 @@ public final class AuditedFindingGenerator implements FindingGenerator {
         this.auditService = auditService;
     }
 
-    @Override
     public Finding generate(CriterionResponse<?> nonConformity, InspectionRecord inspection, Person by, Instant at) {
         Asset asset = inspection.asset();
         Finding finding = new AuditedFinding(new StandardFinding(inspection, nonConformity, asset.responsible()),

@@ -140,6 +140,7 @@ determinista y los tests usan un reloj controlable.
   - *Decorar casos de uso:* exige una interfaz genérica común a los 17 casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce dos hechos distintos.
   - *Método estático de creación en la interfaz:* hacía que la abstracción conociera a sus implementaciones y obligaba a los casos de uso a transportar el servicio de auditoría.
   - *Herencia* (`AuditedInspection extends Inspection`): menos código, pero contradice composición sobre herencia y audita dos veces si un método público llama a otro.
+  - *Interfaces delante de los generadores* (`InspectionGenerator`, `FindingGenerator`, `CertificateGenerator`): se probaron y se retiraron. Tenían una sola implementación y ninguna variante a la vista, que es el anti-patrón que este diseño evita. Tampoco las pedía DIP: los generadores son negocio, viven en `domain`, y que un caso de uso dependa de una clase concreta del dominio ya respeta la dirección de dependencias. Lo único que aportaban era que los casos de uso dejaran de nombrar una clase llamada `Audited...`, y eso no justificaba tres tipos más. Si aparece una segunda forma de crear agregados, la interfaz se extrae en ese momento.
 - **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres generadores y `InMemoryAuditService`. Reenvío manual de las consultas en cada decorador. `AuditEntry.subject` es de tipo `Object`.
 - **Nombres:** `AuditService`, `...Generator` y `generate` fueron elegidos por el equipo.
 
@@ -157,7 +158,14 @@ determinista y los tests usan un reloj controlable.
 - **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditService {record, entriesFor}`.
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
-### D10. Errores explícitos
+### D10. Elegibilidad para certificar como política intercambiable
+
+- **Principio:** OCP; patrón Strategy.
+- **Dónde:** interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate` y `RenewCertificate`.
+- **Por qué:** a diferencia de los generadores, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
+- **Costo:** una interfaz con una sola implementación hoy. Se acepta porque el eje de variación es concreto y ya tiene un segundo candidato, que es el criterio que este documento exige para cada abstracción.
+
+### D11. Errores explícitos
 
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, entre otras).
 - Argumentos mal formados (nulos, textos vacíos): `NullPointerException` e `IllegalArgumentException`, que es la convención de Java para precondiciones.
@@ -175,7 +183,7 @@ determinista y los tests usan un reloj controlable.
 | **Builder** | Los records con constructores compactos validados alcanzan; el fixture de tests cubre la comodidad. | Construcciones con cinco o seis argumentos en algunos lugares. |
 | **Repositorio genérico `Repository<T, ID>`** | Viola ISP: ningún caso de uso necesita CRUD completo, y la mayoría de los agregados no tiene id. | Una interfaz por agregado. |
 | **Herencia para tipos de activo o de evidencia** | El tipo es un dato. | `AssetType` es un value object; `EvidenceKind` un enum extensible. |
-| **Interfaces con una sola implementación sin motivo** | `Inspection`, `Finding` y `Certificate` son interfaces porque el Decorator exige dos implementaciones. Los casos de uso, `Asset`, `InspectionSchema` y los generadores son clases concretas. | Ninguna `XxxImpl`. |
+| **Interfaces con una sola implementación sin motivo** | `Inspection`, `Finding` y `Certificate` son interfaces porque el Decorator exige dos implementaciones. `CertificationEligibility` tiene hoy una sola, pero con un eje de variación concreto (D10). Los casos de uso, `Asset`, `InspectionSchema` y los generadores son clases concretas; las interfaces de generadores se probaron y se retiraron (D7). | Ninguna `XxxImpl`. |
 | **Estados "planificada" y "en ejecución"** | El enunciado no los pide y cada estado suma transiciones que probar. | La inspección nace abierta; la acción correctiva nace planificada. |
 
 ---
