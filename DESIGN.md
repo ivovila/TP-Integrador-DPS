@@ -130,7 +130,7 @@ determinista y los tests usan un reloj controlable.
 - **Principios:** SRP, OCP, DIP; patrón Decorator.
 - **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; puerto `AuditService`; `InMemoryAuditService`.
 - **Por qué:**
-  - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`. Una rectificación no puede ocurrir sin su revisión.
+  - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`, y desde D12 también el autor y la fecha de cada respuesta, evidencia adjunta y acción planificada. Una rectificación no puede ocurrir sin su revisión.
   - La **bitácora** cronológica de quién hizo qué es transversal y vive en los decoradores. `StandardInspection` no tiene una sola línea de auditoría.
   - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
   - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige un `AuditService` por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación. El generador también registra la entrada de alta, de modo que ningún caso de uso escribe auditoría.
@@ -170,6 +170,23 @@ determinista y los tests usan un reloj controlable.
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, entre otras).
 - Argumentos mal formados (nulos, textos vacíos): `NullPointerException` e `IllegalArgumentException`, que es la convención de Java para precondiciones.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
+
+### D12. Quién y cuándo como hechos de dominio
+
+- **Principio:** coherencia del modelo; ningún parámetro existe solo para otro objeto.
+- **Dónde:** `GivenAnswer(value, by, at)`, `AttachedEvidence(evidence, by, at)`, `CorrectiveAction.plannedBy()` y `plannedAt()`; `CriterionResponse` guarda `given` y `attachments`.
+- **Por qué:** registrar una respuesta, adjuntar evidencia y planificar una acción recibían quién y cuándo, pero el núcleo los descartaba y solo el decorador los usaba para la bitácora. Observaciones, revisiones, verificaciones y suspensiones ya guardaban su autor y su fecha, así que era una inconsistencia. Ahora el dato vive en el agregado: corregir una respuesta produce un `GivenAnswer` nuevo, y el acta muestra quién respondió cada criterio sin consultar la auditoría.
+- **Una sola representación pública.** `CriterionResponse` expone únicamente `given()` y `attachments()`. La respuesta y la evidencia "peladas" que necesita la evaluación son métodos privados del record. `Finding` conserva la evidencia con su procedencia (`List<AttachedEvidence>`) y `ActLine` muestra autor y fecha de la respuesta.
+- **Alternativa descartada:** exponer además `answer()` y `evidence()` públicos. Evitaba tocar `Finding` y el acta, pero ofrecía dos formas de pedir lo mismo y dejaba el dato nuevo sin ningún consumidor en producción.
+- **Costo:** dos records más; autor y fecha quedan tanto en el dominio como en la bitácora, igual que ya ocurría con las revisiones.
+
+### D13. Vista de solo lectura de la inspección
+
+- **Principio:** ISP.
+- **Dónde:** `InspectionView` declara las consultas; `Inspection` la extiende y agrega los cinco comandos. `Finding.inspection()` y `Certificate.basedOn()` devuelven `InspectionView`.
+- **Por qué:** referenciar objetos en lugar de ids (D3) entrega el objeto entero. Antes compilaba `finding.inspection().rectify(...)`: tener un hallazgo o un certificado daba acceso de escritura a otro agregado. Ahora ven el mismo objeto a través de un tipo más angosto, que dice lo único que necesitan saber: si la inspección está cerrada y a qué activo corresponde.
+- **Alternativa descartada:** volver a ids entre agregados. Resolvía la fuga, pero deshacía D3.
+- **Costo:** una interfaz más. La protección es de compilación: un cast la saltearía, y los casts no se usan en este código. Los casos de uso de certificación y el acta siguen recibiendo `Inspection` aunque solo leen.
 
 ---
 
@@ -219,10 +236,11 @@ determinista y los tests usan un reloj controlable.
 | Límites del rango mal interpretados | `NumericRangeRuleTest.rangeLimitsAreInclusiveAndAnythingBeyondThemFails` |
 | Regla numérica mal configurada | `NumericRangeRuleTest.rangeWhoseMinimumExceedsItsMaximumIsAnInvalidConfiguration`, `OptionInListRuleTest.ruleWithoutAcceptedOptionsIsAnInvalidConfiguration` |
 | Tipo de respuesta incorrecto para un criterio | No compila: `ApprovalRule<A>` y `recordAnswer(Criterion<A>, A, ...)`. Ver D1. |
+| Se pierde quién registró una respuesta, adjuntó una evidencia o planificó una acción | `InspectionExecutionTest.answersAndEvidenceRememberWhoGaveThemAndWhen`, `CorrectiveActionTest.actionRemembersWhoPlannedItAndWhen` |
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 68 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 70 tests.
 
 ---
 
@@ -231,7 +249,6 @@ Los tests de integración usan los repositorios en memoria reales, sin mocks, y 
 - **Concurrencia.** Los agregados no son seguros para uso concurrente y los repositorios en memoria tampoco. Dos cierres simultáneos de la misma inspección no están contemplados. `SequentialCertificateNumbering` es la única pieza con un contador atómico.
 - **Transacciones.** `CloseInspection` guarda la inspección y los hallazgos en dos llamadas; `RenewCertificate` guarda dos certificados. Con persistencia real hace falta una unidad de trabajo.
 - **Persistencia.** Las referencias por objeto entre agregados (D3) y la igualdad por identidad suponen un único proceso en memoria. `Criterion` se usa como clave de mapa gracias a la igualdad por valor de los records.
-- **Parámetros `by` y `at` sin uso en el núcleo.** `recordAnswer`, `attachEvidence` y `planAction` los reciben porque la interfaz declara que todo cambio es atribuible y el decorador los necesita. `StandardInspection` y `StandardFinding` no los usan en esas tres operaciones.
 - **Garantía de auditoría.** Está dada por la API (el generador exige un `AuditService`), no por la operación misma. Un `AuditService` que descarte entradas la anula.
 - **Rectificación.** No revisa hallazgos ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).

@@ -14,6 +14,11 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
                                                   List<AttachedEvidence> attachments,
                                                   List<Observation> observations) {
 
+    public CriterionResponse {
+        attachments = List.copyOf(attachments);
+        observations = List.copyOf(observations);
+    }
+
     public CriterionResponse(Criterion<A> criterion) {
         this(criterion, Optional.empty(), List.of(), List.of());
     }
@@ -35,11 +40,11 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
                 Stream.concat(observations.stream(), Stream.of(added)).toList());
     }
 
-    public Optional<A> answer() {
+    private Optional<A> answer() {
         return given.map(GivenAnswer::value);
     }
 
-    public List<Evidence> evidence() {
+    private List<Evidence> evidence() {
         return attachments.stream().map(AttachedEvidence::evidence).toList();
     }
 
