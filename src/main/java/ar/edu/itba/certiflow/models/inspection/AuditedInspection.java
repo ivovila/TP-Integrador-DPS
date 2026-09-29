@@ -59,6 +59,11 @@ final class AuditedInspection implements Inspection {
     }
 
     @Override
+    public boolean coversWholeSchema() {
+        return inspection.coversWholeSchema();
+    }
+
+    @Override
     public boolean isClosed() {
         return inspection.isClosed();
     }

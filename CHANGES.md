@@ -90,3 +90,24 @@ pasado; se podía suspender un certificado vencido; se podía renovar con la mis
   `CorrectiveActionTest.namesakeOfTheResponsibleCanVerifyButTheResponsibleUnderAnotherSpellingCannot`, y
   `RequiredValueTest` valida también el id vacío.
 - `DESIGN.md`: S14, S15, D3 y tabla de tests.
+
+## 6. Primitive obsession: alcance de la inspección y características del activo
+
+**Corrección:** `InspectionAssignment.scope` era un `String` que no restringía qué secciones se inspeccionan, y
+`Asset.characteristics` era un `Map<String,String>`.
+
+**Decisión:** el alcance elige secciones del esquema; solo una inspección de alcance completo puede certificar.
+
+**Cambios:**
+- Interfaz `InspectionScope.criteriaIn(SchemaVersion)` con dos implementaciones: `FullScope` y
+  `SectionsScope(Set<String> sectionTitles)`. `SchemaVersion.section(title)` lanza `SectionNotInSchemaException`
+  si la sección no existe, por lo que un alcance inválido falla al asignar.
+- `StandardInspection` crea respuestas solo para los criterios del alcance. Responder, adjuntar evidencia u
+  observar fuera del alcance lanza `CriterionOutOfScopeException`; cerrar solo exige lo que está dentro.
+- `InspectionView.coversWholeSchema()`; la elegibilidad lanza `PartialInspectionCannotCertifyException` si la
+  inspección no cubre todo el esquema (aplica a emitir y renovar).
+- `Characteristic(name, value)` y `Characteristics(List<Characteristic>)` con nombres únicos
+  (`DuplicateCharacteristicException`, nuevo paquete `models.asset.exceptions`) y `valueOf(name)`.
+- Fixture: el esquema pasa a tener dos secciones (`Pressure and seal`, `Signage`) para probar alcances parciales.
+- Tests: `InspectionScopeTest`, `CharacteristicsTest`.
+- `DESIGN.md`: S17, S18 y tabla de tests. `docs/certiflow-domain.puml`: `Characteristics` e `InspectionScope`.

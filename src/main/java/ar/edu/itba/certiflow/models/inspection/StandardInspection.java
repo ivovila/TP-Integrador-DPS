@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.models.inspection;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.evaluation.Answer;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
+import ar.edu.itba.certiflow.models.inspection.exceptions.CriterionOutOfScopeException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.RectificationReasonRequiredException;
@@ -29,7 +30,7 @@ final class StandardInspection implements Inspection {
         this.asset = asset;
         this.assignment = assignment;
         this.schemaVersion = schemaVersion;
-        schemaVersion.criteria().forEach(criterion -> responses.put(criterion, new CriterionResponse<>(criterion)));
+        assignment.scope().criteriaIn(schemaVersion).forEach(criterion -> responses.put(criterion, new CriterionResponse<>(criterion)));
     }
 
     @Override
@@ -41,14 +42,14 @@ final class StandardInspection implements Inspection {
     @Override
     public void attachEvidence(Criterion<?> criterion, Evidence evidence, Person attachedBy, Instant attachedAt) {
         ensureOpen();
-        schemaVersion.ensureContains(criterion);
+        ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withEvidence(evidence, attachedBy, attachedAt));
     }
 
     @Override
     public void addObservation(Criterion<?> criterion, String observationText, Person observedBy, Instant observedAt) {
         ensureOpen();
-        schemaVersion.ensureContains(criterion);
+        ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withObservation(new Observation(observationText, observedBy, observedAt)));
     }
 
@@ -74,6 +75,11 @@ final class StandardInspection implements Inspection {
     @Override
     public Evaluation evaluate() {
         return new Evaluation(List.copyOf(responses.values()));
+    }
+
+    @Override
+    public boolean coversWholeSchema() {
+        return responses.size() == schemaVersion.criteria().size();
     }
 
     @Override
@@ -108,8 +114,15 @@ final class StandardInspection implements Inspection {
     }
 
     private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
-        schemaVersion.ensureContains(criterion);
+        ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer, answeredBy, answeredAt));
+    }
+
+    private void ensureInScope(Criterion<?> criterion) {
+        schemaVersion.ensureContains(criterion);
+        if (!responses.containsKey(criterion)) {
+            throw new CriterionOutOfScopeException(criterion);
+        }
     }
 
     private void ensureOpen() {

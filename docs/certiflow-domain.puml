@@ -46,8 +46,18 @@ package "models.asset" {
     type: AssetType
     location: Location
     responsible: Person
-    characteristics: Map<String,String>
+    characteristics: Characteristics
   }
+  class Characteristics <<value object>> {
+    entries: List<Characteristic>
+    +valueOf(String): Optional<String>
+  }
+  class Characteristic <<value object>> {
+    name: String
+    value: String
+  }
+  Asset --> Characteristics
+  Characteristics *-- Characteristic
   class AssetCode <<identificador de negocio>>
   class AssetType <<value object>>
   class Location <<value object>>
@@ -209,8 +219,18 @@ package "models.inspection" {
   class InspectionAssignment <<value object>> {
     inspector: Person
     plannedDate: LocalDate
-    scope: String
+    scope: InspectionScope
   }
+  interface InspectionScope {
+    +criteriaIn(SchemaVersion): List<Criterion<?>>
+  }
+  class FullScope <<value object>>
+  class SectionsScope <<value object>> {
+    sectionTitles: Set<String>
+  }
+  InspectionScope <|.. FullScope
+  InspectionScope <|.. SectionsScope
+  InspectionAssignment --> InspectionScope
   class "CriterionResponse<A extends Answer>" as CriterionResponse <<value object inmutable>> {
     criterion: Criterion<A>
     given: Optional<GivenAnswer<A>>

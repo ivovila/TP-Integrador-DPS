@@ -8,6 +8,8 @@ public interface InspectionView {
 
     Evaluation evaluate();
 
+    boolean coversWholeSchema();
+
     boolean isClosed();
 
     Revision originalRevision();

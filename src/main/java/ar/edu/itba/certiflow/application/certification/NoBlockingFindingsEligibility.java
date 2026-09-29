@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.application.exceptions.UnaddressedNonConformitiesPr
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
+import ar.edu.itba.certiflow.models.inspection.exceptions.PartialInspectionCannotCertifyException;
 import ar.edu.itba.certiflow.ports.FindingRepository;
 import java.util.List;
 
@@ -20,6 +21,9 @@ public final class NoBlockingFindingsEligibility implements CertificationEligibi
     public void ensureEligible(Inspection inspection) {
         if (!inspection.isClosed()) {
             throw new InspectionNotClosedException();
+        }
+        if (!inspection.coversWholeSchema()) {
+            throw new PartialInspectionCannotCertifyException();
         }
         List<Finding> assetFindings = findingRepository.findByAsset(inspection.asset());
         List<String> unaddressedNonConformities = inspection.evaluate().nonConformities().stream()

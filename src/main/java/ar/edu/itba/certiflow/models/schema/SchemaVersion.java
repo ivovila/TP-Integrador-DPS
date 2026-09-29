@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.models.schema;
 
 import ar.edu.itba.certiflow.models.schema.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.models.schema.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.models.schema.exceptions.SectionNotInSchemaException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +25,13 @@ public record SchemaVersion(int number, List<Section> sections, Instant publishe
 
     public List<Criterion<?>> criteria() {
         return sections.stream().flatMap(section -> section.criteria().stream()).toList();
+    }
+
+    public Section section(String title) {
+        return sections.stream()
+                .filter(section -> section.title().equals(title))
+                .findFirst()
+                .orElseThrow(() -> new SectionNotInSchemaException(title));
     }
 
     public void ensureContains(Criterion<?> criterion) {

@@ -12,6 +12,8 @@ import ar.edu.itba.certiflow.details.inmemory.SequentialCertificateNumbering;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.asset.AssetType;
+import ar.edu.itba.certiflow.models.asset.Characteristic;
+import ar.edu.itba.certiflow.models.asset.Characteristics;
 import ar.edu.itba.certiflow.models.asset.Location;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.AuditedCertificateGenerator;
@@ -31,8 +33,10 @@ import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.models.finding.AuditedFindingGenerator;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.inspection.AuditedInspectionGenerator;
+import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
+import ar.edu.itba.certiflow.models.inspection.InspectionScope;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.shared.Person;
@@ -58,7 +62,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public final class CertiflowFixture {
@@ -66,6 +69,8 @@ public final class CertiflowFixture {
     public static final Unit BAR = new Unit("bar");
     public static final AssetType EXTINGUISHER = new AssetType("Fire extinguisher");
     public static final LocalDate TODAY = LocalDate.of(2026, 3, 10);
+    public static final String PRESSURE_AND_SEAL = "Pressure and seal";
+    public static final String SIGNAGE = "Signage";
 
     public final Person planner = new Person(new PersonId("EMP-001"), "Paula Planner");
     public final Person inspector = new Person(new PersonId("EMP-002"), "Ines Inspector");
@@ -118,20 +123,23 @@ public final class CertiflowFixture {
 
     public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
-            Map.of("capacity", "10 kg", "agent", "ABC powder")));
+            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder")))));
 
     public CertiflowFixture() {
         createInspectionSchema.execute("Portable extinguisher inspection", EXTINGUISHER, firstVersionSections());
     }
 
     public List<Section> firstVersionSections() {
-        return List.of(new Section("General condition", List.of(pressureCriterion, sealIntactCriterion, signageCriterion)));
+        return List.of(new Section(PRESSURE_AND_SEAL, List.of(pressureCriterion, sealIntactCriterion)),
+                new Section(SIGNAGE, List.of(signageCriterion)));
     }
 
     public Inspection assignedInspection() {
-        return assignInspection.execute(extinguisher,
-                new InspectionAssignment(inspector, TODAY.plusDays(3), "Annual inspection of the lobby extinguisher"),
-                planner);
+        return assignedInspection(new FullScope());
+    }
+
+    public Inspection assignedInspection(InspectionScope scope) {
+        return assignInspection.execute(extinguisher, new InspectionAssignment(inspector, TODAY.plusDays(3), scope), planner);
     }
 
     public NumericAnswer numericAnswer(String decimalValue) {
