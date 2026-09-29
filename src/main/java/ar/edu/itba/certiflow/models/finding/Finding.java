@@ -13,7 +13,8 @@ import java.util.List;
 
 public interface Finding {
 
-    CorrectiveAction planAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt);
+    CorrectiveAction planAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt,
+                                LocalDate plannedOn);
 
     Verification verifyAction(CorrectiveAction correctiveAction, Person verifier, VerificationResult verificationResult, String verificationNotes,
                               Instant verifiedAt);

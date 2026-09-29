@@ -27,6 +27,7 @@ public final class RenewCertificate {
 
     public Certificate execute(Certificate currentCertificate, Inspection inspection, LocalDate validUntil, Person renewedBy) {
         certificationEligibility.ensureEligible(inspection);
+        currentCertificate.ensureRenewableWith(inspection);
         Certificate renewedCertificate = currentCertificate.renew(certificateNumbering.next(), new ValidityPeriod(LocalDate.now(clock), validUntil),
                 inspection, renewedBy, clock.instant());
         certificateRepository.save(currentCertificate);

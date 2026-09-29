@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.models.finding;
 
 import ar.edu.itba.certiflow.models.finding.exceptions.CorrectiveActionAlreadyClosedException;
+import ar.edu.itba.certiflow.models.finding.exceptions.DueDateInThePastException;
 import ar.edu.itba.certiflow.models.finding.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -19,7 +20,8 @@ public final class CorrectiveAction {
     private final List<Verification> verifications = new ArrayList<>();
     private Cancellation cancellation;
 
-    CorrectiveAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt) {
+    CorrectiveAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt,
+                     LocalDate plannedOn) {
         this.description = description;
         this.responsible = responsible;
         this.dueDate = dueDate;
@@ -27,6 +29,9 @@ public final class CorrectiveAction {
         this.plannedAt = plannedAt;
         if (description.isBlank()) {
             throw new IllegalArgumentException("A corrective action must describe what will be done");
+        }
+        if (dueDate.isBefore(plannedOn)) {
+            throw new DueDateInThePastException(dueDate, plannedOn);
         }
     }
 

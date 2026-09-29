@@ -20,9 +20,14 @@ final class AuditedCertificate implements Certificate {
     }
 
     @Override
-    public void suspend(String reason, Person suspendedBy, Instant suspendedAt) {
-        certificate.suspend(reason, suspendedBy, suspendedAt);
+    public void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
+        certificate.suspend(reason, suspendedBy, suspendedAt, suspendedOn);
         auditLog.record(this, new AuditEntry(CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason));
+    }
+
+    @Override
+    public void ensureRenewableWith(InspectionView newBasis) {
+        certificate.ensureRenewableWith(newBasis);
     }
 
     @Override

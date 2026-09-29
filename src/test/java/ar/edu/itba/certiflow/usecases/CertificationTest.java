@@ -13,6 +13,7 @@ import ar.edu.itba.certiflow.models.certificate.CertificateAudit;
 import ar.edu.itba.certiflow.models.certificate.CertificateStatus;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotActiveException;
+import ar.edu.itba.certiflow.models.certificate.exceptions.RenewalRequiresLaterInspectionException;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.models.finding.Finding;
@@ -175,6 +176,46 @@ class CertificationTest {
         assertEquals(CertificateAudit.ISSUED, fixture.certificateLog.historyOf(renewedCertificate).getFirst().action());
         assertThrows(CertificateAlreadyRenewedException.class, () -> fixture.renewCertificate.execute(originalCertificate,
                 reinspection, VALID_UNTIL.plusYears(2), fixture.certifier));
+    }
+
+    @Test
+    void expiredCertificateCannotBeSuspended() {
+        Certificate certificate = fixture.issueCertificate.execute(fixture.closedCompliantInspection(), VALID_UNTIL,
+                fixture.certifier);
+        fixture.clock.moveTo(VALID_UNTIL.plusDays(1));
+
+        assertThrows(CertificateNotActiveException.class,
+                () -> fixture.suspendCertificate.execute(certificate, "Discharged", fixture.certifier));
+        assertTrue(certificate.suspensions().isEmpty());
+        assertEquals(CertificateStatus.EXPIRED, certificate.statusOn(LocalDate.now(fixture.clock)));
+    }
+
+    @Test
+    void renewalRequiresAnInspectionClosedAfterTheOneBehindTheCurrentCertificate() {
+        Inspection earlierInspection = fixture.closedCompliantInspection();
+        fixture.clock.advanceDays(1);
+        Inspection certifiedInspection = fixture.closedCompliantInspection();
+        Certificate certificate = fixture.issueCertificate.execute(certifiedInspection, VALID_UNTIL, fixture.certifier);
+
+        assertThrows(RenewalRequiresLaterInspectionException.class, () -> fixture.renewCertificate.execute(certificate,
+                certifiedInspection, VALID_UNTIL.plusYears(1), fixture.certifier));
+        assertThrows(RenewalRequiresLaterInspectionException.class, () -> fixture.renewCertificate.execute(certificate,
+                earlierInspection, VALID_UNTIL.plusYears(1), fixture.certifier));
+        assertEquals(CertificateStatus.ACTIVE, certificate.statusOn(LocalDate.now(fixture.clock)));
+    }
+
+    @Test
+    void failedRenewalDoesNotConsumeACertificateNumber() {
+        Inspection inspection = fixture.closedCompliantInspection();
+        Certificate certificate = fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier);
+        assertThrows(RenewalRequiresLaterInspectionException.class, () -> fixture.renewCertificate.execute(certificate,
+                inspection, VALID_UNTIL.plusYears(1), fixture.certifier));
+        fixture.clock.advanceDays(1);
+
+        Certificate renewedCertificate = fixture.renewCertificate.execute(certificate, fixture.closedCompliantInspection(),
+                VALID_UNTIL.plusYears(1), fixture.certifier);
+
+        assertEquals("CERT-00002", renewedCertificate.number().value());
     }
 
     @Test

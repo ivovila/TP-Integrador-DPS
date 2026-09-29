@@ -19,7 +19,8 @@ public final class PlanCorrectiveAction {
 
     public CorrectiveAction execute(Finding finding, String description, Person responsible, LocalDate dueDate,
                                     Person plannedBy) {
-        CorrectiveAction plannedAction = finding.planAction(description, responsible, dueDate, plannedBy, clock.instant());
+        CorrectiveAction plannedAction = finding.planAction(description, responsible, dueDate, plannedBy, clock.instant(),
+                LocalDate.now(clock));
         findingRepository.save(finding);
         return plannedAction;
     }

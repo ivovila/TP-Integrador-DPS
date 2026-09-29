@@ -40,3 +40,25 @@ cierra el hallazgo, las demás ya no se pueden verificar y siguen contando como 
 - Tests: `CorrectiveActionTest.acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue`,
   `rejectedVerificationCancelsNothing`.
 - `DESIGN.md`: S8 y tabla de tests.
+
+## 3. Reglas que el modelo no protegía
+
+**Corrección:** una verificación `REJECTED` sin notas era válida; se podía planificar una acción con `dueDate` en el
+pasado; se podía suspender un certificado vencido; se podía renovar con la misma inspección o con una anterior
+(7.3); y si `renew` fallaba, el número que dio `next()` ya se había consumido.
+
+**Cambios:**
+- `VerificationResult.requiresNotes()` (`REJECTED` lo exige). `Verification` valida en su constructor y lanza
+  `VerificationNotesRequiredException`.
+- `Finding.planAction` y `CorrectiveAction` reciben `plannedOn` (lo calcula `PlanCorrectiveAction` con el `Clock`).
+  Un `dueDate` anterior lanza `DueDateInThePastException`; vencer el mismo día se permite.
+- `Certificate.suspend` recibe `suspendedOn` y solo suspende si `statusOn(suspendedOn)` es `ACTIVE`; reemplaza al
+  chequeo sobre `lifecycle`, que dejaba pasar los vencidos.
+- Nuevo `Certificate.ensureRenewableWith(newBasis)`: rechaza un certificado ya renovado y exige que la inspección
+  nueva se haya cerrado después que la del certificado actual (`RenewalRequiresLaterInspectionException`).
+  `renew` lo invoca, y `RenewCertificate` lo llama antes de `certificateNumbering.next()`.
+- Tests: `CorrectiveActionTest.rejectedVerificationMustExplainWhyAndIsNotRecordedOtherwise`,
+  `actionCanBeDueTodayButNotBeforeItIsPlanned`; `CertificationTest.expiredCertificateCannotBeSuspended`,
+  `renewalRequiresAnInspectionClosedAfterTheOneBehindTheCurrentCertificate`,
+  `failedRenewalDoesNotConsumeACertificateNumber`.
+- `DESIGN.md`: S8, S10, S11 y tabla de tests.

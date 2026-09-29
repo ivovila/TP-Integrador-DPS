@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.CertificateRepository;
 import java.time.Clock;
+import java.time.LocalDate;
 
 public final class SuspendCertificate {
 
@@ -16,7 +17,7 @@ public final class SuspendCertificate {
     }
 
     public void execute(Certificate certificate, String reason, Person suspendedBy) {
-        certificate.suspend(reason, suspendedBy, clock.instant());
+        certificate.suspend(reason, suspendedBy, clock.instant(), LocalDate.now(clock));
         certificateRepository.save(certificate);
     }
 }

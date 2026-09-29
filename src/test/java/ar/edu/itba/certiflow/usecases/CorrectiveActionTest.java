@@ -10,7 +10,9 @@ import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingAudit;
 import ar.edu.itba.certiflow.models.finding.VerificationResult;
 import ar.edu.itba.certiflow.models.finding.exceptions.CorrectiveActionNotInFindingException;
+import ar.edu.itba.certiflow.models.finding.exceptions.DueDateInThePastException;
 import ar.edu.itba.certiflow.models.finding.exceptions.FindingAlreadyClosedException;
+import ar.edu.itba.certiflow.models.finding.exceptions.VerificationNotesRequiredException;
 import ar.edu.itba.certiflow.models.finding.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.time.LocalDate;
@@ -100,6 +102,25 @@ class CorrectiveActionTest {
 
         assertFalse(replaceAction.isCancelled());
         assertFalse(rechargeAction.isCancelled());
+    }
+
+    @Test
+    void rejectedVerificationMustExplainWhyAndIsNotRecordedOtherwise() {
+        assertThrows(VerificationNotesRequiredException.class, () -> fixture.verifyCorrectiveAction.execute(finding, rechargeAction,
+                fixture.verifier, VerificationResult.REJECTED, "  "));
+
+        assertTrue(rechargeAction.verifications().isEmpty());
+    }
+
+    @Test
+    void actionCanBeDueTodayButNotBeforeItIsPlanned() {
+        CorrectiveAction dueToday = fixture.planCorrectiveAction.execute(finding, "Tag the unit as out of service",
+                fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible);
+
+        assertEquals(CertiflowFixture.TODAY, dueToday.dueDate());
+        assertThrows(DueDateInThePastException.class, () -> fixture.planCorrectiveAction.execute(finding, "Replace the unit",
+                fixture.maintenanceTechnician, CertiflowFixture.TODAY.minusDays(1), fixture.assetResponsible));
+        assertEquals(2, finding.actions().size());
     }
 
     @Test

@@ -6,6 +6,6 @@ import ar.edu.itba.certiflow.models.shared.DomainException;
 public class CertificateNotActiveException extends DomainException {
 
     public CertificateNotActiveException(CertificateNumber number) {
-        super("Certificate " + number.value() + " was already suspended or renewed, so it cannot be suspended");
+        super("Certificate " + number.value() + " is not active, so it cannot be suspended");
     }
 }

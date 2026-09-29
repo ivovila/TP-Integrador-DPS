@@ -9,7 +9,9 @@ import java.util.List;
 
 public interface Certificate {
 
-    void suspend(String reason, Person suspendedBy, Instant suspendedAt);
+    void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn);
+
+    void ensureRenewableWith(InspectionView newBasis);
 
     Certificate renew(CertificateNumber renewalNumber, ValidityPeriod renewalValidity, InspectionView basedOn, Person renewedBy,
                       Instant renewedAt);

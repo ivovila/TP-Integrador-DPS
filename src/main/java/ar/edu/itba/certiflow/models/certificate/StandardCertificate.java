@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotActiveException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.InspectionOfAnotherAssetException;
+import ar.edu.itba.certiflow.models.certificate.exceptions.RenewalRequiresLaterInspectionException;
 import ar.edu.itba.certiflow.models.inspection.InspectionView;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.models.shared.Person;
@@ -40,8 +41,8 @@ final class StandardCertificate implements Certificate {
     }
 
     @Override
-    public void suspend(String reason, Person suspendedBy, Instant suspendedAt) {
-        if (lifecycle != CertificateLifecycle.ISSUED) {
+    public void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
+        if (statusOn(suspendedOn) != CertificateStatus.ACTIVE) {
             throw new CertificateNotActiveException(number);
         }
         suspensions.add(new Suspension(reason, suspendedBy, suspendedAt));
@@ -49,11 +50,19 @@ final class StandardCertificate implements Certificate {
     }
 
     @Override
-    public Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
-                             Person renewedBy, Instant renewedAt) {
+    public void ensureRenewableWith(InspectionView newBasis) {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
         }
+        if (!newBasis.originalRevision().sealedAt().isAfter(basedOn.originalRevision().sealedAt())) {
+            throw new RenewalRequiresLaterInspectionException(number);
+        }
+    }
+
+    @Override
+    public Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
+                             Person renewedBy, Instant renewedAt) {
+        ensureRenewableWith(newBasis);
         Certificate renewedCertificate = new StandardCertificate(newNumber, asset, newBasis, newValidity, renewedBy, renewedAt);
         lifecycle = CertificateLifecycle.RENEWED;
         return renewedCertificate;

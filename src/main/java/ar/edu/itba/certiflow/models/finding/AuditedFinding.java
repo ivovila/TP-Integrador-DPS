@@ -31,8 +31,8 @@ final class AuditedFinding implements Finding {
 
     @Override
     public CorrectiveAction planAction(String description, Person responsible, LocalDate dueDate, Person plannedBy,
-                                       Instant plannedAt) {
-        CorrectiveAction plannedAction = finding.planAction(description, responsible, dueDate, plannedBy, plannedAt);
+                                       Instant plannedAt, LocalDate plannedOn) {
+        CorrectiveAction plannedAction = finding.planAction(description, responsible, dueDate, plannedBy, plannedAt, plannedOn);
         record(FindingAudit.ACTION_PLANNED, plannedBy, plannedAt, description + ", due " + dueDate);
         return plannedAction;
     }

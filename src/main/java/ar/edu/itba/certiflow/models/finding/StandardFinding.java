@@ -35,9 +35,9 @@ final class StandardFinding implements Finding {
 
     @Override
     public CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
-                                       Instant plannedAt) {
+                                       Instant plannedAt, LocalDate plannedOn) {
         ensureOpen();
-        CorrectiveAction plannedAction = new CorrectiveAction(description, actionResponsible, dueDate, plannedBy, plannedAt);
+        CorrectiveAction plannedAction = new CorrectiveAction(description, actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
         actions.add(plannedAction);
         return plannedAction;
     }
