@@ -62,3 +62,17 @@ pasado; se podía suspender un certificado vencido; se podía renovar con la mis
   `renewalRequiresAnInspectionClosedAfterTheOneBehindTheCurrentCertificate`,
   `failedRenewalDoesNotConsumeACertificateNumber`.
 - `DESIGN.md`: S8, S10, S11 y tabla de tests.
+
+## 4. Excepciones inconsistentes
+
+**Corrección:** `Asset`, `Person` y `CorrectiveAction` lanzaban `IllegalArgumentException`; el resto,
+`DomainException`.
+
+**Cambios:**
+- Nueva `RequiredValueMissingException extends DomainException` en `models.shared`.
+- Reemplaza a `IllegalArgumentException` en los 13 lugares que validaban un texto obligatorio vacío: `Asset`,
+  `AssetCode`, `AssetType`, `Location`, `Person`, `CorrectiveAction`, `Suspension`, `CertificateNumber`,
+  `InspectionAssignment`, `Observation`, `OptionAnswer`, `Unit` y `Evidence`. Se usa una sola clase porque es
+  la misma regla en todos los casos.
+- Tests: `RequiredValueTest` (persona, activo y acción correctiva sin su texto obligatorio).
+- `DESIGN.md`: D11 y tabla de tests.

@@ -206,6 +206,7 @@ determinista y los tests usan un reloj controlable.
 ### D11. Errores explícitos
 
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, `UnaddressedNonConformitiesPreventCertificationException`, entre otras).
+- Toda regla del dominio lanza una `DomainException`, sin excepciones genéricas de Java. Un texto obligatorio vacío (nombre, código, descripción, motivo, referencia) lanza `RequiredValueMissingException` (`models.shared`), una sola clase porque es la misma regla en todos los casos.
 - Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador.
 - Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza, y las de reglas que cruzan agregados viven en `application.exceptions`.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
@@ -253,6 +254,7 @@ determinista y los tests usan un reloj controlable.
 | Acción vencida un día antes o un día después | `CorrectiveActionTest.actionIsNotOverdueOnItsDueDateButIsTheDayAfter` |
 | Una verificación rechazada cierra algo | `CorrectiveActionTest.rejectedVerificationKeepsActionAndFindingOpenAndIsAudited` |
 | Un hallazgo cerrado deja acciones huérfanas que siguen figurando como vencidas | `CorrectiveActionTest.acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue`, `rejectedVerificationCancelsNothing` |
+| Un dato obligatorio vacío escapa como error genérico de Java | `RequiredValueTest` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
@@ -282,7 +284,7 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 81 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 84 tests.
 
 ---
 

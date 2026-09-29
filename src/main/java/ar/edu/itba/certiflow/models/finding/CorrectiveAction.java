@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.models.finding.exceptions.CorrectiveActionAlreadyCl
 import ar.edu.itba.certiflow.models.finding.exceptions.DueDateInThePastException;
 import ar.edu.itba.certiflow.models.finding.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.models.shared.Person;
+import ar.edu.itba.certiflow.models.shared.RequiredValueMissingException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public final class CorrectiveAction {
         this.plannedBy = plannedBy;
         this.plannedAt = plannedAt;
         if (description.isBlank()) {
-            throw new IllegalArgumentException("A corrective action must describe what will be done");
+            throw new RequiredValueMissingException("A corrective action must describe what will be done");
         }
         if (dueDate.isBefore(plannedOn)) {
             throw new DueDateInThePastException(dueDate, plannedOn);

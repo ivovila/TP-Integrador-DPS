@@ -4,7 +4,7 @@ public record Person(String name) {
 
     public Person {
         if (name.isBlank()) {
-            throw new IllegalArgumentException("A person needs a name");
+            throw new RequiredValueMissingException("A person needs a name");
         }
     }
 }
