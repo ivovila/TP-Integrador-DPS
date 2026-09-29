@@ -36,6 +36,7 @@ import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.shared.Person;
+import ar.edu.itba.certiflow.models.shared.PersonId;
 import ar.edu.itba.certiflow.usecases.asset.RegisterAsset;
 import ar.edu.itba.certiflow.usecases.certificate.IssueCertificate;
 import ar.edu.itba.certiflow.usecases.certificate.RenewCertificate;
@@ -66,12 +67,12 @@ public final class CertiflowFixture {
     public static final AssetType EXTINGUISHER = new AssetType("Fire extinguisher");
     public static final LocalDate TODAY = LocalDate.of(2026, 3, 10);
 
-    public final Person planner = new Person("Paula Planner");
-    public final Person inspector = new Person("Ines Inspector");
-    public final Person assetResponsible = new Person("Raul Responsible");
-    public final Person maintenanceTechnician = new Person("Marta Maintenance");
-    public final Person verifier = new Person("Victor Verifier");
-    public final Person certifier = new Person("Carla Certifier");
+    public final Person planner = new Person(new PersonId("EMP-001"), "Paula Planner");
+    public final Person inspector = new Person(new PersonId("EMP-002"), "Ines Inspector");
+    public final Person assetResponsible = new Person(new PersonId("EMP-003"), "Raul Responsible");
+    public final Person maintenanceTechnician = new Person(new PersonId("EMP-004"), "Marta Maintenance");
+    public final Person verifier = new Person(new PersonId("EMP-005"), "Victor Verifier");
+    public final Person certifier = new Person(new PersonId("EMP-006"), "Carla Certifier");
 
     public final Criterion<NumericAnswer> pressureCriterion = new Criterion<>("EXT-01", "Gauge pressure within range",
             new NumericRangeRule(BAR, new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),

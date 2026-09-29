@@ -27,8 +27,8 @@ mvn clean test
 | S11 | Renovación | Emite un certificado nuevo, basado en una inspección cerrada después que la del certificado actual (7.3) y sujeto a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". `Certificate.ensureRenewableWith` se valida antes de pedir el número, así una renovación rechazada no consume numeración. | La historia no se borra. Menos transiciones que probar. La numeración queda correlativa. |
 | S12 | Límites numéricos | `Range[minimum, maximum]` cerrado en ambos extremos; un mínimo mayor que el máximo es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`, a lo sumo un requisito por tipo. Cada evidencia exigida tiene que ser un archivo distinto: adjuntar dos veces la misma referencia al mismo criterio se rechaza (`DuplicateEvidenceException`). | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. "Dos fotos" no se cumple con la misma foto dos veces, y un criterio con dos requisitos del mismo tipo es un esquema inválido (`InvalidSchemaException`) en lugar de dos requisitos que se cumplen con una sola foto. El mismo archivo sí puede respaldar criterios distintos. |
-| S14 | Personas | Inspector, responsable, verificador y emisor son `Person(name)`. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara personas sin conversiones entre tipos de rol. |
-| S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo) y `CertificateNumber`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
+| S14 | Personas | Inspector, responsable, verificador y emisor son `Person(id, name)`, una entidad identificada por `PersonId` (legajo o documento que asigna la organización) e igual solo por ese id. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara identidades: dos homónimos son personas distintas y la misma persona se reconoce aunque su nombre se escriba distinto. |
+| S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo), `CertificateNumber` y `PersonId`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
 
 ---
@@ -139,7 +139,7 @@ determinista y los tests usan un reloj controlable.
 ### D3. Identidad de negocio y referencias por objeto
 
 - **Principio:** modelar objetos que colaboran, no filas.
-- **Dónde:** `Person`, `AssetCode`, `CertificateNumber`; `Finding` referencia su `Inspection` y su `Criterion`; `Certificate` referencia su `Asset` y su `Inspection`; los casos de uso reciben objetos.
+- **Dónde:** `Person` + `PersonId`, `AssetCode`, `CertificateNumber`; `Finding` referencia su `Inspection` y su `Criterion`; `Certificate` referencia su `Asset` y su `Inspection`; los casos de uso reciben objetos.
 - **Por qué:** una entidad tiene identidad solo si el negocio la identifica, y con su identificador real. Los value objects nunca tienen id. Los repositorios quedaron con entre dos y tres métodos cada uno.
 - **Alternativa descartada:** un `XxxId` sintético por agregado y casos de uso que reciben ids. Es el estilo habitual con persistencia, pero trataba a los objetos como registros de una base que todavía no existe.
 - **Costo:** con persistencia real algunas referencias entre agregados probablemente vuelvan a ser identificadores para no cargar grafos completos. Las entidades sin identificador de negocio se comparan por identidad de objeto.
@@ -255,6 +255,7 @@ determinista y los tests usan un reloj controlable.
 | Una verificación rechazada cierra algo | `CorrectiveActionTest.rejectedVerificationKeepsActionAndFindingOpenAndIsAudited` |
 | Un hallazgo cerrado deja acciones huérfanas que siguen figurando como vencidas | `CorrectiveActionTest.acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue`, `rejectedVerificationCancelsNothing` |
 | Un dato obligatorio vacío escapa como error genérico de Java | `RequiredValueTest` |
+| Dos homónimos se consideran la misma persona | `PersonTest`, `CorrectiveActionTest.namesakeOfTheResponsibleCanVerifyButTheResponsibleUnderAnotherSpellingCannot` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
@@ -284,7 +285,7 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 84 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 87 tests.
 
 ---
 

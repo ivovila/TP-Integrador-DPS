@@ -76,3 +76,17 @@ pasado; se podía suspender un certificado vencido; se podía renovar con la mis
   la misma regla en todos los casos.
 - Tests: `RequiredValueTest` (persona, activo y acción correctiva sin su texto obligatorio).
 - `DESIGN.md`: D11 y tabla de tests.
+
+## 5. `Person` identificada por nombre
+
+**Corrección:** `Person(String name)` era un record: dos inspectores homónimos eran la misma persona y la regla
+"verificador ≠ responsable" terminaba comparando nombres.
+
+**Cambios:**
+- Nuevo value object `PersonId(String value)`: identificador de negocio (legajo o documento).
+- `Person` pasa de record a entidad `Person(PersonId id, String name)` con `equals`/`hashCode` solo por `id`.
+- El fixture asigna un legajo a cada persona.
+- Tests: `PersonTest` (homónimos distintos; misma persona con otro nombre),
+  `CorrectiveActionTest.namesakeOfTheResponsibleCanVerifyButTheResponsibleUnderAnotherSpellingCannot`, y
+  `RequiredValueTest` valida también el id vacío.
+- `DESIGN.md`: S14, S15, D3 y tabla de tests.

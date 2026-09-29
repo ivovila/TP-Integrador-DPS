@@ -15,8 +15,9 @@ class RequiredValueTest {
     private final CertiflowFixture fixture = new CertiflowFixture();
 
     @Test
-    void personWithoutNameIsADomainError() {
-        assertThrows(RequiredValueMissingException.class, () -> new Person(" "));
+    void personWithoutNameOrIdIsADomainError() {
+        assertThrows(RequiredValueMissingException.class, () -> new Person(new PersonId("EMP-100"), " "));
+        assertThrows(RequiredValueMissingException.class, () -> new PersonId(" "));
     }
 
     @Test

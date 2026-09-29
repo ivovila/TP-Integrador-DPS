@@ -14,6 +14,8 @@ import ar.edu.itba.certiflow.models.finding.exceptions.DueDateInThePastException
 import ar.edu.itba.certiflow.models.finding.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.models.finding.exceptions.VerificationNotesRequiredException;
 import ar.edu.itba.certiflow.models.finding.exceptions.VerifierMustDifferFromResponsibleException;
+import ar.edu.itba.certiflow.models.shared.Person;
+import ar.edu.itba.certiflow.models.shared.PersonId;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,6 +132,18 @@ class CorrectiveActionTest {
 
         assertTrue(rechargeAction.verifications().isEmpty());
         assertTrue(finding.isOpen());
+    }
+
+    @Test
+    void namesakeOfTheResponsibleCanVerifyButTheResponsibleUnderAnotherSpellingCannot() {
+        Person namesake = new Person(new PersonId("EMP-900"), fixture.maintenanceTechnician.name());
+        Person sameTechnician = new Person(fixture.maintenanceTechnician.id(), "M. Maintenance");
+
+        assertThrows(VerifierMustDifferFromResponsibleException.class, () -> fixture.verifyCorrectiveAction.execute(
+                finding, rechargeAction, sameTechnician, VerificationResult.ACCEPTED, "Looks fine to me"));
+        fixture.verifyCorrectiveAction.execute(finding, rechargeAction, namesake, VerificationResult.ACCEPTED, "Recharged");
+
+        assertTrue(rechargeAction.isClosed());
     }
 
     @Test
