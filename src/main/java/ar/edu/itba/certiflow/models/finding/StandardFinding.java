@@ -49,7 +49,11 @@ final class StandardFinding implements Finding {
         if (!actions.contains(correctiveAction)) {
             throw new CorrectiveActionNotInFindingException();
         }
-        return correctiveAction.verify(verifier, verificationResult, verificationNotes, verifiedAt);
+        Verification verification = correctiveAction.verify(verifier, verificationResult, verificationNotes, verifiedAt);
+        if (verification.isAccepted()) {
+            actions.stream().filter(CorrectiveAction::isOpen).forEach(openAction -> openAction.cancel(verifier, verifiedAt));
+        }
+        return verification;
     }
 
     @Override

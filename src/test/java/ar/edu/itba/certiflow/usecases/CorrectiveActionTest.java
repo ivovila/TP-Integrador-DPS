@@ -72,6 +72,37 @@ class CorrectiveActionTest {
     }
 
     @Test
+    void acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue() {
+        CorrectiveAction replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
+                DUE_DATE, fixture.assetResponsible);
+        fixture.clock.moveTo(DUE_DATE.plusDays(5));
+
+        fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.ACCEPTED,
+                "Recharged, gauge reads 7 bar");
+
+        assertFalse(finding.isOpen());
+        assertTrue(replaceAction.isCancelled());
+        assertFalse(replaceAction.isClosed());
+        assertEquals(fixture.verifier, replaceAction.cancellation().orElseThrow().cancelledBy());
+        assertEquals(fixture.clock.instant(), replaceAction.cancellation().orElseThrow().cancelledAt());
+        assertFalse(replaceAction.isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher).findings().getFirst().overdueActions());
+        assertFalse(rechargeAction.isCancelled());
+    }
+
+    @Test
+    void rejectedVerificationCancelsNothing() {
+        CorrectiveAction replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
+                DUE_DATE, fixture.assetResponsible);
+
+        fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.REJECTED,
+                "Gauge still reads 5 bar");
+
+        assertFalse(replaceAction.isCancelled());
+        assertFalse(rechargeAction.isCancelled());
+    }
+
+    @Test
     void whoeverIsResponsibleForTheActionCannotVerifyIt() {
         assertThrows(VerifierMustDifferFromResponsibleException.class, () -> fixture.verifyCorrectiveAction.execute(
                 finding, rechargeAction, fixture.maintenanceTechnician, VerificationResult.ACCEPTED, "Looks fine to me"));

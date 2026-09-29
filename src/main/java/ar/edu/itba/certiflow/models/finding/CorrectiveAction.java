@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public final class CorrectiveAction {
 
@@ -16,6 +17,7 @@ public final class CorrectiveAction {
     private final Person plannedBy;
     private final Instant plannedAt;
     private final List<Verification> verifications = new ArrayList<>();
+    private Cancellation cancellation;
 
     CorrectiveAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt) {
         this.description = description;
@@ -29,9 +31,7 @@ public final class CorrectiveAction {
     }
 
     Verification verify(Person verifier, VerificationResult verificationResult, String verificationNotes, Instant verifiedAt) {
-        if (isClosed()) {
-            throw new CorrectiveActionAlreadyClosedException();
-        }
+        ensureOpen();
         if (verifier.equals(responsible)) {
             throw new VerifierMustDifferFromResponsibleException(verifier);
         }
@@ -40,12 +40,25 @@ public final class CorrectiveAction {
         return verification;
     }
 
+    void cancel(Person cancelledBy, Instant cancelledAt) {
+        ensureOpen();
+        cancellation = new Cancellation(cancelledBy, cancelledAt);
+    }
+
     public boolean isClosed() {
         return verifications.stream().anyMatch(Verification::isAccepted);
     }
 
+    public boolean isCancelled() {
+        return cancellation != null;
+    }
+
+    public boolean isOpen() {
+        return !isClosed() && !isCancelled();
+    }
+
     public boolean isOverdueOn(LocalDate referenceDate) {
-        return !isClosed() && referenceDate.isAfter(dueDate);
+        return isOpen() && referenceDate.isAfter(dueDate);
     }
 
     public String description() {
@@ -70,5 +83,15 @@ public final class CorrectiveAction {
 
     public List<Verification> verifications() {
         return List.copyOf(verifications);
+    }
+
+    public Optional<Cancellation> cancellation() {
+        return Optional.ofNullable(cancellation);
+    }
+
+    private void ensureOpen() {
+        if (!isOpen()) {
+            throw new CorrectiveActionAlreadyClosedException();
+        }
     }
 }

@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.models.audit.AuditAction;
 public enum FindingAudit implements AuditAction {
     RAISED("Finding raised"),
     ACTION_PLANNED("Corrective action planned"),
-    VERIFICATION_ACCEPTED("Verification accepted: action and finding closed"),
+    VERIFICATION_ACCEPTED("Verification accepted: action and finding closed, remaining actions cancelled"),
     VERIFICATION_REJECTED("Verification rejected: action remains open");
 
     private final String label;
