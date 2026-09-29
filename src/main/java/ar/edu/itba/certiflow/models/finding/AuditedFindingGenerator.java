@@ -1,12 +1,10 @@
 package ar.edu.itba.certiflow.models.finding;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.models.inspection.InspectionView;
-import ar.edu.itba.certiflow.models.shared.Person;
-import java.time.Instant;
+import ar.edu.itba.certiflow.models.inspection.InspectionClosed;
+import java.util.List;
 
 public final class AuditedFindingGenerator {
 
@@ -16,10 +14,16 @@ public final class AuditedFindingGenerator {
         this.auditLog = auditLog;
     }
 
-    public Finding generate(CriterionResponse<?> nonConformity, InspectionView inspection, Person raisedBy, Instant raisedAt) {
-        Asset asset = inspection.asset();
-        Finding finding = new AuditedFinding(new StandardFinding(inspection, nonConformity, asset.responsible()), auditLog);
-        auditLog.record(finding, new AuditEntry(FindingAudit.RAISED, raisedBy, raisedAt,
+    public List<Finding> generate(InspectionClosed closure) {
+        return closure.nonConformities().stream()
+                .map(nonConformity -> generate(nonConformity, closure))
+                .toList();
+    }
+
+    private Finding generate(CriterionResponse<?> nonConformity, InspectionClosed closure) {
+        Finding finding = new AuditedFinding(new StandardFinding(closure.inspection(), nonConformity,
+                closure.inspection().asset().responsible()), auditLog);
+        auditLog.record(finding, new AuditEntry(FindingAudit.RAISED, closure.closedBy(), closure.closedAt(),
                 nonConformity.criterion().code() + " " + nonConformity.outcome()));
         return finding;
     }

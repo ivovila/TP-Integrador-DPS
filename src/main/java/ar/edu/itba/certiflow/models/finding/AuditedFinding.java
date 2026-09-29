@@ -6,6 +6,7 @@ import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
+import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
 import ar.edu.itba.certiflow.models.inspection.InspectionView;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
@@ -57,6 +58,11 @@ final class AuditedFinding implements Finding {
     @Override
     public boolean concerns(Asset asset) {
         return finding.concerns(asset);
+    }
+
+    @Override
+    public boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity) {
+        return finding.raisedFrom(sourceInspection, nonConformity);
     }
 
     @Override

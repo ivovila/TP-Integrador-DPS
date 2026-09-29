@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.models.finding;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
+import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
 import ar.edu.itba.certiflow.models.inspection.InspectionView;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
@@ -22,6 +23,8 @@ public interface Finding {
     boolean blocksCertification();
 
     boolean concerns(Asset asset);
+
+    boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity);
 
     InspectionView inspection();
 

@@ -7,7 +7,6 @@ import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.FindingRepository;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 
 public final class CloseInspection {
@@ -26,11 +25,7 @@ public final class CloseInspection {
     }
 
     public List<Finding> execute(Inspection inspection, Person closedBy) {
-        Instant closedAt = clock.instant();
-        inspection.close(closedBy, closedAt);
-        List<Finding> raisedFindings = inspection.evaluate().nonConformities().stream()
-                .map(nonConformity -> findingGenerator.generate(nonConformity, inspection, closedBy, closedAt))
-                .toList();
+        List<Finding> raisedFindings = findingGenerator.generate(inspection.close(closedBy, clock.instant()));
         inspectionRepository.save(inspection);
         findingRepository.saveAll(raisedFindings);
         return raisedFindings;

@@ -68,6 +68,11 @@ final class StandardFinding implements Finding {
     }
 
     @Override
+    public boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity) {
+        return inspection.equals(sourceInspection) && nonConformity.isFor(criterion);
+    }
+
+    @Override
     public InspectionView inspection() {
         return inspection;
     }

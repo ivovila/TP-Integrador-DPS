@@ -53,11 +53,12 @@ final class StandardInspection implements Inspection {
     }
 
     @Override
-    public void close(Person closedBy, Instant closedAt) {
+    public InspectionClosed close(Person closedBy, Instant closedAt) {
         ensureOpen();
         Evaluation evaluation = evaluate();
         evaluation.ensureComplete();
         revisions.add(new Revision(1, CLOSURE_REASON, evaluation, closedBy, closedAt));
+        return new InspectionClosed(this, evaluation.nonConformities(), closedBy, closedAt);
     }
 
     @Override

@@ -14,7 +14,7 @@ public interface Inspection extends InspectionView {
 
     void addObservation(Criterion<?> criterion, String observationText, Person observedBy, Instant observedAt);
 
-    void close(Person closedBy, Instant closedAt);
+    InspectionClosed close(Person closedBy, Instant closedAt);
 
     <A extends Answer> void rectify(Criterion<A> criterion, A answer, String reason, Person rectifiedBy, Instant rectifiedAt);
 }
