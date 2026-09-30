@@ -483,17 +483,8 @@ package "models.certification" {
   Ineligibility --> IneligibilityReason
 }
 
-package "application" {
-  class "Modelos de lectura (application.report)" as ReadModels {
-    InspectionAct / ActLine
-    FindingsSummary / FindingLine
-    CertificateDocument
-    ..records sin formato..
-  }
-}
-
-package "usecases" {
-  class "Casos de uso (uno por clase)" as UseCases {
+package "usecases (certiflow-domain)" {
+  interface "Casos de uso: una interfaz por caso" as UseCases <<puertos de entrada>> {
     RegisterAsset
     CreateInspectionSchema / PublishSchemaVersion
     AssignInspection
@@ -502,25 +493,39 @@ package "usecases" {
     PlanCorrectiveAction / VerifyCorrectiveAction
     IssueCertificate / SuspendCertificate / RenewCertificate / EvaluateCertification
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..reciben ids, puertos y java.time.Clock..
+    ..reciben y devuelven ids..
+  }
+  class "Modelos de lectura (usecases.report)" as ReadModels {
+    InspectionAct / ActLine
+    FindingsSummary / FindingLine
+    CertificateDocument
+    ..records sin formato..
+  }
+  UseCases ..> ReadModels : los informes los devuelven
+}
+
+package "application (certiflow-application)" {
+  class "XxxInteractor implements Xxx" as Interactors {
+    ..una implementación por caso de uso..
+    ..orquesta puertos, Clock, servicios de dominio y AuditLog..
   }
 }
 
+Interactors ..|> UseCases
 CertificationEligibility <|.. NoBlockingFindingsEligibility
-UseCases ..> AssetRepository
-UseCases ..> InspectionSchemaRepository
-UseCases ..> InspectionRepository
-UseCases ..> FindingRepository
-UseCases ..> CertificateRepository
-UseCases ..> CertificateNumbering
-UseCases ..> CertificationEligibility
-UseCases ..> ReadModels : los informes los construyen
-UseCases ..> AuditLog : vuelcan pullAuditEntries() y el acta lo lee
-UseCases ..> InspectionFactory
-UseCases ..> FindingFactory
-UseCases ..> CertificateFactory
+Interactors ..> AssetRepository
+Interactors ..> InspectionSchemaRepository
+Interactors ..> InspectionRepository
+Interactors ..> FindingRepository
+Interactors ..> CertificateRepository
+Interactors ..> CertificateNumbering
+Interactors ..> CertificationEligibility
+Interactors ..> AuditLog : vuelcan pullAuditEntries() y el acta lo lee
+Interactors ..> InspectionFactory
+Interactors ..> FindingFactory
+Interactors ..> CertificateFactory
 
-package "details.inmemory" {
+package "details.inmemory (certiflow-details)" {
   class InMemoryAssetRepository
   class InMemoryInspectionSchemaRepository
   class InMemoryInspectionRepository

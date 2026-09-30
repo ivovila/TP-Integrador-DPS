@@ -264,3 +264,30 @@ obligaba a tocar interfaz + `Standard*` + `Audited*`.
 - Tests: `AuditTrailTest`; los tests de historial existentes siguen pasando sin cambios.
 - `DESIGN.md`: sección 2, D6, D7 (reescrita), D8, D13, sección 4, limitaciones y tabla de tests.
   `docs/certiflow-domain.puml` y `README.md` sin decoradores.
+
+## 14. Arquitectura: módulos, interfaces de entrada y dirección de dependencias
+
+**Corrección:** el módulo de usecases dependía del de aplicación, cuando debería ser al revés (application →
+usecases, con la aplicación implementando las interfaces). El dominio debe comprender toda la lógica de negocio
+(models, services, exceptions) e incluir las interfaces de ports y usecases; las implementaciones concretas van
+fuera. Los casos de uso eran clases concretas sin interfaz de entrada, y todo estaba en un único módulo Maven,
+así que nada impedía que un paquete importara a otro.
+
+**Cambios:**
+- Build Maven multi-módulo: `pom.xml` raíz (`packaging pom`) con `certiflow-domain`, `certiflow-application` y
+  `certiflow-details`.
+- `certiflow-domain`: `models` (con servicios de dominio y excepciones), `ports` (salida) y `usecases`
+  (entrada). Cada caso de uso pasa a ser una **interfaz** con su `execute`. Los modelos de lectura
+  (`InspectionAct`, `ActLine`, `FindingsSummary`, `FindingLine`, `CertificateDocument`) pasan de
+  `application.report` a `usecases.report`, porque son el tipo de retorno de esas interfaces.
+- `certiflow-application`: `application.<concepto>.XxxInteractor implements Xxx`, con la lógica que antes tenía
+  cada clase de caso de uso. Depende solo de `certiflow-domain` (y de `certiflow-details` en scope test).
+- `certiflow-details`: `details.inmemory`, depende solo de `certiflow-domain`.
+- Verificado: el dominio no importa `application` ni `details`, y un import prohibido no compila
+  (`package ar.edu.itba.certiflow.details.inmemory does not exist`).
+- Tests: unitarios del modelo en `certiflow-domain`; integración y `CertiflowFixture` (raíz de composición, que
+  instancia los `...Interactor` y expone las interfaces) en `certiflow-application`. `RequiredValueTest` se movió
+  a `application` porque usa el fixture.
+- `.gitignore`: ignora `target/` de todos los módulos.
+- `DESIGN.md`: sección 2 reescrita. `README.md`: estructura por módulos. `docs/certiflow-domain.puml`: interfaces
+  de casos de uso e interactors.

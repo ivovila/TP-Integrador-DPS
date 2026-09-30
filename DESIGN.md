@@ -5,7 +5,7 @@ Java 25, Maven, JUnit 5. Sin frameworks: el código es el documento de diseño p
 archivo explica por qué tiene la forma que tiene.
 
 ```bash
-mvn clean test
+mvn clean test   # compila y prueba los tres módulos
 ```
 
 ---
@@ -38,43 +38,35 @@ mvn clean test
 
 ## 2. Arquitectura y dirección de dependencias
 
+El proyecto es un build Maven de tres módulos. La dirección de dependencias la impone el compilador: un
+módulo solo ve lo que declara como dependencia, así que un import prohibido no compila.
+
 ```mermaid
 flowchart TD
-    usecases --> application
-    usecases --> ports
-    usecases --> models
-    application --> ports
-    application --> models
-    ports --> models
-    details["details.inmemory"] --> ports
-    details --> models
+    application["certiflow-application"] --> domain["certiflow-domain"]
+    details["certiflow-details"] --> domain
 ```
 
-Cada flecha se lee "importa" y el gráfico muestra todas las dependencias directas. En los tests, el fixture
-es la raíz de composición y es el único que conoce todos los paquetes.
+| Módulo | Paquetes | Depende de |
+|---|---|---|
+| `certiflow-domain` | `models`, `ports`, `usecases` | nada |
+| `certiflow-application` | `application` | `certiflow-domain` (y `certiflow-details` solo en tests) |
+| `certiflow-details` | `details.inmemory` | `certiflow-domain` |
 
-| Paquete | Importa |
-|---|---|
-| `usecases` | `application`, `ports`, `models` |
-| `application` | `ports`, `models` |
-| `ports` | `models` |
-| `models` | nada |
-| `details.inmemory` | `ports`, `models` |
+- **`certiflow-domain`** contiene toda la lógica de negocio y todas las interfaces:
+  - **`models`**: entidades, value objects, reglas, servicios de dominio (`CertificationEligibility`, `InspectionSchemaService`), excepciones, el `AuditTrail` de cada agregado y el puerto `AuditLog<S>`. No consulta relojes.
+  - **`ports`**: puertos de salida, lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`. Solo importa `models`.
+  - **`usecases`**: puertos de entrada. Cada caso de uso es una **interfaz** (`RecordAnswer`, `IssueCertificate`, …) agrupada por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`), junto con los modelos de lectura que devuelven (`InspectionAct`, `FindingsSummary`, `CertificateDocument`). Solo importa `models`.
+- **`certiflow-application`** implementa los casos de uso: `application.<concepto>.XxxInteractor implements Xxx`. Orquesta repositorios, reloj, servicios de dominio y bitácora. La dependencia queda `application → usecases`, y no al revés.
+- **`certiflow-details`** implementa los puertos de salida (repositorios en memoria, numeración, `InMemoryAuditLog`).
 
-Nada importa hacia arriba, y ningún paquete del negocio importa `details`: los detalles implementan los
-puertos y el fixture los conecta.
+En los tests, `CertiflowFixture` (módulo `application`, scope test) es la raíz de composición: instancia los
+`...Interactor` y los detalles, y expone los casos de uso tipados por su interfaz. Los tests unitarios del
+modelo viven en `certiflow-domain`; los de integración, en `certiflow-application`.
 
-- **`models`**: entidades, value objects, reglas, servicios de dominio, el `AuditTrail` de cada agregado y el puerto `AuditLog<S>`. No importa ningún otro paquete ni consulta relojes.
-- **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
-- **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`).
-- **`application`**: los modelos de lectura de los informes (`application.report`). La elegibilidad y todas las excepciones de negocio viven en `models` (ver D10 y D11).
-- **`details.inmemory`**: implementaciones de los puertos.
-
-Los nombres `models`, `usecases`, `ports` y `application` son los que la cátedra propone para un módulo de
-negocio, el equivalente al módulo `domain` de DDD: todo el módulo es negocio, sin base de datos, controllers
-ni framework. Dentro de `models` y de `usecases` se agrupa por concepto y no por tipo de clase, porque
-cada agregado y su fábrica comparten visibilidad de paquete (el constructor del agregado es de paquete) y
-separarlos obligaría a hacerlo público.
+Dentro de `models` y de `usecases` se agrupa por concepto y no por tipo de clase, porque cada agregado y su
+fábrica comparten visibilidad de paquete (el constructor del agregado es de paquete) y separarlos obligaría a
+hacerlo público.
 
 **Por qué `AuditLog` no está en `ports`.** Es un puerto, pero su contrato (`AuditEntry`, `AuditAction`) y el
 servicio de esquemas que lo usa viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
@@ -88,19 +80,19 @@ enchufen detrás de una interfaz. Por eso viven en `models.evaluation`.
 Dependencias directas entre los paquetes de `models`, sin ciclos (cada línea se lee "importa"):
 
 ```
-shared       ->  (nada)
-audit        ->  shared
-asset        ->  shared
-evaluation   ->  shared
-schema       ->  shared, asset, evaluation
-inspection   ->  shared, asset, evaluation, schema, audit
-finding      ->  shared, asset, evaluation, schema, audit, inspection
+shared         ->  (nada)
+audit          ->  shared
+asset          ->  shared
+evaluation     ->  shared
+schema         ->  shared, asset, evaluation, audit
+inspection     ->  shared, asset, evaluation, schema, audit
+finding        ->  shared, asset, evaluation, schema, audit, inspection
 certificate    ->  shared, asset, audit, inspection
-certification  ->  inspection, finding
+certification  ->  shared, inspection, finding
 ```
 
-`models` no importa ningún otro paquete, `ports` solo importa `models` y nadie importa `details`. Ambos
-grafos se verificaron recorriendo los `import` de todo `src/main`.
+`models` no importa `ports` ni `usecases`; `ports` y `usecases` solo importan `models`. Los grafos se
+verificaron recorriendo los `import` de cada módulo.
 
 **Dónde vive cada validación.** Una regla vive dentro del agregado cuando puede decidirse con su propio
 estado y debe cumplirse siempre, sin importar desde qué caso de uso se lo manipule. Por ejemplo, una
