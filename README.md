@@ -19,21 +19,20 @@ pisa las clases de Maven y los tests fallan con "Unresolved compilation problem"
 ```
 src/main/java/ar/edu/itba/certiflow
 ├── models            entidades, value objects, reglas y el puerto AuditLog
-│   ├── shared        Person, DomainException
-│   ├── audit         AuditLog, AuditEntry, AuditAction
+│   ├── shared        Person, PersonId, DomainException
+│   ├── audit         AuditLog, AuditEntry, AuditAction, AuditTrail
 │   ├── asset         Asset, AssetCode, AssetType, Location
 │   ├── evaluation    respuestas, reglas de aprobación, severidad, evidencia
 │   ├── schema        InspectionSchema, SchemaVersion, Section, Criterion
-│   ├── inspection    Inspection, revisiones, evaluación, decorador y generador
-│   ├── finding       Finding con sus CorrectiveAction, decorador y generador
-│   └── certificate   Certificate, vigencia, ciclo de vida, decorador y generador
+│   ├── inspection    Inspection, revisiones, evaluación, alcance y su fábrica
+│   ├── finding       Finding con sus CorrectiveAction y su fábrica
+│   ├── certificate   Certificate, vigencia, ciclo de vida y su fábrica
+│   └── certification servicio de elegibilidad y CertificationDecision
 ├── ports             repositorios y CertificateNumbering: lo que el negocio le pide al exterior
 ├── usecases          un caso de uso por clase, agrupados por concepto
 │   └── asset, schema, inspection, finding, certificate, report
-├── application       lo que acompaña a los casos de uso sin ser uno
-│   ├── certification CertificationEligibility y NoBlockingFindingsEligibility
-│   ├── report        modelos de lectura: InspectionAct, FindingsSummary, CertificateDocument
-│   └── exceptions    reglas que cruzan agregados
+├── application
+│   └── report        modelos de lectura: InspectionAct, FindingsSummary, CertificateDocument
 └── details
     └── inmemory      implementaciones en memoria de los puertos
 

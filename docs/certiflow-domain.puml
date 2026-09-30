@@ -10,12 +10,12 @@ note as ExceptionsNote
   Viven en el subpaquete exceptions de cada concepto
   (models.inspection.exceptions, models.finding.exceptions,
   models.certificate.exceptions, models.schema.exceptions)
-  y extienden DomainException. Las de aplicacion viven en
-  application.exceptions.
+  y extienden DomainException.
 end note
 
 package "models.shared" {
-  class Person <<value object>> {
+  class Person <<entidad>> {
+    id: PersonId
     name: String
   }
   abstract class DomainException <<exception>>
@@ -25,6 +25,11 @@ package "models.audit" {
   interface "AuditLog<S>" as AuditLog <<puerto>> {
     +record(S, AuditEntry)
     +historyOf(S): List<AuditEntry>
+    +recordAll(S, List<AuditEntry>)
+  }
+  class AuditTrail {
+    +record(AuditAction, Person, Instant, detail)
+    +pull(): List<AuditEntry>
   }
   class AuditEntry <<value object>> {
     action: AuditAction
@@ -203,26 +208,19 @@ package "models.inspection" {
     +assignment(): InspectionAssignment
     +schemaVersion(): SchemaVersion
   }
-  interface Inspection {
+  class Inspection <<aggregate root>> {
+    -responses: Map<Criterion<?>, CriterionResponse<?>>
+    -revisions: List<Revision>
+    -auditTrail: AuditTrail
     +recordAnswer(Criterion<A>, A, Person, Instant)
     +attachEvidence(Criterion<?>, Evidence, Person, Instant)
     +addObservation(Criterion<?>, String, Person, Instant)
-    +close(Person, Instant)
+    +close(Person, Instant): InspectionClosed
     +rectify(Criterion<A>, A, reason, Person, Instant)
+    +pullAuditEntries(): List<AuditEntry>
   }
-  class StandardInspection <<de paquete>> {
-    -responses: Map<Criterion<?>, CriterionResponse<?>>
-    -revisions: List<Revision>
-    -ensureOpen()
-    -ensureClosed()
-  }
-  class AuditedInspection <<decorator, de paquete>> {
-    -auditLog: AuditLog<Inspection>
-  }
-  class AuditedInspectionFactory {
-    -auditLog: AuditLog<Inspection>
-    +AuditedInspectionFactory(AuditLog<Inspection>)
-    +create(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
+  class InspectionFactory {
+    +create(InspectionId, Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
   }
   class InspectionAssignment <<value object>> {
     inspector: Person
@@ -287,20 +285,15 @@ package "models.inspection" {
     CLOSED
     RECTIFIED
   }
-  InspectionView <|-- Inspection
-  Inspection <|.. StandardInspection
-  Inspection <|.. AuditedInspection
-  AuditedInspection o--> Inspection : decora
-  AuditedInspection --> AuditLog : registra en AuditLog<Inspection>
-  AuditedInspectionFactory ..> AuditedInspection : compone
-  AuditedInspectionFactory ..> StandardInspection : compone
-  AuditedInspectionFactory --> AuditLog : registra el alta
-  StandardInspection --> Asset
-  StandardInspection --> InspectionAssignment
-  StandardInspection --> SchemaVersion : fijada al asignar
-  StandardInspection *-- "*" CriterionResponse
-  StandardInspection *-- "*" Revision
-  StandardInspection ..> Evaluation : deriva
+  InspectionView <|.. Inspection
+  InspectionFactory ..> Inspection : crea
+  Inspection *-- AuditTrail
+  Inspection --> Asset
+  Inspection --> InspectionAssignment
+  Inspection --> SchemaVersion : fijada al asignar
+  Inspection *-- "*" CriterionResponse
+  Inspection *-- "*" Revision
+  Inspection ..> Evaluation : deriva
   Revision --> Evaluation
   Evaluation o-- "*" CriterionResponse
   CriterionResponse --> Criterion
@@ -313,8 +306,9 @@ package "models.inspection" {
 }
 
 package "models.finding" {
-  interface Finding {
-    +planAction(description, Person, LocalDate, Person, Instant): CorrectiveAction
+  class Finding <<aggregate root>> {
+    -auditTrail: AuditTrail
+    +planAction(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
     +verifyAction(CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
     +isOpen(): boolean
     +blocksCertification(): boolean
@@ -326,14 +320,9 @@ package "models.finding" {
     +evidence(): List<AttachedEvidence>
     +responsible(): Person
     +actions(): List<CorrectiveAction>
+    +pullAuditEntries(): List<AuditEntry>
   }
-  class StandardFinding <<de paquete>>
-  class AuditedFinding <<decorator, de paquete>> {
-    -auditLog: AuditLog<Finding>
-  }
-  class AuditedFindingFactory {
-    -auditLog: AuditLog<Finding>
-    +AuditedFindingFactory(AuditLog<Finding>)
+  class FindingFactory {
     +create(InspectionClosed, Supplier<FindingId>): List<Finding>
   }
   class CorrectiveAction <<entidad interna>> {
@@ -365,25 +354,23 @@ package "models.finding" {
     VERIFICATION_ACCEPTED
     VERIFICATION_REJECTED
   }
-  Finding <|.. StandardFinding
-  Finding <|.. AuditedFinding
-  AuditedFinding o--> Finding : decora
-  AuditedFinding --> AuditLog : registra en AuditLog<Finding>
-  AuditedFindingFactory ..> AuditedFinding : compone
-  AuditedFindingFactory ..> StandardFinding : compone
-  AuditedFindingFactory --> AuditLog : registra el alta
-  StandardFinding --> InspectionId : por id
-  StandardFinding --> Criterion
-  StandardFinding --> "*" AttachedEvidence
-  StandardFinding *-- "*" CorrectiveAction
+  FindingFactory ..> Finding : crea
+  Finding *-- AuditTrail
+  Finding --> InspectionId : por id
+  Finding --> Criterion
+  Finding --> "*" AttachedEvidence
+  Finding *-- "*" CorrectiveAction
   CorrectiveAction *-- "*" Verification
   Verification --> VerificationResult
   AuditAction <|.. FindingAudit
 }
 
 package "models.certificate" {
-  interface Certificate {
-    +suspend(reason, Person, Instant)
+  class Certificate <<aggregate root>> {
+    -lifecycle: CertificateLifecycle
+    -auditTrail: AuditTrail
+    +suspend(reason, Person, Instant, LocalDate)
+    +ensureRenewableWith(InspectionView)
     +renew(CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
     +statusOn(LocalDate): CertificateStatus
     +isCurrentOn(LocalDate): boolean
@@ -395,17 +382,9 @@ package "models.certificate" {
     +issuedBy(): Person
     +issuedAt(): Instant
     +suspensions(): List<Suspension>
+    +pullAuditEntries(): List<AuditEntry>
   }
-  class StandardCertificate <<de paquete>> {
-    -lifecycle: CertificateLifecycle
-  }
-  class AuditedCertificate <<decorator, de paquete>> {
-    -auditLog: AuditLog<Certificate>
-    ..al renovar decora y audita el certificado nuevo..
-  }
-  class AuditedCertificateFactory {
-    -auditLog: AuditLog<Certificate>
-    +AuditedCertificateFactory(AuditLog<Certificate>)
+  class CertificateFactory {
     +create(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
   }
   class CertificateNumber <<identificador de negocio>>
@@ -436,19 +415,14 @@ package "models.certificate" {
     SUSPENDED
     RENEWED
   }
-  Certificate <|.. StandardCertificate
-  Certificate <|.. AuditedCertificate
-  AuditedCertificate o--> Certificate : decora
-  AuditedCertificate --> AuditLog : registra en AuditLog<Certificate>
-  AuditedCertificateFactory ..> AuditedCertificate : compone
-  AuditedCertificateFactory ..> StandardCertificate : compone
-  AuditedCertificateFactory --> AuditLog : registra el alta
-  StandardCertificate --> CertificateNumber
-  StandardCertificate --> Asset
-  StandardCertificate --> InspectionReference : basedOn (id + cierre)
-  StandardCertificate --> ValidityPeriod
-  StandardCertificate --> CertificateLifecycle
-  StandardCertificate *-- "*" Suspension
+  CertificateFactory ..> Certificate : crea
+  Certificate *-- AuditTrail
+  Certificate --> CertificateNumber
+  Certificate --> Asset
+  Certificate --> InspectionReference : basedOn (id + cierre)
+  Certificate --> ValidityPeriod
+  Certificate --> CertificateLifecycle
+  Certificate *-- "*" Suspension
   CertificateLifecycle ..> CertificateStatus : deriva
   AuditAction <|.. CertificateAudit
 }
@@ -541,10 +515,10 @@ UseCases ..> CertificateRepository
 UseCases ..> CertificateNumbering
 UseCases ..> CertificationEligibility
 UseCases ..> ReadModels : los informes los construyen
-UseCases ..> AuditLog : el acta lee AuditLog<Inspection>
-UseCases ..> AuditedInspectionFactory
-UseCases ..> AuditedFindingFactory
-UseCases ..> AuditedCertificateFactory
+UseCases ..> AuditLog : vuelcan pullAuditEntries() y el acta lo lee
+UseCases ..> InspectionFactory
+UseCases ..> FindingFactory
+UseCases ..> CertificateFactory
 
 package "details.inmemory" {
   class InMemoryAssetRepository

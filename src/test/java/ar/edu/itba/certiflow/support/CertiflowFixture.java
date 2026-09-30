@@ -17,8 +17,8 @@ import ar.edu.itba.certiflow.models.asset.Characteristic;
 import ar.edu.itba.certiflow.models.asset.Characteristics;
 import ar.edu.itba.certiflow.models.asset.Location;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
-import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.models.certificate.CertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certification.CertificationEligibility;
 import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
@@ -36,15 +36,15 @@ import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.Unit;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
-import ar.edu.itba.certiflow.models.finding.AuditedFindingFactory;
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingFactory;
 import ar.edu.itba.certiflow.models.finding.FindingId;
-import ar.edu.itba.certiflow.models.inspection.AuditedInspectionFactory;
 import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
+import ar.edu.itba.certiflow.models.inspection.InspectionFactory;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.InspectionScope;
 import ar.edu.itba.certiflow.models.schema.Criterion;
@@ -116,15 +116,15 @@ public final class CertiflowFixture {
     public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final AssignInspection assignInspection = new AssignInspection(assetRepository, inspectionSchemaRepository, inspectionRepository,
-            new AuditedInspectionFactory(inspectionLog), clock);
-    public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, clock);
-    public final AttachEvidence attachEvidence = new AttachEvidence(inspectionRepository, clock);
-    public final AddObservation addObservation = new AddObservation(inspectionRepository, clock);
+            new InspectionFactory(), inspectionLog, clock);
+    public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, inspectionLog, clock);
+    public final AttachEvidence attachEvidence = new AttachEvidence(inspectionRepository, inspectionLog, clock);
+    public final AddObservation addObservation = new AddObservation(inspectionRepository, inspectionLog, clock);
     public final CloseInspection closeInspection = new CloseInspection(inspectionRepository, findingRepository,
-            new AuditedFindingFactory(findingLog), clock);
-    public final RectifyInspection rectifyInspection = new RectifyInspection(inspectionRepository, clock);
-    public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveAction(findingRepository, clock);
-    public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveAction(findingRepository, clock);
+            new FindingFactory(), inspectionLog, findingLog, clock);
+    public final RectifyInspection rectifyInspection = new RectifyInspection(inspectionRepository, inspectionLog, clock);
+    public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveAction(findingRepository, findingLog, clock);
+    public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveAction(findingRepository, findingLog, clock);
     public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionAct(inspectionRepository, inspectionLog);
     public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(assetRepository, findingRepository, clock);
     public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(certificateRepository, clock);
@@ -132,11 +132,12 @@ public final class CertiflowFixture {
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility();
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
     public final IssueCertificate issueCertificate = new IssueCertificate(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering,
-            new AuditedCertificateFactory(certificateLog), clock);
+            new CertificateFactory(), certificateLog, clock);
     public final EvaluateCertification evaluateCertification = new EvaluateCertification(inspectionRepository, findingRepository,
             certificationEligibility);
-    public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, clock);
-    public final RenewCertificate renewCertificate = new RenewCertificate(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, clock);
+    public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, certificateLog, clock);
+    public final RenewCertificate renewCertificate = new RenewCertificate(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering,
+            certificateLog, clock);
 
     public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,

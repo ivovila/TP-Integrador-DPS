@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.usecases.finding;
 
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
@@ -13,10 +14,12 @@ import java.time.LocalDate;
 public final class PlanCorrectiveAction {
 
     private final FindingRepository findingRepository;
+    private final AuditLog<Finding> findingLog;
     private final Clock clock;
 
-    public PlanCorrectiveAction(FindingRepository findingRepository, Clock clock) {
+    public PlanCorrectiveAction(FindingRepository findingRepository, AuditLog<Finding> findingLog, Clock clock) {
         this.findingRepository = findingRepository;
+        this.findingLog = findingLog;
         this.clock = clock;
     }
 
@@ -26,6 +29,7 @@ public final class PlanCorrectiveAction {
         CorrectiveAction plannedAction = finding.planAction(description, responsible, dueDate, plannedBy, clock.instant(),
                 LocalDate.now(clock));
         findingRepository.save(finding);
+        findingLog.recordAll(finding, finding.pullAuditEntries());
         return plannedAction.id();
     }
 }

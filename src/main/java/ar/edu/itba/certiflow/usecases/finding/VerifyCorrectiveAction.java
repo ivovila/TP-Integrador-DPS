@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.usecases.finding;
 
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingId;
@@ -13,10 +14,12 @@ import java.time.Clock;
 public final class VerifyCorrectiveAction {
 
     private final FindingRepository findingRepository;
+    private final AuditLog<Finding> findingLog;
     private final Clock clock;
 
-    public VerifyCorrectiveAction(FindingRepository findingRepository, Clock clock) {
+    public VerifyCorrectiveAction(FindingRepository findingRepository, AuditLog<Finding> findingLog, Clock clock) {
         this.findingRepository = findingRepository;
+        this.findingLog = findingLog;
         this.clock = clock;
     }
 
@@ -25,6 +28,7 @@ public final class VerifyCorrectiveAction {
         Finding finding = findingRepository.findById(findingId).orElseThrow(() -> new FindingNotFoundException(findingId));
         Verification verification = finding.verifyAction(actionId, verifier, verificationResult, verificationNotes, clock.instant());
         findingRepository.save(finding);
+        findingLog.recordAll(finding, finding.pullAuditEntries());
         return verification;
     }
 }

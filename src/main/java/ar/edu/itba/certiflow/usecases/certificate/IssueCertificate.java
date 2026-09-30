@@ -1,8 +1,9 @@
 package ar.edu.itba.certiflow.usecases.certificate;
 
 import ar.edu.itba.certiflow.models.asset.Asset;
-import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.models.certificate.CertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.models.certificate.exceptions.AssetAlreadyCertifiedException;
@@ -27,19 +28,21 @@ public final class IssueCertificate {
     private final FindingRepository findingRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
-    private final AuditedCertificateFactory certificateFactory;
+    private final CertificateFactory certificateFactory;
+    private final AuditLog<Certificate> certificateLog;
     private final Clock clock;
 
     public IssueCertificate(InspectionRepository inspectionRepository, CertificateRepository certificateRepository,
                             FindingRepository findingRepository,
                             CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering,
-                            AuditedCertificateFactory certificateFactory, Clock clock) {
+                            CertificateFactory certificateFactory, AuditLog<Certificate> certificateLog, Clock clock) {
         this.inspectionRepository = inspectionRepository;
         this.certificateRepository = certificateRepository;
         this.findingRepository = findingRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
         this.certificateFactory = certificateFactory;
+        this.certificateLog = certificateLog;
         this.clock = clock;
     }
 
@@ -58,6 +61,7 @@ public final class IssueCertificate {
         Certificate certificate = certificateFactory.create(certificateNumbering.next(), asset, inspection,
                 new ValidityPeriod(today, validUntil), issuedBy, clock.instant());
         certificateRepository.save(certificate);
+        certificateLog.recordAll(certificate, certificate.pullAuditEntries());
         return certificate.number();
     }
 }

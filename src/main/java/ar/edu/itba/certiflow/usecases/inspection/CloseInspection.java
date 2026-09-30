@@ -1,7 +1,8 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
-import ar.edu.itba.certiflow.models.finding.AuditedFindingFactory;
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingFactory;
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
@@ -16,14 +17,18 @@ public final class CloseInspection {
 
     private final InspectionRepository inspectionRepository;
     private final FindingRepository findingRepository;
-    private final AuditedFindingFactory findingFactory;
+    private final FindingFactory findingFactory;
+    private final AuditLog<Inspection> inspectionLog;
+    private final AuditLog<Finding> findingLog;
     private final Clock clock;
 
     public CloseInspection(InspectionRepository inspectionRepository, FindingRepository findingRepository,
-                           AuditedFindingFactory findingFactory, Clock clock) {
+                           FindingFactory findingFactory, AuditLog<Inspection> inspectionLog, AuditLog<Finding> findingLog, Clock clock) {
         this.inspectionRepository = inspectionRepository;
         this.findingRepository = findingRepository;
         this.findingFactory = findingFactory;
+        this.inspectionLog = inspectionLog;
+        this.findingLog = findingLog;
         this.clock = clock;
     }
 
@@ -32,7 +37,9 @@ public final class CloseInspection {
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
         List<Finding> raisedFindings = findingFactory.create(inspection.close(closedBy, clock.instant()), findingRepository::nextId);
         inspectionRepository.save(inspection);
+        inspectionLog.recordAll(inspection, inspection.pullAuditEntries());
         findingRepository.saveAll(raisedFindings);
+        raisedFindings.forEach(finding -> findingLog.recordAll(finding, finding.pullAuditEntries()));
         return raisedFindings.stream().map(Finding::id).toList();
     }
 }

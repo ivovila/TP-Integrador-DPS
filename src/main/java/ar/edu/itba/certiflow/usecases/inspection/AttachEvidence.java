@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
@@ -12,10 +13,12 @@ import java.time.Clock;
 public final class AttachEvidence {
 
     private final InspectionRepository inspectionRepository;
+    private final AuditLog<Inspection> inspectionLog;
     private final Clock clock;
 
-    public AttachEvidence(InspectionRepository inspectionRepository, Clock clock) {
+    public AttachEvidence(InspectionRepository inspectionRepository, AuditLog<Inspection> inspectionLog, Clock clock) {
         this.inspectionRepository = inspectionRepository;
+        this.inspectionLog = inspectionLog;
         this.clock = clock;
     }
 
@@ -24,5 +27,6 @@ public final class AttachEvidence {
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
         inspection.attachEvidence(criterion, evidence, attachedBy, clock.instant());
         inspectionRepository.save(inspection);
+        inspectionLog.recordAll(inspection, inspection.pullAuditEntries());
     }
 }

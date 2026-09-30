@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.usecases.certificate;
 
+import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
@@ -25,16 +26,18 @@ public final class RenewCertificate {
     private final FindingRepository findingRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
+    private final AuditLog<Certificate> certificateLog;
     private final Clock clock;
 
     public RenewCertificate(InspectionRepository inspectionRepository, CertificateRepository certificateRepository,
                             FindingRepository findingRepository,
-                            CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering, Clock clock) {
+                            CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering, AuditLog<Certificate> certificateLog, Clock clock) {
         this.inspectionRepository = inspectionRepository;
         this.certificateRepository = certificateRepository;
         this.findingRepository = findingRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
+        this.certificateLog = certificateLog;
         this.clock = clock;
     }
 
@@ -52,6 +55,8 @@ public final class RenewCertificate {
                 inspection, renewedBy, clock.instant());
         certificateRepository.save(currentCertificate);
         certificateRepository.save(renewedCertificate);
+        certificateLog.recordAll(currentCertificate, currentCertificate.pullAuditEntries());
+        certificateLog.recordAll(renewedCertificate, renewedCertificate.pullAuditEntries());
         return renewedCertificate.number();
     }
 }

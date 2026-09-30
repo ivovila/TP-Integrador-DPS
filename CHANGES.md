@@ -243,3 +243,24 @@ responsable inspeccionara su propio activo. En `RegisterAsset`, la unicidad por 
 - `DESIGN.md`: S2, S19, D7, limitaciones y tabla de tests.
 - **No aplicado:** mover el comportamiento de `Inspection` (RecordAnswer) a servicios de dominio y hacerla
   inmutable con `Responses`, por decisión del equipo (ver corrección 7).
+
+## 15. Decoradores `Audited*` que reenvían todo a mano
+
+**Corrección (SRP/OCP):** cada `Audited*` reenviaba a mano todas las consultas. Agregar un método a `Inspection`
+obligaba a tocar interfaz + `Standard*` + `Audited*`.
+
+**Cambios:**
+- Se eliminan las interfaces `Inspection`, `Finding` y `Certificate` y los decoradores `AuditedInspection`,
+  `AuditedFinding` y `AuditedCertificate`. `StandardInspection`, `StandardFinding` y `StandardCertificate` pasan
+  a ser las clases públicas `Inspection` (implementa `InspectionView`), `Finding` y `Certificate`, con constructor
+  de paquete.
+- Nuevo `AuditTrail` (`models.audit`): cada agregado anota una `AuditEntry` al terminar cada comando (y al nacer)
+  y la entrega con `pullAuditEntries()`. Los textos y el orden de la bitácora no cambian.
+- `AuditLog` suma `recordAll(subject, entries)`. Los casos de uso que modifican agregados reciben su `AuditLog`
+  y vuelcan las entradas después de guardar.
+- Las fábricas pasan a `InspectionFactory`, `FindingFactory` y `CertificateFactory`: solo crean, ya no reciben
+  el `AuditLog`.
+- Agregar un método a un agregado ahora toca una sola clase.
+- Tests: `AuditTrailTest`; los tests de historial existentes siguen pasando sin cambios.
+- `DESIGN.md`: sección 2, D6, D7 (reescrita), D8, D13, sección 4, limitaciones y tabla de tests.
+  `docs/certiflow-domain.puml` y `README.md` sin decoradores.
