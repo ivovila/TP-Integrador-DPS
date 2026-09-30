@@ -44,7 +44,7 @@ final class AuditedInspection implements Inspection {
     public InspectionClosed close(Person closedBy, Instant closedAt) {
         InspectionClosed closure = inspection.close(closedBy, closedAt);
         record(InspectionAudit.CLOSED, closedBy, closedAt, "");
-        return closure.from(this);
+        return closure;
     }
 
     @Override
@@ -76,6 +76,11 @@ final class AuditedInspection implements Inspection {
     @Override
     public List<Revision> revisions() {
         return inspection.revisions();
+    }
+
+    @Override
+    public InspectionId id() {
+        return inspection.id();
     }
 
     @Override

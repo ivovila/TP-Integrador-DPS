@@ -1,7 +1,9 @@
 package ar.edu.itba.certiflow.usecases.finding;
 
-import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
+import ar.edu.itba.certiflow.application.exceptions.FindingNotFoundException;
+import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.finding.Verification;
 import ar.edu.itba.certiflow.models.finding.VerificationResult;
 import ar.edu.itba.certiflow.models.shared.Person;
@@ -18,9 +20,10 @@ public final class VerifyCorrectiveAction {
         this.clock = clock;
     }
 
-    public Verification execute(Finding finding, CorrectiveAction correctiveAction, Person verifier, VerificationResult verificationResult,
+    public Verification execute(FindingId findingId, CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
                                 String verificationNotes) {
-        Verification verification = finding.verifyAction(correctiveAction, verifier, verificationResult, verificationNotes, clock.instant());
+        Finding finding = findingRepository.findById(findingId).orElseThrow(() -> new FindingNotFoundException(findingId));
+        Verification verification = finding.verifyAction(actionId, verifier, verificationResult, verificationNotes, clock.instant());
         findingRepository.save(finding);
         return verification;
     }

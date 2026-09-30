@@ -13,6 +13,7 @@ import java.util.Optional;
 
 public final class CorrectiveAction {
 
+    private final CorrectiveActionId id;
     private final String description;
     private final Person responsible;
     private final LocalDate dueDate;
@@ -21,8 +22,9 @@ public final class CorrectiveAction {
     private final List<Verification> verifications = new ArrayList<>();
     private Cancellation cancellation;
 
-    CorrectiveAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt,
-                     LocalDate plannedOn) {
+    CorrectiveAction(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate, Person plannedBy,
+                     Instant plannedAt, LocalDate plannedOn) {
+        this.id = id;
         this.description = description;
         this.responsible = responsible;
         this.dueDate = dueDate;
@@ -65,6 +67,14 @@ public final class CorrectiveAction {
 
     public boolean isOverdueOn(LocalDate referenceDate) {
         return isOpen() && referenceDate.isAfter(dueDate);
+    }
+
+    boolean isIdentifiedBy(CorrectiveActionId candidate) {
+        return id.equals(candidate);
+    }
+
+    public CorrectiveActionId id() {
+        return id;
     }
 
     public String description() {

@@ -1,12 +1,14 @@
 package ar.edu.itba.certiflow.ports;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
-import java.util.List;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
+import java.util.Optional;
 
 public interface InspectionRepository {
 
+    InspectionId nextId();
+
     void save(Inspection inspection);
 
-    List<Inspection> findByAsset(Asset asset);
+    Optional<Inspection> findById(InspectionId id);
 }

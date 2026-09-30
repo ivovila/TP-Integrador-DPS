@@ -2,28 +2,34 @@ package ar.edu.itba.certiflow.usecases.certificate;
 
 import ar.edu.itba.certiflow.application.certification.CertificationEligibility;
 import ar.edu.itba.certiflow.application.exceptions.AssetAlreadyCertifiedException;
+import ar.edu.itba.certiflow.application.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.CertificateNumbering;
 import ar.edu.itba.certiflow.ports.CertificateRepository;
+import ar.edu.itba.certiflow.ports.InspectionRepository;
 import java.time.Clock;
 import java.time.LocalDate;
 
 public final class IssueCertificate {
 
+    private final InspectionRepository inspectionRepository;
     private final CertificateRepository certificateRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
     private final AuditedCertificateFactory certificateFactory;
     private final Clock clock;
 
-    public IssueCertificate(CertificateRepository certificateRepository, CertificationEligibility certificationEligibility,
-                            CertificateNumbering certificateNumbering, AuditedCertificateFactory certificateFactory,
-                            Clock clock) {
+    public IssueCertificate(InspectionRepository inspectionRepository, CertificateRepository certificateRepository,
+                            CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering,
+                            AuditedCertificateFactory certificateFactory, Clock clock) {
+        this.inspectionRepository = inspectionRepository;
         this.certificateRepository = certificateRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
@@ -31,7 +37,9 @@ public final class IssueCertificate {
         this.clock = clock;
     }
 
-    public Certificate execute(Inspection inspection, LocalDate validUntil, Person issuedBy) {
+    public CertificateNumber execute(InspectionId inspectionId, LocalDate validUntil, Person issuedBy) {
+        Inspection inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
         LocalDate today = LocalDate.now(clock);
         Asset asset = inspection.asset();
         certificationEligibility.ensureEligible(inspection);
@@ -41,6 +49,6 @@ public final class IssueCertificate {
         Certificate certificate = certificateFactory.create(certificateNumbering.next(), asset, inspection,
                 new ValidityPeriod(today, validUntil), issuedBy, clock.instant());
         certificateRepository.save(certificate);
-        return certificate;
+        return certificate.number();
     }
 }

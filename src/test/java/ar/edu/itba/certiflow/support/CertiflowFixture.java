@@ -18,6 +18,7 @@ import ar.edu.itba.certiflow.models.asset.Location;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.models.evaluation.NumericAnswer;
@@ -31,11 +32,15 @@ import ar.edu.itba.certiflow.models.evaluation.Unit;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.models.finding.AuditedFindingFactory;
+import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
+import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.inspection.AuditedInspectionFactory;
 import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.InspectionScope;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.Section;
@@ -100,7 +105,7 @@ public final class CertiflowFixture {
     public final RegisterAsset registerAsset = new RegisterAsset(assetRepository);
     public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, clock);
     public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, clock);
-    public final AssignInspection assignInspection = new AssignInspection(inspectionSchemaRepository, inspectionRepository,
+    public final AssignInspection assignInspection = new AssignInspection(assetRepository, inspectionSchemaRepository, inspectionRepository,
             new AuditedInspectionFactory(inspectionLog), clock);
     public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, clock);
     public final AttachEvidence attachEvidence = new AttachEvidence(inspectionRepository, clock);
@@ -110,16 +115,16 @@ public final class CertiflowFixture {
     public final RectifyInspection rectifyInspection = new RectifyInspection(inspectionRepository, clock);
     public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveAction(findingRepository, clock);
     public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveAction(findingRepository, clock);
-    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionAct(inspectionLog);
-    public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(findingRepository, clock);
-    public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(clock);
+    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionAct(inspectionRepository, inspectionLog);
+    public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(assetRepository, findingRepository, clock);
+    public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(certificateRepository, clock);
 
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility(findingRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificate issueCertificate = new IssueCertificate(certificateRepository, certificationEligibility, certificateNumbering,
+    public final IssueCertificate issueCertificate = new IssueCertificate(inspectionRepository, certificateRepository, certificationEligibility, certificateNumbering,
             new AuditedCertificateFactory(certificateLog), clock);
     public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, clock);
-    public final RenewCertificate renewCertificate = new RenewCertificate(certificateRepository, certificationEligibility, certificateNumbering, clock);
+    public final RenewCertificate renewCertificate = new RenewCertificate(inspectionRepository, certificateRepository, certificationEligibility, certificateNumbering, clock);
 
     public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
@@ -134,12 +139,28 @@ public final class CertiflowFixture {
                 new Section(SIGNAGE, List.of(signageCriterion)));
     }
 
-    public Inspection assignedInspection() {
+    public InspectionId assignedInspection() {
         return assignedInspection(new FullScope());
     }
 
-    public Inspection assignedInspection(InspectionScope scope) {
-        return assignInspection.execute(extinguisher, new InspectionAssignment(inspector, TODAY.plusDays(3), scope), planner);
+    public InspectionId assignedInspection(InspectionScope scope) {
+        return assignInspection.execute(extinguisher.code(), new InspectionAssignment(inspector, TODAY.plusDays(3), scope), planner);
+    }
+
+    public Inspection inspection(InspectionId id) {
+        return inspectionRepository.findById(id).orElseThrow();
+    }
+
+    public Finding finding(FindingId id) {
+        return findingRepository.findById(id).orElseThrow();
+    }
+
+    public CorrectiveAction action(FindingId findingId, CorrectiveActionId actionId) {
+        return finding(findingId).actions().stream().filter(action -> action.id().equals(actionId)).findFirst().orElseThrow();
+    }
+
+    public Certificate certificate(CertificateNumber number) {
+        return certificateRepository.findByNumber(number).orElseThrow();
     }
 
     public NumericAnswer numericAnswer(String decimalValue) {
@@ -150,21 +171,21 @@ public final class CertiflowFixture {
         return new Evidence(StandardEvidenceKind.PHOTO, "photos/ext-0042-gauge.jpg", "Pressure gauge reading");
     }
 
-    public void answerAll(Inspection inspection, String pressureInBars, YesNoAnswer sealAnswer, String signageOption) {
+    public void answerAll(InspectionId inspection, String pressureInBars, YesNoAnswer sealAnswer, String signageOption) {
         recordAnswer.execute(inspection, pressureCriterion, numericAnswer(pressureInBars), inspector);
         attachEvidence.execute(inspection, pressureCriterion, gaugePhoto(), inspector);
         recordAnswer.execute(inspection, sealIntactCriterion, sealAnswer, inspector);
         recordAnswer.execute(inspection, signageCriterion, new OptionAnswer(signageOption), inspector);
     }
 
-    public Inspection closedCompliantInspection() {
-        Inspection inspection = assignedInspection();
+    public InspectionId closedCompliantInspection() {
+        InspectionId inspection = assignedInspection();
         answerAll(inspection, "7.00", YesNoAnswer.YES, "VISIBLE");
         closeInspection.execute(inspection, inspector);
         return inspection;
     }
 
-    public Finding majorFindingOf(Inspection inspection) {
+    public FindingId majorFindingOf(InspectionId inspection) {
         answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
         return closeInspection.execute(inspection, inspector).getFirst();
     }

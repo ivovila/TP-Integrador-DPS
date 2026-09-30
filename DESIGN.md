@@ -28,7 +28,7 @@ mvn clean test
 | S12 | Límites numéricos | `Range[minimum, maximum]` cerrado en ambos extremos; un mínimo mayor que el máximo es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`, a lo sumo un requisito por tipo. Cada evidencia exigida tiene que ser un archivo distinto: adjuntar dos veces la misma referencia al mismo criterio se rechaza (`DuplicateEvidenceException`). | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. "Dos fotos" no se cumple con la misma foto dos veces, y un criterio con dos requisitos del mismo tipo es un esquema inválido (`InvalidSchemaException`) en lugar de dos requisitos que se cumplen con una sola foto. El mismo archivo sí puede respaldar criterios distintos. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(id, name)`, una entidad identificada por `PersonId` (legajo o documento que asigna la organización) e igual solo por ese id. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara identidades: dos homónimos son personas distintas y la misma persona se reconoce aunque su nombre se escriba distinto. |
-| S15 | Identidad | Solo tienen identificador los conceptos que el negocio identifica: `AssetCode` (placa del activo), `CertificateNumber` y `PersonId`. El resto se referencia por objeto. | Los casos de uso reciben objetos, no ids. Ver D3. |
+| S15 | Identidad | Todo agregado tiene identidad: `AssetCode` (placa del activo), `CertificateNumber`, `PersonId`, e `InspectionId` y `FindingId` generados por su repositorio (`nextId()`). `CorrectiveActionId` numera las acciones dentro de su hallazgo. Entre agregados se referencia por id, salvo `Asset`, que es un record inmutable y se conserva como objeto. | Los casos de uso reciben y devuelven ids; cargan el agregado con `findById` y lanzan `...NotFoundException` si no existe. Ver D3. |
 | S17 | Alcance de la inspección | La asignación fija un `InspectionScope`: `FullScope` (todo el esquema) o `SectionsScope` (secciones nombradas, que deben existir en la versión capturada, o falla con `SectionNotInSchemaException`). La inspección solo tiene respuestas para los criterios de su alcance: responder fuera lanza `CriterionOutOfScopeException`, y cerrar solo exige completar lo que está dentro. Solo una inspección que cubre todo el esquema puede respaldar un certificado (`PartialInspectionCannotCertifyException`). | Una inspección parcial sirve para seguimiento y genera hallazgos, pero no certifica. El alcance deja de ser un texto libre que no restringía nada. |
 | S18 | Características del activo | `Characteristics` es una colección de `Characteristic(name, value)` con nombres únicos (`DuplicateCharacteristicException`) y consulta `valueOf(name)`. | Reemplaza al `Map<String,String>`: los datos del activo se validan y se consultan con el vocabulario del dominio. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
@@ -138,13 +138,13 @@ determinista y los tests usan un reloj controlable.
 - **Qué quedó como enum simple y por qué:** `Outcome`, `YesNoAnswer`, `VerificationResult`, `CertificateStatus`. Son vocabulario cerrado por el enunciado; si cambian, cambió el lenguaje del negocio y el dominio debe cambiar. Un punto de extensión ahí sería especulativo.
 - **Costo:** quien implemente `Severity` o `EvidenceKind` fuera de un enum debe definir `equals`, porque `Criterion` se usa como clave.
 
-### D3. Identidad de negocio y referencias por objeto
+### D3. Agregados con identidad y referencias entre agregados por id
 
-- **Principio:** modelar objetos que colaboran, no filas.
-- **Dónde:** `Person` + `PersonId`, `AssetCode`, `CertificateNumber`; `Finding` referencia su `Inspection` y su `Criterion`; `Certificate` referencia su `Asset` y su `Inspection`; los casos de uso reciben objetos.
-- **Por qué:** una entidad tiene identidad solo si el negocio la identifica, y con su identificador real. Los value objects nunca tienen id. Los repositorios quedaron con entre dos y tres métodos cada uno.
-- **Alternativa descartada:** un `XxxId` sintético por agregado y casos de uso que reciben ids. Es el estilo habitual con persistencia, pero trataba a los objetos como registros de una base que todavía no existe.
-- **Costo:** con persistencia real algunas referencias entre agregados probablemente vuelvan a ser identificadores para no cargar grafos completos. Las entidades sin identificador de negocio se comparan por identidad de objeto.
+- **Principio:** DDD; un agregado se referencia desde otro por su identidad, no por el objeto.
+- **Dónde:** `InspectionId`, `FindingId` y `CorrectiveActionId` (records), además de `AssetCode`, `CertificateNumber` y `PersonId`. `Finding` guarda el `InspectionId` de su inspección; `Certificate` guarda un `InspectionReference(id, closedAt)`, con el instante de cierre que necesita la regla de renovación. `InspectionClosed` lleva el `InspectionId`.
+- **Por qué:** con referencias por objeto, un hallazgo o un certificado tenían acceso al agregado vivo de otro, y los casos de uso recibían agregados que quien llamaba podía modificar salteándolos (por ejemplo `inspection.close()` sin levantar hallazgos). Ahora los casos de uso reciben ids, cargan el agregado con `findById` y son el único punto de entrada para modificarlo. Los ids sintéticos los genera el repositorio (`nextId()`), así el dominio no depende de la estrategia de generación y sigue siendo determinista.
+- **Excepción:** `Asset` se conserva como objeto dentro de `Inspection`, `Finding` y `Certificate`: es un record inmutable, así que funciona como una foto del activo y no da acceso de escritura. El `AuditLog` sigue indexado por objeto.
+- **Costo:** cada caso de uso carga lo que necesita del repositorio y los tests leen el estado con `findById`.
 
 ### D4. `CorrectiveAction` dentro del agregado `Finding`
 
@@ -195,7 +195,7 @@ determinista y los tests usan un reloj controlable.
 ### D9. Puertos segregados
 
 - **Principios:** ISP, DIP.
-- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {save, findByAsset}`, `FindingRepository {save, saveAll, findByAsset}`, `CertificateRepository {save, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, historyOf}`. Los seis primeros viven en `ports`; `AuditLog` vive en `models.audit` por el motivo explicado en la sección 2.
+- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {nextId, save, findById}`, `FindingRepository {nextId, save, saveAll, findById, findByAsset}`, `CertificateRepository {save, findByNumber, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, historyOf}`. Los seis primeros viven en `ports`; `AuditLog` vive en `models.audit` por el motivo explicado en la sección 2.
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
 ### D10. Elegibilidad para certificar como política intercambiable
@@ -223,8 +223,8 @@ determinista y los tests usan un reloj controlable.
 ### D13. Vista de solo lectura de la inspección
 
 - **Principio:** ISP.
-- **Dónde:** `InspectionView` declara las consultas; `Inspection` la extiende y agrega los cinco comandos. `Finding.inspection()` y `Certificate.basedOn()` devuelven `InspectionView`.
-- **Por qué:** referenciar objetos en lugar de ids (D3) entrega el objeto entero. Antes compilaba `finding.inspection().rectify(...)`: tener un hallazgo o un certificado daba acceso de escritura a otro agregado. Ahora ven el mismo objeto a través de un tipo más angosto, que dice lo único que necesitan saber: si la inspección está cerrada y a qué activo corresponde.
+- **Dónde:** `InspectionView` declara las consultas; `Inspection` la extiende y agrega los cinco comandos. `Certificate` recibe un `InspectionView` para validar su base (cerrada, del mismo activo, posterior al certificado que renueva) y guarda solo su referencia.
+- **Por qué:** quien solo necesita leer la inspección no debería poder modificarla. Desde D3 los otros agregados guardan el id, y el `InspectionView` solo se usa como parámetro de lectura.
 - **Costo:** una interfaz más. La protección es de compilación: un cast la saltearía, y los casts no se usan en este código. Los casos de uso de certificación y el acta siguen recibiendo `Inspection` aunque solo leen.
 
 ---
@@ -261,6 +261,7 @@ determinista y los tests usan un reloj controlable.
 | El alcance de una inspección no restringe qué se inspecciona, o una inspección parcial certifica | `InspectionScopeTest` |
 | Características del activo duplicadas o vacías | `CharacteristicsTest` |
 | Publicar una versión modifica el esquema existente, o el log de versiones tiene huecos | `SchemaVersioningTest.publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched`, `SchemaVersionLogTest` |
+| Ids repetidos, referencias por objeto entre agregados o ids inexistentes | `AggregateIdentityTest` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
@@ -290,7 +291,7 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 97 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 100 tests.
 
 ---
 

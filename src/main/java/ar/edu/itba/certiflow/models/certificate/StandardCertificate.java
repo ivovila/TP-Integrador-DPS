@@ -17,7 +17,7 @@ final class StandardCertificate implements Certificate {
 
     private final CertificateNumber number;
     private final Asset asset;
-    private final InspectionView basedOn;
+    private final InspectionReference basedOn;
     private final ValidityPeriod validity;
     private final Person issuedBy;
     private final Instant issuedAt;
@@ -28,7 +28,6 @@ final class StandardCertificate implements Certificate {
                         Person issuedBy, Instant issuedAt) {
         this.number = number;
         this.asset = asset;
-        this.basedOn = basedOn;
         this.validity = validity;
         this.issuedBy = issuedBy;
         this.issuedAt = issuedAt;
@@ -38,6 +37,7 @@ final class StandardCertificate implements Certificate {
         if (!basedOn.asset().equals(asset)) {
             throw new InspectionOfAnotherAssetException(asset);
         }
+        this.basedOn = new InspectionReference(basedOn.id(), basedOn.originalRevision().sealedAt());
     }
 
     @Override
@@ -54,7 +54,7 @@ final class StandardCertificate implements Certificate {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
         }
-        if (!newBasis.originalRevision().sealedAt().isAfter(basedOn.originalRevision().sealedAt())) {
+        if (!newBasis.originalRevision().sealedAt().isAfter(basedOn.closedAt())) {
             throw new RenewalRequiresLaterInspectionException(number);
         }
     }
@@ -94,7 +94,7 @@ final class StandardCertificate implements Certificate {
     }
 
     @Override
-    public InspectionView basedOn() {
+    public InspectionReference basedOn() {
         return basedOn;
     }
 

@@ -1,6 +1,8 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
+import ar.edu.itba.certiflow.application.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
@@ -16,7 +18,9 @@ public final class AddObservation {
         this.clock = clock;
     }
 
-    public void execute(Inspection inspection, Criterion<?> criterion, String observationText, Person observedBy) {
+    public void execute(InspectionId inspectionId, Criterion<?> criterion, String observationText, Person observedBy) {
+        Inspection inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
         inspection.addObservation(criterion, observationText, observedBy, clock.instant());
         inspectionRepository.save(inspection);
     }

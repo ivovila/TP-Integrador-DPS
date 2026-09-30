@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.models.finding.exceptions.FindingAlreadyClosedExcep
 import ar.edu.itba.certiflow.models.finding.exceptions.FindingRequiresNonConformityException;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
 import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.models.inspection.InspectionView;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -17,15 +17,19 @@ import java.util.List;
 
 final class StandardFinding implements Finding {
 
-    private final InspectionView inspection;
+    private final FindingId id;
+    private final InspectionId inspectionId;
+    private final Asset asset;
     private final Criterion<?> criterion;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
-    StandardFinding(InspectionView inspection, CriterionResponse<?> nonConformity, Person responsible) {
-        this.inspection = inspection;
-        this.responsible = responsible;
+    StandardFinding(FindingId id, InspectionId inspectionId, Asset asset, CriterionResponse<?> nonConformity) {
+        this.id = id;
+        this.inspectionId = inspectionId;
+        this.asset = asset;
+        this.responsible = asset.responsible();
         this.criterion = nonConformity.criterion();
         this.evidence = nonConformity.attachments();
         if (!nonConformity.outcome().raisesFinding()) {
@@ -37,18 +41,20 @@ final class StandardFinding implements Finding {
     public CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
                                        Instant plannedAt, LocalDate plannedOn) {
         ensureOpen();
-        CorrectiveAction plannedAction = new CorrectiveAction(description, actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
+        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), description,
+                actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
         actions.add(plannedAction);
         return plannedAction;
     }
 
     @Override
-    public Verification verifyAction(CorrectiveAction correctiveAction, Person verifier, VerificationResult verificationResult, String verificationNotes,
-                                     Instant verifiedAt) {
+    public Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
+                                     String verificationNotes, Instant verifiedAt) {
         ensureOpen();
-        if (!actions.contains(correctiveAction)) {
-            throw new CorrectiveActionNotInFindingException();
-        }
+        CorrectiveAction correctiveAction = actions.stream()
+                .filter(action -> action.isIdentifiedBy(actionId))
+                .findFirst()
+                .orElseThrow(() -> new CorrectiveActionNotInFindingException(actionId));
         Verification verification = correctiveAction.verify(verifier, verificationResult, verificationNotes, verifiedAt);
         if (verification.isAccepted()) {
             actions.stream().filter(CorrectiveAction::isOpen).forEach(openAction -> openAction.cancel(verifier, verifiedAt));
@@ -67,18 +73,23 @@ final class StandardFinding implements Finding {
     }
 
     @Override
-    public boolean concerns(Asset asset) {
-        return inspection.asset().equals(asset);
+    public boolean concerns(Asset candidate) {
+        return asset.equals(candidate);
     }
 
     @Override
-    public boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity) {
-        return inspection.equals(sourceInspection) && nonConformity.isFor(criterion);
+    public boolean raisedFrom(InspectionId sourceInspection, CriterionResponse<?> nonConformity) {
+        return inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
     }
 
     @Override
-    public InspectionView inspection() {
-        return inspection;
+    public FindingId id() {
+        return id;
+    }
+
+    @Override
+    public InspectionId inspectionId() {
+        return inspectionId;
     }
 
     @Override

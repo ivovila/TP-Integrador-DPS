@@ -1,23 +1,29 @@
 package ar.edu.itba.certiflow.details.inmemory;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 public final class InMemoryInspectionRepository implements InspectionRepository {
 
-    private final Set<Inspection> inspections = new LinkedHashSet<>();
+    private final Map<InspectionId, Inspection> inspections = new LinkedHashMap<>();
 
     @Override
-    public void save(Inspection inspection) {
-        inspections.add(inspection);
+    public InspectionId nextId() {
+        return new InspectionId(UUID.randomUUID().toString());
     }
 
     @Override
-    public List<Inspection> findByAsset(Asset asset) {
-        return inspections.stream().filter(inspection -> inspection.asset().equals(asset)).toList();
+    public void save(Inspection inspection) {
+        inspections.put(inspection.id(), inspection);
+    }
+
+    @Override
+    public Optional<Inspection> findById(InspectionId id) {
+        return Optional.ofNullable(inspections.get(id));
     }
 }

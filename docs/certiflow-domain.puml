@@ -194,6 +194,7 @@ package "models.schema" {
 
 package "models.inspection" {
   interface InspectionView <<solo lectura>> {
+    +id(): InspectionId
     +evaluate(): Evaluation
     +isClosed(): boolean
     +originalRevision(): Revision
@@ -314,11 +315,12 @@ package "models.inspection" {
 package "models.finding" {
   interface Finding {
     +planAction(description, Person, LocalDate, Person, Instant): CorrectiveAction
-    +verifyAction(CorrectiveAction, Person, VerificationResult, notes, Instant): Verification
+    +verifyAction(CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
     +isOpen(): boolean
     +blocksCertification(): boolean
     +concerns(Asset): boolean
-    +inspection(): InspectionView
+    +id(): FindingId
+    +inspectionId(): InspectionId
     +criterion(): Criterion<?>
     +severity(): Severity
     +evidence(): List<AttachedEvidence>
@@ -332,7 +334,7 @@ package "models.finding" {
   class AuditedFindingFactory {
     -auditLog: AuditLog<Finding>
     +AuditedFindingFactory(AuditLog<Finding>)
-    +create(CriterionResponse<?>, InspectionView, Person, Instant): Finding
+    +create(InspectionClosed, Supplier<FindingId>): List<Finding>
   }
   class CorrectiveAction <<entidad interna>> {
     -description: String
@@ -370,7 +372,7 @@ package "models.finding" {
   AuditedFindingFactory ..> AuditedFinding : compone
   AuditedFindingFactory ..> StandardFinding : compone
   AuditedFindingFactory --> AuditLog : registra el alta
-  StandardFinding --> InspectionView : solo lectura
+  StandardFinding --> InspectionId : por id
   StandardFinding --> Criterion
   StandardFinding --> "*" AttachedEvidence
   StandardFinding *-- "*" CorrectiveAction
@@ -388,7 +390,7 @@ package "models.certificate" {
     +certifies(Asset): boolean
     +number(): CertificateNumber
     +asset(): Asset
-    +basedOn(): InspectionView
+    +basedOn(): InspectionReference
     +validity(): ValidityPeriod
     +issuedBy(): Person
     +issuedAt(): Instant
@@ -443,7 +445,7 @@ package "models.certificate" {
   AuditedCertificateFactory --> AuditLog : registra el alta
   StandardCertificate --> CertificateNumber
   StandardCertificate --> Asset
-  StandardCertificate --> InspectionView : basedOn, solo lectura
+  StandardCertificate --> InspectionReference : basedOn (id + cierre)
   StandardCertificate --> ValidityPeriod
   StandardCertificate --> CertificateLifecycle
   StandardCertificate *-- "*" Suspension
@@ -461,16 +463,20 @@ package "ports" {
     +findByAssetType(AssetType): Optional<InspectionSchema>
   }
   interface InspectionRepository {
+    +nextId(): InspectionId
     +save(Inspection)
-    +findByAsset(Asset): List<Inspection>
+    +findById(InspectionId): Optional<Inspection>
   }
   interface FindingRepository {
+    +nextId(): FindingId
     +save(Finding)
     +saveAll(List<Finding>)
+    +findById(FindingId): Optional<Finding>
     +findByAsset(Asset): List<Finding>
   }
   interface CertificateRepository {
     +save(Certificate)
+    +findByNumber(CertificateNumber): Optional<Certificate>
     +findCurrentFor(Asset, LocalDate): Optional<Certificate>
   }
   interface CertificateNumbering {

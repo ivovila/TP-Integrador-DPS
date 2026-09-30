@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.models.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.SectionsScope;
 import ar.edu.itba.certiflow.models.inspection.exceptions.CriterionOutOfScopeException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.PartialInspectionCannotCertifyException;
@@ -21,16 +22,16 @@ class InspectionScopeTest {
 
     @Test
     void partialInspectionOnlyTakesAnswersForItsSectionsAndClosesWhenThoseAreComplete() {
-        Inspection inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
+        InspectionId inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
 
         assertThrows(CriterionOutOfScopeException.class, () -> fixture.recordAnswer.execute(inspection,
                 fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector));
         fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
         fixture.closeInspection.execute(inspection, fixture.inspector);
 
-        assertTrue(inspection.isClosed());
-        assertFalse(inspection.coversWholeSchema());
-        assertEquals(1, inspection.evaluate().responses().size());
+        assertTrue(fixture.inspection(inspection).isClosed());
+        assertFalse(fixture.inspection(inspection).coversWholeSchema());
+        assertEquals(1, fixture.inspection(inspection).evaluate().responses().size());
     }
 
     @Test
@@ -41,15 +42,15 @@ class InspectionScopeTest {
 
     @Test
     void scopeCoveringEverySectionCountsAsAWholeInspection() {
-        Inspection inspection = fixture.assignedInspection(
+        InspectionId inspection = fixture.assignedInspection(
                 new SectionsScope(Set.of(CertiflowFixture.PRESSURE_AND_SEAL, CertiflowFixture.SIGNAGE)));
 
-        assertTrue(inspection.coversWholeSchema());
+        assertTrue(fixture.inspection(inspection).coversWholeSchema());
     }
 
     @Test
     void partialInspectionCannotBackACertificate() {
-        Inspection inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
+        InspectionId inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
         fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
         fixture.closeInspection.execute(inspection, fixture.inspector);
 

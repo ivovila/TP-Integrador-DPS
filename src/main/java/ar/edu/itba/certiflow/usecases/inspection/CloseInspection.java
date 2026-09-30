@@ -1,8 +1,11 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
+import ar.edu.itba.certiflow.application.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.finding.AuditedFindingFactory;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.FindingRepository;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
@@ -24,10 +27,12 @@ public final class CloseInspection {
         this.clock = clock;
     }
 
-    public List<Finding> execute(Inspection inspection, Person closedBy) {
-        List<Finding> raisedFindings = findingFactory.create(inspection.close(closedBy, clock.instant()));
+    public List<FindingId> execute(InspectionId inspectionId, Person closedBy) {
+        Inspection inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
+        List<Finding> raisedFindings = findingFactory.create(inspection.close(closedBy, clock.instant()), findingRepository::nextId);
         inspectionRepository.save(inspection);
         findingRepository.saveAll(raisedFindings);
-        return raisedFindings;
+        return raisedFindings.stream().map(Finding::id).toList();
     }
 }

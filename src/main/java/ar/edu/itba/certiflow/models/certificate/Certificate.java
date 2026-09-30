@@ -26,7 +26,7 @@ public interface Certificate {
 
     Asset asset();
 
-    InspectionView basedOn();
+    InspectionReference basedOn();
 
     ValidityPeriod validity();
 

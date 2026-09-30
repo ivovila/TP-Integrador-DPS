@@ -6,7 +6,7 @@ import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.asset.Characteristics;
 import ar.edu.itba.certiflow.models.asset.Location;
-import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ class RequiredValueTest {
 
     @Test
     void correctiveActionWithoutDescriptionIsADomainError() {
-        Finding finding = fixture.majorFindingOf(fixture.assignedInspection());
+        FindingId finding = fixture.majorFindingOf(fixture.assignedInspection());
 
         assertThrows(RequiredValueMissingException.class, () -> fixture.planCorrectiveAction.execute(finding, " ",
                 fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));

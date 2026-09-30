@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
+import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingAudit;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.finding.VerificationResult;
 import ar.edu.itba.certiflow.models.finding.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.models.finding.exceptions.DueDateInThePastException;
@@ -26,8 +28,8 @@ class CorrectiveActionTest {
     private static final LocalDate DUE_DATE = CertiflowFixture.TODAY.plusDays(30);
 
     private final CertiflowFixture fixture = new CertiflowFixture();
-    private Finding finding;
-    private CorrectiveAction rechargeAction;
+    private FindingId finding;
+    private CorrectiveActionId rechargeAction;
 
     @BeforeEach
     void planTheRecharge() {
@@ -39,13 +41,13 @@ class CorrectiveActionTest {
     @Test
     void actionIsNotOverdueOnItsDueDateButIsTheDayAfter() {
         fixture.clock.moveTo(DUE_DATE);
-        assertFalse(rechargeAction.isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher).findings().getFirst().overdueActions());
+        assertFalse(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
 
         fixture.clock.advanceDays(1);
 
-        assertTrue(rechargeAction.isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(1, fixture.generateFindingsSummary.execute(fixture.extinguisher).findings().getFirst().overdueActions());
+        assertTrue(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(1, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
     }
 
     @Test
@@ -53,57 +55,57 @@ class CorrectiveActionTest {
         fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.REJECTED,
                 "Gauge still reads 5 bar");
 
-        assertFalse(rechargeAction.isClosed());
-        assertTrue(finding.isOpen());
-        assertEquals(1, rechargeAction.verifications().size());
-        assertEquals(FindingAudit.VERIFICATION_REJECTED, fixture.findingLog.historyOf(finding).getLast().action());
-        assertEquals(fixture.verifier, fixture.findingLog.historyOf(finding).getLast().performedBy());
+        assertFalse(fixture.action(finding, rechargeAction).isClosed());
+        assertTrue(fixture.finding(finding).isOpen());
+        assertEquals(1, fixture.action(finding, rechargeAction).verifications().size());
+        assertEquals(FindingAudit.VERIFICATION_REJECTED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
+        assertEquals(fixture.verifier, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().performedBy());
     }
 
     @Test
     void acceptedVerificationClosesTheActionAndItsFindingAndTheActionStopsBeingOverdue() {
         fixture.clock.moveTo(DUE_DATE.plusDays(5));
-        assertTrue(rechargeAction.isOverdueOn(LocalDate.now(fixture.clock)));
+        assertTrue(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
 
         fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.ACCEPTED,
                 "Recharged, gauge reads 7 bar");
 
-        assertTrue(rechargeAction.isClosed());
-        assertFalse(finding.isOpen());
-        assertFalse(finding.blocksCertification());
-        assertFalse(rechargeAction.isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(FindingAudit.VERIFICATION_ACCEPTED, fixture.findingLog.historyOf(finding).getLast().action());
+        assertTrue(fixture.action(finding, rechargeAction).isClosed());
+        assertFalse(fixture.finding(finding).isOpen());
+        assertFalse(fixture.finding(finding).blocksCertification());
+        assertFalse(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(FindingAudit.VERIFICATION_ACCEPTED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
     }
 
     @Test
     void acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue() {
-        CorrectiveAction replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
+        CorrectiveActionId replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
                 DUE_DATE, fixture.assetResponsible);
         fixture.clock.moveTo(DUE_DATE.plusDays(5));
 
         fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.ACCEPTED,
                 "Recharged, gauge reads 7 bar");
 
-        assertFalse(finding.isOpen());
-        assertTrue(replaceAction.isCancelled());
-        assertFalse(replaceAction.isClosed());
-        assertEquals(fixture.verifier, replaceAction.cancellation().orElseThrow().cancelledBy());
-        assertEquals(fixture.clock.instant(), replaceAction.cancellation().orElseThrow().cancelledAt());
-        assertFalse(replaceAction.isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher).findings().getFirst().overdueActions());
-        assertFalse(rechargeAction.isCancelled());
+        assertFalse(fixture.finding(finding).isOpen());
+        assertTrue(fixture.action(finding, replaceAction).isCancelled());
+        assertFalse(fixture.action(finding, replaceAction).isClosed());
+        assertEquals(fixture.verifier, fixture.action(finding, replaceAction).cancellation().orElseThrow().cancelledBy());
+        assertEquals(fixture.clock.instant(), fixture.action(finding, replaceAction).cancellation().orElseThrow().cancelledAt());
+        assertFalse(fixture.action(finding, replaceAction).isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
+        assertFalse(fixture.action(finding, rechargeAction).isCancelled());
     }
 
     @Test
     void rejectedVerificationCancelsNothing() {
-        CorrectiveAction replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
+        CorrectiveActionId replaceAction = fixture.planCorrectiveAction.execute(finding, "Replace the unit", fixture.maintenanceTechnician,
                 DUE_DATE, fixture.assetResponsible);
 
         fixture.verifyCorrectiveAction.execute(finding, rechargeAction, fixture.verifier, VerificationResult.REJECTED,
                 "Gauge still reads 5 bar");
 
-        assertFalse(replaceAction.isCancelled());
-        assertFalse(rechargeAction.isCancelled());
+        assertFalse(fixture.action(finding, replaceAction).isCancelled());
+        assertFalse(fixture.action(finding, rechargeAction).isCancelled());
     }
 
     @Test
@@ -111,18 +113,18 @@ class CorrectiveActionTest {
         assertThrows(VerificationNotesRequiredException.class, () -> fixture.verifyCorrectiveAction.execute(finding, rechargeAction,
                 fixture.verifier, VerificationResult.REJECTED, "  "));
 
-        assertTrue(rechargeAction.verifications().isEmpty());
+        assertTrue(fixture.action(finding, rechargeAction).verifications().isEmpty());
     }
 
     @Test
     void actionCanBeDueTodayButNotBeforeItIsPlanned() {
-        CorrectiveAction dueToday = fixture.planCorrectiveAction.execute(finding, "Tag the unit as out of service",
+        CorrectiveActionId dueToday = fixture.planCorrectiveAction.execute(finding, "Tag the unit as out of service",
                 fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible);
 
-        assertEquals(CertiflowFixture.TODAY, dueToday.dueDate());
+        assertEquals(CertiflowFixture.TODAY, fixture.action(finding, dueToday).dueDate());
         assertThrows(DueDateInThePastException.class, () -> fixture.planCorrectiveAction.execute(finding, "Replace the unit",
                 fixture.maintenanceTechnician, CertiflowFixture.TODAY.minusDays(1), fixture.assetResponsible));
-        assertEquals(2, finding.actions().size());
+        assertEquals(2, fixture.finding(finding).actions().size());
     }
 
     @Test
@@ -130,8 +132,8 @@ class CorrectiveActionTest {
         assertThrows(VerifierMustDifferFromResponsibleException.class, () -> fixture.verifyCorrectiveAction.execute(
                 finding, rechargeAction, fixture.maintenanceTechnician, VerificationResult.ACCEPTED, "Looks fine to me"));
 
-        assertTrue(rechargeAction.verifications().isEmpty());
-        assertTrue(finding.isOpen());
+        assertTrue(fixture.action(finding, rechargeAction).verifications().isEmpty());
+        assertTrue(fixture.finding(finding).isOpen());
     }
 
     @Test
@@ -143,7 +145,7 @@ class CorrectiveActionTest {
                 finding, rechargeAction, sameTechnician, VerificationResult.ACCEPTED, "Looks fine to me"));
         fixture.verifyCorrectiveAction.execute(finding, rechargeAction, namesake, VerificationResult.ACCEPTED, "Recharged");
 
-        assertTrue(rechargeAction.isClosed());
+        assertTrue(fixture.action(finding, rechargeAction).isClosed());
     }
 
     @Test
@@ -158,7 +160,7 @@ class CorrectiveActionTest {
 
     @Test
     void actionCanOnlyBeVerifiedThroughTheFindingItBelongsTo() {
-        Finding anotherFinding = fixture.majorFindingOf(fixture.assignedInspection());
+        FindingId anotherFinding = fixture.majorFindingOf(fixture.assignedInspection());
 
         assertThrows(CorrectiveActionNotInFindingException.class, () -> fixture.verifyCorrectiveAction.execute(anotherFinding,
                 rechargeAction, fixture.verifier, VerificationResult.ACCEPTED, "Wrong finding"));
@@ -166,13 +168,13 @@ class CorrectiveActionTest {
 
     @Test
     void planningIsAuditedAndAttributedToWhoeverPlanned() {
-        assertEquals(FindingAudit.ACTION_PLANNED, fixture.findingLog.historyOf(finding).getLast().action());
-        assertEquals(fixture.assetResponsible, fixture.findingLog.historyOf(finding).getLast().performedBy());
+        assertEquals(FindingAudit.ACTION_PLANNED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
+        assertEquals(fixture.assetResponsible, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().performedBy());
     }
 
     @Test
     void actionRemembersWhoPlannedItAndWhen() {
-        assertEquals(fixture.assetResponsible, rechargeAction.plannedBy());
-        assertEquals(fixture.clock.instant(), rechargeAction.plannedAt());
+        assertEquals(fixture.assetResponsible, fixture.action(finding, rechargeAction).plannedBy());
+        assertEquals(fixture.clock.instant(), fixture.action(finding, rechargeAction).plannedAt());
     }
 }

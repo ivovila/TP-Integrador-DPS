@@ -1,6 +1,8 @@
 package ar.edu.itba.certiflow.usecases.certificate;
 
+import ar.edu.itba.certiflow.application.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
+import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.CertificateRepository;
 import java.time.Clock;
@@ -16,7 +18,9 @@ public final class SuspendCertificate {
         this.clock = clock;
     }
 
-    public void execute(Certificate certificate, String reason, Person suspendedBy) {
+    public void execute(CertificateNumber number, String reason, Person suspendedBy) {
+        Certificate certificate = certificateRepository.findByNumber(number)
+                .orElseThrow(() -> new CertificateNotFoundException(number));
         certificate.suspend(reason, suspendedBy, clock.instant(), LocalDate.now(clock));
         certificateRepository.save(certificate);
     }

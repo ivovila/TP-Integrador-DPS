@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.evaluation.Outcome;
 import ar.edu.itba.certiflow.models.finding.Finding;
+import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAudit;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.Revision;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.RectificationReasonRequiredException;
@@ -23,26 +25,26 @@ class RectificationTest {
 
     @Test
     void rectificationPreservesTheOriginalRevisionAndIsAudited() {
-        Inspection inspection = fixture.assignedInspection();
+        InspectionId inspection = fixture.assignedInspection();
         fixture.majorFindingOf(inspection);
         fixture.clock.advanceDays(2);
 
         fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), REASON, fixture.certifier);
 
-        assertEquals(Outcome.APPROVED, inspection.evaluate().outcomeOf(fixture.pressureCriterion));
-        Revision originalRevision = inspection.originalRevision();
+        assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        Revision originalRevision = fixture.inspection(inspection).originalRevision();
         assertEquals(1, originalRevision.number());
         assertEquals(Outcome.REJECTED, originalRevision.evaluation().outcomeOf(fixture.pressureCriterion));
         assertEquals(fixture.inspector, originalRevision.sealedBy());
 
-        Revision rectifiedRevision = inspection.revisions().getLast();
+        Revision rectifiedRevision = fixture.inspection(inspection).revisions().getLast();
         assertEquals(2, rectifiedRevision.number());
         assertEquals(REASON, rectifiedRevision.reason());
         assertEquals(fixture.certifier, rectifiedRevision.sealedBy());
         assertEquals(fixture.clock.instant(), rectifiedRevision.sealedAt());
         assertEquals(Outcome.APPROVED, rectifiedRevision.evaluation().outcomeOf(fixture.pressureCriterion));
 
-        AuditEntry rectificationEntry = fixture.inspectionLog.historyOf(inspection).getLast();
+        AuditEntry rectificationEntry = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).getLast();
         assertEquals(InspectionAudit.RECTIFIED, rectificationEntry.action());
         assertEquals(fixture.certifier, rectificationEntry.performedBy());
         assertTrue(rectificationEntry.detail().contains(REASON));
@@ -50,7 +52,7 @@ class RectificationTest {
 
     @Test
     void inspectionStillInProgressIsCorrectedDirectlyAndCannotBeRectified() {
-        Inspection inProgress = fixture.assignedInspection();
+        InspectionId inProgress = fixture.assignedInspection();
 
         assertThrows(InspectionNotClosedException.class,
                 () -> fixture.rectifyInspection.execute(inProgress, fixture.pressureCriterion, fixture.numericAnswer("7.00"), REASON, fixture.certifier));
@@ -58,24 +60,24 @@ class RectificationTest {
 
     @Test
     void rectificationWithoutReasonIsRejectedAndChangesNothing() {
-        Inspection inspection = fixture.assignedInspection();
+        InspectionId inspection = fixture.assignedInspection();
         fixture.majorFindingOf(inspection);
 
         assertThrows(RectificationReasonRequiredException.class,
                 () -> fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), "  ", fixture.certifier));
 
-        assertEquals(Outcome.REJECTED, inspection.evaluate().outcomeOf(fixture.pressureCriterion));
-        assertEquals(1, inspection.revisions().size());
+        assertEquals(Outcome.REJECTED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(1, fixture.inspection(inspection).revisions().size());
     }
 
     @Test
     void rectificationLeavesFindingsAlreadyRaisedUntouched() {
-        Inspection inspection = fixture.assignedInspection();
-        Finding finding = fixture.majorFindingOf(inspection);
+        InspectionId inspection = fixture.assignedInspection();
+        FindingId finding = fixture.majorFindingOf(inspection);
 
         fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), REASON, fixture.certifier);
 
-        assertTrue(finding.isOpen());
-        assertTrue(finding.blocksCertification());
+        assertTrue(fixture.finding(finding).isOpen());
+        assertTrue(fixture.finding(finding).blocksCertification());
     }
 }

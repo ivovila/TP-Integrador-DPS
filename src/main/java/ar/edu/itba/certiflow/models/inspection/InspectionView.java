@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface InspectionView {
 
+    InspectionId id();
+
     Evaluation evaluate();
 
     boolean coversWholeSchema();

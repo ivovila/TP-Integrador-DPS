@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.InspectionSchema;
 import ar.edu.itba.certiflow.models.schema.Section;
@@ -27,11 +28,11 @@ class SchemaVersioningTest {
 
     @Test
     void newSchemaVersionDoesNotAffectAnInspectionAlreadyStarted() {
-        Inspection startedInspection = fixture.assignedInspection();
+        InspectionId startedInspection = fixture.assignedInspection();
 
         fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
 
-        assertEquals(1, startedInspection.schemaVersion().number());
+        assertEquals(1, fixture.inspection(startedInspection).schemaVersion().number());
         assertThrows(CriterionNotInSchemaException.class,
                 () -> fixture.recordAnswer.execute(startedInspection, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
         fixture.answerAll(startedInspection, "7.00", YesNoAnswer.YES, "VISIBLE");
@@ -42,9 +43,9 @@ class SchemaVersioningTest {
     void inspectionsAssignedAfterPublishingUseTheNewVersion() {
         fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
 
-        Inspection inspectionAssignedLater = fixture.assignedInspection();
+        InspectionId inspectionAssignedLater = fixture.assignedInspection();
 
-        assertEquals(2, inspectionAssignedLater.schemaVersion().number());
+        assertEquals(2, fixture.inspection(inspectionAssignedLater).schemaVersion().number());
         assertDoesNotThrow(() -> fixture.recordAnswer.execute(inspectionAssignedLater, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
     }
 

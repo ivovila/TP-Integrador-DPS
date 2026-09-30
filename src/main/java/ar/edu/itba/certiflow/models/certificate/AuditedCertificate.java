@@ -66,7 +66,7 @@ final class AuditedCertificate implements Certificate {
     }
 
     @Override
-    public InspectionView basedOn() {
+    public InspectionReference basedOn() {
         return certificate.basedOn();
     }
 

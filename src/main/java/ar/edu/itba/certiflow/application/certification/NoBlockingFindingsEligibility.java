@@ -28,7 +28,7 @@ public final class NoBlockingFindingsEligibility implements CertificationEligibi
         List<Finding> assetFindings = findingRepository.findByAsset(inspection.asset());
         List<String> unaddressedNonConformities = inspection.evaluate().nonConformities().stream()
                 .filter(nonConformity -> nonConformity.criterion().severity().blocksCertification())
-                .filter(nonConformity -> assetFindings.stream().noneMatch(finding -> finding.raisedFrom(inspection, nonConformity)))
+                .filter(nonConformity -> assetFindings.stream().noneMatch(finding -> finding.raisedFrom(inspection.id(), nonConformity)))
                 .map(nonConformity -> nonConformity.criterion().code())
                 .toList();
         if (!unaddressedNonConformities.isEmpty()) {

@@ -142,3 +142,38 @@ como record, de modo que publicar cree un esquema nuevo.
   `create`, y los campos de los casos de uso a `...Factory`.
 - `DESIGN.md`: D7, D10, sección 4 (la fila de Factory ahora explica que se aplica Factory de creación y no
   Factory con selección) y limitaciones. `docs/certiflow-domain.puml`: métodos `create`.
+
+## 13. Agregados sin identidad y casos de uso que reciben el agregado vivo
+
+**Corrección:** `Inspection`, `Finding` y `Certificate` no tenían id, entre agregados se referenciaba por objeto
+(`StandardFinding` guardaba `InspectionView`, `StandardCertificate` guardaba `basedOn`), los repositorios no
+tenían `findById` (`InspectionRepository.findByAsset` no lo usaba nadie) y los casos de uso recibían el agregado,
+por lo que quien llamaba podía saltearlos.
+
+**Decisión:** ids como records; los genera el repositorio. `Asset` y `AuditLog` se mantienen por objeto.
+
+**Cambios:**
+- Nuevos records `InspectionId`, `FindingId` y `CorrectiveActionId` (local al hallazgo, numerado 1, 2, …).
+  `Certificate` ya se identificaba por `CertificateNumber`.
+- `InspectionView.id()`, `Finding.id()`, `CorrectiveAction.id()`.
+- Referencias por id: `Finding` guarda `InspectionId` (`inspectionId()` reemplaza a `inspection()`,
+  `raisedFrom(InspectionId, ...)`); `Certificate` guarda `InspectionReference(id, closedAt)` en `basedOn()`.
+  `InspectionClosed` lleva `InspectionId` y `Asset` en lugar de la inspección, y desaparece el `from(this)` del decorador.
+- Puertos: `InspectionRepository {nextId, save, findById}` (se elimina `findByAsset`),
+  `FindingRepository` suma `nextId` y `findById`, `CertificateRepository` suma `findByNumber`. Implementaciones en
+  memoria indexadas por id con `UUID` para `nextId`.
+- Casos de uso reciben y devuelven ids: `AssignInspection(AssetCode, …) → InspectionId`, `RecordAnswer`,
+  `AttachEvidence`, `AddObservation`, `RectifyInspection` y `CloseInspection(InspectionId, …) → List<FindingId>`,
+  `PlanCorrectiveAction(FindingId, …) → CorrectiveActionId`, `VerifyCorrectiveAction(FindingId, CorrectiveActionId, …)`,
+  `IssueCertificate(InspectionId, …) → CertificateNumber`, `RenewCertificate(CertificateNumber, InspectionId, …)`,
+  `SuspendCertificate(CertificateNumber, …)`, `GenerateInspectionAct(InspectionId)`,
+  `GenerateFindingsSummary(AssetCode)`, `GenerateCertificateDocument(CertificateNumber)`.
+- Nuevas excepciones `AssetNotFoundException`, `InspectionNotFoundException`, `FindingNotFoundException`,
+  `CertificateNotFoundException`.
+- `AuditedFindingFactory.create(InspectionClosed, Supplier<FindingId>)`; `AuditedInspectionFactory.create` recibe el id.
+- Tests: todos pasan a trabajar con ids (el fixture suma `inspection(id)`, `finding(id)`, `action(...)`,
+  `certificate(number)`); nuevo `AggregateIdentityTest`.
+- `DESIGN.md`: S15, D3 (reescrita), D9, D13 y tabla de tests. `docs/certiflow-domain.puml`: repositorios, ids y
+  referencias.
+- Queda resuelto el pendiente de la corrección 1: `close()` ya no se invoca desde afuera porque los casos de uso
+  no reciben el agregado.

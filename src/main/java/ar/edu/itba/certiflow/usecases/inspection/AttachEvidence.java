@@ -1,7 +1,9 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
+import ar.edu.itba.certiflow.application.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
@@ -17,7 +19,9 @@ public final class AttachEvidence {
         this.clock = clock;
     }
 
-    public void execute(Inspection inspection, Criterion<?> criterion, Evidence evidence, Person attachedBy) {
+    public void execute(InspectionId inspectionId, Criterion<?> criterion, Evidence evidence, Person attachedBy) {
+        Inspection inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
         inspection.attachEvidence(criterion, evidence, attachedBy, clock.instant());
         inspectionRepository.save(inspection);
     }

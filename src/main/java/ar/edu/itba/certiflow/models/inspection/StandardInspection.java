@@ -20,13 +20,15 @@ final class StandardInspection implements Inspection {
 
     private static final String CLOSURE_REASON = "Inspection closed";
 
+    private final InspectionId id;
     private final Asset asset;
     private final InspectionAssignment assignment;
     private final SchemaVersion schemaVersion;
     private final Map<Criterion<?>, CriterionResponse<?>> responses = new LinkedHashMap<>();
     private final List<Revision> revisions = new ArrayList<>();
 
-    StandardInspection(Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion) {
+    StandardInspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion) {
+        this.id = id;
         this.asset = asset;
         this.assignment = assignment;
         this.schemaVersion = schemaVersion;
@@ -59,7 +61,7 @@ final class StandardInspection implements Inspection {
         Evaluation evaluation = evaluate();
         evaluation.ensureComplete();
         revisions.add(new Revision(1, CLOSURE_REASON, evaluation, closedBy, closedAt));
-        return new InspectionClosed(this, evaluation.nonConformities(), closedBy, closedAt);
+        return new InspectionClosed(id, asset, evaluation.nonConformities(), closedBy, closedAt);
     }
 
     @Override
@@ -96,6 +98,11 @@ final class StandardInspection implements Inspection {
     @Override
     public List<Revision> revisions() {
         return List.copyOf(revisions);
+    }
+
+    @Override
+    public InspectionId id() {
+        return id;
     }
 
     @Override

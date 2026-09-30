@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
 import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.models.inspection.InspectionView;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -16,7 +16,7 @@ public interface Finding {
     CorrectiveAction planAction(String description, Person responsible, LocalDate dueDate, Person plannedBy, Instant plannedAt,
                                 LocalDate plannedOn);
 
-    Verification verifyAction(CorrectiveAction correctiveAction, Person verifier, VerificationResult verificationResult, String verificationNotes,
+    Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult, String verificationNotes,
                               Instant verifiedAt);
 
     boolean isOpen();
@@ -25,9 +25,11 @@ public interface Finding {
 
     boolean concerns(Asset asset);
 
-    boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity);
+    boolean raisedFrom(InspectionId sourceInspection, CriterionResponse<?> nonConformity);
 
-    InspectionView inspection();
+    FindingId id();
+
+    InspectionId inspectionId();
 
     Criterion<?> criterion();
 

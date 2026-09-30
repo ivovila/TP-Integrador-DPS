@@ -7,7 +7,7 @@ import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
 import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
-import ar.edu.itba.certiflow.models.inspection.InspectionView;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
@@ -38,9 +38,9 @@ final class AuditedFinding implements Finding {
     }
 
     @Override
-    public Verification verifyAction(CorrectiveAction correctiveAction, Person verifier, VerificationResult verificationResult, String verificationNotes,
-                                     Instant verifiedAt) {
-        Verification verification = finding.verifyAction(correctiveAction, verifier, verificationResult, verificationNotes, verifiedAt);
+    public Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
+                                     String verificationNotes, Instant verifiedAt) {
+        Verification verification = finding.verifyAction(actionId, verifier, verificationResult, verificationNotes, verifiedAt);
         record(AUDIT_BY_RESULT.get(verificationResult), verifier, verifiedAt, verificationNotes);
         return verification;
     }
@@ -61,13 +61,18 @@ final class AuditedFinding implements Finding {
     }
 
     @Override
-    public boolean raisedFrom(InspectionView sourceInspection, CriterionResponse<?> nonConformity) {
+    public boolean raisedFrom(InspectionId sourceInspection, CriterionResponse<?> nonConformity) {
         return finding.raisedFrom(sourceInspection, nonConformity);
     }
 
     @Override
-    public InspectionView inspection() {
-        return finding.inspection();
+    public FindingId id() {
+        return finding.id();
+    }
+
+    @Override
+    public InspectionId inspectionId() {
+        return finding.inspectionId();
     }
 
     @Override
