@@ -22,8 +22,8 @@ public final class PublishSchemaVersion {
     public SchemaVersion execute(AssetType assetType, List<Section> sections) {
         InspectionSchema schema = inspectionSchemaRepository.findByAssetType(assetType)
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(assetType));
-        SchemaVersion publishedVersion = schema.publish(sections, clock.instant());
-        inspectionSchemaRepository.save(schema);
-        return publishedVersion;
+        InspectionSchema updatedSchema = schema.withNewVersion(sections, clock.instant());
+        inspectionSchemaRepository.save(updatedSchema);
+        return updatedSchema.currentVersion();
     }
 }

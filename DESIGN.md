@@ -15,7 +15,7 @@ mvn clean test
 | # | Tema | Decisión | Consecuencia |
 |---|---|---|---|
 | S1 | "Inspección iniciada" | La inspección nace asignada y abierta en un solo paso, y en ese momento captura la `SchemaVersion` vigente, que es inmutable. | Publicar una versión nueva crea otro objeto; la inspección conserva su referencia. Un criterio agregado en v2 lanza `CriterionNotInSchemaException` en una inspección abierta con v1. |
-| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
+| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones guardadas en un `SchemaVersionLog` numerado de forma consecutiva desde 1. `InspectionSchema` es un record inmutable: `withNewVersion(...)` devuelve un esquema nuevo con el log extendido y el anterior queda intacto; el repositorio reemplaza el esquema de ese tipo de activo. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
 | S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
 | S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. `close()` devuelve el evento `InspectionClosed` con las no conformidades, y los hallazgos se generan a partir de él. | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. Si alguien cierra sin generar los hallazgos, la elegibilidad lo detecta (S5). |
 | S5 | Qué bloquea la certificación | Los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Además, toda no conformidad bloqueante de la evaluación vigente de la inspección tiene que tener su hallazgo; si no lo tiene, se rechaza con `UnaddressedNonConformitiesPreventCertificationException`. Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. Ni un cierre directo del agregado ni una rectificación que introduce un rechazo dejan certificable la inspección. |
@@ -260,6 +260,7 @@ determinista y los tests usan un reloj controlable.
 | Dos homónimos se consideran la misma persona | `PersonTest`, `CorrectiveActionTest.namesakeOfTheResponsibleCanVerifyButTheResponsibleUnderAnotherSpellingCannot` |
 | El alcance de una inspección no restringe qué se inspecciona, o una inspección parcial certifica | `InspectionScopeTest` |
 | Características del activo duplicadas o vacías | `CharacteristicsTest` |
+| Publicar una versión modifica el esquema existente, o el log de versiones tiene huecos | `SchemaVersioningTest.publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched`, `SchemaVersionLogTest` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
@@ -289,7 +290,7 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 94 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 97 tests.
 
 ---
 

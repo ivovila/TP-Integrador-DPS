@@ -111,3 +111,22 @@ pasado; se podía suspender un certificado vencido; se podía renovar con la mis
 - Fixture: el esquema pasa a tener dos secciones (`Pressure and seal`, `Signage`) para probar alcances parciales.
 - Tests: `InspectionScopeTest`, `CharacteristicsTest`.
 - `DESIGN.md`: S17, S18 y tabla de tests. `docs/certiflow-domain.puml`: `Characteristics` e `InspectionScope`.
+
+## 7. `InspectionSchema` mutable (y nombre de `publish`)
+
+**Corrección:** `InspectionSchema` era una clase `final` pero con una lista de versiones mutable, y el método
+`publish` sugería una arquitectura orientada a eventos. Se proponía un `SchemaVersionLog` y dejar el esquema
+como record, de modo que publicar cree un esquema nuevo.
+
+**Decisión:** solo se aplica a `InspectionSchema`. El resto de la corrección (colecciones de dominio como
+`Responses` e inmutabilidad de `Inspection`) se descartó.
+
+**Cambios:**
+- Nuevo `SchemaVersionLog(List<SchemaVersion>)`: inmutable, no vacío, numeración consecutiva desde 1;
+  `startingWith(...)`, `append(...)` (devuelve un log nuevo) y `current()`.
+- `InspectionSchema` pasa a `record(name, assetType, versionLog)`. `publish` se renombra a
+  `withNewVersion(sections, publishedAt)` y devuelve un `InspectionSchema` nuevo.
+- `PublishSchemaVersion` guarda el esquema nuevo y devuelve su versión vigente.
+- `InMemoryInspectionSchemaRepository` guarda por `AssetType` (un `Map`), así el esquema nuevo reemplaza al anterior.
+- Tests: `SchemaVersioningTest.publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched`, `SchemaVersionLogTest`.
+- `DESIGN.md`: S2 y tabla de tests. `docs/certiflow-domain.puml`: `InspectionSchema` y `SchemaVersionLog`.

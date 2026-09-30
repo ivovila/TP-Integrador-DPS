@@ -148,13 +148,19 @@ package "models.evaluation" {
 }
 
 package "models.schema" {
-  class InspectionSchema <<aggregate root>> {
-    -name: String
-    -assetType: AssetType
-    -versions: List<SchemaVersion>
-    +publish(List<Section>, Instant): SchemaVersion
+  class InspectionSchema <<aggregate root inmutable>> {
+    name: String
+    assetType: AssetType
+    versionLog: SchemaVersionLog
+    +withNewVersion(List<Section>, Instant): InspectionSchema
     +currentVersion(): SchemaVersion
     +appliesTo(AssetType): boolean
+  }
+  class SchemaVersionLog <<value object inmutable>> {
+    versions: List<SchemaVersion>
+    +{static} startingWith(List<Section>, Instant): SchemaVersionLog
+    +append(List<Section>, Instant): SchemaVersionLog
+    +current(): SchemaVersion
   }
   class SchemaVersion <<value object inmutable>> {
     number: int
@@ -176,7 +182,8 @@ package "models.schema" {
     +outcomeOf(A): Outcome
     +evidenceRequirementsMetBy(List<Evidence>): boolean
   }
-  InspectionSchema "1" *-- "1..*" SchemaVersion
+  InspectionSchema *-- SchemaVersionLog
+  SchemaVersionLog "1" *-- "1..*" SchemaVersion
   SchemaVersion *-- "1..*" Section
   Section *-- "1..*" Criterion
   Criterion --> ApprovalRule

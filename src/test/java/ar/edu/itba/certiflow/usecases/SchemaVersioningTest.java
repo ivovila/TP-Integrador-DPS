@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.schema.Criterion;
+import ar.edu.itba.certiflow.models.schema.InspectionSchema;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.schema.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
@@ -45,6 +46,20 @@ class SchemaVersioningTest {
 
         assertEquals(2, inspectionAssignedLater.schemaVersion().number());
         assertDoesNotThrow(() -> fixture.recordAnswer.execute(inspectionAssignedLater, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
+    }
+
+    @Test
+    void publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched() {
+        InspectionSchema before = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
+
+        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
+
+        InspectionSchema after = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
+        assertEquals(1, before.versions().size());
+        assertEquals(1, before.currentVersion().number());
+        assertEquals(2, after.versions().size());
+        assertEquals(2, after.currentVersion().number());
+        assertEquals(before.versions().getFirst(), after.versions().getFirst());
     }
 
     @Test
