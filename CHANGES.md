@@ -177,3 +177,17 @@ por lo que quien llamaba podía saltearlos.
   referencias.
 - Queda resuelto el pendiente de la corrección 1: `close()` ya no se invoca desde afuera porque los casos de uso
   no reciben el agregado.
+
+## 8. "Cero if" como dogma
+
+**Corrección:** la tabla `Map<VerificationResult, FindingAudit>` en `AuditedFinding` era un `switch` disfrazado;
+era más simple que `VerificationResult` conociera su `FindingAudit`. Además `StandardCertificate.suspend` usaba un
+`if` sobre el estado, lo que contradecía lo que decía `DESIGN.md`.
+
+**Cambios:**
+- `VerificationResult` suma `audit()`: `ACCEPTED → VERIFICATION_ACCEPTED`, `REJECTED → VERIFICATION_REJECTED`.
+  Se elimina el `Map` de `AuditedFinding`, que ahora registra `verificationResult.audit()`.
+- `DESIGN.md` D8 reescrita: polimorfismo cuando la variación es por tipo y crece; `if` común para guardas y
+  decisiones puntuales (la guarda de `suspend`, que desde la corrección 3 mira `statusOn`, y la cancelación de
+  acciones de la corrección 2). Se deja de presentar "cero `if`" como regla.
+- Los tests existentes de auditoría de verificaciones (`CorrectiveActionTest`) cubren el cambio.

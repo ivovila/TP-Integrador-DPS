@@ -188,9 +188,10 @@ determinista y los tests usan un reloj controlable.
 
 ### D8. Política de condicionales
 
-- **Regla:** `if` solo como cláusula de guarda que lanza una excepción. Nunca `if`, `switch` ni `instanceof` para decidir por tipo o por estado.
-- **Qué reemplaza a los condicionales:** genéricos (D1), enums con comportamiento (`Severity`, `Outcome.raisesFinding`, `VerificationResult.closesAction`, `CertificateLifecycle.statusOn`), estado derivado (D5), `Optional.orElseThrow` e `ifPresent` en búsquedas, streams para selección, y una tabla `Map<VerificationResult, FindingAudit>`.
-- **`Optional`** se usa solo donde la ausencia es un resultado legítimo: `CriterionResponse.answer()` y las búsquedas de repositorio. No se usa como control de flujo.
+- **Regla:** polimorfismo cuando la variación es por tipo y se espera que crezca; `if` común cuando es una decisión de negocio puntual que no va a crecer. No se busca "cero `if`" como fin en sí mismo: un condicional disfrazado (una tabla `Map` que hace de `switch`, un enum que solo existe para esquivar un `if`) es menos legible que el condicional.
+- **Polimorfismo o enums con comportamiento:** reglas de aprobación (D1), `Severity`, `Outcome.raisesFinding`, `CertificateLifecycle.statusOn`, `InspectionScope`, estado derivado (D5). Cada `VerificationResult` conoce su propia `FindingAudit` (`result.audit()`), en lugar de una tabla `Map<VerificationResult, FindingAudit>` en el decorador.
+- **`if` común:** las cláusulas de guarda que lanzan una excepción (por ejemplo `StandardCertificate.suspend` exige que el certificado esté `ACTIVE`) y decisiones puntuales como "si la verificación fue aceptada, cancelar las demás acciones" (`StandardFinding.verifyAction`).
+- **`Optional`** se usa solo donde la ausencia es un resultado legítimo: `CriterionResponse.answer()`, la cancelación de una acción y las búsquedas de repositorio. No se usa como control de flujo.
 
 ### D9. Puertos segregados
 

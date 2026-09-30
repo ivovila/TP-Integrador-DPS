@@ -13,13 +13,8 @@ import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 final class AuditedFinding implements Finding {
-
-    private static final Map<VerificationResult, FindingAudit> AUDIT_BY_RESULT = Map.of(
-            VerificationResult.ACCEPTED, FindingAudit.VERIFICATION_ACCEPTED,
-            VerificationResult.REJECTED, FindingAudit.VERIFICATION_REJECTED);
 
     private final Finding finding;
     private final AuditLog<Finding> auditLog;
@@ -41,7 +36,7 @@ final class AuditedFinding implements Finding {
     public Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
                                      String verificationNotes, Instant verifiedAt) {
         Verification verification = finding.verifyAction(actionId, verifier, verificationResult, verificationNotes, verifiedAt);
-        record(AUDIT_BY_RESULT.get(verificationResult), verifier, verifiedAt, verificationNotes);
+        record(verificationResult.audit(), verifier, verifiedAt, verificationNotes);
         return verification;
     }
 
