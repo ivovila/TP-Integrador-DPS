@@ -4,17 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.application.exceptions.AssetAlreadyCertifiedException;
-import ar.edu.itba.certiflow.application.exceptions.BlockingFindingsPreventCertificationException;
-import ar.edu.itba.certiflow.application.exceptions.UnaddressedNonConformitiesPreventCertificationException;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateAudit;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certificate.CertificateStatus;
+import ar.edu.itba.certiflow.models.certificate.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotActiveException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.RenewalRequiresLaterInspectionException;
+import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
@@ -23,7 +22,6 @@ import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.finding.VerificationResult;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
-import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.time.LocalDate;
 import java.util.List;
@@ -40,7 +38,7 @@ class CertificationTest {
         InspectionId inspection = fixture.assignedInspection();
         fixture.majorFindingOf(inspection);
 
-        assertThrows(BlockingFindingsPreventCertificationException.class,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier));
     }
 
@@ -50,7 +48,7 @@ class CertificationTest {
         fixture.answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
         fixture.inspection(inspection).close(fixture.inspector, fixture.clock.instant());
 
-        assertThrows(UnaddressedNonConformitiesPreventCertificationException.class,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.UNADDRESSED_NON_CONFORMITIES,
                 () -> fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier));
     }
 
@@ -60,7 +58,7 @@ class CertificationTest {
         fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("5.00"),
                 "Gauge reading was transcribed incorrectly: 7.00 instead of 5.00", fixture.certifier);
 
-        assertThrows(UnaddressedNonConformitiesPreventCertificationException.class,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.UNADDRESSED_NON_CONFORMITIES,
                 () -> fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier));
     }
 
@@ -98,7 +96,7 @@ class CertificationTest {
     void inspectionStillInProgressCannotBackACertificate() {
         InspectionId inspectionInProgress = fixture.assignedInspection();
 
-        assertThrows(InspectionNotClosedException.class,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.INSPECTION_NOT_CLOSED,
                 () -> fixture.issueCertificate.execute(inspectionInProgress, VALID_UNTIL, fixture.certifier));
     }
 
@@ -229,7 +227,7 @@ class CertificationTest {
         InspectionId failedReinspection = fixture.assignedInspection();
         fixture.majorFindingOf(failedReinspection);
 
-        assertThrows(BlockingFindingsPreventCertificationException.class, () -> fixture.renewCertificate.execute(originalCertificate,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.renewCertificate.execute(originalCertificate,
                 failedReinspection, VALID_UNTIL.plusYears(1), fixture.certifier));
         assertEquals(CertificateStatus.ACTIVE, fixture.certificate(originalCertificate).statusOn(LocalDate.now(fixture.clock)));
     }

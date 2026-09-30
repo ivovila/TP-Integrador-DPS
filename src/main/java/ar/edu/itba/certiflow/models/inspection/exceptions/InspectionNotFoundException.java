@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.application.exceptions;
+package ar.edu.itba.certiflow.models.inspection.exceptions;
 
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.shared.DomainException;

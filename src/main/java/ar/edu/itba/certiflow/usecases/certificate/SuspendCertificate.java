@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.usecases.certificate;
 
-import ar.edu.itba.certiflow.application.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
+import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.CertificateRepository;
 import java.time.Clock;

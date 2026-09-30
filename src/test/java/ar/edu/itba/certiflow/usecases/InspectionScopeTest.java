@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
 import ar.edu.itba.certiflow.models.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.SectionsScope;
 import ar.edu.itba.certiflow.models.inspection.exceptions.CriterionOutOfScopeException;
-import ar.edu.itba.certiflow.models.inspection.exceptions.PartialInspectionCannotCertifyException;
 import ar.edu.itba.certiflow.models.schema.exceptions.SectionNotInSchemaException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.util.Set;
@@ -54,7 +54,7 @@ class InspectionScopeTest {
         fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
         fixture.closeInspection.execute(inspection, fixture.inspector);
 
-        assertThrows(PartialInspectionCannotCertifyException.class, () -> fixture.issueCertificate.execute(inspection,
+        CertiflowFixture.assertNotEligible(IneligibilityReason.PARTIAL_INSPECTION, () -> fixture.issueCertificate.execute(inspection,
                 CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
     }
 }

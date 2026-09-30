@@ -1,11 +1,11 @@
 package ar.edu.itba.certiflow.usecases.finding;
 
-import ar.edu.itba.certiflow.application.exceptions.FindingNotFoundException;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.finding.Verification;
 import ar.edu.itba.certiflow.models.finding.VerificationResult;
+import ar.edu.itba.certiflow.models.finding.exceptions.FindingNotFoundException;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.FindingRepository;
 import java.time.Clock;

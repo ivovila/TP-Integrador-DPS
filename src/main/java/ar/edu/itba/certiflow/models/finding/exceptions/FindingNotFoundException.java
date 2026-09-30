@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.application.exceptions;
+package ar.edu.itba.certiflow.models.finding.exceptions;
 
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.shared.DomainException;

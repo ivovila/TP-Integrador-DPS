@@ -4,18 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ar.edu.itba.certiflow.application.exceptions.AssetNotFoundException;
-import ar.edu.itba.certiflow.application.exceptions.CertificateNotFoundException;
-import ar.edu.itba.certiflow.application.exceptions.FindingNotFoundException;
-import ar.edu.itba.certiflow.application.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.asset.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
+import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
 import ar.edu.itba.certiflow.models.finding.FindingId;
+import ar.edu.itba.certiflow.models.finding.exceptions.FindingNotFoundException;
 import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
+import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import org.junit.jupiter.api.Test;
 

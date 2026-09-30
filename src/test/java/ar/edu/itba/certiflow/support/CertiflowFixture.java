@@ -1,7 +1,8 @@
 package ar.edu.itba.certiflow.support;
 
-import ar.edu.itba.certiflow.application.certification.CertificationEligibility;
-import ar.edu.itba.certiflow.application.certification.NoBlockingFindingsEligibility;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import ar.edu.itba.certiflow.details.inmemory.InMemoryAssetRepository;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.details.inmemory.InMemoryCertificateRepository;
@@ -19,6 +20,10 @@ import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
+import ar.edu.itba.certiflow.models.certification.CertificationEligibility;
+import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
+import ar.edu.itba.certiflow.models.certification.NoBlockingFindingsEligibility;
+import ar.edu.itba.certiflow.models.certification.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.evaluation.EvidenceRequirement;
 import ar.edu.itba.certiflow.models.evaluation.NumericAnswer;
@@ -47,6 +52,7 @@ import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.models.shared.PersonId;
 import ar.edu.itba.certiflow.usecases.asset.RegisterAsset;
+import ar.edu.itba.certiflow.usecases.certificate.EvaluateCertification;
 import ar.edu.itba.certiflow.usecases.certificate.IssueCertificate;
 import ar.edu.itba.certiflow.usecases.certificate.RenewCertificate;
 import ar.edu.itba.certiflow.usecases.certificate.SuspendCertificate;
@@ -68,6 +74,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.function.Executable;
 
 public final class CertiflowFixture {
 
@@ -119,12 +126,14 @@ public final class CertiflowFixture {
     public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummary(assetRepository, findingRepository, clock);
     public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocument(certificateRepository, clock);
 
-    private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility(findingRepository);
+    private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility();
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificate issueCertificate = new IssueCertificate(inspectionRepository, certificateRepository, certificationEligibility, certificateNumbering,
+    public final IssueCertificate issueCertificate = new IssueCertificate(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering,
             new AuditedCertificateFactory(certificateLog), clock);
+    public final EvaluateCertification evaluateCertification = new EvaluateCertification(inspectionRepository, findingRepository,
+            certificationEligibility);
     public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, clock);
-    public final RenewCertificate renewCertificate = new RenewCertificate(inspectionRepository, certificateRepository, certificationEligibility, certificateNumbering, clock);
+    public final RenewCertificate renewCertificate = new RenewCertificate(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, clock);
 
     public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
@@ -161,6 +170,11 @@ public final class CertiflowFixture {
 
     public Certificate certificate(CertificateNumber number) {
         return certificateRepository.findByNumber(number).orElseThrow();
+    }
+
+    public static void assertNotEligible(IneligibilityReason reason, Executable certification) {
+        NotEligibleForCertificationException rejection = assertThrows(NotEligibleForCertificationException.class, certification);
+        assertTrue(rejection.decision().isBlockedBy(reason), rejection.getMessage());
     }
 
     public NumericAnswer numericAnswer(String decimalValue) {

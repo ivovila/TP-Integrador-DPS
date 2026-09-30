@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ar.edu.itba.certiflow.application.exceptions.NoInspectionSchemaForAssetTypeException;
-import ar.edu.itba.certiflow.application.exceptions.SchemaAlreadyDefinedForAssetTypeException;
 import ar.edu.itba.certiflow.models.asset.AssetType;
 import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
@@ -16,6 +14,8 @@ import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.InspectionSchema;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.schema.exceptions.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.models.schema.exceptions.NoInspectionSchemaForAssetTypeException;
+import ar.edu.itba.certiflow.models.schema.exceptions.SchemaAlreadyDefinedForAssetTypeException;
 import ar.edu.itba.certiflow.support.CertiflowFixture;
 import java.util.List;
 import org.junit.jupiter.api.Test;

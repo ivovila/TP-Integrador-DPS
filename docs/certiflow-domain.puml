@@ -484,11 +484,32 @@ package "ports" {
   }
 }
 
-package "application" {
-  interface CertificationEligibility <<politica intercambiable>> {
-    +ensureEligible(Inspection)
+package "models.certification" {
+  interface CertificationEligibility <<servicio de dominio, politica intercambiable>> {
+    +evaluate(InspectionView, List<Finding>): CertificationDecision
   }
   class NoBlockingFindingsEligibility
+  class CertificationDecision <<value object>> {
+    ineligibilities: List<Ineligibility>
+    +isEligible(): boolean
+    +isBlockedBy(IneligibilityReason): boolean
+  }
+  class Ineligibility <<value object>> {
+    reason: IneligibilityReason
+    detail: String
+  }
+  enum IneligibilityReason {
+    INSPECTION_NOT_CLOSED
+    PARTIAL_INSPECTION
+    UNADDRESSED_NON_CONFORMITIES
+    BLOCKING_FINDINGS
+  }
+  CertificationEligibility ..> CertificationDecision
+  CertificationDecision *-- Ineligibility
+  Ineligibility --> IneligibilityReason
+}
+
+package "application" {
   class "Modelos de lectura (application.report)" as ReadModels {
     InspectionAct / ActLine
     FindingsSummary / FindingLine
@@ -505,14 +526,13 @@ package "usecases" {
     RecordAnswer / AttachEvidence / AddObservation
     CloseInspection / RectifyInspection
     PlanCorrectiveAction / VerifyCorrectiveAction
-    IssueCertificate / SuspendCertificate / RenewCertificate
+    IssueCertificate / SuspendCertificate / RenewCertificate / EvaluateCertification
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..reciben objetos del modelo, puertos y java.time.Clock..
+    ..reciben ids, puertos y java.time.Clock..
   }
 }
 
 CertificationEligibility <|.. NoBlockingFindingsEligibility
-NoBlockingFindingsEligibility ..> FindingRepository
 UseCases ..> AssetRepository
 UseCases ..> InspectionSchemaRepository
 UseCases ..> InspectionRepository

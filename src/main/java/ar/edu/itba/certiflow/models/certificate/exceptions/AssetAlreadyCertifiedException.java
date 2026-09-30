@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.application.exceptions;
+package ar.edu.itba.certiflow.models.certificate.exceptions;
 
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;

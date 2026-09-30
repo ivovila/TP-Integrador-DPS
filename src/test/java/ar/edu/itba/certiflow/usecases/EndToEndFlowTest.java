@@ -4,16 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.application.exceptions.AssetAlreadyRegisteredException;
-import ar.edu.itba.certiflow.application.exceptions.BlockingFindingsPreventCertificationException;
 import ar.edu.itba.certiflow.application.report.ActLine;
 import ar.edu.itba.certiflow.application.report.CertificateDocument;
 import ar.edu.itba.certiflow.application.report.FindingsSummary;
 import ar.edu.itba.certiflow.application.report.InspectionAct;
+import ar.edu.itba.certiflow.models.asset.exceptions.AssetAlreadyRegisteredException;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certificate.CertificateStatus;
+import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
 import ar.edu.itba.certiflow.models.evaluation.OptionAnswer;
 import ar.edu.itba.certiflow.models.evaluation.Outcome;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
@@ -65,7 +65,7 @@ class EndToEndFlowTest {
         FindingsSummary summaryAfterClosing = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(2, summaryAfterClosing.openFindings());
         assertEquals(1, summaryAfterClosing.blockingFindings());
-        assertThrows(BlockingFindingsPreventCertificationException.class, () -> fixture.issueCertificate.execute(
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issueCertificate.execute(
                 inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
 
         FindingId lowPressureFinding = findings.getFirst();

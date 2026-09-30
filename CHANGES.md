@@ -191,3 +191,33 @@ era más simple que `VerificationResult` conociera su `FindingAudit`. Además `S
   decisiones puntuales (la guarda de `suspend`, que desde la corrección 3 mira `statusOn`, y la cancelación de
   acciones de la corrección 2). Se deja de presentar "cero `if`" como regla.
 - Los tests existentes de auditoría de verificaciones (`CorrectiveActionTest`) cubren el cambio.
+
+## 10 y 11. Elegibilidad como servicio de dominio con decisión explicable
+
+**Corrección 10:** `CertificationEligibility.ensureEligible` tiraba una excepción en vez de devolver una decisión
+explicable (`CertificationDecision`).
+
+**Corrección 11:** había reglas de negocio fuera del dominio: `CertificationEligibility`,
+`NoBlockingFindingsEligibility` y excepciones como `AssetAlreadyCertifiedException` estaban en `application`.
+"No certificar con hallazgos bloqueantes" es una regla del negocio, por lo tanto un servicio de dominio.
+
+**Cambios:**
+- Nuevo paquete `models.certification` (servicio de dominio): `CertificationEligibility.evaluate(InspectionView,
+  List<Finding>) → CertificationDecision` y su implementación `NoBlockingFindingsEligibility`. Ya no depende del
+  repositorio: el caso de uso le pasa los hallazgos del activo.
+- `CertificationDecision(List<Ineligibility>)` con `isEligible()` e `isBlockedBy(reason)`;
+  `Ineligibility(reason, detail)`; enum `IneligibilityReason` (`INSPECTION_NOT_CLOSED`, `PARTIAL_INSPECTION`,
+  `UNADDRESSED_NON_CONFORMITIES`, `BLOCKING_FINDINGS`). La decisión informa todos los motivos a la vez.
+- `NotEligibleForCertificationException` (lleva la decisión) reemplaza a `BlockingFindingsPreventCertificationException`,
+  `UnaddressedNonConformitiesPreventCertificationException` y `PartialInspectionCannotCertifyException`, que se eliminan.
+- Nuevo caso de uso `EvaluateCertification(InspectionId) → CertificationDecision` para consultar sin emitir.
+  `IssueCertificate` y `RenewCertificate` reciben `FindingRepository`, piden la decisión y fallan con ella.
+- Se vacía `application.exceptions`: `AssetAlreadyCertifiedException` y `CertificateNotFoundException` →
+  `models.certificate.exceptions`; `AssetAlreadyRegisteredException` y `AssetNotFoundException` →
+  `models.asset.exceptions`; `NoInspectionSchemaForAssetTypeException` y `SchemaAlreadyDefinedForAssetTypeException` →
+  `models.schema.exceptions`; `InspectionNotFoundException` → `models.inspection.exceptions`;
+  `FindingNotFoundException` → `models.finding.exceptions`. Se elimina `application.certification`.
+- Tests: los que esperaban las excepciones eliminadas verifican el motivo con `CertiflowFixture.assertNotEligible`;
+  nuevo `CertificationDecisionTest`.
+- `DESIGN.md`: S5, S17, sección 2, D10, D11 y tabla de tests. `docs/certiflow-domain.puml`: paquete
+  `models.certification`.

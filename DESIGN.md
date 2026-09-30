@@ -18,7 +18,7 @@ mvn clean test
 | S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones guardadas en un `SchemaVersionLog` numerado de forma consecutiva desde 1. `InspectionSchema` es un record inmutable: `withNewVersion(...)` devuelve un esquema nuevo con el log extendido y el anterior queda intacto; el repositorio reemplaza el esquema de ese tipo de activo. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
 | S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
 | S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. `close()` devuelve el evento `InspectionClosed` con las no conformidades, y los hallazgos se generan a partir de él. | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. Si alguien cierra sin generar los hallazgos, la elegibilidad lo detecta (S5). |
-| S5 | Qué bloquea la certificación | Los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Además, toda no conformidad bloqueante de la evaluación vigente de la inspección tiene que tener su hallazgo; si no lo tiene, se rechaza con `UnaddressedNonConformitiesPreventCertificationException`. Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. Ni un cierre directo del agregado ni una rectificación que introduce un rechazo dejan certificable la inspección. |
+| S5 | Qué bloquea la certificación | Los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Además, toda no conformidad bloqueante de la evaluación vigente de la inspección tiene que tener su hallazgo; si no lo tiene, la decisión de certificación lo informa como `UNADDRESSED_NON_CONFORMITIES` (ver D10). Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. Ni un cierre directo del agregado ni una rectificación que introduce un rechazo dejan certificable la inspección. |
 | S6 | Rectificación y hallazgos | Rectificar corrige el acta y su evaluación derivada; no regenera ni elimina hallazgos ya levantados. Si la rectificación introduce una no conformidad bloqueante sin hallazgo, la inspección deja de ser elegible (S5). | Sin efectos en cascada entre agregados. Queda como limitación conocida (ver sección 6). |
 | S7 | Revisión original | Cerrar crea la `Revision` 1; cada rectificación agrega otra; ninguna se modifica. | `originalRevision()` devuelve siempre lo que se firmó al cerrar. |
 | S8 | Acción correctiva | Vive dentro de su hallazgo. Está cerrada cuando tiene una verificación aceptada; está vencida cuando sigue abierta y la fecha es posterior a `dueDate`. El verificador debe ser distinto del responsable de la acción. Cuando se acepta una acción, el hallazgo cancela sus otras acciones abiertas y registra la `Cancellation` (quién verificó y cuándo). La fecha límite no puede ser anterior al día en que se planifica, y una verificación rechazada tiene que explicar por qué (`VerificationResult.requiresNotes()`). | Una verificación aceptada cierra acción y hallazgo a la vez, sin coordinación externa. Ninguna acción queda huérfana ni figura como vencida en un hallazgo cerrado. El día `dueDate` todavía no está vencida. |
@@ -29,7 +29,7 @@ mvn clean test
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`, a lo sumo un requisito por tipo. Cada evidencia exigida tiene que ser un archivo distinto: adjuntar dos veces la misma referencia al mismo criterio se rechaza (`DuplicateEvidenceException`). | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. "Dos fotos" no se cumple con la misma foto dos veces, y un criterio con dos requisitos del mismo tipo es un esquema inválido (`InvalidSchemaException`) en lugar de dos requisitos que se cumplen con una sola foto. El mismo archivo sí puede respaldar criterios distintos. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(id, name)`, una entidad identificada por `PersonId` (legajo o documento que asigna la organización) e igual solo por ese id. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara identidades: dos homónimos son personas distintas y la misma persona se reconoce aunque su nombre se escriba distinto. |
 | S15 | Identidad | Todo agregado tiene identidad: `AssetCode` (placa del activo), `CertificateNumber`, `PersonId`, e `InspectionId` y `FindingId` generados por su repositorio (`nextId()`). `CorrectiveActionId` numera las acciones dentro de su hallazgo. Entre agregados se referencia por id, salvo `Asset`, que es un record inmutable y se conserva como objeto. | Los casos de uso reciben y devuelven ids; cargan el agregado con `findById` y lanzan `...NotFoundException` si no existe. Ver D3. |
-| S17 | Alcance de la inspección | La asignación fija un `InspectionScope`: `FullScope` (todo el esquema) o `SectionsScope` (secciones nombradas, que deben existir en la versión capturada, o falla con `SectionNotInSchemaException`). La inspección solo tiene respuestas para los criterios de su alcance: responder fuera lanza `CriterionOutOfScopeException`, y cerrar solo exige completar lo que está dentro. Solo una inspección que cubre todo el esquema puede respaldar un certificado (`PartialInspectionCannotCertifyException`). | Una inspección parcial sirve para seguimiento y genera hallazgos, pero no certifica. El alcance deja de ser un texto libre que no restringía nada. |
+| S17 | Alcance de la inspección | La asignación fija un `InspectionScope`: `FullScope` (todo el esquema) o `SectionsScope` (secciones nombradas, que deben existir en la versión capturada, o falla con `SectionNotInSchemaException`). La inspección solo tiene respuestas para los criterios de su alcance: responder fuera lanza `CriterionOutOfScopeException`, y cerrar solo exige completar lo que está dentro. Solo una inspección que cubre todo el esquema puede respaldar un certificado (la decisión lo informa como `PARTIAL_INSPECTION`). | Una inspección parcial sirve para seguimiento y genera hallazgos, pero no certifica. El alcance deja de ser un texto libre que no restringía nada. |
 | S18 | Características del activo | `Characteristics` es una colección de `Characteristic(name, value)` con nombres únicos (`DuplicateCharacteristicException`) y consulta `valueOf(name)`. | Reemplaza al `Map<String,String>`: los datos del activo se validan y se consultan con el vocabulario del dominio. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
 
@@ -66,7 +66,7 @@ puertos y el fixture los conecta.
 - **`models`**: entidades, value objects, reglas, los decoradores de auditoría y el puerto `AuditLog<S>`. No importa ningún otro paquete ni consulta relojes.
 - **`ports`**: lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`, definidos según lo que los casos de uso necesitan. Solo importa `models`.
 - **`usecases`**: un caso de uso por clase, agrupados por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`).
-- **`application`**: lo que acompaña a los casos de uso sin ser uno: la política de elegibilidad (`application.certification`), los modelos de lectura de los informes (`application.report`) y las excepciones de las reglas que cruzan agregados (`application.exceptions`).
+- **`application`**: los modelos de lectura de los informes (`application.report`). La elegibilidad y todas las excepciones de negocio viven en `models` (ver D10 y D11).
 - **`details.inmemory`**: implementaciones de los puertos.
 
 Los nombres `models`, `usecases`, `ports` y `application` son los que la cátedra propone para un módulo de
@@ -94,7 +94,8 @@ evaluation   ->  shared
 schema       ->  shared, asset, evaluation
 inspection   ->  shared, asset, evaluation, schema, audit
 finding      ->  shared, asset, evaluation, schema, audit, inspection
-certificate  ->  shared, asset, audit, inspection
+certificate    ->  shared, asset, audit, inspection
+certification  ->  inspection, finding
 ```
 
 `models` no importa ningún otro paquete, `ports` solo importa `models` y nadie importa `details`. Ambos
@@ -107,8 +108,9 @@ verificada por su responsable; y un `Certificate` no puede renovarse dos veces. 
 en los métodos del agregado antes de modificarlo.
 
 Las reglas que necesitan consultar o coordinar más de un agregado viven en la capa que los orquesta.
-Por ejemplo, para certificar hay que mirar los `Finding` del activo, por lo que la elegibilidad está en
-`CertificationEligibility` (`application`); para impedir dos certificados vigentes se consulta el
+Por ejemplo, para certificar hay que mirar los `Finding` del activo: la regla es de negocio y vive en el
+servicio de dominio `CertificationEligibility` (`models.certification`), que recibe la inspección y los
+hallazgos ya cargados, y el caso de uso los busca en el repositorio; para impedir dos certificados vigentes se consulta el
 repositorio desde `IssueCertificate`; y para garantizar un único esquema por `AssetType`,
 `CreateInspectionSchema` consulta el repositorio de esquemas antes de crear uno. Así los agregados no
 dependen de repositorios ni conocen el resto del sistema.
@@ -201,17 +203,19 @@ determinista y los tests usan un reloj controlable.
 
 ### D10. Elegibilidad para certificar como política intercambiable
 
-- **Principio:** OCP; patrón Strategy.
-- **Dónde:** interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate` y `RenewCertificate`.
+- **Principio:** OCP; patrón Strategy; servicio de dominio.
+- **Dónde:** `models.certification`: interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate`, `RenewCertificate` y `EvaluateCertification`.
+- **Decisión explicable:** `evaluate(inspection, assetFindings)` no lanza excepciones: devuelve un `CertificationDecision` con todas las `Ineligibility(reason, detail)` que encuentra (`INSPECTION_NOT_CLOSED`, `PARTIAL_INSPECTION`, `UNADDRESSED_NON_CONFORMITIES`, `BLOCKING_FINDINGS`). `EvaluateCertification` la expone tal cual; `IssueCertificate` y `RenewCertificate` la consultan y, si no es elegible, lanzan `NotEligibleForCertificationException`, que lleva la decisión completa.
+- **Por qué es de dominio:** "no certificar con hallazgos bloqueantes" es una regla del negocio. El servicio no depende de repositorios: el caso de uso le entrega los hallazgos del activo.
 - **Por qué:** a diferencia de las fábricas, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
 - **Costo:** una interfaz con una sola implementación hoy. Se acepta porque el eje de variación es concreto y ya tiene un segundo candidato, que es el criterio que este documento exige para cada abstracción.
 
 ### D11. Errores explícitos
 
-- Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `BlockingFindingsPreventCertificationException`, `UnaddressedNonConformitiesPreventCertificationException`, entre otras).
+- Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `NotEligibleForCertificationException`, `AssetAlreadyCertifiedException`, entre otras).
 - Toda regla del dominio lanza una `DomainException`, sin excepciones genéricas de Java. Un texto obligatorio vacío (nombre, código, descripción, motivo, referencia) lanza `RequiredValueMissingException` (`models.shared`), una sola clase porque es la misma regla en todos los casos.
 - Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador.
-- Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza, y las de reglas que cruzan agregados viven en `application.exceptions`.
+- Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza. También las de reglas que cruzan agregados (`AssetAlreadyCertifiedException`, `SchemaAlreadyDefinedForAssetTypeException`, `AssetAlreadyRegisteredException`) y las de ids inexistentes (`...NotFoundException`) viven en el paquete de su concepto, en `models`.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
 
 ### D12. Quién y cuándo como hechos de dominio
@@ -267,6 +271,7 @@ determinista y los tests usan un reloj controlable.
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
 | Una rectificación deja certificable una inspección con un criterio rechazado | `CertificationTest.rectificationThatIntroducesABlockingNonConformityRemovesEligibility` |
+| La elegibilidad no explica por qué no se puede certificar | `CertificationDecisionTest` |
 | Un hallazgo menor impide certificar | `CertificationTest.openMinorFindingsDoNotPreventCertification` |
 | No se puede certificar después de corregir | `CertificationTest.assetBecomesEligibleOnceItsBlockingFindingIsClosed` |
 | Se certifica sobre una inspección sin cerrar | `CertificationTest.inspectionStillInProgressCannotBackACertificate` |
@@ -292,7 +297,7 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 100 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 103 tests.
 
 ---
 

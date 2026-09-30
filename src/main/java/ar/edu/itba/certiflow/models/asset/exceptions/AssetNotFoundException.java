@@ -1,4 +1,4 @@
-package ar.edu.itba.certiflow.application.exceptions;
+package ar.edu.itba.certiflow.models.asset.exceptions;
 
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.shared.DomainException;

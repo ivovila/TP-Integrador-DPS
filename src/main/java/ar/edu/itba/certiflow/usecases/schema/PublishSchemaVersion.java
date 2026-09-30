@@ -1,10 +1,10 @@
 package ar.edu.itba.certiflow.usecases.schema;
 
-import ar.edu.itba.certiflow.application.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.models.asset.AssetType;
 import ar.edu.itba.certiflow.models.schema.InspectionSchema;
 import ar.edu.itba.certiflow.models.schema.SchemaVersion;
 import ar.edu.itba.certiflow.models.schema.Section;
+import ar.edu.itba.certiflow.models.schema.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.ports.InspectionSchemaRepository;
 import java.time.Clock;
 import java.util.List;

@@ -1,10 +1,10 @@
 package ar.edu.itba.certiflow.usecases.report;
 
-import ar.edu.itba.certiflow.application.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.application.report.FindingLine;
 import ar.edu.itba.certiflow.application.report.FindingsSummary;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.asset.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.ports.AssetRepository;
 import ar.edu.itba.certiflow.ports.FindingRepository;

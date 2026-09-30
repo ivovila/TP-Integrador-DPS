@@ -1,14 +1,14 @@
 package ar.edu.itba.certiflow.usecases.inspection;
 
-import ar.edu.itba.certiflow.application.exceptions.AssetNotFoundException;
-import ar.edu.itba.certiflow.application.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.asset.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.models.inspection.AuditedInspectionFactory;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.InspectionSchema;
+import ar.edu.itba.certiflow.models.schema.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.ports.AssetRepository;
 import ar.edu.itba.certiflow.ports.InspectionRepository;
