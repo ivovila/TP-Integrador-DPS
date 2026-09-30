@@ -72,11 +72,11 @@ puertos y el fixture los conecta.
 Los nombres `models`, `usecases`, `ports` y `application` son los que la cátedra propone para un módulo de
 negocio, el equivalente al módulo `domain` de DDD: todo el módulo es negocio, sin base de datos, controllers
 ni framework. Dentro de `models` y de `usecases` se agrupa por concepto y no por tipo de clase, porque
-`Standard...`, `Audited...` y su generador comparten visibilidad de paquete (ver D7) y separarlos obligaría a
+`Standard...`, `Audited...` y su fábrica comparten visibilidad de paquete (ver D7) y separarlos obligaría a
 hacerlos públicos.
 
 **Por qué `AuditLog` no está en `ports`.** Es un puerto, pero quienes lo usan son los decoradores y los
-generadores, que viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
+fábricas, que viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
 `models`: un ciclo. Se queda en `models.audit`, al lado del código que lo consume, que es donde la inversión
 de dependencias ubica la interfaz.
 
@@ -169,22 +169,22 @@ determinista y los tests usan un reloj controlable.
 ### D7. Auditoría con Decorator, separando hechos de dominio de bitácora
 
 - **Principios:** SRP, OCP, DIP; patrón Decorator.
-- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionGenerator`, `AuditedFindingGenerator`, `AuditedCertificateGenerator`; puerto `AuditLog<S>`; `AuditEntry`; `InMemoryAuditLog<S>`.
+- **Dónde:** `AuditedInspection`, `AuditedFinding`, `AuditedCertificate`; `AuditedInspectionFactory`, `AuditedFindingFactory`, `AuditedCertificateFactory`; puerto `AuditLog<S>`; `AuditEntry`; `InMemoryAuditLog<S>`.
 - **Por qué:**
   - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`, y desde D12 también el autor y la fecha de cada respuesta, evidencia adjunta y acción planificada. Una rectificación no puede ocurrir sin su revisión.
   - La **bitácora** cronológica de quién hizo qué es transversal y vive en los decoradores.
   - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
-  - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Generator`, que exige el `AuditLog` de su tipo por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación.
+  - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Factory` (patrón Factory), que exige el `AuditLog` de su tipo por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación.
   - El `AuditLog` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
   - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); historyOf(S) }` y cada agregado auditado tiene el suyo: `AuditLog<Inspection>`, `AuditLog<Finding>` y `AuditLog<Certificate>`. `AuditEntry` no sabe de qué objeto habla, porque el sujeto es la clave del historial.
-  - La renovación nace del certificado y no del generador. Por eso `AuditedCertificate.renew` decora el certificado nuevo y registra su emisión él mismo, sin guardar una referencia a su generador. El costo son dos líneas repetidas respecto de `AuditedCertificateGenerator.generate`; la alternativa era una dependencia del decorador hacia quien lo crea.
+  - La renovación nace del certificado y no de la fábrica. Por eso `AuditedCertificate.renew` decora el certificado nuevo y registra su emisión él mismo, sin guardar una referencia a su fábrica. El costo son dos líneas repetidas respecto de `AuditedCertificateFactory.create`; la alternativa era una dependencia del decorador hacia quien lo crea.
 - **Alternativas descartadas:**
   - *Auditoría dentro del agregado* (`audit.record(...)` en cada método): más barata, y defendible porque la auditoría es requisito de negocio, pero mezcla dos niveles de abstracción en cada operación.
   - *Decorar casos de uso:* exige una interfaz genérica común a los 17 casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce dos hechos distintos.
   - *Método estático de creación en la interfaz:* hacía que la abstracción conociera a sus implementaciones y obligaba a los casos de uso a transportar el servicio de auditoría.
   - *Bitácora global con `AuditEntry(Object subject, ...)` y `entriesFor(Object)`:* era la versión anterior. Compilaba `entriesFor(asset)` y devolvía una lista vacía sin aviso, y el tipo no decía qué se podía auditar. Además, `AuditTrail` solo existía para armar la entrada con ese `Object`, y desapareció junto con él. Lo que se pierde es la vista cronológica única de todo el sistema, que ningún caso de uso ni informe consultaba: el enunciado pide el historial de cada objeto.
   - *Interfaz marcadora `Auditable`* (vacía, implementada por `Inspection`, `Finding` y `Certificate`) en lugar de `Object`: resolvía el tipo, pero agregaba una interfaz sin métodos cuyo único propósito era tapar el `Object`. Con el sujeto como parámetro genérico del puerto no hace falta ninguna marca.
-- **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres generadores e `InMemoryAuditLog`. Reenvío manual de las consultas en cada decorador.
+- **Costo:** diez clases más que la versión interna: tres interfaces, tres decoradores, tres fábricas e `InMemoryAuditLog`. Reenvío manual de las consultas en cada decorador.
 
 ### D8. Política de condicionales
 
@@ -202,7 +202,7 @@ determinista y los tests usan un reloj controlable.
 
 - **Principio:** OCP; patrón Strategy.
 - **Dónde:** interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate` y `RenewCertificate`.
-- **Por qué:** a diferencia de los generadores, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
+- **Por qué:** a diferencia de las fábricas, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
 - **Costo:** una interfaz con una sola implementación hoy. Se acepta porque el eje de variación es concreto y ya tiene un segundo candidato, que es el criterio que este documento exige para cada abstracción.
 
 ### D11. Errores explícitos
@@ -234,7 +234,7 @@ determinista y los tests usan un reloj controlable.
 | Patrón | Por qué no | Consecuencia |
 |---|---|---|
 | **State** para la inspección | Abierta y cerrada no comparten operaciones válidas; la interfaz común forzaba métodos que solo lanzan excepción. Con guardas permitidas y el estado derivado de las revisiones, eran dos clases de estructura sin comportamiento. | Si aparecen más estados con comportamiento compartido (por ejemplo "en revisión"), habría que reconsiderarlo. |
-| **Factory de la clase 2** (selección por `applyFor`) | Resuelve elegir en ejecución entre implementaciones. Acá no hay nada que elegir: hay una sola clase de inspección y la selección regla-respuesta la resolvieron los genéricos. | Los `...Generator` componen, no seleccionan, y por eso no se llaman Factory. Son clases concretas; si aparece una segunda forma de crear agregados se extrae la interfaz en ese momento, como ocurrió en la clase con `CallCostCalculatorFactory`. |
+| **Factory con selección** (clase 2, `applyFor`) | Resuelve elegir en ejecución entre implementaciones. Acá no hay nada que elegir: hay una sola clase de inspección y la selección regla-respuesta la resolvieron los genéricos. | Sí se aplica Factory como punto único de creación: los `...Factory` encapsulan cómo se compone el agregado (`Standard...` envuelto en `Audited...`) y registran su nacimiento. Son clases concretas; si aparece una segunda forma de crear agregados se extrae la interfaz en ese momento, como ocurrió en la clase con `CallCostCalculatorFactory`. |
 | **Event Sourcing / eventos de dominio** | La bitácora por decorador alcanza y la única reacción entre agregados desapareció al mover `CorrectiveAction` dentro de `Finding`. | No se puede reconstruir el estado desde el historial. |
 | **Herencia para tipos de activo o de evidencia** | El tipo es un dato. | `AssetType` es un value object; `EvidenceKind` un enum extensible. |
 ---
@@ -296,7 +296,7 @@ Los tests de integración usan los repositorios en memoria reales, sin mocks, y 
 
 ## 6. Limitaciones conocidas y concesiones
 
-- **Garantía de auditoría.** Está dada por la API (el generador exige un `AuditLog`), no por la operación misma. Un `AuditLog` que descarte entradas la anula.
+- **Garantía de auditoría.** Está dada por la API (la fábrica exige un `AuditLog`), no por la operación misma. Un `AuditLog` que descarte entradas la anula.
 - **Sin vista cronológica global.** Cada tipo de agregado tiene su propio historial (D7). Una consulta del estilo "todo lo que pasó el martes" exigiría recorrer los tres historiales o sumar un puerto de lectura global cuando algún caso de uso lo pida.
 - **Rectificación.** No revisa hallazgos ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).

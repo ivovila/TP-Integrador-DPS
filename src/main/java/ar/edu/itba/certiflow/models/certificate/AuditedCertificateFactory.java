@@ -7,15 +7,15 @@ import ar.edu.itba.certiflow.models.inspection.InspectionView;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
 
-public final class AuditedCertificateGenerator {
+public final class AuditedCertificateFactory {
 
     private final AuditLog<Certificate> auditLog;
 
-    public AuditedCertificateGenerator(AuditLog<Certificate> auditLog) {
+    public AuditedCertificateFactory(AuditLog<Certificate> auditLog) {
         this.auditLog = auditLog;
     }
 
-    public Certificate generate(CertificateNumber certificateNumber, Asset asset, InspectionView basedOn,
+    public Certificate create(CertificateNumber certificateNumber, Asset asset, InspectionView basedOn,
                                 ValidityPeriod validity, Person issuedBy, Instant issuedAt) {
         Certificate auditedCertificate = new AuditedCertificate(new StandardCertificate(certificateNumber, asset, basedOn, validity, issuedBy, issuedAt),
                 auditLog);

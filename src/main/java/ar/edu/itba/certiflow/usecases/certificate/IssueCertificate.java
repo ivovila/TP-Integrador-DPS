@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.usecases.certificate;
 import ar.edu.itba.certiflow.application.certification.CertificationEligibility;
 import ar.edu.itba.certiflow.application.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.models.asset.Asset;
-import ar.edu.itba.certiflow.models.certificate.AuditedCertificateGenerator;
+import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
@@ -18,16 +18,16 @@ public final class IssueCertificate {
     private final CertificateRepository certificateRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
-    private final AuditedCertificateGenerator certificateGenerator;
+    private final AuditedCertificateFactory certificateFactory;
     private final Clock clock;
 
     public IssueCertificate(CertificateRepository certificateRepository, CertificationEligibility certificationEligibility,
-                            CertificateNumbering certificateNumbering, AuditedCertificateGenerator certificateGenerator,
+                            CertificateNumbering certificateNumbering, AuditedCertificateFactory certificateFactory,
                             Clock clock) {
         this.certificateRepository = certificateRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
-        this.certificateGenerator = certificateGenerator;
+        this.certificateFactory = certificateFactory;
         this.clock = clock;
     }
 
@@ -38,7 +38,7 @@ public final class IssueCertificate {
         certificateRepository.findCurrentFor(asset, today).ifPresent(currentCertificate -> {
             throw new AssetAlreadyCertifiedException(asset, currentCertificate.number());
         });
-        Certificate certificate = certificateGenerator.generate(certificateNumbering.next(), asset, inspection,
+        Certificate certificate = certificateFactory.create(certificateNumbering.next(), asset, inspection,
                 new ValidityPeriod(today, validUntil), issuedBy, clock.instant());
         certificateRepository.save(certificate);
         return certificate;

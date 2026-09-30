@@ -218,10 +218,10 @@ package "models.inspection" {
   class AuditedInspection <<decorator, de paquete>> {
     -auditLog: AuditLog<Inspection>
   }
-  class AuditedInspectionGenerator {
+  class AuditedInspectionFactory {
     -auditLog: AuditLog<Inspection>
-    +AuditedInspectionGenerator(AuditLog<Inspection>)
-    +generate(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
+    +AuditedInspectionFactory(AuditLog<Inspection>)
+    +create(Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
   }
   class InspectionAssignment <<value object>> {
     inspector: Person
@@ -291,9 +291,9 @@ package "models.inspection" {
   Inspection <|.. AuditedInspection
   AuditedInspection o--> Inspection : decora
   AuditedInspection --> AuditLog : registra en AuditLog<Inspection>
-  AuditedInspectionGenerator ..> AuditedInspection : compone
-  AuditedInspectionGenerator ..> StandardInspection : compone
-  AuditedInspectionGenerator --> AuditLog : registra el alta
+  AuditedInspectionFactory ..> AuditedInspection : compone
+  AuditedInspectionFactory ..> StandardInspection : compone
+  AuditedInspectionFactory --> AuditLog : registra el alta
   StandardInspection --> Asset
   StandardInspection --> InspectionAssignment
   StandardInspection --> SchemaVersion : fijada al asignar
@@ -329,10 +329,10 @@ package "models.finding" {
   class AuditedFinding <<decorator, de paquete>> {
     -auditLog: AuditLog<Finding>
   }
-  class AuditedFindingGenerator {
+  class AuditedFindingFactory {
     -auditLog: AuditLog<Finding>
-    +AuditedFindingGenerator(AuditLog<Finding>)
-    +generate(CriterionResponse<?>, InspectionView, Person, Instant): Finding
+    +AuditedFindingFactory(AuditLog<Finding>)
+    +create(CriterionResponse<?>, InspectionView, Person, Instant): Finding
   }
   class CorrectiveAction <<entidad interna>> {
     -description: String
@@ -367,9 +367,9 @@ package "models.finding" {
   Finding <|.. AuditedFinding
   AuditedFinding o--> Finding : decora
   AuditedFinding --> AuditLog : registra en AuditLog<Finding>
-  AuditedFindingGenerator ..> AuditedFinding : compone
-  AuditedFindingGenerator ..> StandardFinding : compone
-  AuditedFindingGenerator --> AuditLog : registra el alta
+  AuditedFindingFactory ..> AuditedFinding : compone
+  AuditedFindingFactory ..> StandardFinding : compone
+  AuditedFindingFactory --> AuditLog : registra el alta
   StandardFinding --> InspectionView : solo lectura
   StandardFinding --> Criterion
   StandardFinding --> "*" AttachedEvidence
@@ -401,10 +401,10 @@ package "models.certificate" {
     -auditLog: AuditLog<Certificate>
     ..al renovar decora y audita el certificado nuevo..
   }
-  class AuditedCertificateGenerator {
+  class AuditedCertificateFactory {
     -auditLog: AuditLog<Certificate>
-    +AuditedCertificateGenerator(AuditLog<Certificate>)
-    +generate(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
+    +AuditedCertificateFactory(AuditLog<Certificate>)
+    +create(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
   }
   class CertificateNumber <<identificador de negocio>>
   class ValidityPeriod <<value object>> {
@@ -438,9 +438,9 @@ package "models.certificate" {
   Certificate <|.. AuditedCertificate
   AuditedCertificate o--> Certificate : decora
   AuditedCertificate --> AuditLog : registra en AuditLog<Certificate>
-  AuditedCertificateGenerator ..> AuditedCertificate : compone
-  AuditedCertificateGenerator ..> StandardCertificate : compone
-  AuditedCertificateGenerator --> AuditLog : registra el alta
+  AuditedCertificateFactory ..> AuditedCertificate : compone
+  AuditedCertificateFactory ..> StandardCertificate : compone
+  AuditedCertificateFactory --> AuditLog : registra el alta
   StandardCertificate --> CertificateNumber
   StandardCertificate --> Asset
   StandardCertificate --> InspectionView : basedOn, solo lectura
@@ -516,9 +516,9 @@ UseCases ..> CertificateNumbering
 UseCases ..> CertificationEligibility
 UseCases ..> ReadModels : los informes los construyen
 UseCases ..> AuditLog : el acta lee AuditLog<Inspection>
-UseCases ..> AuditedInspectionGenerator
-UseCases ..> AuditedFindingGenerator
-UseCases ..> AuditedCertificateGenerator
+UseCases ..> AuditedInspectionFactory
+UseCases ..> AuditedFindingFactory
+UseCases ..> AuditedCertificateFactory
 
 package "details.inmemory" {
   class InMemoryAssetRepository

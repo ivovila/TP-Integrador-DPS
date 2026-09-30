@@ -130,3 +130,15 @@ como record, de modo que publicar cree un esquema nuevo.
 - `InMemoryInspectionSchemaRepository` guarda por `AssetType` (un `Map`), así el esquema nuevo reemplaza al anterior.
 - Tests: `SchemaVersioningTest.publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched`, `SchemaVersionLogTest`.
 - `DESIGN.md`: S2 y tabla de tests. `docs/certiflow-domain.puml`: `InspectionSchema` y `SchemaVersionLog`.
+
+## 9. `Generator` → `Factory`
+
+**Corrección:** los `...Generator` son Factories; conviene usar el vocabulario del patrón. (El renombre de
+`publish` ya se hizo en la corrección 7.)
+
+**Cambios:**
+- `AuditedInspectionGenerator`, `AuditedFindingGenerator` y `AuditedCertificateGenerator` pasan a
+  `AuditedInspectionFactory`, `AuditedFindingFactory` y `AuditedCertificateFactory`; su método `generate` pasa a
+  `create`, y los campos de los casos de uso a `...Factory`.
+- `DESIGN.md`: D7, D10, sección 4 (la fila de Factory ahora explica que se aplica Factory de creación y no
+  Factory con selección) y limitaciones. `docs/certiflow-domain.puml`: métodos `create`.

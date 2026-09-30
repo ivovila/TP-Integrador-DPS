@@ -16,7 +16,7 @@ import ar.edu.itba.certiflow.models.asset.Characteristic;
 import ar.edu.itba.certiflow.models.asset.Characteristics;
 import ar.edu.itba.certiflow.models.asset.Location;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
-import ar.edu.itba.certiflow.models.certificate.AuditedCertificateGenerator;
+import ar.edu.itba.certiflow.models.certificate.AuditedCertificateFactory;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.evaluation.EvidenceRequirement;
@@ -30,9 +30,9 @@ import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.Unit;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
-import ar.edu.itba.certiflow.models.finding.AuditedFindingGenerator;
+import ar.edu.itba.certiflow.models.finding.AuditedFindingFactory;
 import ar.edu.itba.certiflow.models.finding.Finding;
-import ar.edu.itba.certiflow.models.inspection.AuditedInspectionGenerator;
+import ar.edu.itba.certiflow.models.inspection.AuditedInspectionFactory;
 import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
@@ -101,12 +101,12 @@ public final class CertiflowFixture {
     public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, clock);
     public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, clock);
     public final AssignInspection assignInspection = new AssignInspection(inspectionSchemaRepository, inspectionRepository,
-            new AuditedInspectionGenerator(inspectionLog), clock);
+            new AuditedInspectionFactory(inspectionLog), clock);
     public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, clock);
     public final AttachEvidence attachEvidence = new AttachEvidence(inspectionRepository, clock);
     public final AddObservation addObservation = new AddObservation(inspectionRepository, clock);
     public final CloseInspection closeInspection = new CloseInspection(inspectionRepository, findingRepository,
-            new AuditedFindingGenerator(findingLog), clock);
+            new AuditedFindingFactory(findingLog), clock);
     public final RectifyInspection rectifyInspection = new RectifyInspection(inspectionRepository, clock);
     public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveAction(findingRepository, clock);
     public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveAction(findingRepository, clock);
@@ -117,7 +117,7 @@ public final class CertiflowFixture {
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility(findingRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
     public final IssueCertificate issueCertificate = new IssueCertificate(certificateRepository, certificationEligibility, certificateNumbering,
-            new AuditedCertificateGenerator(certificateLog), clock);
+            new AuditedCertificateFactory(certificateLog), clock);
     public final SuspendCertificate suspendCertificate = new SuspendCertificate(certificateRepository, clock);
     public final RenewCertificate renewCertificate = new RenewCertificate(certificateRepository, certificationEligibility, certificateNumbering, clock);
 
