@@ -15,7 +15,7 @@ mvn clean test
 | # | Tema | Decisión | Consecuencia |
 |---|---|---|---|
 | S1 | "Inspección iniciada" | La inspección nace asignada y abierta en un solo paso, y en ese momento captura la `SchemaVersion` vigente, que es inmutable. | Publicar una versión nueva crea otro objeto; la inspección conserva su referencia. Un criterio agregado en v2 lanza `CriterionNotInSchemaException` en una inspección abierta con v1. |
-| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones guardadas en un `SchemaVersionLog` numerado de forma consecutiva desde 1. `InspectionSchema` es un record inmutable: `withNewVersion(...)` devuelve un esquema nuevo con el log extendido y el anterior queda intacto; el repositorio reemplaza el esquema de ese tipo de activo. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
+| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones guardadas en un `SchemaVersionLog` numerado de forma consecutiva desde 1. `InspectionSchema` es un record inmutable: `withNewVersion(...)` devuelve un esquema nuevo con el log extendido y el anterior queda intacto; el repositorio reemplaza el esquema de ese tipo de activo. Los casos de uso crean esquemas y agregan versiones a través del servicio de dominio `InspectionSchemaService`, que audita ambos hechos (`SchemaAudit.CREATED`, `VERSION_ADDED`) con su autor. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
 | S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
 | S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. `close()` devuelve el evento `InspectionClosed` con las no conformidades, y los hallazgos se generan a partir de él. | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. Si alguien cierra sin generar los hallazgos, la elegibilidad lo detecta (S5). |
 | S5 | Qué bloquea la certificación | Los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Además, toda no conformidad bloqueante de la evaluación vigente de la inspección tiene que tener su hallazgo; si no lo tiene, la decisión de certificación lo informa como `UNADDRESSED_NON_CONFORMITIES` (ver D10). Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. Ni un cierre directo del agregado ni una rectificación que introduce un rechazo dejan certificable la inspección. |
@@ -31,6 +31,7 @@ mvn clean test
 | S15 | Identidad | Todo agregado tiene identidad: `AssetCode` (placa del activo), `CertificateNumber`, `PersonId`, e `InspectionId` y `FindingId` generados por su repositorio (`nextId()`). `CorrectiveActionId` numera las acciones dentro de su hallazgo. Entre agregados se referencia por id, salvo `Asset`, que es un record inmutable y se conserva como objeto. | Los casos de uso reciben y devuelven ids; cargan el agregado con `findById` y lanzan `...NotFoundException` si no existe. Ver D3. |
 | S17 | Alcance de la inspección | La asignación fija un `InspectionScope`: `FullScope` (todo el esquema) o `SectionsScope` (secciones nombradas, que deben existir en la versión capturada, o falla con `SectionNotInSchemaException`). La inspección solo tiene respuestas para los criterios de su alcance: responder fuera lanza `CriterionOutOfScopeException`, y cerrar solo exige completar lo que está dentro. Solo una inspección que cubre todo el esquema puede respaldar un certificado (la decisión lo informa como `PARTIAL_INSPECTION`). | Una inspección parcial sirve para seguimiento y genera hallazgos, pero no certifica. El alcance deja de ser un texto libre que no restringía nada. |
 | S18 | Características del activo | `Characteristics` es una colección de `Characteristic(name, value)` con nombres únicos (`DuplicateCharacteristicException`) y consulta `valueOf(name)`. | Reemplaza al `Map<String,String>`: los datos del activo se validan y se consultan con el vocabulario del dominio. |
+| S19 | Independencia en la asignación | Quien asigna una inspección no puede realizarla (`AssignerCannotInspectException`); el responsable del activo no puede asignar su inspección (`AssetResponsibleCannotAssignInspectionException`) ni inspeccionarlo (`AssetResponsibleCannotInspectOwnAssetException`). Se valida al nacer la inspección. | La inspección la realiza alguien independiente de quien la pide y de quien responde por el activo. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
 
 ---
@@ -178,7 +179,7 @@ determinista y los tests usan un reloj controlable.
   - El decorador registra después de que la operación fue aceptada: si lanza una excepción, no queda entrada.
   - Las clases `Standard...` y `Audited...` son de paquete. El único punto público donde nace un agregado es su `...Factory` (patrón Factory), que exige el `AuditLog` de su tipo por constructor. No hay forma de obtener una inspección sin auditar, ni armando mal la aplicación.
   - El `AuditLog` se entrega por constructor porque es un colaborador que no cambia entre llamadas; por parámetro van los datos de cada operación.
-  - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); historyOf(S) }` y cada agregado auditado tiene el suyo: `AuditLog<Inspection>`, `AuditLog<Finding>` y `AuditLog<Certificate>`. `AuditEntry` no sabe de qué objeto habla, porque el sujeto es la clave del historial.
+  - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); historyOf(S) }` y cada agregado auditado tiene el suyo: `AuditLog<Inspection>`, `AuditLog<Finding>` y `AuditLog<Certificate>`. El esquema es inmutable y cambia de objeto con cada versión, así que su historial se indexa por su identidad de negocio: `AuditLog<AssetType>`, alimentado por `InspectionSchemaService`. `InMemoryAuditLog` compara claves con `equals`. `AuditEntry` no sabe de qué objeto habla, porque el sujeto es la clave del historial.
   - La renovación nace del certificado y no de la fábrica. Por eso `AuditedCertificate.renew` decora el certificado nuevo y registra su emisión él mismo, sin guardar una referencia a su fábrica. El costo son dos líneas repetidas respecto de `AuditedCertificateFactory.create`; la alternativa era una dependencia del decorador hacia quien lo crea.
 - **Alternativas descartadas:**
   - *Auditoría dentro del agregado* (`audit.record(...)` en cada método): más barata, y defendible porque la auditoría es requisito de negocio, pero mezcla dos niveles de abstracción en cada operación.
@@ -267,6 +268,8 @@ determinista y los tests usan un reloj controlable.
 | Características del activo duplicadas o vacías | `CharacteristicsTest` |
 | Publicar una versión modifica el esquema existente, o el log de versiones tiene huecos | `SchemaVersioningTest.publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched`, `SchemaVersionLogTest` |
 | Ids repetidos, referencias por objeto entre agregados o ids inexistentes | `AggregateIdentityTest` |
+| Quien asigna o el responsable del activo realizan la inspección | `InspectionAssignmentTest` |
+| La creación de un esquema o de una versión no queda auditada | `SchemaVersioningTest.creatingTheSchemaAndAddingVersionsIsAudited` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | `CertificationTest.inspectionClosedWithoutRaisingItsFindingsIsNotEligible` |
@@ -297,13 +300,14 @@ determinista y los tests usan un reloj controlable.
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
 Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 103 tests.
+`CertiflowFixture` es la raíz de composición compartida. Total: 107 tests.
 
 ---
 
 ## 6. Limitaciones conocidas y concesiones
 
 - **Garantía de auditoría.** Está dada por la API (la fábrica exige un `AuditLog`), no por la operación misma. Un `AuditLog` que descarte entradas la anula.
+- **Unicidad con concurrencia.** `RegisterAsset` y `CreateInspectionSchema` consultan el repositorio antes de guardar. Es correcto con un solo hilo; con escrituras concurrentes hace falta además una restricción de unicidad en la persistencia (índice único por `AssetCode` y por `AssetType`).
 - **Sin vista cronológica global.** Cada tipo de agregado tiene su propio historial (D7). Una consulta del estilo "todo lo que pasó el martes" exigiría recorrer los tres historiales o sumar un puerto de lectura global cuando algún caso de uso lo pida.
 - **Rectificación.** No revisa hallazgos ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).

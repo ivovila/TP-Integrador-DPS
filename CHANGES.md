@@ -221,3 +221,25 @@ explicable (`CertificationDecision`).
   nuevo `CertificationDecisionTest`.
 - `DESIGN.md`: S5, S17, sección 2, D10, D11 y tabla de tests. `docs/certiflow-domain.puml`: paquete
   `models.certification`.
+
+## 12. Observaciones de casos de uso: auditoría de esquemas y reglas de asignación
+
+**Corrección:** no existía un audit log para la creación de un esquema; el comportamiento de esquemas podía
+estar tras un servicio de dominio en lugar de que los casos de uso llamen al modelo; `AssignInspection` admitía
+que creador e inspector fueran la misma persona, que el responsable del activo asignara la inspección y que el
+responsable inspeccionara su propio activo. En `RegisterAsset`, la unicidad por consulta no escala con varios hilos.
+
+**Cambios:**
+- Nuevo servicio de dominio `InspectionSchemaService` (`models.schema`) con `create(...)` y `addVersion(...)`,
+  que audita en un `AuditLog<AssetType>` (`SchemaAudit.CREATED`, `SchemaAudit.VERSION_ADDED`, con autor y fecha).
+  `CreateInspectionSchema` y `PublishSchemaVersion` lo usan y reciben quién realiza la operación.
+- `InMemoryAuditLog` indexa con `HashMap` (por `equals`) en lugar de `IdentityHashMap`, para poder usar la
+  identidad de negocio del esquema como clave. Los decoradores no redefinen `equals`, así que su historial no cambia.
+- `StandardInspection` recibe quién asigna y rechaza los tres escenarios: `AssignerCannotInspectException`,
+  `AssetResponsibleCannotAssignInspectionException`, `AssetResponsibleCannotInspectOwnAssetException`.
+- `DESIGN.md`: se documenta como limitación que la unicidad de `RegisterAsset`/`CreateInspectionSchema` requiere
+  una restricción en la persistencia con concurrencia.
+- Tests: `InspectionAssignmentTest`, `SchemaVersioningTest.creatingTheSchemaAndAddingVersionsIsAudited`.
+- `DESIGN.md`: S2, S19, D7, limitaciones y tabla de tests.
+- **No aplicado:** mover el comportamiento de `Inspection` (RecordAnswer) a servicios de dominio y hacerla
+  inmutable con `Responses`, por decisión del equipo (ver corrección 7).

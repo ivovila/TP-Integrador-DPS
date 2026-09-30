@@ -17,7 +17,7 @@ public final class AuditedInspectionFactory {
 
     public Inspection create(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion,
                                Person assignedBy, Instant assignedAt) {
-        Inspection inspection = new AuditedInspection(new StandardInspection(id, asset, assignment, schemaVersion), auditLog);
+        Inspection inspection = new AuditedInspection(new StandardInspection(id, asset, assignment, schemaVersion, assignedBy), auditLog);
         auditLog.record(inspection, new AuditEntry(InspectionAudit.ASSIGNED, assignedBy, assignedAt,
                 "Schema version " + schemaVersion.number()));
         return inspection;

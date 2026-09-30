@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.models.asset.AssetType;
+import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.evaluation.StandardSeverity;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
@@ -12,6 +13,7 @@ import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.InspectionSchema;
+import ar.edu.itba.certiflow.models.schema.SchemaAudit;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.schema.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.models.schema.exceptions.NoInspectionSchemaForAssetTypeException;
@@ -30,7 +32,7 @@ class SchemaVersioningTest {
     void newSchemaVersionDoesNotAffectAnInspectionAlreadyStarted() {
         InspectionId startedInspection = fixture.assignedInspection();
 
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
+        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
 
         assertEquals(1, fixture.inspection(startedInspection).schemaVersion().number());
         assertThrows(CriterionNotInSchemaException.class,
@@ -41,7 +43,7 @@ class SchemaVersioningTest {
 
     @Test
     void inspectionsAssignedAfterPublishingUseTheNewVersion() {
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
+        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
 
         InspectionId inspectionAssignedLater = fixture.assignedInspection();
 
@@ -53,7 +55,7 @@ class SchemaVersioningTest {
     void publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched() {
         InspectionSchema before = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
 
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose());
+        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
 
         InspectionSchema after = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
         assertEquals(1, before.versions().size());
@@ -64,15 +66,28 @@ class SchemaVersioningTest {
     }
 
     @Test
+    void creatingTheSchemaAndAddingVersionsIsAudited() {
+        fixture.clock.advanceDays(1);
+        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.certifier);
+
+        List<AuditEntry> history = fixture.schemaLog.historyOf(CertiflowFixture.EXTINGUISHER);
+        assertEquals(List.of(SchemaAudit.CREATED, SchemaAudit.VERSION_ADDED), history.stream().map(AuditEntry::action).toList());
+        assertEquals(fixture.planner, history.getFirst().performedBy());
+        assertEquals(fixture.certifier, history.getLast().performedBy());
+        assertEquals(fixture.clock.instant(), history.getLast().occurredAt());
+        assertEquals("Version 2", history.getLast().detail());
+    }
+
+    @Test
     void assetTypeAcceptsASingleSchemaAndFurtherChangesArePublishedAsVersions() {
         assertThrows(SchemaAlreadyDefinedForAssetTypeException.class, () -> fixture.createInspectionSchema.execute(
-                "Another extinguisher schema", CertiflowFixture.EXTINGUISHER, fixture.firstVersionSections()));
+                "Another extinguisher schema", CertiflowFixture.EXTINGUISHER, fixture.firstVersionSections(), fixture.planner));
     }
 
     @Test
     void versionCannotBePublishedForAnAssetTypeWithoutSchema() {
         assertThrows(NoInspectionSchemaForAssetTypeException.class,
-                () -> fixture.publishSchemaVersion.execute(new AssetType("Laboratory"), fixture.firstVersionSections()));
+                () -> fixture.publishSchemaVersion.execute(new AssetType("Laboratory"), fixture.firstVersionSections(), fixture.planner));
     }
 
     private List<Section> sectionsIncludingHose() {

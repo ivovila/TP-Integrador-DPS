@@ -3,6 +3,9 @@ package ar.edu.itba.certiflow.models.inspection;
 import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.evaluation.Answer;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
+import ar.edu.itba.certiflow.models.inspection.exceptions.AssetResponsibleCannotAssignInspectionException;
+import ar.edu.itba.certiflow.models.inspection.exceptions.AssetResponsibleCannotInspectOwnAssetException;
+import ar.edu.itba.certiflow.models.inspection.exceptions.AssignerCannotInspectException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.CriterionOutOfScopeException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotClosedException;
@@ -27,7 +30,17 @@ final class StandardInspection implements Inspection {
     private final Map<Criterion<?>, CriterionResponse<?>> responses = new LinkedHashMap<>();
     private final List<Revision> revisions = new ArrayList<>();
 
-    StandardInspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion) {
+    StandardInspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Person assignedBy) {
+        Person inspector = assignment.inspector();
+        if (assignedBy.equals(inspector)) {
+            throw new AssignerCannotInspectException(inspector);
+        }
+        if (assignedBy.equals(asset.responsible())) {
+            throw new AssetResponsibleCannotAssignInspectionException(assignedBy);
+        }
+        if (inspector.equals(asset.responsible())) {
+            throw new AssetResponsibleCannotInspectOwnAssetException(inspector);
+        }
         this.id = id;
         this.asset = asset;
         this.assignment = assignment;

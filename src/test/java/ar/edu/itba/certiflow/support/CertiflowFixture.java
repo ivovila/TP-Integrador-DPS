@@ -48,6 +48,7 @@ import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.InspectionScope;
 import ar.edu.itba.certiflow.models.schema.Criterion;
+import ar.edu.itba.certiflow.models.schema.InspectionSchemaService;
 import ar.edu.itba.certiflow.models.schema.Section;
 import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.models.shared.PersonId;
@@ -100,6 +101,7 @@ public final class CertiflowFixture {
             new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of());
 
     public final MutableClock clock = new MutableClock(Instant.parse("2026-03-10T09:00:00Z"));
+    public final AuditLog<AssetType> schemaLog = new InMemoryAuditLog<>();
     public final AuditLog<Inspection> inspectionLog = new InMemoryAuditLog<>();
     public final AuditLog<Finding> findingLog = new InMemoryAuditLog<>();
     public final AuditLog<Certificate> certificateLog = new InMemoryAuditLog<>();
@@ -109,9 +111,10 @@ public final class CertiflowFixture {
     public final InMemoryFindingRepository findingRepository = new InMemoryFindingRepository();
     public final InMemoryCertificateRepository certificateRepository = new InMemoryCertificateRepository();
 
+    private final InspectionSchemaService inspectionSchemaService = new InspectionSchemaService(schemaLog);
     public final RegisterAsset registerAsset = new RegisterAsset(assetRepository);
-    public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, clock);
-    public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, clock);
+    public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchema(inspectionSchemaRepository, inspectionSchemaService, clock);
+    public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersion(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final AssignInspection assignInspection = new AssignInspection(assetRepository, inspectionSchemaRepository, inspectionRepository,
             new AuditedInspectionFactory(inspectionLog), clock);
     public final RecordAnswer recordAnswer = new RecordAnswer(inspectionRepository, clock);
@@ -140,7 +143,7 @@ public final class CertiflowFixture {
             new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder")))));
 
     public CertiflowFixture() {
-        createInspectionSchema.execute("Portable extinguisher inspection", EXTINGUISHER, firstVersionSections());
+        createInspectionSchema.execute("Portable extinguisher inspection", EXTINGUISHER, firstVersionSections(), planner);
     }
 
     public List<Section> firstVersionSections() {
