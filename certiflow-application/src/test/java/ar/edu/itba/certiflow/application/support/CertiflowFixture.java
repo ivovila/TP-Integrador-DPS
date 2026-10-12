@@ -1,5 +1,23 @@
 package ar.edu.itba.certiflow.application.support;
 
+import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
+import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
+import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
+import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
+import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
+import ar.edu.itba.certiflow.application.schema.FindSchemaUseCaseImpl;
+import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
+import ar.edu.itba.certiflow.application.inspection.FindInspectionUseCaseImpl;
+import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
+import ar.edu.itba.certiflow.application.inspection.FindFindingUseCaseImpl;
+import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
+import ar.edu.itba.certiflow.application.inspection.ListFindingsUseCaseImpl;
+import ar.edu.itba.certiflow.certification.usecase.ListCertificatesUseCase;
+import ar.edu.itba.certiflow.application.certification.ListCertificatesUseCaseImpl;
+import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
+import ar.edu.itba.certiflow.application.certification.FindCertificateUseCaseImpl;
+import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
+import ar.edu.itba.certiflow.application.shared.AuditHistoryUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.InspectionResultTranslatorImpl;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
@@ -179,6 +197,17 @@ public final class CertiflowFixture {
     public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationEligibility);
     public final SuspendCertificateUseCase suspendCertificate = new SuspendCertificateUseCaseImpl(certificateRepository, certificateService, clock);
     public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationEligibility, certificateNumbering, certificateService, clock);
+
+    public final FindAssetUseCase findAsset = new FindAssetUseCaseImpl(assetRepository);
+    public final ListAssetsUseCase listAssets = new ListAssetsUseCaseImpl(assetRepository);
+    public final FindSchemaUseCase findSchema = new FindSchemaUseCaseImpl(inspectionSchemaRepository);
+    public final FindInspectionUseCase findInspection = new FindInspectionUseCaseImpl(inspectionRepository);
+    public final FindFindingUseCase findFinding = new FindFindingUseCaseImpl(findingRepository);
+    public final ListFindingsUseCase listFindings = new ListFindingsUseCaseImpl(findingRepository);
+    public final ListCertificatesUseCase listCertificates = new ListCertificatesUseCaseImpl(certificateRepository);
+    public final FindCertificateUseCase findCertificate = new FindCertificateUseCaseImpl(certificateRepository);
+    public final AuditHistoryUseCase auditHistory = new AuditHistoryUseCaseImpl(assetLog, schemaLog, inspectionLog, findingLog,
+            certificateLog);
 
     public final Asset extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,

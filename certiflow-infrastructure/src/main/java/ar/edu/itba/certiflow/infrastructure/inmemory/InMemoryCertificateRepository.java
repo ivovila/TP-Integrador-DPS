@@ -6,6 +6,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,5 +30,15 @@ public final class InMemoryCertificateRepository implements CertificateRepositor
                 .filter(certificate -> certificate.certifies(assetCode))
                 .filter(certificate -> certificate.isCurrentOn(referenceDate))
                 .findFirst();
+    }
+
+    @Override
+    public List<Certificate> findByAsset(AssetCode assetCode) {
+        return certificates.values().stream().filter(certificate -> certificate.certifies(assetCode)).toList();
+    }
+
+    @Override
+    public List<Certificate> findAll() {
+        return List.copyOf(certificates.values());
     }
 }

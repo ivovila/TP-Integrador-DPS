@@ -38,4 +38,9 @@ public final class InMemoryFindingRepository implements FindingRepository {
     public List<Finding> findByAsset(AssetCode assetCode) {
         return findings.values().stream().filter(finding -> finding.concerns(assetCode)).toList();
     }
+
+    @Override
+    public List<Finding> findAll() {
+        return List.copyOf(findings.values());
+    }
 }

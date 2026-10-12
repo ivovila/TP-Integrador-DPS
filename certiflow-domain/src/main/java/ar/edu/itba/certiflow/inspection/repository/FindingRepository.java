@@ -17,4 +17,6 @@ public interface FindingRepository {
     Optional<Finding> findById(FindingId id);
 
     List<Finding> findByAsset(AssetCode assetCode);
+
+    List<Finding> findAll();
 }
