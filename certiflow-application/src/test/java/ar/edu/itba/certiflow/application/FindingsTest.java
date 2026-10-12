@@ -5,10 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import java.util.List;
@@ -23,7 +21,7 @@ class FindingsTest {
         InspectionId inspection = fixture.assignedInspection();
         fixture.answerAll(inspection, "5.00", YesNoAnswer.YES, "FADED");
 
-        List<FindingId> findings = fixture.closeInspection.execute(inspection, fixture.inspector);
+        List<FindingId> findings = fixture.close(inspection, fixture.inspector);
 
         assertEquals(2, findings.size());
         FindingId lowPressureFinding = findings.getFirst();
@@ -58,7 +56,7 @@ class FindingsTest {
         InspectionId inspection = fixture.assignedInspection();
         fixture.answerAll(inspection, "7.00", YesNoAnswer.YES, "VISIBLE");
 
-        List<FindingId> findings = fixture.closeInspection.execute(inspection, fixture.inspector);
+        List<FindingId> findings = fixture.close(inspection, fixture.inspector);
 
         assertTrue(findings.isEmpty());
         assertTrue(fixture.findingRepository.findByAsset(fixture.extinguisher.code()).isEmpty());

@@ -33,7 +33,6 @@ class RequiredValueTest {
     void correctiveActionWithoutDescriptionIsADomainError() {
         FindingId finding = fixture.majorFindingOf(fixture.assignedInspection());
 
-        assertThrows(RequiredValueMissingException.class, () -> fixture.planCorrectiveAction.execute(finding, " ",
-                fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));
+        assertThrows(RequiredValueMissingException.class, () -> fixture.plan(finding, " ", fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));
     }
 }

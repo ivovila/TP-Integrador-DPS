@@ -1,12 +1,9 @@
 package ar.edu.itba.certiflow.application.inspection;
 
-import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
-import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
 import java.time.Clock;
@@ -24,10 +21,10 @@ public final class RecordAnswerUseCaseImpl implements RecordAnswerUseCase {
     }
 
     @Override
-    public <A extends Answer> void execute(InspectionId inspectionId, Criterion<A> criterion, A answer, Person answeredBy) {
-        Inspection inspection = inspectionRepository.findById(inspectionId)
-                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        inspectionService.recordAnswer(inspection, criterion, answer, answeredBy, clock.instant());
+    public void execute(RecordAnswerCommand command) {
+        Inspection inspection = inspectionRepository.findById(command.inspectionId())
+                .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
+        inspectionService.recordAnswer(inspection, command.criterionCode(), command.answer(), command.answeredBy(), clock.instant());
         inspectionRepository.save(inspection);
     }
 }

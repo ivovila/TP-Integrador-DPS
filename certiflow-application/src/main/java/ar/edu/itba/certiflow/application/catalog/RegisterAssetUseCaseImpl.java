@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.application.catalog;
 
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetService;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
 import java.time.Clock;
@@ -20,8 +20,10 @@ public final class RegisterAssetUseCaseImpl implements RegisterAssetUseCase {
     }
 
     @Override
-    public Asset execute(Asset asset, Person registeredBy) {
-        Asset registeredAsset = assetService.register(asset, assetRepository.findByCode(asset.code()), registeredBy,
+    public Asset execute(RegisterAssetCommand command) {
+        Asset asset = new Asset(command.code(), command.name(), command.type(), command.location(), command.responsible(),
+                command.characteristics());
+        Asset registeredAsset = assetService.register(asset, assetRepository.findByCode(asset.code()), command.registeredBy(),
                 clock.instant());
         assetRepository.save(registeredAsset);
         return registeredAsset;

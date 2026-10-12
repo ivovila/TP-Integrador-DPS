@@ -1,14 +1,13 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FindingService;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionClosed;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionUseCase;
@@ -33,10 +32,10 @@ public final class CloseInspectionUseCaseImpl implements CloseInspectionUseCase 
     }
 
     @Override
-    public List<FindingId> execute(InspectionId inspectionId, Person closedBy) {
-        Inspection inspection = inspectionRepository.findById(inspectionId)
-                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        InspectionClosed closure = inspectionService.close(inspection, closedBy, clock.instant());
+    public List<FindingId> execute(CloseInspectionCommand command) {
+        Inspection inspection = inspectionRepository.findById(command.inspectionId())
+                .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
+        InspectionClosed closure = inspectionService.close(inspection, command.closedBy(), clock.instant());
         List<Finding> raisedFindings = findingService.raiseFrom(closure, findingRepository::nextId);
         inspectionRepository.save(inspection);
         findingRepository.saveAll(raisedFindings);

@@ -1,16 +1,13 @@
 package ar.edu.itba.certiflow.application.inspection;
 
-import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FindingService;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionRectified;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
-import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
@@ -35,12 +32,11 @@ public final class RectifyInspectionUseCaseImpl implements RectifyInspectionUseC
     }
 
     @Override
-    public <A extends Answer> List<FindingId> execute(InspectionId inspectionId, Criterion<A> criterion, A answer,
-                                                      String reason, Person rectifiedBy) {
-        Inspection inspection = inspectionRepository.findById(inspectionId)
-                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        InspectionRectified rectification = inspectionService.rectify(inspection, criterion, answer, reason, rectifiedBy,
-                clock.instant());
+    public List<FindingId> execute(RectifyInspectionCommand command) {
+        Inspection inspection = inspectionRepository.findById(command.inspectionId())
+                .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
+        InspectionRectified rectification = inspectionService.rectify(inspection, command.criterionCode(), command.answer(),
+                command.reason(), command.rectifiedBy(), clock.instant());
         List<Finding> raisedFindings = findingService.raiseFrom(rectification,
                 findingRepository.findByAsset(inspection.assetCode()), findingRepository::nextId);
         inspectionRepository.save(inspection);

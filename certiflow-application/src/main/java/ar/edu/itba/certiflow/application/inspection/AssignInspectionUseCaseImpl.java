@@ -1,15 +1,13 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import ar.edu.itba.certiflow.catalog.model.Asset;
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
@@ -34,12 +32,13 @@ public final class AssignInspectionUseCaseImpl implements AssignInspectionUseCas
     }
 
     @Override
-    public InspectionId execute(AssetCode assetCode, InspectionAssignment assignment, Person assignedBy) {
-        Asset asset = assetRepository.findByCode(assetCode).orElseThrow(() -> new AssetNotFoundException(assetCode));
+    public InspectionId execute(AssignInspectionCommand command) {
+        Asset asset = assetRepository.findByCode(command.assetCode())
+                .orElseThrow(() -> new AssetNotFoundException(command.assetCode()));
         InspectionSchema schema = inspectionSchemaRepository.findByAssetType(asset.type())
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type()));
-        Inspection inspection = inspectionService.assign(inspectionRepository.nextId(), asset, assignment,
-                schema.currentVersion(), assignedBy, clock.instant());
+        Inspection inspection = inspectionService.assign(inspectionRepository.nextId(), asset, command.assignment(),
+                schema.currentVersion(), command.assignedBy(), clock.instant());
         inspectionRepository.save(inspection);
         return inspection.id();
     }

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.certification;
 
+import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
@@ -8,9 +9,7 @@ import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.CertificationEligibility;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
@@ -42,18 +41,18 @@ public final class IssueCertificateUseCaseImpl implements IssueCertificateUseCas
     }
 
     @Override
-    public CertificateNumber execute(InspectionId inspectionId, LocalDate validUntil, Person issuedBy) {
-        Inspection inspection = inspectionRepository.findById(inspectionId)
-                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
+    public CertificateNumber execute(IssueCertificateCommand command) {
+        Inspection inspection = inspectionRepository.findById(command.inspectionId())
+                .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
         LocalDate today = LocalDate.now(clock);
         AssetCode assetCode = inspection.assetCode();
         certificationEligibility.ensureEligible(inspection, findingRepository.findByAsset(assetCode));
         certificateRepository.findCurrentFor(assetCode, today).ifPresent(currentCertificate -> {
             throw new AssetAlreadyCertifiedException(assetCode, currentCertificate.number());
         });
-        ValidityPeriod validity = new ValidityPeriod(today, validUntil);
+        ValidityPeriod validity = new ValidityPeriod(today, command.validUntil());
         Certificate certificate = certificateService.issue(certificateNumbering.next(), assetCode, inspection, validity,
-                issuedBy, clock.instant());
+                command.issuedBy(), clock.instant());
         certificateRepository.save(certificate);
         return certificate.number();
     }

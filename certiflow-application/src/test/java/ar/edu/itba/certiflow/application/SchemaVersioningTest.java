@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application;
 
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
+import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,7 +11,6 @@ import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
@@ -32,30 +33,30 @@ class SchemaVersioningTest {
     void newSchemaVersionDoesNotAffectAnInspectionAlreadyStarted() {
         InspectionId startedInspection = fixture.assignedInspection();
 
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
+        fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         assertEquals(1, fixture.inspection(startedInspection).schemaVersion().number());
         assertThrows(CriterionNotInSchemaException.class,
-                () -> fixture.recordAnswer.execute(startedInspection, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
+                () -> fixture.answer(startedInspection, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
         fixture.answerAll(startedInspection, "7.00", YesNoAnswer.YES, "VISIBLE");
-        assertDoesNotThrow(() -> fixture.closeInspection.execute(startedInspection, fixture.inspector));
+        assertDoesNotThrow(() -> fixture.close(startedInspection, fixture.inspector));
     }
 
     @Test
     void inspectionsAssignedAfterPublishingUseTheNewVersion() {
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
+        fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         InspectionId inspectionAssignedLater = fixture.assignedInspection();
 
         assertEquals(2, fixture.inspection(inspectionAssignedLater).schemaVersion().number());
-        assertDoesNotThrow(() -> fixture.recordAnswer.execute(inspectionAssignedLater, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
+        assertDoesNotThrow(() -> fixture.answer(inspectionAssignedLater, hoseCriterion, YesNoAnswer.YES, fixture.inspector));
     }
 
     @Test
     void publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched() {
         InspectionSchema before = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
 
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner);
+        fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         InspectionSchema after = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
         assertEquals(1, before.versions().size());
@@ -68,7 +69,7 @@ class SchemaVersioningTest {
     @Test
     void creatingTheSchemaAndAddingVersionsIsAudited() {
         fixture.clock.advanceDays(1);
-        fixture.publishSchemaVersion.execute(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.certifier);
+        fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.certifier));
 
         List<AuditEntry> history = fixture.schemaLog.historyOf(CertiflowFixture.EXTINGUISHER);
         assertEquals(List.of(SchemaAudit.CREATED, SchemaAudit.VERSION_ADDED), history.stream().map(AuditEntry::action).toList());
@@ -80,14 +81,13 @@ class SchemaVersioningTest {
 
     @Test
     void assetTypeAcceptsASingleSchemaAndFurtherChangesArePublishedAsVersions() {
-        assertThrows(SchemaAlreadyDefinedForAssetTypeException.class, () -> fixture.createInspectionSchema.execute(
-                "Another extinguisher schema", CertiflowFixture.EXTINGUISHER, fixture.firstVersionSections(), fixture.planner));
+        assertThrows(SchemaAlreadyDefinedForAssetTypeException.class, () -> fixture.createInspectionSchema.execute(new CreateInspectionSchemaCommand("Another extinguisher schema", CertiflowFixture.EXTINGUISHER, fixture.firstVersionSections(), fixture.planner)));
     }
 
     @Test
     void versionCannotBePublishedForAnAssetTypeWithoutSchema() {
         assertThrows(NoInspectionSchemaForAssetTypeException.class,
-                () -> fixture.publishSchemaVersion.execute(new AssetType("Laboratory"), fixture.firstVersionSections(), fixture.planner));
+                () -> fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(new AssetType("Laboratory"), fixture.firstVersionSections(), fixture.planner)));
     }
 
     private List<Section> sectionsIncludingHose() {

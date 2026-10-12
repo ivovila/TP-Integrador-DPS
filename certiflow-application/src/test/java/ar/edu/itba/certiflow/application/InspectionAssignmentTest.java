@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application;
 
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.inspection.model.FullScope;
@@ -31,7 +32,6 @@ class InspectionAssignmentTest {
     }
 
     private void assign(Person inspector, Person assignedBy) {
-        fixture.assignInspection.execute(fixture.extinguisher.code(),
-                new InspectionAssignment(inspector, CertiflowFixture.TODAY.plusDays(3), new FullScope()), assignedBy);
+        fixture.assignInspection.execute(new AssignInspectionCommand(fixture.extinguisher.code(), (new InspectionAssignment(inspector, CertiflowFixture.TODAY.plusDays(3), new FullScope())).inspector(), (new InspectionAssignment(inspector, CertiflowFixture.TODAY.plusDays(3), new FullScope())).plannedDate(), (new InspectionAssignment(inspector, CertiflowFixture.TODAY.plusDays(3), new FullScope())).scope(), assignedBy));
     }
 }

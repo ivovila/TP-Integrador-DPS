@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application;
 
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,10 +38,8 @@ class AggregateIdentityTest {
         InspectionId inspection = fixture.assignedInspection();
         FindingId finding = fixture.majorFindingOf(inspection);
 
-        CorrectiveActionId firstAction = fixture.planCorrectiveAction.execute(finding, "Recharge", fixture.maintenanceTechnician,
-                CertiflowFixture.TODAY, fixture.assetResponsible);
-        CorrectiveActionId secondAction = fixture.planCorrectiveAction.execute(finding, "Replace", fixture.maintenanceTechnician,
-                CertiflowFixture.TODAY, fixture.assetResponsible);
+        CorrectiveActionId firstAction = fixture.plan(finding, "Recharge", fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible);
+        CorrectiveActionId secondAction = fixture.plan(finding, "Replace", fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible);
 
         assertEquals(inspection, fixture.finding(finding).inspectionId());
         assertEquals(new CorrectiveActionId(1), firstAction);
@@ -53,13 +52,10 @@ class AggregateIdentityTest {
         FindingId unknownFinding = new FindingId("missing");
         CertificateNumber unknownCertificate = new CertificateNumber("CERT-99999");
 
-        assertThrows(InspectionNotFoundException.class, () -> fixture.recordAnswer.execute(unknownInspection,
-                fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector));
-        assertThrows(FindingNotFoundException.class, () -> fixture.planCorrectiveAction.execute(unknownFinding, "Recharge",
-                fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));
+        assertThrows(InspectionNotFoundException.class, () -> fixture.answer(unknownInspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector));
+        assertThrows(FindingNotFoundException.class, () -> fixture.plan(unknownFinding, "Recharge", fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));
         assertThrows(CertificateNotFoundException.class,
-                () -> fixture.suspendCertificate.execute(unknownCertificate, "Discharged", fixture.certifier));
-        assertThrows(AssetNotFoundException.class, () -> fixture.assignInspection.execute(new AssetCode("EXT-9999"),
-                new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope()), fixture.planner));
+                () -> fixture.suspend(unknownCertificate, "Discharged", fixture.certifier));
+        assertThrows(AssetNotFoundException.class, () -> fixture.assignInspection.execute(new AssignInspectionCommand(new AssetCode("EXT-9999"), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).inspector(), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).plannedDate(), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).scope(), fixture.planner)));
     }
 }

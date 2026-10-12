@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CriterionOutOfScopeException;
@@ -24,10 +23,9 @@ class InspectionScopeTest {
     void partialInspectionOnlyTakesAnswersForItsSectionsAndClosesWhenThoseAreComplete() {
         InspectionId inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
 
-        assertThrows(CriterionOutOfScopeException.class, () -> fixture.recordAnswer.execute(inspection,
-                fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector));
-        fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
-        fixture.closeInspection.execute(inspection, fixture.inspector);
+        assertThrows(CriterionOutOfScopeException.class, () -> fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector));
+        fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
+        fixture.close(inspection, fixture.inspector);
 
         assertTrue(fixture.inspection(inspection).isClosed());
         assertFalse(fixture.inspection(inspection).coversWholeSchema());
@@ -51,10 +49,9 @@ class InspectionScopeTest {
     @Test
     void partialInspectionCannotBackACertificate() {
         InspectionId inspection = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
-        fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
-        fixture.closeInspection.execute(inspection, fixture.inspector);
+        fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
+        fixture.close(inspection, fixture.inspector);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.PARTIAL_INSPECTION, () -> fixture.issueCertificate.execute(inspection,
-                CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
+        CertiflowFixture.assertNotEligible(IneligibilityReason.PARTIAL_INSPECTION, () -> fixture.issue(inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
     }
 }

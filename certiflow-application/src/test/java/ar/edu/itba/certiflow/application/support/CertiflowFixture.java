@@ -1,5 +1,19 @@
 package ar.edu.itba.certiflow.application.support;
 
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
+import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
+import ar.edu.itba.certiflow.inspection.model.Verification;
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceCommand;
+import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
+import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
+import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,7 +79,6 @@ import ar.edu.itba.certiflow.inspection.model.FindingService;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FullScope;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
 import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
@@ -164,12 +177,13 @@ public final class CertiflowFixture {
     public final SuspendCertificateUseCase suspendCertificate = new SuspendCertificateUseCaseImpl(certificateRepository, certificateService, clock);
     public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, certificateService, clock);
 
-    public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
+    public final Asset extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
-            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder")))), planner);
+            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder"))), planner));
 
     public CertiflowFixture() {
-        createInspectionSchema.execute("Portable extinguisher inspection", EXTINGUISHER, firstVersionSections(), planner);
+        createInspectionSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
+                firstVersionSections(), planner));
     }
 
     public List<Section> firstVersionSections() {
@@ -182,7 +196,7 @@ public final class CertiflowFixture {
     }
 
     public InspectionId assignedInspection(InspectionScope scope) {
-        return assignInspection.execute(extinguisher.code(), new InspectionAssignment(inspector, TODAY.plusDays(3), scope), planner);
+        return assignInspection.execute(new AssignInspectionCommand(extinguisher.code(), inspector, TODAY.plusDays(3), scope, planner));
     }
 
     public Inspection inspection(InspectionId id) {
@@ -215,28 +229,63 @@ public final class CertiflowFixture {
     }
 
     public void answerAll(InspectionId inspection, String pressureInBars, YesNoAnswer sealAnswer, String signageOption) {
-        recordAnswer.execute(inspection, pressureCriterion, numericAnswer(pressureInBars), inspector);
-        attachEvidence.execute(inspection, pressureCriterion, gaugePhoto(), inspector);
-        recordAnswer.execute(inspection, sealIntactCriterion, sealAnswer, inspector);
-        recordAnswer.execute(inspection, signageCriterion, new OptionAnswer(signageOption), inspector);
+        answer(inspection, pressureCriterion, numericAnswer(pressureInBars), inspector);
+        attach(inspection, pressureCriterion, gaugePhoto(), inspector);
+        answer(inspection, sealIntactCriterion, sealAnswer, inspector);
+        answer(inspection, signageCriterion, new OptionAnswer(signageOption), inspector);
     }
 
     public InspectionId closedCompliantInspection() {
         InspectionId inspection = assignedInspection();
         answerAll(inspection, "7.00", YesNoAnswer.YES, "VISIBLE");
-        closeInspection.execute(inspection, inspector);
+        close(inspection, inspector);
         return inspection;
     }
 
     /** Cierra un hallazgo por el camino del negocio: una acción correctiva verificada y aceptada. */
     public void closeFinding(FindingId finding) {
-        CorrectiveActionId action = planCorrectiveAction.execute(finding, "Recharge the extinguisher", assetResponsible,
-                TODAY.plusDays(10), planner);
-        verifyCorrectiveAction.execute(finding, action, verifier, VerificationResult.ACCEPTED, "Recharged");
+        CorrectiveActionId action = plan(finding, "Recharge the extinguisher", assetResponsible, TODAY.plusDays(10), planner);
+        verify(finding, action, verifier, VerificationResult.ACCEPTED, "Recharged");
     }
 
     public FindingId majorFindingOf(InspectionId inspection) {
         answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
-        return closeInspection.execute(inspection, inspector).getFirst();
+        return close(inspection, inspector).getFirst();
+    }
+
+    public void answer(InspectionId inspection, Criterion<?> criterion, Answer answer, Person by) {
+        recordAnswer.execute(new RecordAnswerCommand(inspection, criterion.code(), answer.raw(), by));
+    }
+
+    public void attach(InspectionId inspection, Criterion<?> criterion, Evidence evidence, Person by) {
+        attachEvidence.execute(new AttachEvidenceCommand(inspection, criterion.code(), evidence, by));
+    }
+
+    public List<FindingId> close(InspectionId inspection, Person by) {
+        return closeInspection.execute(new CloseInspectionCommand(inspection, by));
+    }
+
+    public List<FindingId> rectify(InspectionId inspection, Criterion<?> criterion, Answer answer, String reason, Person by) {
+        return rectifyInspection.execute(new RectifyInspectionCommand(inspection, criterion.code(), answer.raw(), reason, by));
+    }
+
+    public CorrectiveActionId plan(FindingId finding, String description, Person responsible, LocalDate dueDate, Person by) {
+        return planCorrectiveAction.execute(new PlanCorrectiveActionCommand(finding, description, responsible, dueDate, by));
+    }
+
+    public Verification verify(FindingId finding, CorrectiveActionId action, Person verifier, VerificationResult result, String notes) {
+        return verifyCorrectiveAction.execute(new VerifyCorrectiveActionCommand(finding, action, verifier, result, notes));
+    }
+
+    public CertificateNumber issue(InspectionId inspection, LocalDate validUntil, Person by) {
+        return issueCertificate.execute(new IssueCertificateCommand(inspection, validUntil, by));
+    }
+
+    public CertificateNumber renew(CertificateNumber current, InspectionId inspection, LocalDate validUntil, Person by) {
+        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, validUntil, by));
+    }
+
+    public void suspend(CertificateNumber number, String reason, Person by) {
+        suspendCertificate.execute(new SuspendCertificateCommand(number, reason, by));
     }
 }

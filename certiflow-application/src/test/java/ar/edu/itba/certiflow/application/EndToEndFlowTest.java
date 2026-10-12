@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application;
 
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
+import ar.edu.itba.certiflow.inspection.usecase.AddObservationCommand;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,19 +13,15 @@ import ar.edu.itba.certiflow.inspection.usecase.InspectionAct;
 import ar.edu.itba.certiflow.catalog.model.AssetAudit;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredException;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
-import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
-import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
@@ -39,13 +37,13 @@ class EndToEndFlowTest {
     @Test
     void assetGoesFromInspectionToCertificateAndEveryReportTellsTheSameStory() {
         InspectionId inspection = fixture.assignedInspection();
-        fixture.recordAnswer.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("5.20"), fixture.inspector);
-        fixture.attachEvidence.execute(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
-        fixture.addObservation.execute(inspection, fixture.pressureCriterion, "Needle sits below the green band", fixture.inspector);
-        fixture.recordAnswer.execute(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
-        fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("FADED"), fixture.inspector);
+        fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("5.20"), fixture.inspector);
+        fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
+        fixture.addObservation.execute(new AddObservationCommand(inspection, fixture.pressureCriterion.code(), "Needle sits below the green band", fixture.inspector));
+        fixture.answer(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
+        fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("FADED"), fixture.inspector);
 
-        List<FindingId> findings = fixture.closeInspection.execute(inspection, fixture.inspector);
+        List<FindingId> findings = fixture.close(inspection, fixture.inspector);
 
         InspectionAct inspectionAct = fixture.generateInspectionAct.execute(inspection);
         assertEquals("EXT-0042", inspectionAct.assetCode().value());
@@ -66,22 +64,19 @@ class EndToEndFlowTest {
         FindingsSummary summaryAfterClosing = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(2, summaryAfterClosing.openFindings());
         assertEquals(1, summaryAfterClosing.blockingFindings());
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issueCertificate.execute(
-                inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
 
         FindingId lowPressureFinding = findings.getFirst();
-        CorrectiveActionId rechargeAction = fixture.planCorrectiveAction.execute(lowPressureFinding, "Recharge the extinguisher",
-                fixture.maintenanceTechnician, CertiflowFixture.TODAY.plusDays(10), fixture.assetResponsible);
+        CorrectiveActionId rechargeAction = fixture.plan(lowPressureFinding, "Recharge the extinguisher", fixture.maintenanceTechnician, CertiflowFixture.TODAY.plusDays(10), fixture.assetResponsible);
         fixture.clock.advanceDays(7);
-        fixture.verifyCorrectiveAction.execute(lowPressureFinding, rechargeAction, fixture.verifier, VerificationResult.ACCEPTED,
-                "Gauge reads 7 bar after recharge");
+        fixture.verify(lowPressureFinding, rechargeAction, fixture.verifier, VerificationResult.ACCEPTED, "Gauge reads 7 bar after recharge");
 
         FindingsSummary summaryAfterVerification = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(1, summaryAfterVerification.openFindings());
         assertEquals(0, summaryAfterVerification.blockingFindings());
 
         LocalDate validUntil = LocalDate.now(fixture.clock).plusYears(1);
-        CertificateNumber certificate = fixture.issueCertificate.execute(inspection, validUntil, fixture.certifier);
+        CertificateNumber certificate = fixture.issue(inspection, validUntil, fixture.certifier);
 
         CertificateDocument certificateDocument = fixture.generateCertificateDocument.execute(certificate);
         assertEquals(certificate, certificateDocument.number());
@@ -102,7 +97,9 @@ class EndToEndFlowTest {
 
     @Test
     void catalogRejectsASecondAssetWithTheSameCode() {
-        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(fixture.extinguisher, fixture.planner));
+        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(new RegisterAssetCommand(
+                fixture.extinguisher.code(), fixture.extinguisher.name(), fixture.extinguisher.type(), fixture.extinguisher.location(),
+                fixture.extinguisher.responsible(), fixture.extinguisher.characteristics(), fixture.planner)));
         assertEquals(fixture.extinguisher, fixture.assetRepository.findByCode(fixture.extinguisher.code()).orElseThrow());
     }
 

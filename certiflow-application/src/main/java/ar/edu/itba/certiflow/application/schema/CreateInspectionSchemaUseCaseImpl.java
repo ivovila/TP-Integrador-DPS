@@ -1,15 +1,12 @@
 package ar.edu.itba.certiflow.application.schema;
 
-import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
-import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaAlreadyDefinedForAssetTypeException;
-import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import java.time.Clock;
-import java.util.List;
 
 public final class CreateInspectionSchemaUseCaseImpl implements CreateInspectionSchemaUseCase {
 
@@ -25,11 +22,12 @@ public final class CreateInspectionSchemaUseCaseImpl implements CreateInspection
     }
 
     @Override
-    public InspectionSchema execute(String name, AssetType assetType, List<Section> sections, Person createdBy) {
-        inspectionSchemaRepository.findByAssetType(assetType).ifPresent(existingSchema -> {
-            throw new SchemaAlreadyDefinedForAssetTypeException(assetType);
+    public InspectionSchema execute(CreateInspectionSchemaCommand command) {
+        inspectionSchemaRepository.findByAssetType(command.assetType()).ifPresent(existingSchema -> {
+            throw new SchemaAlreadyDefinedForAssetTypeException(command.assetType());
         });
-        InspectionSchema schema = inspectionSchemaService.create(name, assetType, sections, createdBy, clock.instant());
+        InspectionSchema schema = inspectionSchemaService.create(command.name(), command.assetType(), command.sections(),
+                command.createdBy(), clock.instant());
         inspectionSchemaRepository.save(schema);
         return schema;
     }

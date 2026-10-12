@@ -1,5 +1,10 @@
 package ar.edu.itba.certiflow.application;
 
+import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
+import ar.edu.itba.certiflow.schema.model.RawAnswer;
+import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
+import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.inspection.usecase.AddObservationCommand;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,7 +16,6 @@ import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.GivenAnswer;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.DuplicateEvidenceException;
@@ -29,10 +33,10 @@ class InspectionExecutionTest {
     @Test
     void inspectionCannotBeClosedWhileCriteriaRemainUnanswered() {
         InspectionId inspection = fixture.assignedInspection();
-        fixture.recordAnswer.execute(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
+        fixture.answer(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
 
         InspectionIncompleteException incompleteRejection = assertThrows(InspectionIncompleteException.class,
-                () -> fixture.closeInspection.execute(inspection, fixture.inspector));
+                () -> fixture.close(inspection, fixture.inspector));
 
         assertEquals(List.of("EXT-01", "EXT-03"), incompleteRejection.pendingCriteria());
         assertFalse(fixture.inspection(inspection).isClosed());
@@ -41,14 +45,14 @@ class InspectionExecutionTest {
     @Test
     void answeredCriterionStaysPendingUntilItsRequiredEvidenceIsAttached() {
         InspectionId inspection = fixture.assignedInspection();
-        fixture.recordAnswer.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector);
-        fixture.recordAnswer.execute(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
-        fixture.recordAnswer.execute(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
+        fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector);
+        fixture.answer(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
+        fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
 
         assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
-        assertThrows(InspectionIncompleteException.class, () -> fixture.closeInspection.execute(inspection, fixture.inspector));
+        assertThrows(InspectionIncompleteException.class, () -> fixture.close(inspection, fixture.inspector));
 
-        fixture.attachEvidence.execute(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
+        fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
 
         assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
     }
@@ -56,11 +60,11 @@ class InspectionExecutionTest {
     @Test
     void sameEvidenceCannotBeAttachedTwiceToTheSameCriterion() {
         InspectionId inspection = fixture.assignedInspection();
-        fixture.attachEvidence.execute(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
+        fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
         int entriesAfterFirstAttachment = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size();
 
         assertThrows(DuplicateEvidenceException.class,
-                () -> fixture.attachEvidence.execute(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector));
+                () -> fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector));
 
         assertEquals(entriesAfterFirstAttachment, fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size());
     }
@@ -71,7 +75,7 @@ class InspectionExecutionTest {
         fixture.answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
         assertEquals(Outcome.REJECTED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
 
-        fixture.recordAnswer.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.10"), fixture.inspector);
+        fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.10"), fixture.inspector);
 
         assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
         List<AuditEntry> pressureEntries = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).stream()
@@ -88,12 +92,12 @@ class InspectionExecutionTest {
         int entriesAtClosure = fixture.inspectionLog.historyOf(fixture.inspection(closedInspection)).size();
 
         assertThrows(InspectionAlreadyClosedException.class,
-                () -> fixture.recordAnswer.execute(closedInspection, fixture.pressureCriterion, fixture.numericAnswer("6.50"), fixture.inspector));
+                () -> fixture.answer(closedInspection, fixture.pressureCriterion, fixture.numericAnswer("6.50"), fixture.inspector));
         assertThrows(InspectionAlreadyClosedException.class,
-                () -> fixture.attachEvidence.execute(closedInspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector));
+                () -> fixture.attach(closedInspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector));
         assertThrows(InspectionAlreadyClosedException.class,
-                () -> fixture.addObservation.execute(closedInspection, fixture.signageCriterion, "Late note", fixture.inspector));
-        assertThrows(InspectionAlreadyClosedException.class, () -> fixture.closeInspection.execute(closedInspection, fixture.inspector));
+                () -> fixture.addObservation.execute(new AddObservationCommand(closedInspection, fixture.signageCriterion.code(), "Late note", fixture.inspector)));
+        assertThrows(InspectionAlreadyClosedException.class, () -> fixture.close(closedInspection, fixture.inspector));
         assertEquals(entriesAtClosure, fixture.inspectionLog.historyOf(fixture.inspection(closedInspection)).size());
     }
 
@@ -111,9 +115,9 @@ class InspectionExecutionTest {
     @Test
     void answersAndEvidenceRememberWhoGaveThemAndWhen() {
         InspectionId inspection = fixture.assignedInspection();
-        fixture.recordAnswer.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector);
+        fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), fixture.inspector);
         fixture.clock.advanceDays(1);
-        fixture.attachEvidence.execute(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
+        fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
 
         CriterionResponse<?> response = fixture.inspection(inspection).evaluate().responses().stream()
                 .filter(candidate -> candidate.isFor(fixture.pressureCriterion))
@@ -126,5 +130,26 @@ class InspectionExecutionTest {
         assertEquals(fixture.clock.instant().minus(Duration.ofDays(1)), givenAnswer.answeredAt());
         assertEquals(fixture.inspector, attachedEvidence.attachedBy());
         assertEquals(fixture.clock.instant(), attachedEvidence.attachedAt());
+    }
+
+    @Test
+    void answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing() {
+        InspectionId inspection = fixture.assignedInspection();
+        int entriesBefore = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size();
+
+        assertThrows(CriterionNotInSchemaException.class, () -> fixture.recordAnswer.execute(
+                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer.YesNo(true), fixture.inspector)));
+
+        assertEquals(entriesBefore, fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size());
+    }
+
+    @Test
+    void answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing() {
+        InspectionId inspection = fixture.assignedInspection();
+
+        assertThrows(AnswerTypeMismatchException.class, () -> fixture.recordAnswer.execute(
+                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer.YesNo(true), fixture.inspector)));
+
+        assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
     }
 }
