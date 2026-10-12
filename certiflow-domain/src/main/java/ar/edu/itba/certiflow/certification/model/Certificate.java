@@ -35,6 +35,21 @@ public final class Certificate {
         auditTrail.record(CertificateAudit.ISSUED, issuedBy, issuedAt, "Number " + number.value());
     }
 
+    Certificate(CertificateSnapshot snapshot) {
+        this.number = snapshot.number();
+        this.assetCode = snapshot.assetCode();
+        this.basedOn = snapshot.basedOn();
+        this.validity = snapshot.validity();
+        this.issuedBy = snapshot.issuedBy();
+        this.issuedAt = snapshot.issuedAt();
+        this.suspensions.addAll(snapshot.suspensions());
+        this.lifecycle = snapshot.lifecycle();
+    }
+
+    public CertificateSnapshot snapshot() {
+        return new CertificateSnapshot(number, assetCode, basedOn, validity, issuedBy, issuedAt, suspensions(), lifecycle);
+    }
+
     void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
         if (statusOn(suspendedOn) != CertificateStatus.ACTIVE) {
             throw new CertificateNotActiveException(number);

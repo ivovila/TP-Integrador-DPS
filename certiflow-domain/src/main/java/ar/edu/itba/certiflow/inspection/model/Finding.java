@@ -20,7 +20,7 @@ public final class Finding {
     private final Criterion<?> criterion;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
-    private final CorrectiveActions actions = new CorrectiveActions();
+    private final CorrectiveActions actions;
     private final AuditTrail auditTrail = new AuditTrail();
 
     Finding(FindingId id, InspectionId inspectionId, AssetCode assetCode, Person responsible, CriterionResponse<?> nonConformity,
@@ -31,10 +31,25 @@ public final class Finding {
         this.responsible = responsible;
         this.criterion = nonConformity.criterion();
         this.evidence = nonConformity.attachments();
+        this.actions = new CorrectiveActions();
         if (!nonConformity.outcome().raisesFinding()) {
             throw new FindingRequiresNonConformityException(criterion);
         }
         auditTrail.record(FindingAudit.RAISED, raisedBy, raisedAt, criterion.code() + " " + nonConformity.outcome());
+    }
+
+    Finding(FindingSnapshot snapshot) {
+        this.id = snapshot.id();
+        this.inspectionId = snapshot.inspectionId();
+        this.assetCode = snapshot.assetCode();
+        this.criterion = snapshot.criterion();
+        this.evidence = snapshot.evidence();
+        this.responsible = snapshot.responsible();
+        this.actions = new CorrectiveActions(snapshot.actions());
+    }
+
+    public FindingSnapshot snapshot() {
+        return new FindingSnapshot(id, inspectionId, assetCode, criterion, evidence, responsible, actions.snapshot());
     }
 
     CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
@@ -76,6 +91,10 @@ public final class Finding {
 
     public FindingId id() {
         return id;
+    }
+
+    public AssetCode assetCode() {
+        return assetCode;
     }
 
     public InspectionId inspectionId() {

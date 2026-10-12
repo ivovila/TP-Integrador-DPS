@@ -10,4 +10,8 @@ public final class FindingFactory {
                           CriterionResponse<?> nonConformity, Person raisedBy, Instant raisedAt) {
         return new Finding(id, inspectionId, assetCode, responsible, nonConformity, raisedBy, raisedAt);
     }
+
+    public Finding restore(FindingSnapshot snapshot) {
+        return new Finding(snapshot);
+    }
 }

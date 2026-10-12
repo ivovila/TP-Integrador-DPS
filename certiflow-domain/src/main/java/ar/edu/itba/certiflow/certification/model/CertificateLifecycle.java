@@ -2,7 +2,7 @@ package ar.edu.itba.certiflow.certification.model;
 
 import java.time.LocalDate;
 
-enum CertificateLifecycle {
+public enum CertificateLifecycle {
     ISSUED {
         @Override
         CertificateStatus statusOn(ValidityPeriod validity, LocalDate referenceDate) {

@@ -55,6 +55,21 @@ public final class Inspection implements InspectionView {
         auditTrail.record(InspectionAudit.ASSIGNED, assignedBy, assignedAt, "Schema version " + schemaVersion.number());
     }
 
+    Inspection(InspectionSnapshot snapshot) {
+        this.id = snapshot.id();
+        this.assetCode = snapshot.assetCode();
+        this.assetResponsible = snapshot.assetResponsible();
+        this.assignment = snapshot.assignment();
+        this.schemaVersion = snapshot.schemaVersion();
+        snapshot.responses().forEach(response -> responses.put(response.criterion(), response));
+        this.revisions = snapshot.revisions();
+    }
+
+    public InspectionSnapshot snapshot() {
+        return new InspectionSnapshot(id, assetCode, assetResponsible, assignment, schemaVersion, List.copyOf(responses.values()),
+                revisions);
+    }
+
     <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
         ensureOpen();
         replaceAnswer(criterion, answer, answeredBy, answeredAt);

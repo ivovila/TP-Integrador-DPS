@@ -11,4 +11,8 @@ public final class InspectionFactory {
                              Person assignedBy, Instant assignedAt) {
         return new Inspection(id, asset, assignment, schemaVersion, assignedBy, assignedAt);
     }
+
+    public Inspection restore(InspectionSnapshot snapshot) {
+        return new Inspection(snapshot);
+    }
 }

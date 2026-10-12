@@ -38,6 +38,22 @@ public final class CorrectiveAction {
         }
     }
 
+    CorrectiveAction(CorrectiveActionSnapshot snapshot) {
+        this.id = snapshot.id();
+        this.description = snapshot.description();
+        this.responsible = snapshot.responsible();
+        this.dueDate = snapshot.dueDate();
+        this.plannedBy = snapshot.plannedBy();
+        this.plannedAt = snapshot.plannedAt();
+        this.verifications.addAll(snapshot.verifications());
+        this.cancellation = snapshot.cancellation().orElse(null);
+    }
+
+    CorrectiveActionSnapshot snapshot() {
+        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, plannedBy, plannedAt, verifications(),
+                cancellation());
+    }
+
     Verification verify(Person verifier, VerificationResult verificationResult, String verificationNotes, Instant verifiedAt) {
         ensureOpen();
         if (verifier.equals(responsible)) {

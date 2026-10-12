@@ -15,6 +15,17 @@ final class CorrectiveActions {
 
     private final List<CorrectiveAction> actions = new ArrayList<>();
 
+    CorrectiveActions() {
+    }
+
+    CorrectiveActions(List<CorrectiveActionSnapshot> snapshots) {
+        snapshots.forEach(snapshot -> actions.add(new CorrectiveAction(snapshot)));
+    }
+
+    List<CorrectiveActionSnapshot> snapshot() {
+        return actions.stream().map(CorrectiveAction::snapshot).toList();
+    }
+
     CorrectiveAction plan(String description, Person responsible, LocalDate dueDate, Person plannedBy,
                           Instant plannedAt, LocalDate plannedOn) {
         CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), description,

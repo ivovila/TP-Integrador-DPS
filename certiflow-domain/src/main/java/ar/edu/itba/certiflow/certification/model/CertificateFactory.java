@@ -9,4 +9,8 @@ public final class CertificateFactory {
                               Instant issuedAt) {
         return new Certificate(number, basedOn, validity, issuedBy, issuedAt);
     }
+
+    public Certificate restore(CertificateSnapshot snapshot) {
+        return new Certificate(snapshot);
+    }
 }
