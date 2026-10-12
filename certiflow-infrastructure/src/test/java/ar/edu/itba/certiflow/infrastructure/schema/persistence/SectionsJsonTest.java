@@ -8,7 +8,7 @@ class SectionsJsonTest {
 
     @Test
     void sectionsSurviveTheRoundTripIncludingDecimalScale() {
-        var sections = JpaInspectionSchemaRepositoryTest.sections();
+        var sections = ar.edu.itba.certiflow.infrastructure.support.DomainSamples.sections();
 
         var read = SectionsJson.read(SectionsJson.write(sections));
 
@@ -19,7 +19,7 @@ class SectionsJsonTest {
 
     @Test
     void aSingleCriterionSurvivesTheRoundTrip() {
-        var criterion = JpaInspectionSchemaRepositoryTest.sections().getFirst().criteria().getFirst();
+        var criterion = ar.edu.itba.certiflow.infrastructure.support.DomainSamples.sections().getFirst().criteria().getFirst();
 
         assertEquals(criterion, SectionsJson.readCriterion(SectionsJson.writeCriterion(criterion)));
     }

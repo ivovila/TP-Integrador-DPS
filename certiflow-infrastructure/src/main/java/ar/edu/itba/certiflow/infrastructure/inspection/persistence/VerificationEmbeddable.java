@@ -1,0 +1,40 @@
+package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
+
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
+import ar.edu.itba.certiflow.inspection.model.Verification;
+import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import java.time.Instant;
+
+@Embeddable
+public class VerificationEmbeddable {
+
+    @Column(name = "verifier_id")
+    private String verifierId;
+    @Column(name = "verifier_name")
+    private String verifierName;
+    private String result;
+    private String notes;
+    @Column(name = "verified_at")
+    private Instant verifiedAt;
+
+    protected VerificationEmbeddable() {
+    }
+
+    static VerificationEmbeddable of(Verification verification) {
+        VerificationEmbeddable embeddable = new VerificationEmbeddable();
+        PersonColumns verifier = PersonColumns.of(verification.verifier());
+        embeddable.verifierId = verifier.id();
+        embeddable.verifierName = verifier.name();
+        embeddable.result = verification.result().name();
+        embeddable.notes = verification.notes();
+        embeddable.verifiedAt = verification.verifiedAt();
+        return embeddable;
+    }
+
+    Verification toDomain() {
+        return new Verification(new PersonColumns(verifierId, verifierName).toDomain(), VerificationResult.valueOf(result), notes,
+                verifiedAt);
+    }
+}

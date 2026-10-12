@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
+import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
@@ -29,17 +30,6 @@ import org.springframework.context.annotation.Import;
 @Import(JpaInspectionSchemaRepository.class)
 class JpaInspectionSchemaRepositoryTest {
 
-    static List<Section> sections() {
-        return List.of(
-                new Section("Pressure and seal", List.of(
-                        new Criterion<>("EXT-01", "Gauge pressure within range",
-                                new NumericRangeRule(new Unit("bar"), new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),
-                                StandardSeverity.MAJOR, List.of(new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1))),
-                        new Criterion<>("EXT-02", "Seal intact", new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL,
-                                List.of()))),
-                new Section("Signage", List.of(new Criterion<>("EXT-03", "Signage condition",
-                        new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of()))));
-    }
 
     @Autowired
     private JpaInspectionSchemaRepository repository;
@@ -49,8 +39,8 @@ class JpaInspectionSchemaRepositoryTest {
     @Test
     void everyVersionIsReadBackEqualToWhatWasPublished() {
         AssetType extinguisher = new AssetType("Fire extinguisher");
-        InspectionSchema schema = new InspectionSchema("Extinguisher", extinguisher, sections(), Instant.parse("2026-03-01T00:00:00Z"))
-                .withNewVersion(sections().subList(0, 1), Instant.parse("2026-03-05T00:00:00Z"));
+        InspectionSchema schema = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"))
+                .withNewVersion(DomainSamples.sections().subList(0, 1), Instant.parse("2026-03-05T00:00:00Z"));
 
         repository.save(schema);
         entityManager.flush();
@@ -62,12 +52,12 @@ class JpaInspectionSchemaRepositoryTest {
     @Test
     void savingAgainAppendsTheNewVersionWithoutTouchingThePreviousOnes() {
         AssetType extinguisher = new AssetType("Fire extinguisher");
-        InspectionSchema first = new InspectionSchema("Extinguisher", extinguisher, sections(), Instant.parse("2026-03-01T00:00:00Z"));
+        InspectionSchema first = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"));
         repository.save(first);
         entityManager.flush();
         Long firstVersionId = repository.versionEntity(extinguisher, 1).getId();
 
-        repository.save(first.withNewVersion(sections(), Instant.parse("2026-03-05T00:00:00Z")));
+        repository.save(first.withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-05T00:00:00Z")));
         entityManager.flush();
         entityManager.clear();
 

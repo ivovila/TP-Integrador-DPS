@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
+import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Repository;
 public class JpaInspectionSchemaRepository implements InspectionSchemaRepository {
 
     private final SpringDataInspectionSchemaRepository schemas;
+    private final SpringDataSchemaVersionRepository versions;
 
-    public JpaInspectionSchemaRepository(SpringDataInspectionSchemaRepository schemas) {
+    public JpaInspectionSchemaRepository(SpringDataInspectionSchemaRepository schemas, SpringDataSchemaVersionRepository versions) {
         this.schemas = schemas;
+        this.versions = versions;
     }
 
     @Override
@@ -32,5 +35,12 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
                 .filter(version -> version.number() == number)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    public SchemaVersionEntity versionEntityFor(SchemaVersion version) {
+        return versions.findByNumber(version.number()).stream()
+                .filter(entity -> entity.toDomain().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Schema version " + version.number() + " was never saved"));
     }
 }
