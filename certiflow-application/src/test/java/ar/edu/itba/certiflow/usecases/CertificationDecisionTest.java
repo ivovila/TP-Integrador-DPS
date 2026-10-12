@@ -35,7 +35,7 @@ class CertificationDecisionTest {
         assertEquals(2, decision.ineligibilities().size());
         assertTrue(decision.isBlockedBy(IneligibilityReason.INSPECTION_NOT_CLOSED));
         assertTrue(decision.isBlockedBy(IneligibilityReason.PARTIAL_INSPECTION));
-        assertTrue(fixture.certificateRepository.findCurrentFor(fixture.extinguisher, LocalDate.now(fixture.clock)).isEmpty());
+        assertTrue(fixture.certificateRepository.findCurrentFor(fixture.extinguisher.code(), LocalDate.now(fixture.clock)).isEmpty());
     }
 
     @Test

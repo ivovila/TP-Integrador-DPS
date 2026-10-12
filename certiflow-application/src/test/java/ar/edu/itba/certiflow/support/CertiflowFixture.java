@@ -32,11 +32,13 @@ import ar.edu.itba.certiflow.models.asset.Asset;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.asset.AssetType;
 import ar.edu.itba.certiflow.models.asset.Characteristic;
+import ar.edu.itba.certiflow.models.asset.AssetService;
 import ar.edu.itba.certiflow.models.asset.Characteristics;
 import ar.edu.itba.certiflow.models.asset.Location;
 import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateFactory;
+import ar.edu.itba.certiflow.models.certificate.CertificateService;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
 import ar.edu.itba.certiflow.models.certification.CertificationEligibility;
 import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
@@ -56,13 +58,16 @@ import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
 import ar.edu.itba.certiflow.models.evaluation.YesNoRule;
 import ar.edu.itba.certiflow.models.finding.CorrectiveAction;
 import ar.edu.itba.certiflow.models.finding.CorrectiveActionId;
+import ar.edu.itba.certiflow.models.finding.VerificationResult;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingFactory;
+import ar.edu.itba.certiflow.models.finding.FindingService;
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.models.inspection.FullScope;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
 import ar.edu.itba.certiflow.models.inspection.InspectionFactory;
+import ar.edu.itba.certiflow.models.inspection.InspectionService;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.InspectionScope;
 import ar.edu.itba.certiflow.models.schema.Criterion;
@@ -129,37 +134,39 @@ public final class CertiflowFixture {
     public final InMemoryFindingRepository findingRepository = new InMemoryFindingRepository();
     public final InMemoryCertificateRepository certificateRepository = new InMemoryCertificateRepository();
 
+    public final AuditLog<AssetCode> assetLog = new InMemoryAuditLog<>();
     private final InspectionSchemaService inspectionSchemaService = new InspectionSchemaService(schemaLog);
-    public final RegisterAsset registerAsset = new RegisterAssetInteractor(assetRepository);
+    private final AssetService assetService = new AssetService(assetLog);
+    private final InspectionService inspectionService = new InspectionService(new InspectionFactory(), inspectionLog);
+    private final FindingService findingService = new FindingService(new FindingFactory(), findingLog);
+    private final CertificateService certificateService = new CertificateService(new CertificateFactory(), certificateLog);
+    public final RegisterAsset registerAsset = new RegisterAssetInteractor(assetRepository, assetService, clock);
     public final CreateInspectionSchema createInspectionSchema = new CreateInspectionSchemaInteractor(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final PublishSchemaVersion publishSchemaVersion = new PublishSchemaVersionInteractor(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final AssignInspection assignInspection = new AssignInspectionInteractor(assetRepository, inspectionSchemaRepository, inspectionRepository,
-            new InspectionFactory(), inspectionLog, clock);
-    public final RecordAnswer recordAnswer = new RecordAnswerInteractor(inspectionRepository, inspectionLog, clock);
-    public final AttachEvidence attachEvidence = new AttachEvidenceInteractor(inspectionRepository, inspectionLog, clock);
-    public final AddObservation addObservation = new AddObservationInteractor(inspectionRepository, inspectionLog, clock);
-    public final CloseInspection closeInspection = new CloseInspectionInteractor(inspectionRepository, findingRepository,
-            new FindingFactory(), inspectionLog, findingLog, clock);
-    public final RectifyInspection rectifyInspection = new RectifyInspectionInteractor(inspectionRepository, inspectionLog, clock);
-    public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveActionInteractor(findingRepository, findingLog, clock);
-    public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveActionInteractor(findingRepository, findingLog, clock);
-    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionActInteractor(inspectionRepository, inspectionLog);
+            inspectionService, clock);
+    public final RecordAnswer recordAnswer = new RecordAnswerInteractor(inspectionRepository, inspectionService, clock);
+    public final AttachEvidence attachEvidence = new AttachEvidenceInteractor(inspectionRepository, inspectionService, clock);
+    public final AddObservation addObservation = new AddObservationInteractor(inspectionRepository, inspectionService, clock);
+    public final CloseInspection closeInspection = new CloseInspectionInteractor(inspectionRepository, findingRepository, inspectionService, findingService, clock);
+    public final RectifyInspection rectifyInspection = new RectifyInspectionInteractor(inspectionRepository, findingRepository, inspectionService, findingService, clock);
+    public final PlanCorrectiveAction planCorrectiveAction = new PlanCorrectiveActionInteractor(findingRepository, findingService, clock);
+    public final VerifyCorrectiveAction verifyCorrectiveAction = new VerifyCorrectiveActionInteractor(findingRepository, findingService, clock);
+    public final GenerateInspectionAct generateInspectionAct = new GenerateInspectionActInteractor(inspectionRepository, assetRepository, inspectionLog);
     public final GenerateFindingsSummary generateFindingsSummary = new GenerateFindingsSummaryInteractor(assetRepository, findingRepository, clock);
-    public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocumentInteractor(certificateRepository, clock);
+    public final GenerateCertificateDocument generateCertificateDocument = new GenerateCertificateDocumentInteractor(certificateRepository, assetRepository, clock);
 
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility();
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificate issueCertificate = new IssueCertificateInteractor(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering,
-            new CertificateFactory(), certificateLog, clock);
+    public final IssueCertificate issueCertificate = new IssueCertificateInteractor(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, certificateService, clock);
     public final EvaluateCertification evaluateCertification = new EvaluateCertificationInteractor(inspectionRepository, findingRepository,
             certificationEligibility);
-    public final SuspendCertificate suspendCertificate = new SuspendCertificateInteractor(certificateRepository, certificateLog, clock);
-    public final RenewCertificate renewCertificate = new RenewCertificateInteractor(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering,
-            certificateLog, clock);
+    public final SuspendCertificate suspendCertificate = new SuspendCertificateInteractor(certificateRepository, certificateService, clock);
+    public final RenewCertificate renewCertificate = new RenewCertificateInteractor(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, certificateService, clock);
 
     public final Asset extinguisher = registerAsset.execute(new Asset(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
-            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder")))));
+            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder")))), planner);
 
     public CertiflowFixture() {
         createInspectionSchema.execute("Portable extinguisher inspection", EXTINGUISHER, firstVersionSections(), planner);
@@ -219,6 +226,13 @@ public final class CertiflowFixture {
         answerAll(inspection, "7.00", YesNoAnswer.YES, "VISIBLE");
         closeInspection.execute(inspection, inspector);
         return inspection;
+    }
+
+    /** Cierra un hallazgo por el camino del negocio: una acción correctiva verificada y aceptada. */
+    public void closeFinding(FindingId finding) {
+        CorrectiveActionId action = planCorrectiveAction.execute(finding, "Recharge the extinguisher", assetResponsible,
+                TODAY.plusDays(10), planner);
+        verifyCorrectiveAction.execute(finding, action, verifier, VerificationResult.ACCEPTED, "Recharged");
     }
 
     public FindingId majorFindingOf(InspectionId inspection) {

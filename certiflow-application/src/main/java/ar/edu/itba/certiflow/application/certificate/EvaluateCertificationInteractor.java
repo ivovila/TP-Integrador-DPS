@@ -26,6 +26,6 @@ public final class EvaluateCertificationInteractor implements EvaluateCertificat
     public CertificationDecision execute(InspectionId inspectionId) {
         Inspection inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        return certificationEligibility.evaluate(inspection, findingRepository.findByAsset(inspection.asset()));
+        return certificationEligibility.evaluate(inspection, findingRepository.findByAsset(inspection.assetCode()));
     }
 }

@@ -2,6 +2,66 @@
 
 Registro de lo que se modificó en respuesta a `Corrections.md`, en el orden en que se resolvió.
 
+---
+
+## 16. Segunda revisión: huecos que quedaron abiertos
+
+Revisión posterior del código corregido. Las correcciones 1 a 15 habían quedado a medias en estos puntos.
+
+**16.1. Un hallazgo cerrado tapaba una no conformidad reintroducida al rectificar.** `Finding.raisedFrom`
+comparaba inspección y criterio sin mirar el estado del hallazgo, así que, después de cerrar una acción
+correctiva, una rectificación que volvía a rechazar el mismo criterio salía certificada.
+- Rectificar ahora levanta hallazgo: `Inspection.rectify` devuelve `InspectionRectified` con las no
+  conformidades que la respuesta nueva introduce, y `FindingService.raiseFrom` levanta uno por cada una que no
+  tenga ya un hallazgo **abierto** (`Finding.isOpenFor`). `RectifyInspection` devuelve los `FindingId` levantados.
+- La elegibilidad vuelve a una sola regla: cerrada, alcance completo y sin hallazgos bloqueantes abiertos. Se
+  elimina `IneligibilityReason.UNADDRESSED_NON_CONFORMITIES` y `Finding.raisedFrom`.
+- Cambia S6: antes rectificar no tocaba los hallazgos; ahora levanta los que introduce (los anteriores siguen sin tocarse).
+- Tests: `CertificationTest.rectificationThatIntroducesABlockingNonConformityRaisesItsFindingAndRemovesEligibility`,
+  `aClosedFindingDoesNotCoverANonConformityReintroducedByARectification`, `aRectificationThatFixesTheAnswerRaisesNoFinding`.
+
+**16.2. Los comandos de los agregados seguían siendo públicos.** `findById(id).get().close(...)` compilaba
+desde cualquier clase de `application`, así que la corrección 1 estaba garantizada por convención.
+- `recordAnswer`, `attachEvidence`, `addObservation`, `close`, `rectify`, `planAction`, `verifyAction`,
+  `suspend`, `renew`, `ensureRenewableWith` y `pullAuditEntries` pasan a visibilidad de paquete.
+- Nuevos servicios de dominio `InspectionService`, `FindingService`, `CertificateService` y `AssetService`:
+  ejecutan el comando, producen los hechos que arrastra y vuelcan la bitácora. Los casos de uso buscan por id,
+  llaman al servicio y guardan. Nueva decisión D14 en `DESIGN.md`.
+
+**16.3. La auditoría dependía de que cada caso de uso se acordara.** `pullAuditEntries()` era público y
+destructivo, `RegisterAsset` no auditaba nada.
+- El volcado pasa a los servicios de dominio (16.2), así que ya no se puede omitir.
+- `AssetService` registra `AssetAudit.REGISTERED` en un `AuditLog<AssetCode>`. `RegisterAsset` recibe quién da
+  de alta el activo. Test: `EndToEndFlowTest.registeringAnAssetIsAudited`.
+
+**16.4. Una emisión o renovación fallida consumía un número de certificado.** `certificateNumbering.next()` se
+evaluaba como argumento antes que `new ValidityPeriod(...)`, que puede fallar.
+- La vigencia se construye y se valida antes de pedir el número, en emisión y en renovación.
+- `ensureRenewableWith` exige además que la inspección nueva sea del mismo activo, antes de numerar.
+- Tests: `CertificationTest.anInvalidValidityPeriodConsumesNoCertificateNumber`,
+  `aRenewalWithAnInvalidValidityPeriodConsumesNoCertificateNumber`.
+
+**16.5. Un certificado suspendido no vencía nunca.** `CertificateLifecycle.SUSPENDED.statusOn` ignoraba la
+vigencia. Ahora devuelve `EXPIRED` fuera de ella (S10). Test:
+`CertificationTest.aSuspendedCertificateIsExpiredOnceItsValidityIsOver`.
+
+**16.6. El activo se referenciaba por objeto y se comparaba por `equals` de record.** `findByAsset(Asset)` y
+`findCurrentFor(Asset, fecha)` comparaban nombre, ubicación, responsable y características, así que editar un
+activo habría dejado sus hallazgos invisibles y al activo certificable.
+- `Inspection`, `Finding` y `Certificate` guardan `AssetCode`; los puertos consultan por código;
+  `Finding.concerns` y `Certificate.certifies` comparan códigos.
+- `InspectionView` expone `assetCode()` y `assetResponsible()` (el responsable al asignar, que es a quien se
+  atribuyen los hallazgos). Los informes que necesitan el nombre del activo lo buscan en `AssetRepository`.
+
+**16.7. Reglas de negocio que seguían en los interactors.** "El acta solo se emite sobre una inspección
+cerrada" pasa a `Inspection.ensureClosed()`; "un activo no se registra dos veces" a `AssetService`; el rechazo
+por elegibilidad, duplicado en emitir y renovar, al método `default CertificationEligibility.ensureEligible`.
+
+**Documentación:** `DESIGN.md` (S4, S5, S6, S10, S11, S15, D3, D7, D8, D9, D10, D13, D14 nueva, tabla de tests
+y limitaciones), `README.md` y `docs/certiflow-domain.puml`. Total: 113 tests.
+
+---
+
 ## 1. Cierre de inspección sin hallazgos y rectificación que deja certificable un rechazo
 
 **Corrección:** `Inspection.close()` es público y la invariante "toda no conformidad genera un hallazgo" vivía

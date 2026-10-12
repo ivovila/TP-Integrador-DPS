@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.models.finding;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditTrail;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
@@ -21,18 +21,19 @@ public final class Finding {
 
     private final FindingId id;
     private final InspectionId inspectionId;
-    private final Asset asset;
+    private final AssetCode assetCode;
     private final Criterion<?> criterion;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final List<CorrectiveAction> actions = new ArrayList<>();
     private final AuditTrail auditTrail = new AuditTrail();
 
-    Finding(FindingId id, InspectionId inspectionId, Asset asset, CriterionResponse<?> nonConformity, Person raisedBy, Instant raisedAt) {
+    Finding(FindingId id, InspectionId inspectionId, AssetCode assetCode, Person responsible, CriterionResponse<?> nonConformity,
+            Person raisedBy, Instant raisedAt) {
         this.id = id;
         this.inspectionId = inspectionId;
-        this.asset = asset;
-        this.responsible = asset.responsible();
+        this.assetCode = assetCode;
+        this.responsible = responsible;
         this.criterion = nonConformity.criterion();
         this.evidence = nonConformity.attachments();
         if (!nonConformity.outcome().raisesFinding()) {
@@ -41,7 +42,7 @@ public final class Finding {
         auditTrail.record(FindingAudit.RAISED, raisedBy, raisedAt, criterion.code() + " " + nonConformity.outcome());
     }
 
-    public CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
+    CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
                                        Instant plannedAt, LocalDate plannedOn) {
         ensureOpen();
         CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), description,
@@ -51,7 +52,7 @@ public final class Finding {
         return plannedAction;
     }
 
-    public Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
+    Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
                                      String verificationNotes, Instant verifiedAt) {
         ensureOpen();
         CorrectiveAction correctiveAction = actions.stream()
@@ -74,12 +75,13 @@ public final class Finding {
         return isOpen() && severity().blocksCertification();
     }
 
-    public boolean concerns(Asset candidate) {
-        return asset.equals(candidate);
+    public boolean concerns(AssetCode candidate) {
+        return assetCode.equals(candidate);
     }
 
-    public boolean raisedFrom(InspectionId sourceInspection, CriterionResponse<?> nonConformity) {
-        return inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
+    /** Un hallazgo abierto por esa misma no conformidad: evita duplicarlo al rectificar. */
+    public boolean isOpenFor(InspectionId sourceInspection, CriterionResponse<?> nonConformity) {
+        return isOpen() && inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
     }
 
     public FindingId id() {
@@ -110,7 +112,7 @@ public final class Finding {
         return List.copyOf(actions);
     }
 
-    public List<AuditEntry> pullAuditEntries() {
+    List<AuditEntry> pullAuditEntries() {
         return auditTrail.pull();
     }
 

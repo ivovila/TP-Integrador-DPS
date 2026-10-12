@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.details.inmemory;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import ar.edu.itba.certiflow.ports.FindingRepository;
@@ -35,7 +35,7 @@ public final class InMemoryFindingRepository implements FindingRepository {
     }
 
     @Override
-    public List<Finding> findByAsset(Asset asset) {
-        return findings.values().stream().filter(finding -> finding.concerns(asset)).toList();
+    public List<Finding> findByAsset(AssetCode assetCode) {
+        return findings.values().stream().filter(finding -> finding.concerns(assetCode)).toList();
     }
 }

@@ -11,7 +11,7 @@ Requiere JDK 25 y Maven 3.9 o superior.
 mvn clean test
 ```
 
-Usar siempre `clean`: si un IDE compila en paralelo hacia `target/` con un JDK anterior al 21,
+Usar siempre `clean`: si un IDE compila en paralelo hacia `target/` con un JDK anterior al 25,
 pisa las clases de Maven y los tests fallan con "Unresolved compilation problem".
 
 ## Estructura
@@ -23,14 +23,16 @@ compilador.
 certiflow-domain            toda la lógica de negocio y todas las interfaces; no depende de nada
 └── src/main/java/ar/edu/itba/certiflow
     ├── models              entidades, value objects, reglas, servicios de dominio y excepciones
-    │   ├── shared          Person, PersonId, DomainException
+    │   ├── shared          Person, PersonId, DomainException, RequiredValueMissingException
     │   ├── audit           AuditLog, AuditEntry, AuditAction, AuditTrail
-    │   ├── asset           Asset, AssetCode, AssetType, Location, Characteristics
+    │   ├── asset           Asset, AssetCode, AssetType, Location, Characteristic(s), AssetService, AssetAudit
     │   ├── evaluation      respuestas, reglas de aprobación, severidad, evidencia
-    │   ├── schema          InspectionSchema, SchemaVersionLog, Section, Criterion, InspectionSchemaService
-    │   ├── inspection      Inspection, revisiones, evaluación, alcance y su fábrica
-    │   ├── finding         Finding con sus CorrectiveAction y su fábrica
-    │   ├── certificate     Certificate, vigencia, ciclo de vida y su fábrica
+    │   ├── schema          InspectionSchema, SchemaVersionLog, SchemaVersion, Section, Criterion,
+    │   │                  InspectionSchemaService, SchemaAudit
+    │   ├── inspection      Inspection, revisiones, evaluación, alcance, eventos de cierre y rectificación,
+    │   │                  su fábrica y InspectionService
+    │   ├── finding         Finding con sus CorrectiveAction, su fábrica y FindingService
+    │   ├── certificate     Certificate, vigencia, ciclo de vida, su fábrica y CertificateService
     │   └── certification   servicio de elegibilidad y CertificationDecision
     ├── ports               puertos de salida: repositorios y CertificateNumbering
     └── usecases            puertos de entrada: una interfaz por caso de uso y los modelos de lectura
@@ -44,9 +46,11 @@ certiflow-details           implementaciones de los puertos; depende de certiflo
 └── src/main/java/ar/edu/itba/certiflow/details/inmemory
 
 Tests
-├── certiflow-domain/src/test        tests unitarios de reglas, evidencia, criterios, esquemas y auditoría
+├── certiflow-domain/src/test        tests unitarios de reglas, evidencia, criterios, esquemas, personas,
+│                                   características y auditoría
 └── certiflow-application/src/test   tests de integración por caso de uso, sin mocks;
-                                     support/CertiflowFixture es la raíz de composición
+                                     support/CertiflowFixture es la raíz de composición.
+                                     RequiredValueTest vive acá porque usa el fixture
 ```
 
 ## Documentación

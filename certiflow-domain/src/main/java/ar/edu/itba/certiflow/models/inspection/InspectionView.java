@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.models.inspection;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.shared.Person;
 import ar.edu.itba.certiflow.models.schema.SchemaVersion;
 import java.util.List;
 
@@ -18,7 +19,10 @@ public interface InspectionView {
 
     List<Revision> revisions();
 
-    Asset asset();
+    AssetCode assetCode();
+
+    /** El responsable del activo cuando se asignó la inspección: es quien queda a cargo de los hallazgos. */
+    Person assetResponsible();
 
     InspectionAssignment assignment();
 

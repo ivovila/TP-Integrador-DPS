@@ -1,7 +1,7 @@
 package ar.edu.itba.certiflow.application.inspection;
 
-import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionService;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.schema.Criterion;
@@ -13,12 +13,12 @@ import java.time.Clock;
 public final class AddObservationInteractor implements AddObservation {
 
     private final InspectionRepository inspectionRepository;
-    private final AuditLog<Inspection> inspectionLog;
+    private final InspectionService inspectionService;
     private final Clock clock;
 
-    public AddObservationInteractor(InspectionRepository inspectionRepository, AuditLog<Inspection> inspectionLog, Clock clock) {
+    public AddObservationInteractor(InspectionRepository inspectionRepository, InspectionService inspectionService, Clock clock) {
         this.inspectionRepository = inspectionRepository;
-        this.inspectionLog = inspectionLog;
+        this.inspectionService = inspectionService;
         this.clock = clock;
     }
 
@@ -26,8 +26,7 @@ public final class AddObservationInteractor implements AddObservation {
     public void execute(InspectionId inspectionId, Criterion<?> criterion, String observationText, Person observedBy) {
         Inspection inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        inspection.addObservation(criterion, observationText, observedBy, clock.instant());
+        inspectionService.addObservation(inspection, criterion, observationText, observedBy, clock.instant());
         inspectionRepository.save(inspection);
-        inspectionLog.recordAll(inspection, inspection.pullAuditEntries());
     }
 }

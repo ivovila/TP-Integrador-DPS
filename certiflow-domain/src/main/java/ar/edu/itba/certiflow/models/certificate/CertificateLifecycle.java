@@ -12,7 +12,7 @@ enum CertificateLifecycle {
     SUSPENDED {
         @Override
         CertificateStatus statusOn(ValidityPeriod validity, LocalDate referenceDate) {
-            return CertificateStatus.SUSPENDED;
+            return validity.covers(referenceDate) ? CertificateStatus.SUSPENDED : CertificateStatus.EXPIRED;
         }
     },
     RENEWED {

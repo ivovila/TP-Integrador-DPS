@@ -1,15 +1,15 @@
 package ar.edu.itba.certiflow.models.finding;
 
-import ar.edu.itba.certiflow.models.inspection.InspectionClosed;
-import java.util.List;
-import java.util.function.Supplier;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
+import ar.edu.itba.certiflow.models.inspection.CriterionResponse;
+import ar.edu.itba.certiflow.models.inspection.InspectionId;
+import ar.edu.itba.certiflow.models.shared.Person;
+import java.time.Instant;
 
 public final class FindingFactory {
 
-    public List<Finding> create(InspectionClosed closure, Supplier<FindingId> nextId) {
-        return closure.nonConformities().stream()
-                .map(nonConformity -> new Finding(nextId.get(), closure.inspectionId(), closure.asset(), nonConformity,
-                        closure.closedBy(), closure.closedAt()))
-                .toList();
+    public Finding create(FindingId id, InspectionId inspectionId, AssetCode assetCode, Person responsible,
+                          CriterionResponse<?> nonConformity, Person raisedBy, Instant raisedAt) {
+        return new Finding(id, inspectionId, assetCode, responsible, nonConformity, raisedBy, raisedAt);
     }
 }

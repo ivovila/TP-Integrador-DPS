@@ -29,7 +29,7 @@ public final class GenerateFindingsSummaryInteractor implements GenerateFindings
     public FindingsSummary execute(AssetCode assetCode) {
         Asset asset = assetRepository.findByCode(assetCode).orElseThrow(() -> new AssetNotFoundException(assetCode));
         LocalDate today = LocalDate.now(clock);
-        List<Finding> findingsOfAsset = findingRepository.findByAsset(asset);
+        List<Finding> findingsOfAsset = findingRepository.findByAsset(assetCode);
         List<FindingLine> findingLines = findingsOfAsset.stream().map(finding -> lineOf(finding, today)).toList();
         return new FindingsSummary(asset.code(), findingLines,
                 findingsOfAsset.stream().filter(Finding::isOpen).count(),

@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.models.inspection;
 
 import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditTrail;
 import ar.edu.itba.certiflow.models.evaluation.Answer;
@@ -26,7 +27,8 @@ public final class Inspection implements InspectionView {
     private static final String CLOSURE_REASON = "Inspection closed";
 
     private final InspectionId id;
-    private final Asset asset;
+    private final AssetCode assetCode;
+    private final Person assetResponsible;
     private final InspectionAssignment assignment;
     private final SchemaVersion schemaVersion;
     private final Map<Criterion<?>, CriterionResponse<?>> responses = new LinkedHashMap<>();
@@ -46,54 +48,65 @@ public final class Inspection implements InspectionView {
             throw new AssetResponsibleCannotInspectOwnAssetException(inspector);
         }
         this.id = id;
-        this.asset = asset;
+        this.assetCode = asset.code();
+        this.assetResponsible = asset.responsible();
         this.assignment = assignment;
         this.schemaVersion = schemaVersion;
         assignment.scope().criteriaIn(schemaVersion).forEach(criterion -> responses.put(criterion, new CriterionResponse<>(criterion)));
         auditTrail.record(InspectionAudit.ASSIGNED, assignedBy, assignedAt, "Schema version " + schemaVersion.number());
     }
 
-    public <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
+    <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
         ensureOpen();
         replaceAnswer(criterion, answer, answeredBy, answeredAt);
         auditTrail.record(InspectionAudit.ANSWER_RECORDED, answeredBy, answeredAt, criterion.code() + " = " + answer);
     }
 
-    public void attachEvidence(Criterion<?> criterion, Evidence evidence, Person attachedBy, Instant attachedAt) {
+    void attachEvidence(Criterion<?> criterion, Evidence evidence, Person attachedBy, Instant attachedAt) {
         ensureOpen();
         ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withEvidence(evidence, attachedBy, attachedAt));
         auditTrail.record(InspectionAudit.EVIDENCE_ATTACHED, attachedBy, attachedAt, criterion.code() + ": " + evidence.reference());
     }
 
-    public void addObservation(Criterion<?> criterion, String observationText, Person observedBy, Instant observedAt) {
+    void addObservation(Criterion<?> criterion, String observationText, Person observedBy, Instant observedAt) {
         ensureOpen();
         ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withObservation(new Observation(observationText, observedBy, observedAt)));
         auditTrail.record(InspectionAudit.OBSERVATION_ADDED, observedBy, observedAt, criterion.code() + ": " + observationText);
     }
 
-    public InspectionClosed close(Person closedBy, Instant closedAt) {
+    InspectionClosed close(Person closedBy, Instant closedAt) {
         ensureOpen();
         Evaluation evaluation = evaluate();
         evaluation.ensureComplete();
         revisions.add(new Revision(1, CLOSURE_REASON, evaluation, closedBy, closedAt));
         auditTrail.record(InspectionAudit.CLOSED, closedBy, closedAt, "");
-        return new InspectionClosed(id, asset, evaluation.nonConformities(), closedBy, closedAt);
+        return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closedBy, closedAt);
     }
 
-    public <A extends Answer> void rectify(Criterion<A> criterion, A answer, String reason, Person rectifiedBy, Instant rectifiedAt) {
+    <A extends Answer> InspectionRectified rectify(Criterion<A> criterion, A answer, String reason, Person rectifiedBy, Instant rectifiedAt) {
         ensureClosed();
         if (reason.isBlank()) {
             throw new RectificationReasonRequiredException();
         }
         replaceAnswer(criterion, answer, rectifiedBy, rectifiedAt);
-        revisions.add(new Revision(revisions.size() + 1, reason, evaluate(), rectifiedBy, rectifiedAt));
+        Evaluation evaluation = evaluate();
+        revisions.add(new Revision(revisions.size() + 1, reason, evaluation, rectifiedBy, rectifiedAt));
         auditTrail.record(InspectionAudit.RECTIFIED, rectifiedBy, rectifiedAt, criterion.code() + " = " + answer + " (" + reason + ")");
+        return new InspectionRectified(id, assetCode, assetResponsible, evaluation.nonConformities().stream()
+                .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectifiedBy, rectifiedAt);
     }
 
-    public List<AuditEntry> pullAuditEntries() {
+    List<AuditEntry> pullAuditEntries() {
         return auditTrail.pull();
+    }
+
+    /** Un acta solo se emite sobre una inspección cerrada. */
+    public void ensureClosed() {
+        if (!isClosed()) {
+            throw new InspectionNotClosedException();
+        }
     }
 
     @Override
@@ -128,8 +141,13 @@ public final class Inspection implements InspectionView {
     }
 
     @Override
-    public Asset asset() {
-        return asset;
+    public AssetCode assetCode() {
+        return assetCode;
+    }
+
+    @Override
+    public Person assetResponsible() {
+        return assetResponsible;
     }
 
     @Override
@@ -160,9 +178,4 @@ public final class Inspection implements InspectionView {
         }
     }
 
-    private void ensureClosed() {
-        if (!isClosed()) {
-            throw new InspectionNotClosedException();
-        }
-    }
 }

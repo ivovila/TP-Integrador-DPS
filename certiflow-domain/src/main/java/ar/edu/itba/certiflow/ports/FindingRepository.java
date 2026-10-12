@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.ports;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.finding.Finding;
 import ar.edu.itba.certiflow.models.finding.FindingId;
 import java.util.List;
@@ -16,5 +16,5 @@ public interface FindingRepository {
 
     Optional<Finding> findById(FindingId id);
 
-    List<Finding> findByAsset(Asset asset);
+    List<Finding> findByAsset(AssetCode assetCode);
 }

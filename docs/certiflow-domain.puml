@@ -66,6 +66,15 @@ package "models.asset" {
   class AssetCode <<identificador de negocio>>
   class AssetType <<value object>>
   class Location <<value object>>
+  class AssetService <<servicio de dominio>> {
+    -assetLog: AuditLog<AssetCode>
+    +register(Asset, Optional<Asset>, Person, Instant): Asset
+  }
+  enum AssetAudit {
+    REGISTERED
+  }
+  AuditAction <|.. AssetAudit
+  AssetService ..> Asset : da de alta y audita
   Asset --> AssetCode
   Asset --> AssetType
   Asset --> Location
@@ -187,6 +196,17 @@ package "models.schema" {
     +outcomeOf(A): Outcome
     +evidenceRequirementsMetBy(List<Evidence>): boolean
   }
+  class InspectionSchemaService <<servicio de dominio>> {
+    -schemaLog: AuditLog<AssetType>
+    +create(name, AssetType, List<Section>, Person, Instant): InspectionSchema
+    +addVersion(InspectionSchema, List<Section>, Person, Instant): InspectionSchema
+  }
+  enum SchemaAudit {
+    CREATED
+    VERSION_ADDED
+  }
+  AuditAction <|.. SchemaAudit
+  InspectionSchemaService ..> InspectionSchema : crea versiones y audita
   InspectionSchema *-- SchemaVersionLog
   SchemaVersionLog "1" *-- "1..*" SchemaVersion
   SchemaVersion *-- "1..*" Section
@@ -204,7 +224,9 @@ package "models.inspection" {
     +isClosed(): boolean
     +originalRevision(): Revision
     +revisions(): List<Revision>
-    +asset(): Asset
+    +assetCode(): AssetCode
+    +assetResponsible(): Person
+    +coversWholeSchema(): boolean
     +assignment(): InspectionAssignment
     +schemaVersion(): SchemaVersion
   }
@@ -212,15 +234,38 @@ package "models.inspection" {
     -responses: Map<Criterion<?>, CriterionResponse<?>>
     -revisions: List<Revision>
     -auditTrail: AuditTrail
-    +recordAnswer(Criterion<A>, A, Person, Instant)
-    +attachEvidence(Criterion<?>, Evidence, Person, Instant)
-    +addObservation(Criterion<?>, String, Person, Instant)
-    +close(Person, Instant): InspectionClosed
-    +rectify(Criterion<A>, A, reason, Person, Instant)
-    +pullAuditEntries(): List<AuditEntry>
+    ~recordAnswer(Criterion<A>, A, Person, Instant)
+    ~attachEvidence(Criterion<?>, Evidence, Person, Instant)
+    ~addObservation(Criterion<?>, String, Person, Instant)
+    ~close(Person, Instant): InspectionClosed
+    ~rectify(Criterion<A>, A, reason, Person, Instant): InspectionRectified
+    ~pullAuditEntries(): List<AuditEntry>
+    +ensureClosed()
   }
   class InspectionFactory {
     +create(InspectionId, Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
+  }
+  class InspectionService <<servicio de dominio>> {
+    -inspectionFactory: InspectionFactory
+    -inspectionLog: AuditLog<Inspection>
+    +assign(InspectionId, Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
+    +recordAnswer(Inspection, Criterion<A>, A, Person, Instant)
+    +attachEvidence(Inspection, Criterion<?>, Evidence, Person, Instant)
+    +addObservation(Inspection, Criterion<?>, String, Person, Instant)
+    +close(Inspection, Person, Instant): InspectionClosed
+    +rectify(Inspection, Criterion<A>, A, reason, Person, Instant): InspectionRectified
+  }
+  class InspectionClosed <<evento de dominio>> {
+    inspectionId: InspectionId
+    assetCode: AssetCode
+    assetResponsible: Person
+    nonConformities: List<CriterionResponse<?>>
+  }
+  class InspectionRectified <<evento de dominio>> {
+    inspectionId: InspectionId
+    assetCode: AssetCode
+    assetResponsible: Person
+    nonConformities: List<CriterionResponse<?>>
   }
   class InspectionAssignment <<value object>> {
     inspector: Person
@@ -308,11 +353,12 @@ package "models.inspection" {
 package "models.finding" {
   class Finding <<aggregate root>> {
     -auditTrail: AuditTrail
-    +planAction(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
-    +verifyAction(CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
+    ~planAction(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
+    ~verifyAction(CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
     +isOpen(): boolean
     +blocksCertification(): boolean
-    +concerns(Asset): boolean
+    +concerns(AssetCode): boolean
+    +isOpenFor(InspectionId, CriterionResponse<?>): boolean
     +id(): FindingId
     +inspectionId(): InspectionId
     +criterion(): Criterion<?>
@@ -320,10 +366,18 @@ package "models.finding" {
     +evidence(): List<AttachedEvidence>
     +responsible(): Person
     +actions(): List<CorrectiveAction>
-    +pullAuditEntries(): List<AuditEntry>
+    ~pullAuditEntries(): List<AuditEntry>
   }
   class FindingFactory {
-    +create(InspectionClosed, Supplier<FindingId>): List<Finding>
+    +create(FindingId, InspectionId, AssetCode, Person, CriterionResponse<?>, Person, Instant): Finding
+  }
+  class FindingService <<servicio de dominio>> {
+    -findingFactory: FindingFactory
+    -findingLog: AuditLog<Finding>
+    +raiseFrom(InspectionClosed, Supplier<FindingId>): List<Finding>
+    +raiseFrom(InspectionRectified, List<Finding>, Supplier<FindingId>): List<Finding>
+    +planAction(Finding, description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
+    +verifyAction(Finding, CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
   }
   class CorrectiveAction <<entidad interna>> {
     -description: String
@@ -332,8 +386,12 @@ package "models.finding" {
     -plannedBy: Person
     -plannedAt: Instant
     -verifications: List<Verification>
+    -cancellation: Cancellation
     ~verify(Person, VerificationResult, notes, Instant): Verification
+    ~cancel(Person, Instant)
     +isClosed(): boolean
+    +isCancelled(): boolean
+    +isOpen(): boolean
     +isOverdueOn(LocalDate): boolean
   }
   class Verification <<value object>> {
@@ -347,6 +405,12 @@ package "models.finding" {
     ACCEPTED
     REJECTED
     +closesAction(): boolean
+    +requiresNotes(): boolean
+    +audit(): FindingAudit
+  }
+  class Cancellation <<value object>> {
+    cancelledBy: Person
+    cancelledAt: Instant
   }
   enum FindingAudit {
     RAISED
@@ -369,23 +433,31 @@ package "models.certificate" {
   class Certificate <<aggregate root>> {
     -lifecycle: CertificateLifecycle
     -auditTrail: AuditTrail
-    +suspend(reason, Person, Instant, LocalDate)
-    +ensureRenewableWith(InspectionView)
-    +renew(CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
+    ~suspend(reason, Person, Instant, LocalDate)
+    ~ensureRenewableWith(InspectionView)
+    ~renew(CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
     +statusOn(LocalDate): CertificateStatus
     +isCurrentOn(LocalDate): boolean
-    +certifies(Asset): boolean
+    +certifies(AssetCode): boolean
     +number(): CertificateNumber
-    +asset(): Asset
+    +assetCode(): AssetCode
     +basedOn(): InspectionReference
     +validity(): ValidityPeriod
     +issuedBy(): Person
     +issuedAt(): Instant
     +suspensions(): List<Suspension>
-    +pullAuditEntries(): List<AuditEntry>
+    ~pullAuditEntries(): List<AuditEntry>
   }
   class CertificateFactory {
-    +create(CertificateNumber, Asset, InspectionView, ValidityPeriod, Person, Instant): Certificate
+    +create(CertificateNumber, AssetCode, InspectionView, ValidityPeriod, Person, Instant): Certificate
+  }
+  class CertificateService <<servicio de dominio>> {
+    -certificateFactory: CertificateFactory
+    -certificateLog: AuditLog<Certificate>
+    +issue(CertificateNumber, AssetCode, InspectionView, ValidityPeriod, Person, Instant): Certificate
+    +ensureRenewableWith(Certificate, InspectionView)
+    +renew(Certificate, CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
+    +suspend(Certificate, reason, Person, Instant, LocalDate)
   }
   class CertificateNumber <<identificador de negocio>>
   class ValidityPeriod <<value object>> {
@@ -446,12 +518,12 @@ package "ports" {
     +save(Finding)
     +saveAll(List<Finding>)
     +findById(FindingId): Optional<Finding>
-    +findByAsset(Asset): List<Finding>
+    +findByAsset(AssetCode): List<Finding>
   }
   interface CertificateRepository {
     +save(Certificate)
     +findByNumber(CertificateNumber): Optional<Certificate>
-    +findCurrentFor(Asset, LocalDate): Optional<Certificate>
+    +findCurrentFor(AssetCode, LocalDate): Optional<Certificate>
   }
   interface CertificateNumbering {
     +next(): CertificateNumber
@@ -461,6 +533,7 @@ package "ports" {
 package "models.certification" {
   interface CertificationEligibility <<servicio de dominio, politica intercambiable>> {
     +evaluate(InspectionView, List<Finding>): CertificationDecision
+    +ensureEligible(InspectionView, List<Finding>)
   }
   class NoBlockingFindingsEligibility
   class CertificationDecision <<value object>> {
@@ -475,7 +548,6 @@ package "models.certification" {
   enum IneligibilityReason {
     INSPECTION_NOT_CLOSED
     PARTIAL_INSPECTION
-    UNADDRESSED_NON_CONFORMITIES
     BLOCKING_FINDINGS
   }
   CertificationEligibility ..> CertificationDecision
@@ -507,7 +579,7 @@ package "usecases (certiflow-domain)" {
 package "application (certiflow-application)" {
   class "XxxInteractor implements Xxx" as Interactors {
     ..una implementación por caso de uso..
-    ..orquesta puertos, Clock, servicios de dominio y AuditLog..
+    ..busca por id, llama al servicio de dominio y guarda..
   }
 }
 
@@ -520,10 +592,15 @@ Interactors ..> FindingRepository
 Interactors ..> CertificateRepository
 Interactors ..> CertificateNumbering
 Interactors ..> CertificationEligibility
-Interactors ..> AuditLog : vuelcan pullAuditEntries() y el acta lo lee
-Interactors ..> InspectionFactory
-Interactors ..> FindingFactory
-Interactors ..> CertificateFactory
+Interactors ..> AuditLog : solo el acta lo lee
+Interactors ..> InspectionService
+Interactors ..> FindingService
+Interactors ..> CertificateService
+Interactors ..> AssetService
+Interactors ..> InspectionSchemaService
+InspectionService ..> AuditLog : vuelca la bitacora
+FindingService ..> AuditLog : vuelca la bitacora
+CertificateService ..> AuditLog : vuelca la bitacora
 
 package "details.inmemory (certiflow-details)" {
   class InMemoryAssetRepository

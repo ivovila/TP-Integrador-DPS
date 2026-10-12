@@ -8,6 +8,7 @@ import ar.edu.itba.certiflow.usecases.report.ActLine;
 import ar.edu.itba.certiflow.usecases.report.CertificateDocument;
 import ar.edu.itba.certiflow.usecases.report.FindingsSummary;
 import ar.edu.itba.certiflow.usecases.report.InspectionAct;
+import ar.edu.itba.certiflow.models.asset.AssetAudit;
 import ar.edu.itba.certiflow.models.asset.exceptions.AssetAlreadyRegisteredException;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
@@ -89,7 +90,7 @@ class EndToEndFlowTest {
         assertEquals(validUntil, certificateDocument.validity().validUntil());
         assertEquals(fixture.certifier, certificateDocument.issuedBy());
         assertEquals(inspection, fixture.certificate(certificate).basedOn().id());
-        assertTrue(fixture.certificateRepository.findCurrentFor(fixture.extinguisher, LocalDate.now(fixture.clock)).isPresent());
+        assertTrue(fixture.certificateRepository.findCurrentFor(fixture.extinguisher.code(), LocalDate.now(fixture.clock)).isPresent());
     }
 
     @Test
@@ -101,7 +102,16 @@ class EndToEndFlowTest {
 
     @Test
     void catalogRejectsASecondAssetWithTheSameCode() {
-        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(fixture.extinguisher));
+        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(fixture.extinguisher, fixture.planner));
         assertEquals(fixture.extinguisher, fixture.assetRepository.findByCode(fixture.extinguisher.code()).orElseThrow());
+    }
+
+    @Test
+    void registeringAnAssetIsAudited() {
+        AuditEntry registration = fixture.assetLog.historyOf(fixture.extinguisher.code()).getFirst();
+
+        assertEquals(AssetAudit.REGISTERED, registration.action());
+        assertEquals(fixture.planner, registration.performedBy());
+        assertEquals(fixture.extinguisher.name(), registration.detail());
     }
 }

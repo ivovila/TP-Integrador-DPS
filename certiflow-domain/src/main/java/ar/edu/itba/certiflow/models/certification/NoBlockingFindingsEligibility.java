@@ -18,19 +18,10 @@ public final class NoBlockingFindingsEligibility implements CertificationEligibi
             ineligibilities.add(new Ineligibility(IneligibilityReason.PARTIAL_INSPECTION,
                     "Only an inspection that covers the whole schema can back a certificate"));
         }
-        List<String> unaddressedNonConformities = inspection.evaluate().nonConformities().stream()
-                .filter(nonConformity -> nonConformity.criterion().severity().blocksCertification())
-                .filter(nonConformity -> assetFindings.stream().noneMatch(finding -> finding.raisedFrom(inspection.id(), nonConformity)))
-                .map(nonConformity -> nonConformity.criterion().code())
-                .toList();
-        if (inspection.isClosed() && !unaddressedNonConformities.isEmpty()) {
-            ineligibilities.add(new Ineligibility(IneligibilityReason.UNADDRESSED_NON_CONFORMITIES,
-                    "Blocking non-conformities without a raised finding: " + String.join(", ", unaddressedNonConformities)));
-        }
         long blockingFindings = assetFindings.stream().filter(Finding::blocksCertification).count();
         if (blockingFindings > 0) {
             ineligibilities.add(new Ineligibility(IneligibilityReason.BLOCKING_FINDINGS,
-                    "Asset " + inspection.asset().code().value() + " has " + blockingFindings
+                    "Asset " + inspection.assetCode().value() + " has " + blockingFindings
                             + " open finding(s) whose severity blocks certification"));
         }
         return new CertificationDecision(ineligibilities);

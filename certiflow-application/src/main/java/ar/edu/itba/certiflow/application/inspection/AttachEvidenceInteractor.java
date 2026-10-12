@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.application.inspection;
 
-import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.evaluation.Evidence;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
+import ar.edu.itba.certiflow.models.inspection.InspectionService;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.models.schema.Criterion;
@@ -14,12 +14,12 @@ import java.time.Clock;
 public final class AttachEvidenceInteractor implements AttachEvidence {
 
     private final InspectionRepository inspectionRepository;
-    private final AuditLog<Inspection> inspectionLog;
+    private final InspectionService inspectionService;
     private final Clock clock;
 
-    public AttachEvidenceInteractor(InspectionRepository inspectionRepository, AuditLog<Inspection> inspectionLog, Clock clock) {
+    public AttachEvidenceInteractor(InspectionRepository inspectionRepository, InspectionService inspectionService, Clock clock) {
         this.inspectionRepository = inspectionRepository;
-        this.inspectionLog = inspectionLog;
+        this.inspectionService = inspectionService;
         this.clock = clock;
     }
 
@@ -27,8 +27,7 @@ public final class AttachEvidenceInteractor implements AttachEvidence {
     public void execute(InspectionId inspectionId, Criterion<?> criterion, Evidence evidence, Person attachedBy) {
         Inspection inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        inspection.attachEvidence(criterion, evidence, attachedBy, clock.instant());
+        inspectionService.attachEvidence(inspection, criterion, evidence, attachedBy, clock.instant());
         inspectionRepository.save(inspection);
-        inspectionLog.recordAll(inspection, inspection.pullAuditEntries());
     }
 }

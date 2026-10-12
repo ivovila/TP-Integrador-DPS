@@ -1,13 +1,11 @@
 package ar.edu.itba.certiflow.application.certificate;
 
-import ar.edu.itba.certiflow.models.audit.AuditLog;
 import ar.edu.itba.certiflow.models.certificate.Certificate;
 import ar.edu.itba.certiflow.models.certificate.CertificateNumber;
+import ar.edu.itba.certiflow.models.certificate.CertificateService;
 import ar.edu.itba.certiflow.models.certificate.ValidityPeriod;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotFoundException;
-import ar.edu.itba.certiflow.models.certification.CertificationDecision;
 import ar.edu.itba.certiflow.models.certification.CertificationEligibility;
-import ar.edu.itba.certiflow.models.certification.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.models.inspection.Inspection;
 import ar.edu.itba.certiflow.models.inspection.InspectionId;
 import ar.edu.itba.certiflow.models.inspection.exceptions.InspectionNotFoundException;
@@ -27,18 +25,18 @@ public final class RenewCertificateInteractor implements RenewCertificate {
     private final FindingRepository findingRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
-    private final AuditLog<Certificate> certificateLog;
+    private final CertificateService certificateService;
     private final Clock clock;
 
     public RenewCertificateInteractor(InspectionRepository inspectionRepository, CertificateRepository certificateRepository,
                                       FindingRepository findingRepository,
-                                      CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering, AuditLog<Certificate> certificateLog, Clock clock) {
+                                      CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering, CertificateService certificateService, Clock clock) {
         this.inspectionRepository = inspectionRepository;
         this.certificateRepository = certificateRepository;
         this.findingRepository = findingRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
-        this.certificateLog = certificateLog;
+        this.certificateService = certificateService;
         this.clock = clock;
     }
 
@@ -48,17 +46,13 @@ public final class RenewCertificateInteractor implements RenewCertificate {
                 .orElseThrow(() -> new CertificateNotFoundException(currentNumber));
         Inspection inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
-        CertificationDecision decision = certificationEligibility.evaluate(inspection, findingRepository.findByAsset(inspection.asset()));
-        if (!decision.isEligible()) {
-            throw new NotEligibleForCertificationException(decision);
-        }
-        currentCertificate.ensureRenewableWith(inspection);
-        Certificate renewedCertificate = currentCertificate.renew(certificateNumbering.next(), new ValidityPeriod(LocalDate.now(clock), validUntil),
-                inspection, renewedBy, clock.instant());
+        certificationEligibility.ensureEligible(inspection, findingRepository.findByAsset(inspection.assetCode()));
+        ValidityPeriod renewalValidity = new ValidityPeriod(LocalDate.now(clock), validUntil);
+        certificateService.ensureRenewableWith(currentCertificate, inspection);
+        Certificate renewedCertificate = certificateService.renew(currentCertificate, certificateNumbering.next(),
+                renewalValidity, inspection, renewedBy, clock.instant());
         certificateRepository.save(currentCertificate);
         certificateRepository.save(renewedCertificate);
-        certificateLog.recordAll(currentCertificate, currentCertificate.pullAuditEntries());
-        certificateLog.recordAll(renewedCertificate, renewedCertificate.pullAuditEntries());
         return renewedCertificate.number();
     }
 }

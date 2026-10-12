@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.models.certificate;
 
-import ar.edu.itba.certiflow.models.asset.Asset;
+import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditTrail;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateAlreadyRenewedException;
@@ -18,7 +18,7 @@ import java.util.List;
 public final class Certificate {
 
     private final CertificateNumber number;
-    private final Asset asset;
+    private final AssetCode assetCode;
     private final InspectionReference basedOn;
     private final ValidityPeriod validity;
     private final Person issuedBy;
@@ -27,24 +27,24 @@ public final class Certificate {
     private final AuditTrail auditTrail = new AuditTrail();
     private CertificateLifecycle lifecycle = CertificateLifecycle.ISSUED;
 
-    Certificate(CertificateNumber number, Asset asset, InspectionView basedOn, ValidityPeriod validity,
+    Certificate(CertificateNumber number, AssetCode assetCode, InspectionView basedOn, ValidityPeriod validity,
                         Person issuedBy, Instant issuedAt) {
         this.number = number;
-        this.asset = asset;
+        this.assetCode = assetCode;
         this.validity = validity;
         this.issuedBy = issuedBy;
         this.issuedAt = issuedAt;
         if (!basedOn.isClosed()) {
             throw new InspectionNotClosedException();
         }
-        if (!basedOn.asset().equals(asset)) {
-            throw new InspectionOfAnotherAssetException(asset);
+        if (!basedOn.assetCode().equals(assetCode)) {
+            throw new InspectionOfAnotherAssetException(assetCode);
         }
         this.basedOn = new InspectionReference(basedOn.id(), basedOn.originalRevision().sealedAt());
         auditTrail.record(CertificateAudit.ISSUED, issuedBy, issuedAt, "Number " + number.value());
     }
 
-    public void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
+    void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
         if (statusOn(suspendedOn) != CertificateStatus.ACTIVE) {
             throw new CertificateNotActiveException(number);
         }
@@ -53,25 +53,28 @@ public final class Certificate {
         auditTrail.record(CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason);
     }
 
-    public void ensureRenewableWith(InspectionView newBasis) {
+    void ensureRenewableWith(InspectionView newBasis) {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
+        }
+        if (!newBasis.assetCode().equals(assetCode)) {
+            throw new InspectionOfAnotherAssetException(assetCode);
         }
         if (!newBasis.originalRevision().sealedAt().isAfter(basedOn.closedAt())) {
             throw new RenewalRequiresLaterInspectionException(number);
         }
     }
 
-    public Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
+    Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
                              Person renewedBy, Instant renewedAt) {
         ensureRenewableWith(newBasis);
-        Certificate renewedCertificate = new Certificate(newNumber, asset, newBasis, newValidity, renewedBy, renewedAt);
+        Certificate renewedCertificate = new Certificate(newNumber, assetCode, newBasis, newValidity, renewedBy, renewedAt);
         lifecycle = CertificateLifecycle.RENEWED;
         auditTrail.record(CertificateAudit.RENEWED, renewedBy, renewedAt, "Renewed by " + newNumber.value());
         return renewedCertificate;
     }
 
-    public List<AuditEntry> pullAuditEntries() {
+    List<AuditEntry> pullAuditEntries() {
         return auditTrail.pull();
     }
 
@@ -83,16 +86,16 @@ public final class Certificate {
         return lifecycle != CertificateLifecycle.RENEWED && validity.covers(referenceDate);
     }
 
-    public boolean certifies(Asset candidate) {
-        return asset.equals(candidate);
+    public boolean certifies(AssetCode candidate) {
+        return assetCode.equals(candidate);
     }
 
     public CertificateNumber number() {
         return number;
     }
 
-    public Asset asset() {
-        return asset;
+    public AssetCode assetCode() {
+        return assetCode;
     }
 
     public InspectionReference basedOn() {

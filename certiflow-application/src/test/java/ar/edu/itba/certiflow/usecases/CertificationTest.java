@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.models.certificate.CertificateStatus;
 import ar.edu.itba.certiflow.models.certificate.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.CertificateNotActiveException;
+import ar.edu.itba.certiflow.models.certificate.exceptions.InvalidValidityPeriodException;
 import ar.edu.itba.certiflow.models.certificate.exceptions.RenewalRequiresLaterInspectionException;
 import ar.edu.itba.certiflow.models.certification.IneligibilityReason;
 import ar.edu.itba.certiflow.models.evaluation.YesNoAnswer;
@@ -43,23 +44,40 @@ class CertificationTest {
     }
 
     @Test
-    void inspectionClosedWithoutRaisingItsFindingsIsNotEligible() {
-        InspectionId inspection = fixture.assignedInspection();
-        fixture.answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
-        fixture.inspection(inspection).close(fixture.inspector, fixture.clock.instant());
+    void rectificationThatIntroducesABlockingNonConformityRaisesItsFindingAndRemovesEligibility() {
+        InspectionId inspection = fixture.closedCompliantInspection();
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.UNADDRESSED_NON_CONFORMITIES,
+        List<FindingId> raisedFindings = fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion,
+                fixture.numericAnswer("5.00"), "Gauge reading was transcribed incorrectly: 7.00 instead of 5.00", fixture.certifier);
+
+        assertEquals(1, raisedFindings.size());
+        assertTrue(fixture.finding(raisedFindings.getFirst()).isOpen());
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier));
     }
 
     @Test
-    void rectificationThatIntroducesABlockingNonConformityRemovesEligibility() {
-        InspectionId inspection = fixture.closedCompliantInspection();
-        fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("5.00"),
-                "Gauge reading was transcribed incorrectly: 7.00 instead of 5.00", fixture.certifier);
+    void aClosedFindingDoesNotCoverANonConformityReintroducedByARectification() {
+        InspectionId inspection = fixture.assignedInspection();
+        FindingId finding = fixture.majorFindingOf(inspection);
+        fixture.closeFinding(finding);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.UNADDRESSED_NON_CONFORMITIES,
+        fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion, fixture.numericAnswer("4.00"),
+                "Gauge reading was transcribed incorrectly: 5.00 instead of 4.00", fixture.certifier);
+
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier));
+    }
+
+    @Test
+    void aRectificationThatFixesTheAnswerRaisesNoFinding() {
+        InspectionId inspection = fixture.assignedInspection();
+        fixture.majorFindingOf(inspection);
+
+        List<FindingId> raisedFindings = fixture.rectifyInspection.execute(inspection, fixture.pressureCriterion,
+                fixture.numericAnswer("7.00"), "Gauge reading was transcribed incorrectly: 5.00 instead of 7.00", fixture.certifier);
+
+        assertTrue(raisedFindings.isEmpty());
     }
 
     @Test
@@ -85,7 +103,7 @@ class CertificationTest {
         CertificateNumber certificate = fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier);
 
         assertEquals("CERT-00001", fixture.certificate(certificate).number().value());
-        assertEquals(fixture.extinguisher, fixture.certificate(certificate).asset());
+        assertEquals(fixture.extinguisher.code(), fixture.certificate(certificate).assetCode());
         assertEquals(inspection, fixture.certificate(certificate).basedOn().id());
         AuditEntry issuanceEntry = fixture.certificateLog.historyOf(fixture.certificate(certificate)).getFirst();
         assertEquals(CertificateAudit.ISSUED, issuanceEntry.action());
@@ -173,7 +191,7 @@ class CertificationTest {
         assertEquals(CertificateStatus.RENEWED, fixture.certificate(originalCertificate).statusOn(currentDate));
         assertEquals(CertificateStatus.ACTIVE, fixture.certificate(renewedCertificate).statusOn(currentDate));
         assertEquals(reinspection, fixture.certificate(renewedCertificate).basedOn().id());
-        assertEquals(renewedCertificate, fixture.certificateRepository.findCurrentFor(fixture.extinguisher, currentDate).orElseThrow().number());
+        assertEquals(renewedCertificate, fixture.certificateRepository.findCurrentFor(fixture.extinguisher.code(), currentDate).orElseThrow().number());
         assertEquals(CertificateAudit.RENEWED, fixture.certificateLog.historyOf(fixture.certificate(originalCertificate)).getLast().action());
         assertEquals(CertificateAudit.ISSUED, fixture.certificateLog.historyOf(fixture.certificate(renewedCertificate)).getFirst().action());
         assertThrows(CertificateAlreadyRenewedException.class, () -> fixture.renewCertificate.execute(originalCertificate,
@@ -218,6 +236,42 @@ class CertificationTest {
                 VALID_UNTIL.plusYears(1), fixture.certifier);
 
         assertEquals("CERT-00002", fixture.certificate(renewedCertificate).number().value());
+    }
+
+    @Test
+    void anInvalidValidityPeriodConsumesNoCertificateNumber() {
+        InspectionId inspection = fixture.closedCompliantInspection();
+
+        assertThrows(InvalidValidityPeriodException.class,
+                () -> fixture.issueCertificate.execute(inspection, CertiflowFixture.TODAY.minusDays(1), fixture.certifier));
+
+        CertificateNumber certificate = fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier);
+        assertEquals("CERT-00001", certificate.value());
+    }
+
+    @Test
+    void aRenewalWithAnInvalidValidityPeriodConsumesNoCertificateNumber() {
+        InspectionId inspection = fixture.closedCompliantInspection();
+        CertificateNumber certificate = fixture.issueCertificate.execute(inspection, VALID_UNTIL, fixture.certifier);
+        fixture.clock.advanceDays(1);
+        InspectionId laterInspection = fixture.closedCompliantInspection();
+
+        assertThrows(InvalidValidityPeriodException.class, () -> fixture.renewCertificate.execute(certificate,
+                laterInspection, CertiflowFixture.TODAY.minusDays(1), fixture.certifier));
+
+        CertificateNumber renewedCertificate = fixture.renewCertificate.execute(certificate, laterInspection,
+                VALID_UNTIL.plusYears(1), fixture.certifier);
+        assertEquals("CERT-00002", renewedCertificate.value());
+    }
+
+    @Test
+    void aSuspendedCertificateIsExpiredOnceItsValidityIsOver() {
+        CertificateNumber certificate = fixture.issueCertificate.execute(fixture.closedCompliantInspection(), VALID_UNTIL,
+                fixture.certifier);
+        fixture.suspendCertificate.execute(certificate, "Discharged after a fire", fixture.certifier);
+        assertEquals(CertificateStatus.SUSPENDED, fixture.certificate(certificate).statusOn(CertiflowFixture.TODAY));
+
+        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(VALID_UNTIL.plusDays(1)));
     }
 
     @Test
