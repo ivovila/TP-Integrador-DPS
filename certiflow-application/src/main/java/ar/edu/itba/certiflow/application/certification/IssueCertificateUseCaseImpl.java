@@ -1,39 +1,34 @@
 package ar.edu.itba.certiflow.application.certification;
 
-import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificationEligibility;
+import ar.edu.itba.certiflow.certification.model.InspectionResult;
+import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
-import ar.edu.itba.certiflow.certification.model.CertificationEligibility;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
-import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
-import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
+import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
 import java.time.Clock;
 import java.time.LocalDate;
 
 public final class IssueCertificateUseCaseImpl implements IssueCertificateUseCase {
 
-    private final InspectionRepository inspectionRepository;
+    private final InspectionResultTranslator inspectionResultTranslator;
     private final CertificateRepository certificateRepository;
-    private final FindingRepository findingRepository;
     private final CertificationEligibility certificationEligibility;
     private final CertificateNumbering certificateNumbering;
     private final CertificateService certificateService;
     private final Clock clock;
 
-    public IssueCertificateUseCaseImpl(InspectionRepository inspectionRepository, CertificateRepository certificateRepository,
-                                      FindingRepository findingRepository,
-                                      CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering, CertificateService certificateService, Clock clock) {
-        this.inspectionRepository = inspectionRepository;
+    public IssueCertificateUseCaseImpl(InspectionResultTranslator inspectionResultTranslator, CertificateRepository certificateRepository,
+                                       CertificationEligibility certificationEligibility, CertificateNumbering certificateNumbering,
+                                       CertificateService certificateService, Clock clock) {
+        this.inspectionResultTranslator = inspectionResultTranslator;
         this.certificateRepository = certificateRepository;
-        this.findingRepository = findingRepository;
         this.certificationEligibility = certificationEligibility;
         this.certificateNumbering = certificateNumbering;
         this.certificateService = certificateService;
@@ -42,17 +37,15 @@ public final class IssueCertificateUseCaseImpl implements IssueCertificateUseCas
 
     @Override
     public CertificateNumber execute(IssueCertificateCommand command) {
-        Inspection inspection = inspectionRepository.findById(command.inspectionId())
-                .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
+        InspectionResult result = inspectionResultTranslator.translate(command.inspectionId());
         LocalDate today = LocalDate.now(clock);
-        AssetCode assetCode = inspection.assetCode();
-        certificationEligibility.ensureEligible(inspection, findingRepository.findByAsset(assetCode));
-        certificateRepository.findCurrentFor(assetCode, today).ifPresent(currentCertificate -> {
-            throw new AssetAlreadyCertifiedException(assetCode, currentCertificate.number());
+        certificationEligibility.ensureEligible(result);
+        certificateRepository.findCurrentFor(result.assetCode(), today).ifPresent(currentCertificate -> {
+            throw new AssetAlreadyCertifiedException(result.assetCode(), currentCertificate.number());
         });
         ValidityPeriod validity = new ValidityPeriod(today, command.validUntil());
-        Certificate certificate = certificateService.issue(certificateNumbering.next(), assetCode, inspection, validity,
-                command.issuedBy(), clock.instant());
+        Certificate certificate = certificateService.issue(certificateNumbering.next(), result, validity, command.issuedBy(),
+                clock.instant());
         certificateRepository.save(certificate);
         return certificate.number();
     }

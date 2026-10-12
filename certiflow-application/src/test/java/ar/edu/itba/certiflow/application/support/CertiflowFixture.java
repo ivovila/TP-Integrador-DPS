@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application.support;
 
+import ar.edu.itba.certiflow.application.certification.InspectionResultTranslatorImpl;
+import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
@@ -170,12 +172,13 @@ public final class CertiflowFixture {
     public final GenerateCertificateDocumentUseCase generateCertificateDocument = new GenerateCertificateDocumentUseCaseImpl(certificateRepository, assetRepository, clock);
 
     private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility();
+    private final InspectionResultTranslator inspectionResultTranslator = new InspectionResultTranslatorImpl(inspectionRepository,
+            findingRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificateUseCase issueCertificate = new IssueCertificateUseCaseImpl(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, certificateService, clock);
-    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionRepository, findingRepository,
-            certificationEligibility);
+    public final IssueCertificateUseCase issueCertificate = new IssueCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationEligibility, certificateNumbering, certificateService, clock);
+    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationEligibility);
     public final SuspendCertificateUseCase suspendCertificate = new SuspendCertificateUseCaseImpl(certificateRepository, certificateService, clock);
-    public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionRepository, certificateRepository, findingRepository, certificationEligibility, certificateNumbering, certificateService, clock);
+    public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationEligibility, certificateNumbering, certificateService, clock);
 
     public final Asset extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"),
             "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,

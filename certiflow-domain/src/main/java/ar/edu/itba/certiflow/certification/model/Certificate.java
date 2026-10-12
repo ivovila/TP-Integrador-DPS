@@ -7,8 +7,6 @@ import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRe
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
 import ar.edu.itba.certiflow.certification.model.exceptions.InspectionOfAnotherAssetException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalRequiresLaterInspectionException;
-import ar.edu.itba.certiflow.inspection.model.InspectionView;
-import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,20 +25,13 @@ public final class Certificate {
     private final AuditTrail auditTrail = new AuditTrail();
     private CertificateLifecycle lifecycle = CertificateLifecycle.ISSUED;
 
-    Certificate(CertificateNumber number, AssetCode assetCode, InspectionView basedOn, ValidityPeriod validity,
-                        Person issuedBy, Instant issuedAt) {
+    Certificate(CertificateNumber number, InspectionResult basedOn, ValidityPeriod validity, Person issuedBy, Instant issuedAt) {
         this.number = number;
-        this.assetCode = assetCode;
+        this.assetCode = basedOn.assetCode();
         this.validity = validity;
         this.issuedBy = issuedBy;
         this.issuedAt = issuedAt;
-        if (!basedOn.isClosed()) {
-            throw new InspectionNotClosedException();
-        }
-        if (!basedOn.assetCode().equals(assetCode)) {
-            throw new InspectionOfAnotherAssetException(assetCode);
-        }
-        this.basedOn = new InspectionReference(basedOn.id(), basedOn.originalRevision().sealedAt());
+        this.basedOn = basedOn.reference();
         auditTrail.record(CertificateAudit.ISSUED, issuedBy, issuedAt, "Number " + number.value());
     }
 
@@ -53,22 +44,22 @@ public final class Certificate {
         auditTrail.record(CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason);
     }
 
-    void ensureRenewableWith(InspectionView newBasis) {
+    void ensureRenewableWith(InspectionResult newBasis) {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
         }
         if (!newBasis.assetCode().equals(assetCode)) {
             throw new InspectionOfAnotherAssetException(assetCode);
         }
-        if (!newBasis.originalRevision().sealedAt().isAfter(basedOn.closedAt())) {
+        if (!newBasis.reference().closedAt().isAfter(basedOn.closedAt())) {
             throw new RenewalRequiresLaterInspectionException(number);
         }
     }
 
-    Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionView newBasis,
+    Certificate renew(CertificateNumber newNumber, ValidityPeriod newValidity, InspectionResult newBasis,
                              Person renewedBy, Instant renewedAt) {
         ensureRenewableWith(newBasis);
-        Certificate renewedCertificate = new Certificate(newNumber, assetCode, newBasis, newValidity, renewedBy, renewedAt);
+        Certificate renewedCertificate = new Certificate(newNumber, newBasis, newValidity, renewedBy, renewedAt);
         lifecycle = CertificateLifecycle.RENEWED;
         auditTrail.record(CertificateAudit.RENEWED, renewedBy, renewedAt, "Renewed by " + newNumber.value());
         return renewedCertificate;

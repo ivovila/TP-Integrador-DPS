@@ -1,8 +1,6 @@
 package ar.edu.itba.certiflow.certification.model;
 
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
-import ar.edu.itba.certiflow.inspection.model.InspectionView;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,20 +19,20 @@ public final class CertificateService {
         this.certificateLog = certificateLog;
     }
 
-    public Certificate issue(CertificateNumber number, AssetCode assetCode, InspectionView basedOn, ValidityPeriod validity,
-                             Person issuedBy, Instant issuedAt) {
-        Certificate certificate = certificateFactory.create(number, assetCode, basedOn, validity, issuedBy, issuedAt);
+    public Certificate issue(CertificateNumber number, InspectionResult basedOn, ValidityPeriod validity, Person issuedBy,
+                             Instant issuedAt) {
+        Certificate certificate = certificateFactory.create(number, basedOn, validity, issuedBy, issuedAt);
         recorded(certificate);
         return certificate;
     }
 
     /** Se consulta antes de pedir un número nuevo, para que una renovación rechazada no consuma ninguno. */
-    public void ensureRenewableWith(Certificate currentCertificate, InspectionView newBasis) {
+    public void ensureRenewableWith(Certificate currentCertificate, InspectionResult newBasis) {
         currentCertificate.ensureRenewableWith(newBasis);
     }
 
     public Certificate renew(Certificate currentCertificate, CertificateNumber newNumber, ValidityPeriod newValidity,
-                             InspectionView newBasis, Person renewedBy, Instant renewedAt) {
+                             InspectionResult newBasis, Person renewedBy, Instant renewedAt) {
         Certificate renewedCertificate = currentCertificate.renew(newNumber, newValidity, newBasis, renewedBy, renewedAt);
         recorded(currentCertificate);
         recorded(renewedCertificate);
