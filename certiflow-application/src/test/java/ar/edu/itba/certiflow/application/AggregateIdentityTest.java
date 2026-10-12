@@ -1,5 +1,8 @@
 package ar.edu.itba.certiflow.application;
 
+import java.util.List;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -57,5 +60,13 @@ class AggregateIdentityTest {
         assertThrows(CertificateNotFoundException.class,
                 () -> fixture.suspend(unknownCertificate, "Discharged", fixture.certifier));
         assertThrows(AssetNotFoundException.class, () -> fixture.assignInspection.execute(new AssignInspectionCommand(new AssetCode("EXT-9999"), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).inspector(), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).plannedDate(), (new InspectionAssignment(fixture.inspector, CertiflowFixture.TODAY, new FullScope())).scope(), fixture.planner)));
+    }
+
+    @Test
+    void historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate() {
+        InspectionId inspection = fixture.assignedInspection();
+
+        assertEquals(List.of(InspectionAudit.ASSIGNED),
+                fixture.inspectionLog.historyOf(inspection).stream().map(AuditEntry::action).toList());
     }
 }

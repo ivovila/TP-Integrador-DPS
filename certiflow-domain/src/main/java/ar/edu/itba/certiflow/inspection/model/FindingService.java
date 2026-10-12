@@ -15,9 +15,9 @@ import java.util.function.Supplier;
 public final class FindingService {
 
     private final FindingFactory findingFactory;
-    private final AuditLog<Finding> findingLog;
+    private final AuditLog<FindingId> findingLog;
 
-    public FindingService(FindingFactory findingFactory, AuditLog<Finding> findingLog) {
+    public FindingService(FindingFactory findingFactory, AuditLog<FindingId> findingLog) {
         this.findingFactory = findingFactory;
         this.findingLog = findingLog;
     }
@@ -64,6 +64,6 @@ public final class FindingService {
     }
 
     private void recorded(Finding finding) {
-        findingLog.recordAll(finding, finding.pullAuditEntries());
+        findingLog.recordAll(finding.id(), finding.pullAuditEntries());
     }
 }

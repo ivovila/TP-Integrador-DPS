@@ -14,9 +14,9 @@ import java.time.LocalDate;
 public final class CertificateService {
 
     private final CertificateFactory certificateFactory;
-    private final AuditLog<Certificate> certificateLog;
+    private final AuditLog<CertificateNumber> certificateLog;
 
-    public CertificateService(CertificateFactory certificateFactory, AuditLog<Certificate> certificateLog) {
+    public CertificateService(CertificateFactory certificateFactory, AuditLog<CertificateNumber> certificateLog) {
         this.certificateFactory = certificateFactory;
         this.certificateLog = certificateLog;
     }
@@ -47,6 +47,6 @@ public final class CertificateService {
     }
 
     private void recorded(Certificate certificate) {
-        certificateLog.recordAll(certificate, certificate.pullAuditEntries());
+        certificateLog.recordAll(certificate.number(), certificate.pullAuditEntries());
     }
 }

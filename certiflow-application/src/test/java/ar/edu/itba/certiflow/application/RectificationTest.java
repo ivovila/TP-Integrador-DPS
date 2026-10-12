@@ -42,7 +42,7 @@ class RectificationTest {
         assertEquals(fixture.clock.instant(), rectifiedRevision.sealedAt());
         assertEquals(Outcome.APPROVED, rectifiedRevision.evaluation().outcomeOf(fixture.pressureCriterion));
 
-        AuditEntry rectificationEntry = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).getLast();
+        AuditEntry rectificationEntry = fixture.inspectionLog.historyOf(inspection).getLast();
         assertEquals(InspectionAudit.RECTIFIED, rectificationEntry.action());
         assertEquals(fixture.certifier, rectificationEntry.performedBy());
         assertTrue(rectificationEntry.detail().contains(REASON));

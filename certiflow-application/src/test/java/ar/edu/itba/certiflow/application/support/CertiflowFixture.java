@@ -138,9 +138,9 @@ public final class CertiflowFixture {
 
     public final MutableClock clock = new MutableClock(Instant.parse("2026-03-10T09:00:00Z"));
     public final AuditLog<AssetType> schemaLog = new InMemoryAuditLog<>();
-    public final AuditLog<Inspection> inspectionLog = new InMemoryAuditLog<>();
-    public final AuditLog<Finding> findingLog = new InMemoryAuditLog<>();
-    public final AuditLog<Certificate> certificateLog = new InMemoryAuditLog<>();
+    public final AuditLog<InspectionId> inspectionLog = new InMemoryAuditLog<>();
+    public final AuditLog<FindingId> findingLog = new InMemoryAuditLog<>();
+    public final AuditLog<CertificateNumber> certificateLog = new InMemoryAuditLog<>();
     public final InMemoryAssetRepository assetRepository = new InMemoryAssetRepository();
     public final InMemoryInspectionSchemaRepository inspectionSchemaRepository = new InMemoryInspectionSchemaRepository();
     public final InMemoryInspectionRepository inspectionRepository = new InMemoryInspectionRepository();

@@ -17,9 +17,9 @@ import java.time.Instant;
 public final class InspectionService {
 
     private final InspectionFactory inspectionFactory;
-    private final AuditLog<Inspection> inspectionLog;
+    private final AuditLog<InspectionId> inspectionLog;
 
-    public InspectionService(InspectionFactory inspectionFactory, AuditLog<Inspection> inspectionLog) {
+    public InspectionService(InspectionFactory inspectionFactory, AuditLog<InspectionId> inspectionLog) {
         this.inspectionFactory = inspectionFactory;
         this.inspectionLog = inspectionLog;
     }
@@ -87,7 +87,7 @@ public final class InspectionService {
     }
 
     private Inspection recorded(Inspection inspection) {
-        inspectionLog.recordAll(inspection, inspection.pullAuditEntries());
+        inspectionLog.recordAll(inspection.id(), inspection.pullAuditEntries());
         return inspection;
     }
 }

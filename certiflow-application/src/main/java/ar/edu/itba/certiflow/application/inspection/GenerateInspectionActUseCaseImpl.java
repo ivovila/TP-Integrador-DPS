@@ -20,9 +20,9 @@ public final class GenerateInspectionActUseCaseImpl implements GenerateInspectio
 
     private final InspectionRepository inspectionRepository;
     private final AssetRepository assetRepository;
-    private final AuditLog<Inspection> inspectionLog;
+    private final AuditLog<InspectionId> inspectionLog;
 
-    public GenerateInspectionActUseCaseImpl(InspectionRepository inspectionRepository, AssetRepository assetRepository, AuditLog<Inspection> inspectionLog) {
+    public GenerateInspectionActUseCaseImpl(InspectionRepository inspectionRepository, AssetRepository assetRepository, AuditLog<InspectionId> inspectionLog) {
         this.inspectionRepository = inspectionRepository;
         this.assetRepository = assetRepository;
         this.inspectionLog = inspectionLog;
@@ -38,7 +38,7 @@ public final class GenerateInspectionActUseCaseImpl implements GenerateInspectio
         List<ActLine> actLines = inspection.evaluate().responses().stream().map(this::lineOf).toList();
         return new InspectionAct(asset.code(), asset.name(), inspection.assignment(),
                 inspection.schemaVersion().number(), actLines, inspection.revisions(),
-                inspectionLog.historyOf(inspection));
+                inspectionLog.historyOf(inspection.id()));
     }
 
     private ActLine lineOf(CriterionResponse<?> response) {

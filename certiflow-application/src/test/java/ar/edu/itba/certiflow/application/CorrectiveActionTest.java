@@ -54,8 +54,8 @@ class CorrectiveActionTest {
         assertFalse(fixture.action(finding, rechargeAction).isClosed());
         assertTrue(fixture.finding(finding).isOpen());
         assertEquals(1, fixture.action(finding, rechargeAction).verifications().size());
-        assertEquals(FindingAudit.VERIFICATION_REJECTED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
-        assertEquals(fixture.verifier, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().performedBy());
+        assertEquals(FindingAudit.VERIFICATION_REJECTED, fixture.findingLog.historyOf(finding).getLast().action());
+        assertEquals(fixture.verifier, fixture.findingLog.historyOf(finding).getLast().performedBy());
     }
 
     @Test
@@ -69,7 +69,7 @@ class CorrectiveActionTest {
         assertFalse(fixture.finding(finding).isOpen());
         assertFalse(fixture.finding(finding).blocksCertification());
         assertFalse(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(FindingAudit.VERIFICATION_ACCEPTED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
+        assertEquals(FindingAudit.VERIFICATION_ACCEPTED, fixture.findingLog.historyOf(finding).getLast().action());
     }
 
     @Test
@@ -151,8 +151,8 @@ class CorrectiveActionTest {
 
     @Test
     void planningIsAuditedAndAttributedToWhoeverPlanned() {
-        assertEquals(FindingAudit.ACTION_PLANNED, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().action());
-        assertEquals(fixture.assetResponsible, fixture.findingLog.historyOf(fixture.finding(finding)).getLast().performedBy());
+        assertEquals(FindingAudit.ACTION_PLANNED, fixture.findingLog.historyOf(finding).getLast().action());
+        assertEquals(fixture.assetResponsible, fixture.findingLog.historyOf(finding).getLast().performedBy());
     }
 
     @Test

@@ -61,12 +61,12 @@ class InspectionExecutionTest {
     void sameEvidenceCannotBeAttachedTwiceToTheSameCriterion() {
         InspectionId inspection = fixture.assignedInspection();
         fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
-        int entriesAfterFirstAttachment = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size();
+        int entriesAfterFirstAttachment = fixture.inspectionLog.historyOf(inspection).size();
 
         assertThrows(DuplicateEvidenceException.class,
                 () -> fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector));
 
-        assertEquals(entriesAfterFirstAttachment, fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size());
+        assertEquals(entriesAfterFirstAttachment, fixture.inspectionLog.historyOf(inspection).size());
     }
 
     @Test
@@ -78,7 +78,7 @@ class InspectionExecutionTest {
         fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.10"), fixture.inspector);
 
         assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
-        List<AuditEntry> pressureEntries = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).stream()
+        List<AuditEntry> pressureEntries = fixture.inspectionLog.historyOf(inspection).stream()
                 .filter(entry -> entry.action() == InspectionAudit.ANSWER_RECORDED)
                 .filter(entry -> entry.detail().startsWith("EXT-01"))
                 .toList();
@@ -89,7 +89,7 @@ class InspectionExecutionTest {
     @Test
     void closedInspectionRejectsNewAnswersEvidenceAndObservations() {
         InspectionId closedInspection = fixture.closedCompliantInspection();
-        int entriesAtClosure = fixture.inspectionLog.historyOf(fixture.inspection(closedInspection)).size();
+        int entriesAtClosure = fixture.inspectionLog.historyOf(closedInspection).size();
 
         assertThrows(InspectionAlreadyClosedException.class,
                 () -> fixture.answer(closedInspection, fixture.pressureCriterion, fixture.numericAnswer("6.50"), fixture.inspector));
@@ -98,14 +98,14 @@ class InspectionExecutionTest {
         assertThrows(InspectionAlreadyClosedException.class,
                 () -> fixture.addObservation.execute(new AddObservationCommand(closedInspection, fixture.signageCriterion.code(), "Late note", fixture.inspector)));
         assertThrows(InspectionAlreadyClosedException.class, () -> fixture.close(closedInspection, fixture.inspector));
-        assertEquals(entriesAtClosure, fixture.inspectionLog.historyOf(fixture.inspection(closedInspection)).size());
+        assertEquals(entriesAtClosure, fixture.inspectionLog.historyOf(closedInspection).size());
     }
 
     @Test
     void assignmentIsTheFirstAuditedFactAndIsAttributedToWhoeverAssigned() {
         InspectionId inspection = fixture.assignedInspection();
 
-        AuditEntry firstEntry = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).getFirst();
+        AuditEntry firstEntry = fixture.inspectionLog.historyOf(inspection).getFirst();
 
         assertEquals(InspectionAudit.ASSIGNED, firstEntry.action());
         assertEquals(fixture.planner, firstEntry.performedBy());
@@ -135,12 +135,12 @@ class InspectionExecutionTest {
     @Test
     void answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing() {
         InspectionId inspection = fixture.assignedInspection();
-        int entriesBefore = fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size();
+        int entriesBefore = fixture.inspectionLog.historyOf(inspection).size();
 
         assertThrows(CriterionNotInSchemaException.class, () -> fixture.recordAnswer.execute(
                 new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer.YesNo(true), fixture.inspector)));
 
-        assertEquals(entriesBefore, fixture.inspectionLog.historyOf(fixture.inspection(inspection)).size());
+        assertEquals(entriesBefore, fixture.inspectionLog.historyOf(inspection).size());
     }
 
     @Test
