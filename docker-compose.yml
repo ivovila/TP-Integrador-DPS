@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: certiflow
+      POSTGRES_USER: certiflow
+      POSTGRES_PASSWORD: certiflow
+    ports:
+      - "5432:5432"
