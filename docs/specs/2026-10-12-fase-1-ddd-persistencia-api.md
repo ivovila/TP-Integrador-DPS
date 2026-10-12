@@ -19,7 +19,8 @@ hace el dominio lo sigue haciendo igual, y los 116 tests actuales siguen pasando
 5. Los cinco agregados se guardan en una base relacional con JPA y se reconstruyen sin repetir validaciones de
    creación ni auditoría (§5).
 6. La auditoría se indexa por la identidad del agregado y sobrevive a la reconstrucción desde la base.
-7. Cada caso de uso tiene su endpoint REST (§6) y los errores de dominio se traducen a códigos HTTP (§6.3).
+7. La API cumple las reglas de REST de §6.1 hasta el nivel 3 de Richardson (hipermedia): cada caso de uso es una
+   operación sobre un recurso (§6.2) y los errores de dominio se traducen a códigos HTTP (§6.4).
 8. Hay tests unitarios, parametrizados, de repositorio (sobre H2 real) y de API (sobre la app completa), y CI los
    ejecuta en cada pull request (§7, §8).
 9. La app corre contra PostgreSQL con `docker compose up` + `mvn -pl certiflow-web spring-boot:run`.
@@ -28,7 +29,7 @@ hace el dominio lo sigue haciendo igual, y los 116 tests actuales siguen pasando
 
 - F1, F2 y F3 (cada una tiene su spec, sobre esta base).
 - Frontend (se hace cuando la API y F1 a F3 estén terminadas).
-- Autenticación. La persona que actúa viaja en el request (§6.2).
+- Autenticación. La persona que actúa viaja en el request (§6.3).
 
 ---
 
@@ -117,7 +118,7 @@ flowchart TD
 | `certiflow-infrastructure` | `<ctx>.persistence` | entidades JPA, interfaces Spring Data, adaptadores `JpaXxxRepository implements XxxRepository`, mappers, convertidores JSON | `domain`, Spring Data JPA, Jackson |
 | | `shared.audit` | `JpaAuditLog` | |
 | | `inmemory` | los repositorios en memoria actuales, para los tests de `application` | |
-| `certiflow-web` | `<ctx>` | controladores REST, DTOs de request y response | `domain`, `application`, `infrastructure`, Spring Web |
+| `certiflow-web` | `<ctx>` | controladores REST, DTOs de request y response, assemblers HAL | `domain`, `application`, `infrastructure`, Spring Web, Spring HATEOAS |
 | | `config` | `CertiflowApplication` (`@SpringBootApplication`), `UseCaseConfiguration` (`@Bean` por caso de uso), `ApiExceptionHandler` | |
 
 `application` no conoce Spring: los `UseCaseImpl` se instancian como `@Bean` en `certiflow-web`
@@ -200,7 +201,7 @@ creación y anotan `ASSIGNED`, `RAISED` o `ISSUED`. Un repositorio no puede usar
 ### 4.4 Persona que actúa
 
 Sin cambios en el dominio: `Person(PersonId, name)`. En la API viaja en los headers `X-Person-Id` y
-`X-Person-Name` (§6.2).
+`X-Person-Name` (§6.3).
 
 ### 4.5 Consultas
 
@@ -272,43 +273,83 @@ agregado quedan en la misma transacción. Elimina la limitación "Auditar y guar
 
 ## 6. API REST
 
-### 6.1 Endpoints
+La API cumple las restricciones de REST (Fielding) hasta el nivel 3 del modelo de madurez de Richardson. Base:
+`/api/v1`.
+
+### 6.1 Reglas que sigue la API
+
+| Regla | Cómo se aplica |
+|---|---|
+| **Recursos, no acciones** | Las rutas son sustantivos en plural y kebab-case (`/corrective-actions`). Ninguna ruta lleva un verbo (`/close`, `/renew`): cada operación de negocio crea o modifica un recurso con nombre propio del dominio (§6.2). |
+| **Jerarquía por pertenencia** | Una subruta solo existe si el hijo pertenece al agregado padre: respuestas dentro de su inspección, acciones correctivas dentro de su hallazgo, suspensiones dentro de su certificado. Las referencias entre agregados (inspección → activo) van en el cuerpo o como link, no anidadas. |
+| **Semántica de los métodos** | `GET` seguro e idempotente, sin efectos. `PUT` reemplaza un recurso completo y es idempotente (registrar la misma respuesta dos veces deja el mismo estado). `POST` crea un recurso subordinado. No se usa `PATCH`: ningún caso de uso modifica parcialmente un recurso. No hay `DELETE`: el dominio no borra nada, toda la historia se conserva. |
+| **Códigos de estado** | `200` lectura; `201 Created` con header `Location` del recurso nuevo y su representación en el cuerpo; `204` en un `PUT` sin cuerpo de respuesta; `400` entrada mal formada; `404` recurso inexistente; `405` método no soportado; `409` regla de negocio violada por el estado actual; `415` y `406` en negociación de contenido; `422` entidad bien formada pero no certificable. |
+| **Representaciones** | JSON con HAL (`application/hal+json`) para recursos y `application/problem+json` (RFC 9457) para errores. Los DTOs son propios de la API: nunca se serializa un objeto de dominio. Fechas en ISO 8601. |
+| **Hipermedia (HATEOAS)** | Cada representación trae `_links`: `self`, sus recursos relacionados y **solo las transiciones válidas en su estado actual**. Una inspección abierta ofrece `responses` y `closure`; una cerrada ofrece `rectifications` y `act`. Un certificado `ACTIVE` ofrece `suspensions` y `renewals`; uno `RENEWED`, ninguno. Se implementa con Spring HATEOAS (`RepresentationModelAssembler` por recurso). |
+| **Sin estado** | El servidor no guarda sesión. Cada request trae todo lo necesario, incluida la persona que actúa (§6.3). |
+| **Colecciones** | Paginadas con `page` y `size` (`PagedModel` con links `first`, `prev`, `next`, `last`); filtros como query params (`?type=`, `?asset=`). |
+| **Cacheable** | Los recursos inmutables (una versión de esquema publicada, una revisión) se sirven con `ETag` y `Cache-Control: max-age`. |
+| **Punto de entrada** | `GET /api/v1` devuelve los links a las colecciones raíz, así un cliente descubre la API sin conocer las rutas de antemano. |
+
+### 6.2 Recursos
+
+Las operaciones que en el dominio son verbos se modelan como el recurso que producen. Por ejemplo, cerrar una
+inspección crea su **cierre**, que en el dominio es la revisión original (S7). Rectificar crea una **rectificación**,
+suspender una **suspensión** y renovar una **renovación**, que a su vez da un certificado nuevo.
 
 | Método y ruta | Caso de uso | Respuesta |
 |---|---|---|
-| `POST /api/assets` | `RegisterAsset` | 201 + `AssetView` |
-| `GET /api/assets?type=` | `ListAssets` | 200 |
-| `GET /api/assets/{code}` | `FindAsset` | 200 / 404 |
-| `POST /api/schemas` | `CreateInspectionSchema` | 201 |
-| `POST /api/schemas/{assetType}/versions` | `PublishSchemaVersion` | 201 + número de versión |
-| `GET /api/schemas/{assetType}` | `FindSchema` | 200 / 404 |
-| `POST /api/inspections` | `AssignInspection` | 201 + id |
-| `GET /api/inspections/{id}` | `FindInspection` | 200 / 404 |
-| `PUT /api/inspections/{id}/answers/{criterionCode}` | `RecordAnswer` | 204 |
-| `POST /api/inspections/{id}/answers/{criterionCode}/evidence` | `AttachEvidence` | 204 |
-| `POST /api/inspections/{id}/answers/{criterionCode}/observations` | `AddObservation` | 204 |
-| `POST /api/inspections/{id}/close` | `CloseInspection` | 200 + ids de hallazgos |
-| `POST /api/inspections/{id}/rectifications` | `RectifyInspection` | 200 + ids de hallazgos |
-| `GET /api/inspections/{id}/act` | `GenerateInspectionAct` | 200 |
-| `POST /api/findings/{id}/actions` | `PlanCorrectiveAction` | 201 + id de acción |
-| `POST /api/findings/{id}/actions/{actionId}/verifications` | `VerifyCorrectiveAction` | 200 |
-| `GET /api/assets/{code}/findings` | `GenerateFindingsSummary` | 200 |
-| `GET /api/inspections/{id}/certification` | `EvaluateCertification` | 200 + decisión |
-| `POST /api/certificates` | `IssueCertificate` | 201 + número |
-| `POST /api/certificates/{number}/suspensions` | `SuspendCertificate` | 204 |
-| `POST /api/certificates/{number}/renewals` | `RenewCertificate` | 201 + número nuevo |
-| `GET /api/certificates/{number}` | `GenerateCertificateDocument` | 200 |
-| `GET /api/audit/{subjectType}/{id}` | `AuditHistory` | 200 |
+| `GET /api/v1` | punto de entrada | 200, links a las colecciones |
+| `POST /api/v1/assets` | `RegisterAsset` | 201, `Location: /assets/{code}` |
+| `GET /api/v1/assets?type=&page=&size=` | `ListAssets` | 200, paginado |
+| `GET /api/v1/assets/{code}` | `FindAsset` | 200 · 404 |
+| `GET /api/v1/assets/{code}/findings-summary` | `GenerateFindingsSummary` | 200 |
+| `GET /api/v1/assets/{code}/audit-entries` | `AuditHistory` | 200 |
+| `POST /api/v1/schemas` | `CreateInspectionSchema` | 201, `Location: /schemas/{assetType}` |
+| `GET /api/v1/schemas/{assetType}` | `FindSchema` | 200 · 404 |
+| `POST /api/v1/schemas/{assetType}/versions` | `PublishSchemaVersion` | 201, `Location: /schemas/{assetType}/versions/{n}` |
+| `GET /api/v1/schemas/{assetType}/versions` | `FindSchema` | 200 |
+| `GET /api/v1/schemas/{assetType}/versions/{n}` | `FindSchema` | 200 · 404, con `ETag` |
+| `GET /api/v1/schemas/{assetType}/audit-entries` | `AuditHistory` | 200 |
+| `POST /api/v1/inspections` | `AssignInspection` | 201, `Location: /inspections/{id}` |
+| `GET /api/v1/inspections/{id}` | `FindInspection` | 200 · 404 |
+| `GET /api/v1/inspections/{id}/responses` | `FindInspection` | 200, una por criterio del alcance |
+| `GET /api/v1/inspections/{id}/responses/{criterionCode}` | `FindInspection` | 200 · 404 |
+| `PUT /api/v1/inspections/{id}/responses/{criterionCode}/answer` | `RecordAnswer` | 204 |
+| `POST /api/v1/inspections/{id}/responses/{criterionCode}/evidence` | `AttachEvidence` | 201 |
+| `POST /api/v1/inspections/{id}/responses/{criterionCode}/observations` | `AddObservation` | 201 |
+| `POST /api/v1/inspections/{id}/closure` | `CloseInspection` | 201, `Location: /inspections/{id}/revisions/1`; cuerpo con links a los hallazgos levantados |
+| `POST /api/v1/inspections/{id}/rectifications` | `RectifyInspection` | 201, `Location: /inspections/{id}/revisions/{n}`; cuerpo con links a los hallazgos levantados |
+| `GET /api/v1/inspections/{id}/revisions` | `FindInspection` | 200 |
+| `GET /api/v1/inspections/{id}/revisions/{n}` | `FindInspection` | 200 · 404, con `ETag` |
+| `GET /api/v1/inspections/{id}/act` | `GenerateInspectionAct` | 200 · 409 si sigue abierta |
+| `GET /api/v1/inspections/{id}/certification-eligibility` | `EvaluateCertification` | 200, con las `Ineligibility` |
+| `GET /api/v1/inspections/{id}/audit-entries` | `AuditHistory` | 200 |
+| `GET /api/v1/findings?asset=&page=&size=` | `ListFindings` | 200, paginado |
+| `GET /api/v1/findings/{id}` | `FindFinding` | 200 · 404 |
+| `POST /api/v1/findings/{id}/corrective-actions` | `PlanCorrectiveAction` | 201, `Location: /findings/{id}/corrective-actions/{actionId}` |
+| `GET /api/v1/findings/{id}/corrective-actions/{actionId}` | `FindFinding` | 200 · 404 |
+| `POST /api/v1/findings/{id}/corrective-actions/{actionId}/verifications` | `VerifyCorrectiveAction` | 201 |
+| `GET /api/v1/findings/{id}/audit-entries` | `AuditHistory` | 200 |
+| `POST /api/v1/certificates` | `IssueCertificate` | 201, `Location: /certificates/{number}` · 422 si no es elegible |
+| `GET /api/v1/certificates?asset=&page=&size=` | `ListCertificates` | 200, paginado |
+| `GET /api/v1/certificates/{number}` | `GenerateCertificateDocument` | 200 · 404 |
+| `POST /api/v1/certificates/{number}/suspensions` | `SuspendCertificate` | 201 |
+| `POST /api/v1/certificates/{number}/renewals` | `RenewCertificate` | 201, `Location: /certificates/{nuevo}` · 422 |
+| `GET /api/v1/certificates/{number}/audit-entries` | `AuditHistory` | 200 |
 
-Las respuestas se envían como JSON: `{"value": 12.5}`, `{"value": true}`, `{"value": "B"}`. El DTO las convierte a
-`RawAnswer` según el tipo JSON.
+Con esto §4.5 suma tres consultas: `ListFindings(AssetCode opcional)`, `FindFinding(FindingId)` y
+`ListCertificates(AssetCode opcional)`, con sus métodos de repositorio.
 
-### 6.2 Persona que actúa
+La respuesta se envía como JSON en el `PUT .../answer`: `{"value": 12.5}`, `{"value": true}`, `{"value": "B"}`.
+El DTO la convierte a `RawAnswer` según el tipo JSON.
+
+### 6.3 Persona que actúa
 
 Todo endpoint que escribe exige `X-Person-Id` y `X-Person-Name`; si faltan responde 400. Un
 `HandlerMethodArgumentResolver` los convierte en `Person`.
 
-### 6.3 Errores
+### 6.4 Errores
 
 `ApiExceptionHandler` (`@RestControllerAdvice`) devuelve `application/problem+json` (RFC 9457) con el nombre de la
 excepción en `type`:
@@ -334,7 +375,7 @@ excepción.
 | De casos de uso | `certiflow-application` | los actuales de integración, con repositorios en memoria, sin mocks; `CertiflowFixture` adaptado a los comandos |
 | Unitarios con mocks | `certiflow-application` | el traductor del ACL con repositorios mockeados (Mockito); es el único lugar donde un mock aporta |
 | De repositorio | `certiflow-infrastructure` | `@DataJpaTest` + Flyway sobre H2: guardar y leer cada agregado y comparar snapshots; `findCurrentFor`, `findByAsset`, `nextId`, `JpaAuditLog`; el JSON de una versión con las tres reglas |
-| De API | `certiflow-web` | `@SpringBootTest` + `MockMvc` sobre la app completa con H2: el flujo de punta a punta (alta → esquema → inspección → cierre → hallazgo → acción → certificado), cada código de error de §6.3 y el header de persona faltante |
+| De API | `certiflow-web` | `@SpringBootTest` + `MockMvc` sobre la app completa con H2: el flujo de punta a punta navegando por los links (alta → esquema → inspección → cierre → hallazgo → acción → certificado); `Location` en cada 201; links presentes y ausentes según el estado (inspección abierta o cerrada, certificado activo o renovado); `ETag`; paginación; cada código de error de §6.4; header de persona faltante; 405 en métodos no soportados |
 
 Los mocks solo reemplazan colaboradores en tests unitarios; los tests de repositorio y de API usan la base y la
 app reales, como pide la consigna.
@@ -361,7 +402,7 @@ app reales, como pide la consigna.
   - D18 Snapshots (Memento) para reconstruir agregados; descartado: anotar el dominio con `@Entity`
   - D19 Entidades JPA separadas + `SchemaVersion` como JSON; descartado: `SINGLE_TABLE` para reglas
   - D20 Decorador transaccional; descartado: `@Transactional` en `application`
-  - D21 Traducción de errores a HTTP
+  - D21 API REST de nivel 3: operaciones como recursos, hipermedia según estado, traducción de errores; descartado: endpoints con verbos (RPC sobre HTTP)
   - Glosario de lenguaje ubicuo.
   - §6 Limitaciones: se eliminan las dos que esta fase resuelve y se agregan las nuevas.
 - **README.md**: cómo correr (tests, Postgres con docker compose, la app), estructura nueva y protección de rama.
