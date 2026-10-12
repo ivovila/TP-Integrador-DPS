@@ -353,3 +353,72 @@ así que nada impedía que un paquete importara a otro.
 - `.gitignore`: ignora `target/` de todos los módulos.
 - `DESIGN.md`: sección 2 reescrita. `README.md`: estructura por módulos. `docs/certiflow-domain.puml`: interfaces
   de casos de uso e interactors.
+
+---
+
+# Entrega 2 · Fase 1: DDD, persistencia, API REST y CI
+
+Cambios hechos para la Entrega 2, siguiendo
+[docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md](docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md) y su
+[plan](docs/plans/2026-10-12-fase-1-ddd-persistencia-api.md). Ninguno cambia reglas de negocio.
+
+## E2.1. Paquetes por bounded context y capas DDD
+- `models.*`, `ports` y `usecases` pasan a `<contexto>.model`, `<contexto>.repository` y `<contexto>.usecase`
+  (`catalog`, `schema`, `inspection`, `certification`, `shared`). `models.evaluation` se une a `schema.model`;
+  `models.finding` a `inspection.model`; `models.certificate` y `models.certification` a `certification.model`.
+- Las interfaces de caso de uso se llaman `XxxUseCase`; sus implementaciones, `XxxUseCaseImpl`. El módulo
+  `certiflow-details` pasa a `certiflow-infrastructure`.
+- DESIGN.md: sección 2 reescrita, D15, glosario.
+
+## E2.2. Respuesta cruda y criterio por código
+- `RawAnswer` (sealed), `ApprovalRule.answerFrom`, `Criterion.answerFrom`, `Answer.raw()`,
+  `SchemaVersion.criterion(code)`, `AnswerTypeMismatchException`; sobrecargas por código en `InspectionService`.
+- Tests: `RawAnswerTest`. DESIGN.md: D17.
+
+## E2.3. Casos de uso con comandos
+- Un `XxxCommand` por caso de uso de escritura; el fixture gana helpers (`answer`, `close`, `issue`…).
+- Tests: `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`,
+  `answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`. DESIGN.md: D17.
+
+## E2.4. Auditoría indexada por id
+- `AuditLog<InspectionId>`, `AuditLog<FindingId>`, `AuditLog<CertificateNumber>`. Elimina la limitación
+  "AuditLog indexado por objeto".
+- Tests: `AggregateIdentityTest.historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate`. DESIGN.md: D3, D7.
+
+## E2.5. Capa anticorrupción entre Inspección y Certificación
+- `InspectionResult`, `OpenNonConformity`, `InspectionResultTranslator` y su implementación en `application`.
+  Certificación deja de importar `Finding` e `InspectionView`. Emitir ya no lanza `InspectionOfAnotherAssetException`
+  (el activo sale del resultado); renovar sí.
+- Tests: `NoBlockingFindingsEligibilityTest`, `InspectionResultTranslatorImplTest` (Mockito). DESIGN.md: D16.
+
+## E2.6. Snapshots
+- `InspectionSnapshot`, `FindingSnapshot`, `CorrectiveActionSnapshot`, `CertificateSnapshot`; `snapshot()` y
+  `XxxFactory.restore`. `CertificateLifecycle` pasa a público.
+- Tests: `SnapshotTest`. DESIGN.md: D18.
+
+## E2.7. Casos de uso de lectura
+- `FindAsset`, `ListAssets`, `FindSchema`, `FindInspection`, `FindFinding`, `ListFindings`, `ListCertificates`,
+  `FindCertificate`, `AuditHistory`; los repositorios ganan `findAll` y `CertificateRepository.findByAsset`.
+- Tests: `QueriesTest`.
+
+## E2.8–E2.10. Persistencia con JPA y Flyway
+- Spring Boot 4.1.1 (BOM), Spring Data JPA, Flyway, PostgreSQL y H2. Esquema en `V1__init.sql`.
+- Entidades y adaptadores por contexto; secciones de una versión y evaluación de una revisión en JSON;
+  numeración de certificados por secuencia; `JpaAuditLog`.
+- Tests: `JpaAssetRepositoryTest`, `JpaInspectionSchemaRepositoryTest`, `SectionsJsonTest`,
+  `JpaInspectionRepositoryTest`, `JpaFindingRepositoryTest`, `JpaCertificateRepositoryTest`, `JpaAuditLogTest`.
+  DESIGN.md: D19.
+
+## E2.11–E2.14. Módulo web y API REST
+- `certiflow-web`: composición (`UseCaseConfiguration`), proxy transaccional (`TransactionalUseCases`), persona
+  por headers, errores RFC 9457, controladores de activos, esquemas, inspecciones, hallazgos y certificados con
+  HAL, links según el estado, `ETag` y paginación. Se compila con `-parameters`.
+- Elimina la limitación "auditar y guardar no son atómicos".
+- Tests: `TransactionalUseCasesTest`, `RootControllerTest`, `AssetApiTest`, `SchemaApiTest`, `InspectionApiTest`,
+  `FindingApiTest`, `CertificateApiTest`, `EndToEndApiTest`. DESIGN.md: D20, D21.
+
+## E2.15. Tests parametrizados
+- Vencimiento de acciones y de certificados, y severidad → resultado, como `@ParameterizedTest`.
+
+## E2.16. CI y base local
+- `.github/workflows/ci.yml` (`mvn -B clean verify`) y `docker-compose.yml` con PostgreSQL 17.

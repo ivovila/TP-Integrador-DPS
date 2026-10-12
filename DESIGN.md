@@ -1,11 +1,13 @@
-# Certiflow · Decisiones de diseño (Entrega 1)
+# Certiflow · Decisiones de diseño (Entrega 2)
 
-Módulo de dominio de una plataforma de inspección, habilitación y certificación de activos.
-Java 25, Maven, JUnit 5. Sin frameworks: el código es el documento de diseño principal y este
-archivo explica por qué tiene la forma que tiene.
+Plataforma de inspección, habilitación y certificación de activos. Java 25, Maven, Spring Boot 4.1,
+Spring Data JPA, Flyway, PostgreSQL (H2 en los tests), JUnit 6. Arquitectura DDD: el dominio y la
+aplicación no dependen de ningún framework; Spring, JPA y Jackson viven en la infraestructura y en la
+capa web. El código es el documento de diseño principal y este archivo explica por qué tiene la forma
+que tiene.
 
 ```bash
-mvn clean test   # compila y prueba los tres módulos
+mvn clean verify   # compila y prueba los cuatro módulos: dominio, aplicación, repositorios sobre H2 y API
 ```
 
 ---
@@ -36,63 +38,94 @@ mvn clean test   # compila y prueba los tres módulos
 
 ---
 
-## 2. Arquitectura y dirección de dependencias
+## 2. Arquitectura: DDD estratégico y táctico
 
-El proyecto es un build Maven de tres módulos. La dirección de dependencias la impone el compilador: un
-módulo solo ve lo que declara como dependencia, así que un import prohibido no compila.
+La arquitectura sigue Domain Driven Design como se vio en la Clase 7: bounded contexts con su lenguaje,
+un context map explícito y, dentro de cada contexto, las piezas tácticas (entidades, value objects,
+agregados, servicios de dominio, repositorios). Las capas siguen el diagrama DDD de la clase: `domain`
+con las interfaces `UseCase` y `Repository`, `application` con su implementación, `infrastructure` con
+los repositorios y `web` con los controladores.
+
+### 2.1 Bounded contexts
+
+| Contexto | Paquete | Lenguaje | Agregados y conceptos |
+|---|---|---|---|
+| **Catálogo** | `catalog` | activo, placa, tipo, ubicación, responsable, característica | `Asset`, `AssetCode`, `AssetType`, `Location`, `Characteristics` |
+| **Esquemas** | `schema` | esquema, versión, sección, criterio, regla de aprobación, severidad, evidencia exigida | `InspectionSchema`, `SchemaVersion`, `Section`, `Criterion`, reglas, `Severity`, `EvidenceKind`, `RawAnswer` |
+| **Inspección** | `inspection` | inspección, alcance, respuesta, evidencia, observación, revisión, rectificación, hallazgo, acción correctiva, verificación | `Inspection`, `Evaluation`, `Revisions`, `Finding`, `CorrectiveActions` |
+| **Certificación** | `certification` | certificado, vigencia, suspensión, renovación, elegibilidad, resultado de inspección | `Certificate`, `CertificationEligibility`, `CertificationDecision`, `InspectionResult` |
+| *Shared kernel* | `shared` | persona, auditoría | `Person`, `PersonId`, `DomainException`, `RequiredValueMissingException`, `AuditTrail`, `AuditEntry`, `AuditAction`, `AuditLog` |
+
+Hallazgos y acciones correctivas quedan en **Inspección**: nacen del cierre y de la rectificación (S4, S6)
+y comparten el lenguaje de la no conformidad (D15). Los informes son modelos de lectura del contexto que
+los produce: acta y resumen de hallazgos en Inspección, documento del certificado en Certificación.
+
+### 2.2 Context map
+
+```mermaid
+flowchart LR
+    catalog["Catálogo"] -- "Customer/Supplier<br/>AssetCode + responsable" --> inspection["Inspección"]
+    schema["Esquemas"] -- "Conformist<br/>SchemaVersion inmutable" --> inspection
+    inspection -- "ACL<br/>InspectionResult" --> certification["Certificación"]
+    catalog -- "Customer/Supplier<br/>AssetCode" --> certification
+```
+
+| Relación | Tipo | Cómo se implementa |
+|---|---|---|
+| Esquemas → Inspección | **Conformist** | La inspección captura la `SchemaVersion` vigente y la usa tal cual (S1). |
+| Catálogo → Inspección | **Customer/Supplier** | La inspección guarda `AssetCode` y una foto del responsable (D3). |
+| Catálogo → Certificación | **Customer/Supplier** | El certificado guarda `AssetCode`. |
+| Inspección → Certificación | **Anticorruption Layer** | Certificación decide sobre su propio `InspectionResult`, que arma `InspectionResultTranslatorImpl` (D16). No importa `Finding` ni `InspectionView`. |
+
+### 2.3 Módulos y capas
 
 ```mermaid
 flowchart TD
-    application["certiflow-application"] --> domain["certiflow-domain"]
-    details["certiflow-details"] --> domain
+    web["certiflow-web"] --> application["certiflow-application"]
+    web --> infrastructure["certiflow-infrastructure"]
+    application --> domain["certiflow-domain"]
+    infrastructure --> domain
+    web --> domain
 ```
 
-| Módulo | Paquetes | Depende de |
-|---|---|---|
-| `certiflow-domain` | `models`, `ports`, `usecases` | nada |
-| `certiflow-application` | `application` | `certiflow-domain` (y `certiflow-details` solo en tests) |
-| `certiflow-details` | `details.inmemory` | `certiflow-domain` |
+| Módulo | Paquetes (`<ctx>` = contexto) | Contiene | Depende de |
+|---|---|---|---|
+| `certiflow-domain` | `<ctx>.model` (+ `.exceptions`) | agregados, entidades, value objects, eventos, servicios de dominio, fábricas, snapshots | nada |
+| | `<ctx>.repository` | interfaces de repositorio y `CertificateNumbering` | `model` |
+| | `<ctx>.usecase` | una interfaz `XxxUseCase` por caso de uso, su `XxxCommand` (entrada) y sus modelos de lectura (salida) | `model` |
+| `certiflow-application` | `application.<ctx>` | `XxxUseCaseImpl implements XxxUseCase`, el traductor del ACL | `domain` |
+| `certiflow-infrastructure` | `infrastructure.<ctx>.persistence` | entidades JPA, Spring Data, adaptadores `JpaXxxRepository`, mappers, JSON | `domain`, Spring Data JPA, Flyway, Jackson |
+| | `infrastructure.inmemory` | repositorios en memoria para los tests de casos de uso | `domain` |
+| `certiflow-web` | `web.<ctx>`, `web.config`, `web.support` | controladores REST, DTOs, recursos HAL, composición, errores | todos, Spring Web, Spring HATEOAS |
 
-- **`certiflow-domain`** contiene toda la lógica de negocio y todas las interfaces:
-  - **`models`**: entidades, value objects, reglas, servicios de dominio (`CertificationEligibility`, `InspectionSchemaService`), excepciones, el `AuditTrail` de cada agregado y el puerto `AuditLog<S>`. No consulta relojes.
-  - **`ports`**: puertos de salida, lo que el negocio le pide al exterior: los cinco repositorios y `CertificateNumbering`. Solo importa `models`.
-  - **`usecases`**: puertos de entrada. Cada caso de uso es una **interfaz** (`RecordAnswer`, `IssueCertificate`, …) agrupada por concepto (`asset`, `schema`, `inspection`, `finding`, `certificate`, `report`), junto con los modelos de lectura que devuelven (`InspectionAct`, `FindingsSummary`, `CertificateDocument`). Solo importa `models`.
-- **`certiflow-application`** implementa los casos de uso: `application.<concepto>.XxxInteractor implements Xxx`. Orquesta repositorios, reloj, servicios de dominio y bitácora. La dependencia queda `application → usecases`, y no al revés.
-- **`certiflow-details`** implementa los puertos de salida (repositorios en memoria, numeración, `InMemoryAuditLog`).
+La dirección de dependencias la impone el compilador: un módulo solo ve lo que declara. `certiflow-domain`
+y `certiflow-application` no importan `org.springframework`, `jakarta.persistence` ni Jackson. Los
+`XxxUseCaseImpl` se instancian como `@Bean` en `web.config.UseCaseConfiguration`, que es la raíz de
+composición, envueltos por el proxy transaccional (D20). En los tests de casos de uso, `CertiflowFixture`
+cumple el mismo papel con los repositorios en memoria.
 
-En los tests, `CertiflowFixture` (módulo `application`, scope test) es la raíz de composición: instancia los
-`...Interactor` y los detalles, y expone los casos de uso tipados por su interfaz. Los tests unitarios del
-modelo viven en `certiflow-domain`; los de integración, en `certiflow-application`.
-
-Dentro de `models` y de `usecases` se agrupa por concepto y no por tipo de clase, porque cada agregado y su
-fábrica comparten visibilidad de paquete (el constructor del agregado es de paquete) y separarlos obligaría a
+Dentro de `model` se agrupa por contexto y no por tipo de clase, porque cada agregado y su fábrica
+comparten visibilidad de paquete (el constructor del agregado es de paquete) y separarlos obligaría a
 hacerlo público.
 
-**Por qué `AuditLog` no está en `ports`.** Es un puerto, pero su contrato (`AuditEntry`, `AuditAction`) y el
-servicio de esquemas que lo usa viven en `models`. Mudarlo haría que `models` importe `ports` mientras `ports` ya importa
-`models`: un ciclo. Se queda en `models.audit`, al lado del código que lo consume, que es donde la inversión
-de dependencias ubica la interfaz.
+**Por qué `AuditLog` está en `shared.model`.** Es un puerto, pero su contrato (`AuditEntry`, `AuditAction`)
+y los servicios de dominio que lo usan viven en `model`. Ponerlo en `repository` haría que `model` importe
+`repository` mientras `repository` ya importa `model`: un ciclo.
 
-**Negocio y detalles.** Las reglas de aprobación (`NumericRangeRule`, `YesNoRule`,
-`OptionInListRule`), las respuestas y las escalas estándar de severidad y evidencia son negocio aunque se
-enchufen detrás de una interfaz. Por eso viven en `models.evaluation`.
+**Negocio y detalles.** Las reglas de aprobación (`NumericRangeRule`, `YesNoRule`, `OptionInListRule`), las
+respuestas y las escalas estándar de severidad y evidencia son negocio aunque se enchufen detrás de una
+interfaz. Por eso viven en `schema.model`.
 
-Dependencias directas entre los paquetes de `models`, sin ciclos (cada línea se lee "importa"):
+Dependencias entre contextos dentro de `certiflow-domain` (cada línea se lee "importa"), verificadas con
+`grep -rh "^import ar.edu.itba.certiflow" certiflow-domain/src/main/java/ar/edu/itba/certiflow/<ctx>`:
 
 ```
-shared         ->  (nada)
-audit          ->  shared
-asset          ->  shared
-evaluation     ->  shared
-schema         ->  shared, asset, evaluation, audit
-inspection     ->  shared, asset, evaluation, schema, audit
-finding        ->  shared, asset, evaluation, schema, audit, inspection
-certificate    ->  shared, asset, audit, inspection
-certification  ->  shared, inspection, finding
+shared         ->  catalog, inspection, certification           (solo shared.usecase.AuditSubject, que nombra sus ids)
+catalog        ->  shared
+schema         ->  shared, catalog
+inspection     ->  shared, catalog, schema
+certification  ->  shared, catalog, schema, inspection           (de inspection solo InspectionId e InspectionNotClosedException)
 ```
-
-`models` no importa `ports` ni `usecases`; `ports` y `usecases` solo importan `models`. Los grafos se
-verificaron recorriendo los `import` de cada módulo.
 
 **Dónde vive cada validación.** Una regla vive dentro del agregado cuando puede decidirse con su propio
 estado y debe cumplirse siempre, sin importar desde qué caso de uso se lo manipule. Por ejemplo, una
@@ -101,15 +134,46 @@ verificada por su responsable; y un `Certificate` no puede renovarse dos veces. 
 en los métodos del agregado antes de modificarlo.
 
 Las reglas que necesitan consultar o coordinar más de un agregado viven en la capa que los orquesta.
-Por ejemplo, para certificar hay que mirar los `Finding` del activo: la regla es de negocio y vive en el
-servicio de dominio `CertificationEligibility` (`models.certification`), que recibe la inspección y los
-hallazgos ya cargados, y el caso de uso los busca en el repositorio; para impedir dos certificados vigentes se consulta el
-repositorio desde `IssueCertificate`; y para garantizar un único esquema por `AssetType`,
-`CreateInspectionSchema` consulta el repositorio de esquemas antes de crear uno. Así los agregados no
-dependen de repositorios ni conocen el resto del sistema.
+Para certificar hay que mirar los hallazgos del activo: la regla es de negocio y vive en el servicio de
+dominio `CertificationEligibility`, que recibe el `InspectionResult` ya armado por el ACL; para impedir dos
+certificados vigentes se consulta el repositorio desde `IssueCertificate`; y para garantizar un único
+esquema por `AssetType`, `CreateInspectionSchema` consulta el repositorio de esquemas antes de crear uno.
+Así los agregados no dependen de repositorios ni conocen el resto del sistema.
 
 **Tiempo.** Los casos de uso leen el `Clock` y le pasan `Instant` o `LocalDate` al dominio. El dominio es
 determinista y los tests usan un reloj controlable.
+
+### 2.4 Glosario (lenguaje ubicuo)
+
+| Término | Definición | Clase |
+|---|---|---|
+| Activo | Instalación, laboratorio o equipo que se inspecciona y certifica, identificado por su placa | `Asset`, `AssetCode` |
+| Tipo de activo | Clase de activo; define qué esquema de inspección le corresponde | `AssetType` |
+| Responsable del activo | Persona que responde por el activo; se le atribuyen los hallazgos | `Asset.responsible()` |
+| Esquema de inspección | Plantilla versionada de secciones y criterios para un tipo de activo | `InspectionSchema` |
+| Versión de esquema | Contenido inmutable de un esquema publicado en un momento | `SchemaVersion` |
+| Sección | Agrupación con título de criterios dentro de una versión | `Section` |
+| Criterio | Pregunta o medición con su regla de aprobación, severidad y evidencia exigida | `Criterion` |
+| Regla de aprobación | Condición que decide si una respuesta cumple el criterio | `ApprovalRule` |
+| Severidad | Gravedad de incumplir un criterio: decide si queda observado o rechazado y si bloquea la certificación | `Severity`, `StandardSeverity` |
+| Evidencia | Foto o documento adjunto a un criterio | `Evidence`, `AttachedEvidence` |
+| Respuesta | Valor registrado para un criterio, con quién y cuándo | `GivenAnswer`, `RawAnswer` |
+| Inspección | Ejecución de una versión del esquema sobre un activo por un inspector | `Inspection` |
+| Alcance | Parte del esquema que cubre una inspección: completa o por secciones | `InspectionScope` |
+| Evaluación | Resultado de cada criterio: aprobado, observado, rechazado o pendiente | `Evaluation`, `Outcome` |
+| Cierre | Primera revisión de una inspección; la deja inalterable salvo por rectificación | `Revision` número 1 |
+| Rectificación | Corrección auditable de una inspección cerrada; agrega una revisión | `Revision` |
+| No conformidad | Criterio observado o rechazado | `CriterionResponse` con `Outcome.raisesFinding()` |
+| Hallazgo | No conformidad levantada con su severidad, evidencia y responsable | `Finding` |
+| Acción correctiva | Tarea planificada con vencimiento para resolver un hallazgo | `CorrectiveAction` |
+| Verificación | Revisión de una acción por alguien distinto de su responsable; aceptada, cierra la acción y el hallazgo | `Verification` |
+| Resultado de inspección | Lo que Certificación sabe de una inspección: cierre, alcance y no conformidades abiertas | `InspectionResult` |
+| Elegibilidad | Decisión explicada de si un resultado puede respaldar un certificado | `CertificationDecision` |
+| Certificado | Constancia de habilitación de un activo con su vigencia | `Certificate` |
+| Vigencia | Período, con ambos extremos incluidos, en que el certificado vale | `ValidityPeriod` |
+| Suspensión | Decisión registrada que deja un certificado sin efecto dentro de su vigencia | `Suspension` |
+| Renovación | Emisión de un certificado nuevo que retira el anterior | `Certificate.renew` |
+| Bitácora | Historial de quién hizo qué y cuándo sobre cada agregado | `AuditLog`, `AuditEntry` |
 
 ---
 
@@ -139,7 +203,7 @@ determinista y los tests usan un reloj controlable.
 - **Dónde:** `InspectionId`, `FindingId` y `CorrectiveActionId` (records), además de `AssetCode`, `CertificateNumber` y `PersonId`. `Finding` guarda el `InspectionId` de su inspección; `Certificate` guarda un `InspectionReference(id, closedAt)`, con el instante de cierre que necesita la regla de renovación. `Inspection`, `Finding` y `Certificate` guardan el `AssetCode` del activo. `InspectionClosed` e `InspectionRectified` llevan el `InspectionId` y el `AssetCode`.
 - **Por qué:** con referencias por objeto, un hallazgo o un certificado tenían acceso al agregado vivo de otro, y los casos de uso recibían agregados que quien llamaba podía modificar salteándolos (por ejemplo `inspection.close()` sin levantar hallazgos). Ahora los casos de uso reciben ids, cargan el agregado con `findById` y son el único punto de entrada para modificarlo. Los ids sintéticos los genera el repositorio (`nextId()`), así el dominio no depende de la estrategia de generación y sigue siendo determinista.
 - **Por qué también el activo:** `Asset` es un record, así que su `equals` compara todos los campos. Mientras los agregados lo guardaban entero y los puertos consultaban `findByAsset(Asset)`, renombrar un activo o cambiarle el responsable habría dejado sus hallazgos invisibles para la consulta y al activo certificable. Con `AssetCode` la identidad es la placa, que es lo que el negocio identifica. Lo único que se conserva como foto es el responsable del activo al momento de asignar la inspección (`InspectionView.assetResponsible()`), porque es a quien se le atribuyen los hallazgos de esa inspección.
-- **Excepción:** el `AuditLog` sigue indexado por el objeto auditado, no por su id (ver limitaciones).
+- **También la bitácora:** desde la Entrega 2 el `AuditLog` se indexa por la identidad del agregado (`AuditLog<InspectionId>`, etc.), así que el historial se encuentra aunque el agregado se haya reconstruido desde la base.
 - **Costo:** cada caso de uso carga lo que necesita del repositorio y los tests leen el estado con `findById`.
 
 ### D4. `CorrectiveAction` dentro del agregado `Finding`
@@ -165,20 +229,20 @@ determinista y los tests usan un reloj controlable.
 ### D7. Auditoría: cada agregado anota sus hechos y el caso de uso los vuelca a la bitácora
 
 - **Principios:** SRP, OCP, DIP.
-- **Dónde:** `AuditTrail` (en `models.audit`) dentro de `Inspection`, `Finding` y `Certificate`; `pullAuditEntries()` en cada agregado; puerto `AuditLog<S>` con `recordAll`; `AuditEntry`; `InMemoryAuditLog<S>`. Las fábricas (`InspectionFactory`, `FindingFactory`, `CertificateFactory`) solo crean.
+- **Dónde:** `AuditTrail` (en `shared.model`) dentro de `Inspection`, `Finding` y `Certificate`; `pullAuditEntries()` en cada agregado; puerto `AuditLog<S>` con `recordAll`; `AuditEntry`; `InMemoryAuditLog<S>`. Las fábricas (`InspectionFactory`, `FindingFactory`, `CertificateFactory`) solo crean.
 - **Por qué:**
   - Los **hechos de dominio** que las reglas y los informes necesitan viven en el agregado: `Revision` (motivo, autor, fecha), `Verification`, `Suspension`, `Cancellation`, y desde D12 también el autor y la fecha de cada respuesta, evidencia adjunta y acción planificada.
   - La **bitácora** de quién hizo qué la produce el agregado: cada comando, al terminar sin errores, anota una `AuditEntry` en su `AuditTrail`. El nacimiento también se anota (el constructor registra `ASSIGNED`, `RAISED` o `ISSUED`). Si la operación lanza una excepción, no queda entrada.
   - El **servicio de dominio** vuelca las entradas al puerto apenas el comando termina: `auditLog.recordAll(aggregate, aggregate.pullAuditEntries())`. El agregado no conoce el puerto, y `pullAuditEntries()` es de paquete, así que nadie fuera del paquete puede vaciar la bitácora pendiente. Como el único camino al comando es el servicio (D14), auditar no depende de que el caso de uso se acuerde.
   - **Por qué no Decorator** (la versión anterior): cada `Audited...` reenviaba a mano todas las consultas, y agregar un método obligaba a tocar la interfaz, el `Standard...` y el `Audited...`. Ahora hay una sola clase por agregado; agregar un método toca solo esa clase.
-  - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); recordAll(S, List<AuditEntry>); historyOf(S) }` y cada agregado auditado tiene el suyo: `AuditLog<Inspection>`, `AuditLog<Finding>` y `AuditLog<Certificate>`. El alta de un activo también deja rastro: `AssetService` registra `AssetAudit.REGISTERED` en un `AuditLog<AssetCode>`. El esquema es inmutable y cambia de objeto con cada versión, así que su historial se indexa por su identidad de negocio: `AuditLog<AssetType>`, alimentado por `InspectionSchemaService`. `InMemoryAuditLog` compara claves con `equals`.
+  - **Un historial por tipo de agregado.** El puerto es `AuditLog<S> { record(S, AuditEntry); recordAll(S, List<AuditEntry>); historyOf(S) }` y cada agregado auditado tiene el suyo, indexado por su identidad: `AuditLog<InspectionId>`, `AuditLog<FindingId>` y `AuditLog<CertificateNumber>`. El alta de un activo también deja rastro: `AssetService` registra `AssetAudit.REGISTERED` en un `AuditLog<AssetCode>`. El esquema es inmutable y cambia de objeto con cada versión, así que su historial se indexa por su identidad de negocio: `AuditLog<AssetType>`, alimentado por `InspectionSchemaService`. `InMemoryAuditLog` compara claves con `equals`; `JpaAuditLog` guarda el tipo de sujeto y su id en `audit_entry`.
   - La renovación nace del certificado: `renew` anota `RENEWED` en el anterior y el certificado nuevo anota su propio `ISSUED`. `RenewCertificate` vuelca ambos.
 - **Alternativas descartadas:**
   - *Decorator por agregado:* ver arriba; era la versión de la Entrega 1 y la corrección señaló el reenvío manual.
   - *El agregado recibe el `AuditLog` y registra directamente:* evita el paso del caso de uso, pero el agregado quedaría acoplado a un puerto.
   - *Decorar casos de uso:* exige una interfaz genérica común a todos los casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce hechos de dos agregados.
   - *Bitácora global con `AuditEntry(Object subject, ...)`:* compilaba `entriesFor(asset)` y devolvía una lista vacía sin aviso. El sujeto como parámetro genérico del puerto dice qué se puede auditar.
-- **Costo:** el volcado ocurre al ejecutar el comando, antes de que el caso de uso guarde el agregado. Si el `save` fallara, quedaría una entrada de una operación que no se persistió (ver limitaciones). Los tests de integración comprueban el historial de cada operación.
+- **Costo:** el volcado ocurre al ejecutar el comando, antes de que el caso de uso guarde el agregado. Desde la Entrega 2 los dos pasos corren en la misma transacción (D20): si el `save` falla, la entrada de bitácora también se descarta. Los tests de integración comprueban el historial de cada operación y `InspectionApiTest.closingWithPendingCriteriaIs409AndLeavesNoAuditTrace` que una operación rechazada no deja filas.
 
 ### D8. Política de condicionales
 
@@ -190,13 +254,13 @@ determinista y los tests usan un reloj controlable.
 ### D9. Puertos segregados
 
 - **Principios:** ISP, DIP.
-- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {nextId, save, findById}`, `FindingRepository {nextId, save, saveAll, findById, findByAsset}`, `CertificateRepository {save, findByNumber, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, recordAll, historyOf}`. Los seis primeros viven en `ports`; `AuditLog` vive en `models.audit` por el motivo explicado en la sección 2. Las consultas por activo reciben `AssetCode`, no `Asset` (D3).
+- **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {nextId, save, findById}`, `FindingRepository {nextId, save, saveAll, findById, findByAsset}`, `CertificateRepository {save, findByNumber, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, recordAll, historyOf}`. Los seis primeros viven en el paquete `repository` de su contexto; `AuditLog` vive en `shared.model` por el motivo explicado en la sección 2. Las consultas por activo reciben `AssetCode`, no `Asset` (D3).
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
 ### D10. Elegibilidad para certificar como política intercambiable
 
 - **Principio:** OCP; patrón Strategy; servicio de dominio.
-- **Dónde:** `models.certification`: interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate`, `RenewCertificate` y `EvaluateCertification`.
+- **Dónde:** `certification.model`: interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate`, `RenewCertificate` y `EvaluateCertification`.
 - **Decisión explicable:** `evaluate(inspection, assetFindings)` no lanza excepciones: devuelve un `CertificationDecision` con todas las `Ineligibility(reason, detail)` que encuentra (`INSPECTION_NOT_CLOSED`, `PARTIAL_INSPECTION`, `BLOCKING_FINDINGS`). `EvaluateCertification` la expone tal cual; `IssueCertificate` y `RenewCertificate` usan el método `default ensureEligible(...)` de la interfaz, que consulta la decisión y lanza `NotEligibleForCertificationException` con ella, de modo que la regla no se repite en los dos casos de uso.
 - **Por qué es de dominio:** "no certificar con hallazgos bloqueantes" es una regla del negocio. El servicio no depende de repositorios: el caso de uso le entrega los hallazgos del activo.
 - **Por qué:** a diferencia de las fábricas, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
@@ -205,9 +269,9 @@ determinista y los tests usan un reloj controlable.
 ### D11. Errores explícitos
 
 - Reglas de negocio: excepciones con nombre del dominio que extienden `DomainException` (`InspectionAlreadyClosedException`, `CriterionNotInSchemaException`, `VerifierMustDifferFromResponsibleException`, `NotEligibleForCertificationException`, `AssetAlreadyCertifiedException`, entre otras).
-- Toda regla del dominio lanza una `DomainException`, sin excepciones genéricas de Java. Un texto obligatorio vacío (nombre, código, descripción, motivo, referencia) lanza `RequiredValueMissingException` (`models.shared`), una sola clase porque es la misma regla en todos los casos.
+- Toda regla del dominio lanza una `DomainException`, sin excepciones genéricas de Java. Un texto obligatorio vacío (nombre, código, descripción, motivo, referencia) lanza `RequiredValueMissingException` (`shared.model`), una sola clase porque es la misma regla en todos los casos.
 - Los constructores validan reglas de dominio, no la forma del dato. `null` nunca es un valor válido en este código y por eso no se chequea: que un dato llegue nulo es un problema de entrada, y cuando exista una API lo validará el adaptador.
-- Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`models.inspection.exceptions`, `models.finding.exceptions`, `models.certificate.exceptions`, `models.schema.exceptions`). La de `models.evaluation` queda junto a la clase que la lanza. También las de reglas que cruzan agregados (`AssetAlreadyCertifiedException`, `SchemaAlreadyDefinedForAssetTypeException`, `AssetAlreadyRegisteredException`) y las de ids inexistentes (`...NotFoundException`) viven en el paquete de su concepto, en `models`.
+- Las excepciones de dominio viven en un subpaquete `exceptions` dentro del paquete de su concepto (`inspection.model.exceptions`, `inspection.model.exceptions`, `certification.model.exceptions`, `schema.model.exceptions`). La de `schema.model` queda junto a la clase que la lanza. También las de reglas que cruzan agregados (`AssetAlreadyCertifiedException`, `SchemaAlreadyDefinedForAssetTypeException`, `AssetAlreadyRegisteredException`) y las de ids inexistentes (`...NotFoundException`) viven en el paquete de su concepto, en `model`.
 - Las operaciones validan antes de mutar. El test `rectificationWithoutReasonIsRejectedAndChangesNothing` lo comprueba.
 
 ### D12. Quién y cuándo como hechos de dominio
@@ -230,8 +294,72 @@ determinista y los tests usan un reloj controlable.
 - **Dónde:** `InspectionService`, `FindingService`, `CertificateService` y `AssetService` (más `InspectionSchemaService`, que ya existía). Los comandos de `Inspection`, `Finding` y `Certificate` (`recordAnswer`, `attachEvidence`, `addObservation`, `close`, `rectify`, `planAction`, `verifyAction`, `suspend`, `renew`, `ensureRenewableWith`) y `pullAuditEntries()` pasaron a visibilidad de paquete; el servicio vive en el mismo paquete y es público.
 - **Por qué:** antes los comandos eran públicos y los repositorios devuelven el agregado vivo, así que `findById(id).get().close(...)` compilaba desde cualquier clase de `application`: se podía cerrar una inspección sin levantar sus hallazgos y sin auditar. Ahora el compilador lo impide. Cada servicio hace las tres cosas que tienen que ocurrir juntas: ejecutar el comando, producir los hechos que arrastra (los hallazgos de un cierre o de una rectificación) y volcar la bitácora. El caso de uso queda con lo suyo: buscar por id, llamar al servicio y guardar.
 - **Qué gana cada regla:** "toda no conformidad levanta su hallazgo" (S4, S6) ya no vive en el caso de uso; "quien emite y quien renueva exigen la misma elegibilidad" vive en `CertificationEligibility.ensureEligible`; "el acta solo se emite sobre una inspección cerrada" vive en `Inspection.ensureClosed()`; "un activo no se registra dos veces" vive en `AssetService`.
-- **Alternativa descartada:** que los servicios reciban también los repositorios y guarden ellos. Dejaría a los casos de uso sin nada que hacer, pero obligaría a que `models` importe `ports`, que hoy importa `models`: un ciclo entre paquetes (ver sección 2).
+- **Alternativa descartada:** que los servicios reciban también los repositorios y guarden ellos. Dejaría a los casos de uso sin nada que hacer, pero obligaría a que `model` importe `repository`, que hoy importa `model`: un ciclo entre paquetes (ver sección 2).
 - **Costo:** cuatro clases más y una indirección en cada caso de uso. El agregado sigue sin validar que se lo guarde: si un caso de uso olvidara el `save`, el cambio se perdería (ver limitaciones).
+
+### D15. Bounded contexts y context map
+
+- **Principio:** DDD estratégico: Bounded Context, Ubiquitous Language, Context Mapping.
+- **Dónde:** paquetes raíz `catalog`, `schema`, `inspection`, `certification` y el shared kernel `shared`, repetidos en los cuatro módulos (sección 2.1); context map en la sección 2.2; glosario en la 2.4.
+- **Por qué:** la Entrega 1 tenía un único modelo (`models.*`) donde cualquier concepto podía usar a cualquier otro. Separar contextos hace explícito qué sabe cada parte del negocio de las demás y le da a cada relación un tipo con nombre: Conformist para el esquema, que la inspección copia sin traducir; Customer/Supplier para el activo, que los demás referencian por `AssetCode`; Anticorruption Layer entre Inspección y Certificación (D16).
+- **Alternativas descartadas:**
+  - *Un contexto propio para hallazgos y acciones correctivas:* un hallazgo nace del cierre o de la rectificación de una inspección y habla de sus criterios y evidencias. Separarlo exigiría un evento entre contextos para algo que hoy es consecuencia directa del cierre (S4, S6), sin ganar independencia real.
+  - *Un módulo Maven por contexto:* el compilador impondría también la frontera entre contextos, pero con cuatro contextos por cuatro capas serían dieciséis módulos para un equipo de cinco personas. Las capas, que es donde la regla de dependencias importa más, sí son módulos.
+- **Costo:** el shared kernel (`Person`, auditoría) obliga a coordinar cambios entre contextos; se mantiene chico a propósito.
+
+### D16. Capa anticorrupción entre Inspección y Certificación
+
+- **Principio:** DDD, Context Mapping (ACL); DIP.
+- **Dónde:** `certification.model.InspectionResult`, `OpenNonConformity`, puerto `InspectionResultTranslator`; implementación `application.certification.InspectionResultTranslatorImpl`. `CertificationEligibility.evaluate(InspectionResult)`; `Certificate` recibe un `InspectionResult` para validar su base.
+- **Por qué:** `NoBlockingFindingsEligibility` y `Certificate` importaban `Finding` e `InspectionView`, así que cualquier cambio en cómo se modela una inspección o un hallazgo llegaba a Certificación. Ahora Certificación tiene su propio modelo de lo que necesita saber (cierre, alcance completo, no conformidades abiertas con su severidad), y el traductor es el único lugar que conoce los dos modelos. Es la base de F1 y F3: los resultados por subsistema y las políticas por jurisdicción se agregan sobre `InspectionResult` sin tocar Inspección.
+- **Alternativas descartadas:** *que Certificación siga leyendo `Finding`:* más corto, pero mantiene el acoplamiento que la arquitectura pedía cortar; *un evento `InspectionClosed` que Certificación escuche y guarde:* sumaría una proyección persistida sin un caso de uso que la necesite.
+- **Costo:** el traductor carga la inspección y los hallazgos del activo en cada decisión. `InspectionResult` repite datos que ya están en Inspección, a propósito.
+
+### D17. Casos de uso con comandos y respuesta cruda tipada por la regla
+
+- **Principio:** DDD táctico (Command de entrada, Response de salida, como en el diagrama de la Clase 7); preserva D1.
+- **Dónde:** un `XxxCommand` (record) por caso de uso de escritura en `<ctx>.usecase`; `RawAnswer` (sealed: `Number`, `YesNo`, `Option`) en `schema.model`; `ApprovalRule.answerFrom(RawAnswer)`, `Criterion.answerFrom`, `Answer.raw()`, `SchemaVersion.criterion(String)`; sobrecargas por código en `InspectionService`.
+- **Por qué:** los casos de uso recibían `Criterion<A>` y `A`, objetos que un cliente de la API no puede construir. Ahora reciben el código del criterio y el valor tal como llega. La versión de la inspección resuelve el criterio y su regla convierte el valor en la respuesta tipada; recién ahí se llama al comando genérico de siempre, `Inspection.recordAnswer(Criterion<A>, A, …)`, que sigue sin compilar con un tipo incorrecto. La conversión es un único punto con su excepción (`AnswerTypeMismatchException`) y su test parametrizado (`RawAnswerTest`).
+- **Alternativas descartadas:** *`instanceof` de la respuesta en el caso de uso:* repartiría la decisión por tipo fuera del dominio; *exponer el `Criterion` al cliente:* filtra el modelo al adaptador. Cada regla usa un `instanceof` con patrón sobre el `RawAnswer` sellado: es una conversión de frontera sobre un tipo cerrado, no una decisión de negocio que vaya a crecer (D8).
+- **Costo:** catorce records de comando y un método más en cada regla.
+
+### D18. Reconstrucción de agregados con snapshots (Memento)
+
+- **Principio:** patrón Memento; el modelo protege sus invariantes; independencia de la base de datos.
+- **Dónde:** `InspectionSnapshot`, `FindingSnapshot`, `CorrectiveActionSnapshot`, `CertificateSnapshot`; `snapshot()` en cada agregado; `XxxFactory.restore(snapshot)` usa un constructor de paquete distinto al de creación. `Asset` e `InspectionSchema` son records inmutables y no lo necesitan.
+- **Por qué:** los constructores de `Inspection`, `Finding` y `Certificate` validan reglas de nacimiento y anotan `ASSIGNED`, `RAISED` o `ISSUED`. Reconstruir con ellos repetiría validaciones y auditoría en cada lectura. El snapshot es un record inmutable con todo el estado; el repositorio solo traduce snapshots a filas y de vuelta, sin tocar campos privados. Los comandos siguen siendo de paquete (D14): `restore` no abre ningún camino para modificar el agregado. `SnapshotTest` comprueba que restaurar y volver a tomar el snapshot da el mismo resultado y que un agregado restaurado se comporta igual.
+- **Alternativas descartadas:** *anotar el dominio con `@Entity`:* mete JPA en el dominio y obliga a constructores vacíos y setters; *reflexión sobre campos privados:* rompe el encapsulamiento sin que el compilador lo vea.
+- **Costo:** un record y un `restore` por agregado; un campo nuevo exige tocar el snapshot y su mapeo.
+
+### D19. Persistencia: entidades JPA propias, JSON para lo inmutable
+
+- **Principio:** Repository (DDD) como adaptador; aislamiento del dominio.
+- **Dónde:** `infrastructure.<ctx>.persistence`: `XxxEntity` + `SpringDataXxxRepository` + `JpaXxxRepository implements XxxRepository`. Esquema SQL en `db/migration/V1__init.sql` (Flyway), igual en H2 y PostgreSQL; `ddl-auto=validate`.
+- **Por qué:** las entidades JPA son de la infraestructura y se traducen a snapshots. Lo que se consulta o tiene identidad propia es tabla (activos, inspecciones, respuestas, evidencias, revisiones, hallazgos, acciones, verificaciones, certificados, suspensiones, bitácora). El árbol de secciones y criterios de una `SchemaVersion`, y la evaluación sellada en una revisión, son valores inmutables que siempre se leen enteros: van como JSON en una columna `text` (`SectionsJson`, `EvaluationJson`). La escala de los decimales viaja intacta (`7.00` sigue siendo `7.00`). Los adaptadores usan `instanceof` con patrón para traducir reglas y alcances a columnas: es traducción de formato, no negocio.
+- **Alternativas descartadas:** *jerarquía `SINGLE_TABLE` para las reglas y cuatro tablas para secciones y criterios:* mucho mapeo sin ninguna consulta que lo justifique; *guardar cada agregado entero como un documento JSON:* más simple, pero pierde las consultas por activo y la integridad referencial.
+- **Costo:** severidades y tipos de evidencia se persisten por nombre y se resuelven contra los enums estándar; una escala propia (D2) exige registrarla en los conversores (ver limitaciones).
+
+### D20. Transacciones con un proxy genérico
+
+- **Principio:** Decorator; DIP; la capa de aplicación no depende de frameworks.
+- **Dónde:** `web.config.TransactionalUseCases.wrap(Class<U>, U, TransactionTemplate)`: un proxy dinámico de la interfaz del caso de uso que ejecuta cada llamada dentro de una transacción. `UseCaseConfiguration` envuelve cada `XxxUseCaseImpl`.
+- **Por qué:** auditar y guardar tienen que ser atómicos (era una limitación de la Entrega 1). Con el proxy, la bitácora y el `save` del agregado se confirman o se descartan juntos, y `application` sigue sin conocer Spring. Una sola clase sirve para todos los casos de uso.
+- **Alternativas descartadas:** *`@Transactional` en los `UseCaseImpl`:* acopla `application` a Spring; *un decorador escrito a mano por caso de uso:* veintisiete clases que solo reenvían.
+- **Costo:** las excepciones viajan desenvueltas desde el proxy; un caso de uso que necesitara otra propagación transaccional requeriría otra configuración.
+
+### D21. API REST de nivel 3
+
+- **Principio:** REST (Fielding): recursos, interfaz uniforme, hipermedia; nivel 3 del modelo de Richardson.
+- **Dónde:** `certiflow-web`: `AssetController`, `SchemaController`, `InspectionController`, `FindingController`, `CertificateController`, `RootController`; `ApiExceptionHandler`; `ActingPersonResolver`; `PageLinks`.
+- **Por qué:**
+  - Las rutas son sustantivos; ninguna lleva un verbo. Cada operación de negocio crea el recurso que produce: cerrar crea el **cierre** (`POST /inspections/{id}/closure`, revisión 1), rectificar una **rectificación**, suspender una **suspensión**, renovar una **renovación**, verificar una **verificación**. Los nombres coinciden con las clases del dominio (`Revision`, `Suspension`, `Verification`).
+  - Semántica de métodos: `GET` sin efectos, `PUT` idempotente para la respuesta de un criterio, `POST` para crear. No hay `DELETE` porque el dominio no borra nada.
+  - `201 Created` con `Location`; `204` en el `PUT`; errores en `application/problem+json` (RFC 9457) según el tipo de excepción: no encontrado → 404, entrada inválida → 400, regla violada → 409, no certificable → 422 con las razones.
+  - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`.
+  - `ETag` y `Cache-Control` en lo inmutable (versiones de esquema y revisiones); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
+  - Sin estado: la persona que actúa viaja en `X-Person-Id` y `X-Person-Name` en cada request.
+- **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula.
+- **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
 ---
 
@@ -244,6 +372,8 @@ determinista y los tests usan un reloj controlable.
 | **Event Sourcing** | Los agregados anotan entradas de bitácora y `close()` devuelve el evento `InspectionClosed`, pero el estado se guarda tal cual, no se deriva del historial. | No se puede reconstruir el estado desde el historial. |
 | **Herencia para tipos de activo o de evidencia** | El tipo es un dato. | `AssetType` es un value object; `EvidenceKind` un enum extensible. |
 | **Colección de primera clase para toda lista** | Se aplica donde la colección tiene una invariante o un comportamiento propio: `Characteristics` (nombres únicos, `valueOf`), `SchemaVersionLog` (numeración consecutiva, `current`), `Evaluation` (resultado de cada criterio, pendientes, no conformidades), `Revisions` (numeración desde 1, la original no cambia) y `CorrectiveActions` (numeración dentro del hallazgo, cancelar las abiertas al aceptar una). | `suspensions()`, `verifications()` y `evidence()` siguen devolviendo `List` inmutable: son registros cronológicos sin regla propia, y envolverlos sumaría clases que solo reenvían. Si mañana una de ellas gana una regla (por ejemplo "no se puede suspender dos veces seguidas"), ahí se extrae su colección. |
+| **CQRS** | Las consultas usan los mismos repositorios y devuelven el agregado, que desde afuera de su paquete solo se puede leer (D13, D14). No hay una necesidad de lectura que el modelo de escritura no cubra. | Si los informes o listados necesitan otra forma de los datos (por ejemplo un tablero por jurisdicción), se agrega un modelo de lectura propio. |
+| **Event Sourcing** en la persistencia | La bitácora (`audit_entry`) registra quién hizo qué, pero el estado se persiste por snapshot. | No se puede reconstruir un agregado desde la bitácora; la bitácora es informativa. |
 ---
 
 ## 5. Riesgo de negocio → test que lo cubre
@@ -260,7 +390,7 @@ determinista y los tests usan un reloj controlable.
 | Una inspección cerrada acepta cambios directos | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
 | Una operación rechazada deja igual una entrada de auditoría | `InspectionExecutionTest.closedInspectionRejectsNewAnswersEvidenceAndObservations` |
 | Hallazgos con severidad, evidencia o responsable incorrectos | `FindingsTest.closingRaisesOneFindingPerNonConformityWithItsSeverityEvidenceAndAssetResponsible` |
-| Acción vencida un día antes o un día después | `CorrectiveActionTest.actionIsNotOverdueOnItsDueDateButIsTheDayAfter` |
+| Acción vencida un día antes o un día después | `CorrectiveActionTest.actionIsOverdueOnlyAfterItsDueDate` (parametrizado) |
 | Una verificación rechazada cierra algo | `CorrectiveActionTest.rejectedVerificationKeepsActionAndFindingOpenAndIsAudited` |
 | Un hallazgo cerrado deja acciones huérfanas que siguen figurando como vencidas | `CorrectiveActionTest.acceptingAnActionCancelsTheOtherOpenActionsOfTheFindingSoNoneIsLeftOverdue`, `rejectedVerificationCancelsNothing` |
 | Un dato obligatorio vacío escapa como error genérico de Java | `RequiredValueTest` |
@@ -307,18 +437,39 @@ determinista y los tests usan un reloj controlable.
 | La bitácora pendiente se pierde o se duplica | `AuditTrailTest` |
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
 
-Los tests de integración usan los repositorios en memoria reales, sin mocks, y un `MutableClock`.
-`CertiflowFixture` es la raíz de composición compartida. Total: 116 tests.
+| Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
+| Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
+| Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `NoBlockingFindingsEligibilityTest` (parametrizado), `InspectionResultTranslatorImplTest` |
+| Un agregado reconstruido se comporta distinto o repite su auditoría de nacimiento | `SnapshotTest` |
+| La bitácora no se encuentra para un agregado leído de la base | `AggregateIdentityTest.historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate`, `JpaAuditLogTest` |
+| Un agregado leído de la base pierde estado o la escala de un decimal | `JpaAssetRepositoryTest`, `JpaInspectionSchemaRepositoryTest`, `JpaInspectionRepositoryTest` (incluye `decimalScaleSurvivesTheDatabase`), `JpaFindingRepositoryTest`, `JpaCertificateRepositoryTest`, `SectionsJsonTest` |
+| Una operación rechazada deja auditoría en la base | `InspectionApiTest.closingWithPendingCriteriaIs409AndLeavesNoAuditTrace`, `TransactionalUseCasesTest` |
+| La API ofrece transiciones inválidas para el estado del recurso | `InspectionApiTest.anOpenInspectionOffersItsResponsesAndClosureButNotRectifications`, `closingCreatesTheFirstRevisionAndLinksTheFindingsItRaised`, `CertificateApiTest.suspendingLeavesItSuspendedWithoutAnotherSuspensionAndCannotBeRepeated`, `renewingIssuesANewCertificateAndRetiresTheOldOne`, `EndToEndApiTest` |
+| La API responde un estado HTTP incorrecto | `AssetApiTest` (201 + `Location`, 409, 404 `problem+json`, 400 sin persona, 400 JSON inválido), `RootControllerTest.anUnsupportedMethodIs405`, `CertificateApiTest.issuingTwiceForTheSameAssetIs409`, `FindingApiTest` |
+| Paginación o caché mal resueltas | `AssetApiTest.assetsAreListedByTypeInPages`, `SchemaApiTest.aVersionThatDidNotChangeAnswers304ToItsETag` |
+| El flujo completo no funciona por HTTP | `EndToEndApiTest.anAssetGoesFromInspectionToCertificateFollowingTheLinks` |
+
+Tipos de test:
+- **Unitarios** del modelo en `certiflow-domain`, varios **parametrizados** (`@ParameterizedTest`).
+- **De casos de uso** en `certiflow-application`, con los repositorios en memoria reales y un `MutableClock`;
+  `CertiflowFixture` es la raíz de composición. El único test con mocks (Mockito) es el del traductor del ACL,
+  donde los repositorios son colaboradores.
+- **De repositorio** en `certiflow-infrastructure`: `@DataJpaTest` con Flyway sobre H2 real.
+- **De API** en `certiflow-web`: `@SpringBootTest` + `MockMvc` sobre la aplicación completa con H2.
+
+Total: 239 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
 ## 6. Limitaciones conocidas y concesiones
 
-- **Auditar y guardar no son atómicos.** El servicio de dominio vuelca la bitácora al terminar el comando y el caso de uso guarda después (D7, D14). Si el `save` fallara, quedaría registrada una operación que no se persistió. Con persistencia real hace falta una unidad de trabajo que abarque las dos cosas. Un `AuditLog` que descarte entradas anula la garantía igual.
 - **El agregado no exige que se lo guarde.** El servicio ejecuta el comando y audita; persistir sigue siendo responsabilidad del caso de uso (D14). Un caso de uso nuevo que olvidara el `save` perdería el cambio, aunque la bitácora lo muestre.
 - **Responsable del activo congelado.** La inspección guarda quién era el responsable del activo cuando se la asignó (D3), y es a quien se le atribuyen sus hallazgos. Si el responsable cambia después, los hallazgos viejos siguen a nombre del anterior, que es lo que corresponde para el acta, pero significa que ese dato no se actualiza.
-- **`AuditLog` indexado por objeto.** Las claves son los agregados, comparados por identidad (`Inspection`, `Finding` y `Certificate` no redefinen `equals`) o por valor (`AssetCode`, `AssetType`). Funciona porque los repositorios en memoria devuelven siempre la misma instancia; con una base real, que reconstruye el objeto en cada consulta, habría que indexar por id.
-- **Unicidad con concurrencia.** `RegisterAsset` y `CreateInspectionSchema` consultan el repositorio antes de guardar. Es correcto con un solo hilo; con escrituras concurrentes hace falta además una restricción de unicidad en la persistencia (índice único por `AssetCode` y por `AssetType`).
+- **Unicidad con concurrencia.** `RegisterAsset` y `CreateInspectionSchema` consultan el repositorio antes de guardar. Con escrituras concurrentes, la clave primaria de `asset` (código) y de `inspection_schema` (tipo de activo) hace fallar la segunda inserción, pero llega como error de base y no como la excepción de dominio.
 - **Sin vista cronológica global.** Cada tipo de agregado tiene su propio historial (D7). Una consulta del estilo "todo lo que pasó el martes" exigiría recorrer los tres historiales o sumar un puerto de lectura global cuando algún caso de uso lo pida.
 - **Rectificación.** Levanta los hallazgos que introduce, pero no revisa ni cierra los ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).
+- **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
+- **Severidades y tipos de evidencia estándar.** La persistencia y la API resuelven severidades y tipos de evidencia por nombre contra `StandardSeverity` y `StandardEvidenceKind`. Una escala propia (D2) funciona en el dominio, pero para guardarla o recibirla por la API hay que registrarla en `SectionsJson`, `EvaluationJson` y `SchemaPayloads`.
+- **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
+- **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).

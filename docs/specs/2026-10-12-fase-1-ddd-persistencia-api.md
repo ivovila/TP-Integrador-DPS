@@ -205,11 +205,25 @@ Sin cambios en el dominio: `Person(PersonId, name)`. En la API viaja en los head
 
 ### 4.5 Consultas
 
-La consigna pide "alta y consulta" de activos y la API necesita leer lo que escribe. Casos de uso de lectura
-nuevos, que devuelven modelos de lectura (records) y no agregados:
+La consigna pide "alta y consulta" de activos y la API necesita leer lo que escribe. Las consultas devuelven el
+agregado: sus comandos son de paquete (D14), así que desde afuera de su paquete solo se puede leer, y la
+inspección se devuelve como `InspectionView` (D13). No hace falta un modelo de lectura aparte.
 
 | Caso de uso | Devuelve |
 |---|---|
+| `FindAssetUseCase(AssetCode)` | `Asset` |
+| `ListAssetsUseCase(Optional<AssetType>)` | `List<Asset>` |
+| `FindSchemaUseCase(AssetType)` | `InspectionSchema` |
+| `FindInspectionUseCase(InspectionId)` | `InspectionView` |
+| `FindFindingUseCase(FindingId)` | `Finding` |
+| `ListFindingsUseCase(Optional<AssetCode>)` | `List<Finding>` |
+| `FindCertificateUseCase(CertificateNumber)` | `Certificate` |
+| `ListCertificatesUseCase(Optional<AssetCode>)` | `List<Certificate>` |
+| `AuditHistoryUseCase(AuditSubject)` | `List<AuditEntry>` |
+
+Los repositorios ganan solo las consultas que estos casos de uso usan (`findAll`, `CertificateRepository.findByAsset`).
+
+---|---|
 | `FindAssetUseCase(AssetCode)` | `AssetView` |
 | `ListAssetsUseCase(AssetType opcional)` | `List<AssetView>` |
 | `FindSchemaUseCase(AssetType)` | `SchemaView` (versiones con sus secciones y criterios) |
@@ -333,7 +347,8 @@ suspender una **suspensión** y renovar una **renovación**, que a su vez da un 
 | `GET /api/v1/findings/{id}/audit-entries` | `AuditHistory` | 200 |
 | `POST /api/v1/certificates` | `IssueCertificate` | 201, `Location: /certificates/{number}` · 422 si no es elegible |
 | `GET /api/v1/certificates?asset=&page=&size=` | `ListCertificates` | 200, paginado |
-| `GET /api/v1/certificates/{number}` | `GenerateCertificateDocument` | 200 · 404 |
+| `GET /api/v1/certificates/{number}` | `FindCertificate` | 200 · 404 |
+| `GET /api/v1/certificates/{number}/document` | `GenerateCertificateDocument` | 200 · 404 |
 | `POST /api/v1/certificates/{number}/suspensions` | `SuspendCertificate` | 201 |
 | `POST /api/v1/certificates/{number}/renewals` | `RenewCertificate` | 201, `Location: /certificates/{nuevo}` · 422 |
 | `GET /api/v1/certificates/{number}/audit-entries` | `AuditHistory` | 200 |

@@ -1,60 +1,87 @@
-# Certiflow · Trabajo Integrador de Diseño de Sistemas (ITBA) · Entrega 1
+# Certiflow · Trabajo Integrador de Diseño de Sistemas (ITBA) · Entrega 2
 
-Dominio de una plataforma de inspección, habilitación y certificación de activos.
-No incluye API, persistencia real ni interfaz: solo el modelo, los casos de uso y sus tests.
+Plataforma de inspección, habilitación y certificación de activos. Arquitectura DDD con cuatro bounded
+contexts, persistencia en PostgreSQL con JPA y una API REST de nivel 3 (HAL).
 
 ## Cómo correrlo
 
 Requiere JDK 25 y Maven 3.9 o superior.
 
 ```bash
-mvn clean test
+mvn clean verify
 ```
 
-Usar siempre `clean`: si un IDE compila en paralelo hacia `target/` con un JDK anterior al 25,
-pisa las clases de Maven y los tests fallan con "Unresolved compilation problem".
+Compila y corre todos los tests: dominio, casos de uso, repositorios (sobre H2 en modo PostgreSQL) y API.
+Usar siempre `clean`: si un IDE compila en paralelo hacia `target/`, puede dejar clases o recursos duplicados.
+
+Para levantar la aplicación contra PostgreSQL:
+
+```bash
+docker compose up -d
+mvn -q -DskipTests install
+mvn -pl certiflow-web spring-boot:run
+```
+
+La conexión se configura con `CERTIFLOW_DB_URL` (por defecto `jdbc:postgresql://localhost:5432/certiflow`),
+`CERTIFLOW_DB_USER` y `CERTIFLOW_DB_PASSWORD` (por defecto `certiflow`). Flyway crea el esquema al arrancar.
 
 ## Estructura
 
-Build Maven de tres módulos. La dirección de dependencias (`application → domain ← details`) la impone el
-compilador.
+Build Maven de cuatro módulos, uno por capa DDD. Dentro de cada uno, un paquete por bounded context:
+`catalog`, `schema`, `inspection`, `certification` y el shared kernel `shared`.
 
 ```
-certiflow-domain            toda la lógica de negocio y todas las interfaces; no depende de nada
-└── src/main/java/ar/edu/itba/certiflow
-    ├── models              entidades, value objects, reglas, servicios de dominio y excepciones
-    │   ├── shared          Person, PersonId, DomainException, RequiredValueMissingException
-    │   ├── audit           AuditLog, AuditEntry, AuditAction, AuditTrail
-    │   ├── asset           Asset, AssetCode, AssetType, Location, Characteristic(s), AssetService, AssetAudit
-    │   ├── evaluation      respuestas, reglas de aprobación, severidad, evidencia
-    │   ├── schema          InspectionSchema, SchemaVersionLog, SchemaVersion, Section, Criterion,
-    │   │                  InspectionSchemaService, SchemaAudit
-    │   ├── inspection      Inspection, Revisions, Evaluation, alcance, eventos de cierre y rectificación,
-    │   │                  su fábrica y InspectionService
-    │   ├── finding         Finding con sus CorrectiveActions, su fábrica y FindingService
-    │   ├── certificate     Certificate, vigencia, ciclo de vida, su fábrica y CertificateService
-    │   └── certification   servicio de elegibilidad y CertificationDecision
-    ├── ports               puertos de salida: repositorios y CertificateNumbering
-    └── usecases            puertos de entrada: una interfaz por caso de uso y los modelos de lectura
-        └── asset, schema, inspection, finding, certificate, report
+certiflow-domain            modelo y contratos; no depende de nada
+└── ar/edu/itba/certiflow/<contexto>
+    ├── model               agregados, value objects, servicios de dominio, fábricas, snapshots, excepciones
+    ├── repository          interfaces de repositorio
+    └── usecase             una interfaz por caso de uso, su comando y sus modelos de lectura
 
-certiflow-application       implementación de los casos de uso; depende de certiflow-domain
-└── src/main/java/ar/edu/itba/certiflow/application
-    └── asset, schema, inspection, finding, certificate, report   (XxxInteractor implements Xxx)
+certiflow-application       implementación de los casos de uso (XxxUseCaseImpl) y el ACL de certificación
+└── ar/edu/itba/certiflow/application/<contexto>
 
-certiflow-details           implementaciones de los puertos; depende de certiflow-domain
-└── src/main/java/ar/edu/itba/certiflow/details/inmemory
+certiflow-infrastructure    adaptadores: JPA, Flyway, numeración, bitácora; repositorios en memoria para tests
+└── ar/edu/itba/certiflow/infrastructure/<contexto>/persistence, inmemory
 
-Tests
-├── certiflow-domain/src/test        tests unitarios de reglas, evidencia, criterios, esquemas, personas,
-│                                   características y auditoría
-└── certiflow-application/src/test   tests de integración por caso de uso, sin mocks;
-                                     support/CertiflowFixture es la raíz de composición.
-                                     RequiredValueTest vive acá porque usa el fixture
+certiflow-web               Spring Boot: controladores REST, recursos HAL, composición, transacciones, errores
+└── ar/edu/itba/certiflow/web/<contexto>, config, support
+```
+
+## API
+
+Base `/api/v1`; `GET /api/v1` devuelve los links a todas las colecciones. Toda operación que escribe exige
+los headers `X-Person-Id` y `X-Person-Name`. Los recursos se devuelven en HAL (`application/hal+json`) y los
+errores en `application/problem+json`.
+
+```bash
+curl -i -X POST localhost:8080/api/v1/assets \
+  -H 'Content-Type: application/json' -H 'X-Person-Id: EMP-001' -H 'X-Person-Name: Paula' \
+  -d '{"code":"EXT-0042","name":"Lobby extinguisher","type":"Fire extinguisher","location":"Lobby",
+       "responsible":{"id":"EMP-003","name":"Raul"},"characteristics":[]}'
+```
+
+Las rutas, los códigos de estado y las reglas REST que sigue la API están en
+[docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md](docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md) (§6)
+y en [DESIGN.md](DESIGN.md) (D21).
+
+## Integración continua
+
+`.github/workflows/ci.yml` corre `mvn -B clean verify` en cada push y en cada pull request a `main`. Para que
+un pull request con el build en rojo no se pueda mergear, activar la protección de `main` (una vez que el
+check `build` haya corrido al menos una vez):
+
+```bash
+gh api -X PUT repos/ivovila/TP-Integrador-DPS/branches/main/protection \
+  -F required_status_checks[strict]=true -f 'required_status_checks[contexts][]=build' \
+  -F enforce_admins=false -F required_pull_request_reviews=null -F restrictions=null
 ```
 
 ## Documentación
 
-- [DESIGN.md](DESIGN.md): supuestos, arquitectura, decisiones con sus alternativas descartadas,
-  patrones no aplicados, tabla riesgo → test y limitaciones.
+- [DESIGN.md](DESIGN.md): supuestos, arquitectura (contextos, context map, capas, glosario), decisiones con
+  sus alternativas descartadas, patrones no aplicados, tabla riesgo → test y limitaciones.
+- [docs/specs](docs/specs): especificaciones de cada fase.
+- [docs/plans](docs/plans): planes de implementación.
+- [docs/consigna](docs/consigna): enunciado de la entrega.
+- [docs/clases](docs/clases): apuntes de las clases que guían la arquitectura.
 - [docs/certiflow-domain.puml](docs/certiflow-domain.puml): diagrama de clases en PlantUML.

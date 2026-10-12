@@ -8,12 +8,12 @@ hide empty members
 note as ExceptionsNote
   Las excepciones de dominio no se dibujan.
   Viven en el subpaquete exceptions de cada concepto
-  (models.inspection.exceptions, models.finding.exceptions,
-  models.certificate.exceptions, models.schema.exceptions)
+  (inspection.model.exceptions, schema.model.exceptions,
+  certification.model.exceptions, catalog.model.exceptions)
   y extienden DomainException.
 end note
 
-package "models.shared" {
+package "shared.model" {
   class Person <<entidad>> {
     id: PersonId
     name: String
@@ -21,7 +21,7 @@ package "models.shared" {
   abstract class DomainException <<exception>>
 }
 
-package "models.audit" {
+package "shared.model (auditoria)" {
   interface "AuditLog<S>" as AuditLog <<puerto>> {
     +record(S, AuditEntry)
     +historyOf(S): List<AuditEntry>
@@ -44,7 +44,7 @@ package "models.audit" {
   AuditEntry --> AuditAction
 }
 
-package "models.asset" {
+package "catalog.model" {
   class Asset <<entidad inmutable>> {
     code: AssetCode
     name: String
@@ -80,7 +80,7 @@ package "models.asset" {
   Asset --> Location
 }
 
-package "models.evaluation" {
+package "schema.model (evaluacion)" {
   interface Answer
   class NumericAnswer <<value object>> {
     value: BigDecimal
@@ -161,7 +161,7 @@ package "models.evaluation" {
   EvidenceRequirement --> EvidenceKind
 }
 
-package "models.schema" {
+package "schema.model" {
   class InspectionSchema <<aggregate root inmutable>> {
     name: String
     assetType: AssetType
@@ -217,7 +217,7 @@ package "models.schema" {
   InspectionSchema --> AssetType
 }
 
-package "models.inspection" {
+package "inspection.model" {
   interface InspectionView <<solo lectura>> {
     +id(): InspectionId
     +evaluate(): Evaluation
@@ -358,7 +358,7 @@ package "models.inspection" {
   AuditAction <|.. InspectionAudit
 }
 
-package "models.finding" {
+package "inspection.model (hallazgos)" {
   class Finding <<aggregate root>> {
     -auditTrail: AuditTrail
     ~planAction(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
@@ -444,7 +444,7 @@ package "models.finding" {
   AuditAction <|.. FindingAudit
 }
 
-package "models.certificate" {
+package "certification.model" {
   class Certificate <<aggregate root>> {
     -lifecycle: CertificateLifecycle
     -auditTrail: AuditTrail
@@ -514,7 +514,7 @@ package "models.certificate" {
   AuditAction <|.. CertificateAudit
 }
 
-package "ports" {
+package "<contexto>.repository" {
   interface AssetRepository {
     +save(Asset)
     +findByCode(AssetCode): Optional<Asset>
@@ -545,10 +545,10 @@ package "ports" {
   }
 }
 
-package "models.certification" {
+package "certification.model (elegibilidad)" {
   interface CertificationEligibility <<servicio de dominio, politica intercambiable>> {
-    +evaluate(InspectionView, List<Finding>): CertificationDecision
-    +ensureEligible(InspectionView, List<Finding>)
+    +evaluate(InspectionResult): CertificationDecision
+    +ensureEligible(InspectionResult)
   }
   class NoBlockingFindingsEligibility
   class CertificationDecision <<value object>> {
@@ -565,12 +565,31 @@ package "models.certification" {
     PARTIAL_INSPECTION
     BLOCKING_FINDINGS
   }
+  class InspectionResult <<value object, ACL>> {
+    inspectionId: InspectionId
+    assetCode: AssetCode
+    closedAt: Optional<Instant>
+    coversWholeSchema: boolean
+    openNonConformities: List<OpenNonConformity>
+    +reference(): InspectionReference
+    +blockingNonConformities(): List<OpenNonConformity>
+  }
+  class OpenNonConformity <<value object>> {
+    criterionCode: String
+    severity: Severity
+  }
+  interface InspectionResultTranslator <<puerto del ACL>> {
+    +translate(InspectionId): InspectionResult
+  }
+  CertificationEligibility ..> InspectionResult
+  InspectionResult *-- OpenNonConformity
+  InspectionResultTranslator ..> InspectionResult
   CertificationEligibility ..> CertificationDecision
   CertificationDecision *-- Ineligibility
   Ineligibility --> IneligibilityReason
 }
 
-package "usecases (certiflow-domain)" {
+package "<contexto>.usecase (certiflow-domain)" {
   interface "Casos de uso: una interfaz por caso" as UseCases <<puertos de entrada>> {
     RegisterAsset
     CreateInspectionSchema / PublishSchemaVersion
@@ -580,9 +599,9 @@ package "usecases (certiflow-domain)" {
     PlanCorrectiveAction / VerifyCorrectiveAction
     IssueCertificate / SuspendCertificate / RenewCertificate / EvaluateCertification
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..reciben y devuelven ids..
+    ..reciben un XxxCommand con ids y codigos..
   }
-  class "Modelos de lectura (usecases.report)" as ReadModels {
+  class "Modelos de lectura (<contexto>.usecase)" as ReadModels {
     InspectionAct / ActLine
     FindingsSummary / FindingLine
     CertificateDocument
@@ -591,14 +610,18 @@ package "usecases (certiflow-domain)" {
   UseCases ..> ReadModels : los informes los devuelven
 }
 
-package "application (certiflow-application)" {
-  class "XxxInteractor implements Xxx" as Interactors {
+package "application.<contexto> (certiflow-application)" {
+  class "XxxUseCaseImpl implements XxxUseCase" as Interactors {
     ..una implementación por caso de uso..
     ..busca por id, llama al servicio de dominio y guarda..
   }
 }
 
 Interactors ..|> UseCases
+class InspectionResultTranslatorImpl <<ACL>>
+InspectionResultTranslator <|.. InspectionResultTranslatorImpl
+InspectionResultTranslatorImpl ..> InspectionRepository
+InspectionResultTranslatorImpl ..> FindingRepository
 CertificationEligibility <|.. NoBlockingFindingsEligibility
 Interactors ..> AssetRepository
 Interactors ..> InspectionSchemaRepository
@@ -617,7 +640,7 @@ InspectionService ..> AuditLog : vuelca la bitacora
 FindingService ..> AuditLog : vuelca la bitacora
 CertificateService ..> AuditLog : vuelca la bitacora
 
-package "details.inmemory (certiflow-details)" {
+package "infrastructure.inmemory (certiflow-infrastructure)" {
   class InMemoryAssetRepository
   class InMemoryInspectionSchemaRepository
   class InMemoryInspectionRepository
@@ -633,4 +656,12 @@ package "details.inmemory (certiflow-details)" {
   AuditLog <|.. InMemoryAuditLog
   CertificateNumbering <|.. SequentialCertificateNumbering
 }
+
+note as Snapshots
+  Inspection, Finding y Certificate exportan snapshot()
+  (InspectionSnapshot, FindingSnapshot, CertificateSnapshot)
+  y se reconstruyen con XxxFactory.restore(snapshot).
+  Los adaptadores JPA (infrastructure.<contexto>.persistence)
+  traducen snapshots a entidades.
+end note
 @enduml
