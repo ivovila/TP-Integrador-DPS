@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application;
 
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,16 +37,14 @@ class CorrectiveActionTest {
         rechargeAction = fixture.plan(finding, "Recharge the extinguisher", fixture.maintenanceTechnician, DUE_DATE, fixture.assetResponsible);
     }
 
-    @Test
-    void actionIsNotOverdueOnItsDueDateButIsTheDayAfter() {
-        fixture.clock.moveTo(DUE_DATE);
-        assertFalse(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
+    @ParameterizedTest(name = "{0} days after the due date: overdue={1}")
+    @CsvSource({"-1,false", "0,false", "1,true", "30,true"})
+    void actionIsOverdueOnlyAfterItsDueDate(int daysAfterDueDate, boolean overdue) {
+        fixture.clock.moveTo(DUE_DATE.plusDays(daysAfterDueDate));
 
-        fixture.clock.advanceDays(1);
-
-        assertTrue(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
-        assertEquals(1, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
+        assertEquals(overdue, fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
+        assertEquals(overdue ? 1 : 0,
+                fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
     }
 
     @Test

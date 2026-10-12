@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application;
 
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -128,17 +130,15 @@ class CertificationTest {
         assertThrows(AssetAlreadyCertifiedException.class, () -> fixture.issue(fixture.closedCompliantInspection(), VALID_UNTIL, fixture.certifier));
     }
 
-    @Test
-    void certificateIsActiveThroughItsLastDayAndExpiredTheDayAfter() {
+    @ParameterizedTest(name = "{0} days after the last valid day: {1}")
+    @CsvSource({"-1,ACTIVE", "0,ACTIVE", "1,EXPIRED"})
+    void certificateIsActiveThroughItsLastDayAndExpiredTheDayAfter(int daysAfterValidUntil, CertificateStatus expected) {
         CertificateNumber certificate = fixture.issue(fixture.closedCompliantInspection(), VALID_UNTIL, fixture.certifier);
 
-        fixture.clock.moveTo(VALID_UNTIL);
-        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
-        assertEquals(CertificateStatus.ACTIVE, fixture.generateCertificateDocument.execute(certificate).status());
+        fixture.clock.moveTo(VALID_UNTIL.plusDays(daysAfterValidUntil));
 
-        fixture.clock.advanceDays(1);
-        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
-        assertEquals(CertificateStatus.EXPIRED, fixture.generateCertificateDocument.execute(certificate).status());
+        assertEquals(expected, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(expected, fixture.generateCertificateDocument.execute(certificate).status());
     }
 
     @Test

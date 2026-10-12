@@ -86,4 +86,14 @@ class CriterionTest {
     private Criterion<YesNoAnswer> criterionWith(Severity severity) {
         return new Criterion<>("C-1", "Guard is in place", new YesNoRule(YesNoAnswer.YES), severity, List.of());
     }
+
+    @ParameterizedTest
+    @CsvSource({"MINOR,OBSERVED,false", "MAJOR,REJECTED,true", "CRITICAL,REJECTED,true"})
+    void anUnmetCriterionTakesTheOutcomeAndBlockingOfItsSeverity(StandardSeverity severity, Outcome outcome, boolean blocks) {
+        Criterion<YesNoAnswer> criterion = new Criterion<>("C-1", "Seal", new YesNoRule(YesNoAnswer.YES), severity, List.of());
+
+        assertEquals(outcome, criterion.outcomeOf(YesNoAnswer.NO));
+        assertEquals(Outcome.APPROVED, criterion.outcomeOf(YesNoAnswer.YES));
+        assertEquals(blocks, severity.blocksCertification());
+    }
 }
