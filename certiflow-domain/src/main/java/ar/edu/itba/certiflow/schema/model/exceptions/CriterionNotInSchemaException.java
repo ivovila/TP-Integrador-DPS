@@ -6,6 +6,10 @@ import ar.edu.itba.certiflow.shared.model.DomainException;
 public class CriterionNotInSchemaException extends DomainException {
 
     public CriterionNotInSchemaException(Criterion<?> criterion) {
-        super("Criterion " + criterion.code() + " does not belong to the schema version bound to this inspection");
+        this(criterion.code());
+    }
+
+    public CriterionNotInSchemaException(String criterionCode) {
+        super("Criterion " + criterionCode + " does not belong to the schema version bound to this inspection");
     }
 }

@@ -8,4 +8,9 @@ public record OptionAnswer(String option) implements Answer {
             throw new RequiredValueMissingException("An option answer must name the chosen option");
         }
     }
+
+    @Override
+    public RawAnswer raw() {
+        return new RawAnswer.Option(option);
+    }
 }

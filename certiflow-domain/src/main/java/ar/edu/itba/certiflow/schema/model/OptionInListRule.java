@@ -15,4 +15,12 @@ public record OptionInListRule(Set<String> acceptedOptions) implements ApprovalR
     public boolean isSatisfiedBy(OptionAnswer answer) {
         return acceptedOptions.contains(answer.option());
     }
+
+    @Override
+    public OptionAnswer answerFrom(RawAnswer raw) {
+        if (raw instanceof RawAnswer.Option(String value)) {
+            return new OptionAnswer(value);
+        }
+        throw new AnswerTypeMismatchException("option", raw);
+    }
 }

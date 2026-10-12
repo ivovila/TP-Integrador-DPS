@@ -20,6 +20,10 @@ public record Criterion<A extends Answer>(String code, String text, ApprovalRule
         return rule.isSatisfiedBy(answer) ? Outcome.APPROVED : severity.outcomeWhenUnmet();
     }
 
+    public A answerFrom(RawAnswer raw) {
+        return rule.answerFrom(raw);
+    }
+
     public boolean evidenceRequirementsMetBy(List<Evidence> attachedEvidence) {
         return requiredEvidence.stream().allMatch(requirement -> requirement.isSatisfiedBy(attachedEvidence));
     }

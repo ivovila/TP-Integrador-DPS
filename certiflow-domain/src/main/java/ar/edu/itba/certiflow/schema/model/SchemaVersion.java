@@ -34,6 +34,13 @@ public record SchemaVersion(int number, List<Section> sections, Instant publishe
                 .orElseThrow(() -> new SectionNotInSchemaException(title));
     }
 
+    public Criterion<?> criterion(String code) {
+        return criteria().stream()
+                .filter(criterion -> criterion.code().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new CriterionNotInSchemaException(code));
+    }
+
     public void ensureContains(Criterion<?> criterion) {
         if (!criteria().contains(criterion)) {
             throw new CriterionNotInSchemaException(criterion);
