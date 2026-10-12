@@ -20,7 +20,7 @@
     </dependency>
     <dependency>
       <groupId>ar.edu.itba</groupId>
-      <artifactId>certiflow-details</artifactId>
+      <artifactId>certiflow-infrastructure</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

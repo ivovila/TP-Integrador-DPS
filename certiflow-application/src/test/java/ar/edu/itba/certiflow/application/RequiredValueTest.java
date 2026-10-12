@@ -1,0 +1,39 @@
+package ar.edu.itba.certiflow.application;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import ar.edu.itba.certiflow.catalog.model.Asset;
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.inspection.model.FindingId;
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
+import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
+import org.junit.jupiter.api.Test;
+
+class RequiredValueTest {
+
+    private final CertiflowFixture fixture = new CertiflowFixture();
+
+    @Test
+    void personWithoutNameOrIdIsADomainError() {
+        assertThrows(RequiredValueMissingException.class, () -> new Person(new PersonId("EMP-100"), " "));
+        assertThrows(RequiredValueMissingException.class, () -> new PersonId(" "));
+    }
+
+    @Test
+    void assetWithoutNameIsADomainError() {
+        assertThrows(RequiredValueMissingException.class, () -> new Asset(new AssetCode("EXT-0043"), " ",
+                CertiflowFixture.EXTINGUISHER, new Location("Warehouse"), fixture.assetResponsible, Characteristics.none()));
+    }
+
+    @Test
+    void correctiveActionWithoutDescriptionIsADomainError() {
+        FindingId finding = fixture.majorFindingOf(fixture.assignedInspection());
+
+        assertThrows(RequiredValueMissingException.class, () -> fixture.planCorrectiveAction.execute(finding, " ",
+                fixture.maintenanceTechnician, CertiflowFixture.TODAY, fixture.assetResponsible));
+    }
+}

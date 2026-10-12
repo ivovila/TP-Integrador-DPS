@@ -11,5 +11,5 @@
   </parent>
 
   <artifactId>certiflow-domain</artifactId>
-  <name>Certiflow - dominio (models, ports, usecases)</name>
+  <name>Certiflow - dominio (model, repository, usecase por contexto)</name>
 </project>
