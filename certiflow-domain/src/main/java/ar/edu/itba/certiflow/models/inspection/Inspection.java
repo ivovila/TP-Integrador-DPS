@@ -17,7 +17,6 @@ import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.schema.SchemaVersion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,7 @@ public final class Inspection implements InspectionView {
     private final InspectionAssignment assignment;
     private final SchemaVersion schemaVersion;
     private final Map<Criterion<?>, CriterionResponse<?>> responses = new LinkedHashMap<>();
-    private final List<Revision> revisions = new ArrayList<>();
+    private Revisions revisions = Revisions.none();
     private final AuditTrail auditTrail = new AuditTrail();
 
     Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Person assignedBy,
@@ -80,7 +79,7 @@ public final class Inspection implements InspectionView {
         ensureOpen();
         Evaluation evaluation = evaluate();
         evaluation.ensureComplete();
-        revisions.add(new Revision(1, CLOSURE_REASON, evaluation, closedBy, closedAt));
+        revisions = revisions.sealedWith(CLOSURE_REASON, evaluation, closedBy, closedAt);
         auditTrail.record(InspectionAudit.CLOSED, closedBy, closedAt, "");
         return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closedBy, closedAt);
     }
@@ -92,7 +91,7 @@ public final class Inspection implements InspectionView {
         }
         replaceAnswer(criterion, answer, rectifiedBy, rectifiedAt);
         Evaluation evaluation = evaluate();
-        revisions.add(new Revision(revisions.size() + 1, reason, evaluation, rectifiedBy, rectifiedAt));
+        revisions = revisions.sealedWith(reason, evaluation, rectifiedBy, rectifiedAt);
         auditTrail.record(InspectionAudit.RECTIFIED, rectifiedBy, rectifiedAt, criterion.code() + " = " + answer + " (" + reason + ")");
         return new InspectionRectified(id, assetCode, assetResponsible, evaluation.nonConformities().stream()
                 .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectifiedBy, rectifiedAt);
@@ -126,13 +125,12 @@ public final class Inspection implements InspectionView {
 
     @Override
     public Revision originalRevision() {
-        ensureClosed();
-        return revisions.getFirst();
+        return revisions.original();
     }
 
     @Override
-    public List<Revision> revisions() {
-        return List.copyOf(revisions);
+    public Revisions revisions() {
+        return revisions;
     }
 
     @Override

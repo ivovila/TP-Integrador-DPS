@@ -17,7 +17,7 @@ public interface InspectionView {
 
     Revision originalRevision();
 
-    List<Revision> revisions();
+    Revisions revisions();
 
     AssetCode assetCode();
 

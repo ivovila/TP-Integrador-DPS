@@ -37,7 +37,7 @@ class RectificationTest {
         assertEquals(Outcome.REJECTED, originalRevision.evaluation().outcomeOf(fixture.pressureCriterion));
         assertEquals(fixture.inspector, originalRevision.sealedBy());
 
-        Revision rectifiedRevision = fixture.inspection(inspection).revisions().getLast();
+        Revision rectifiedRevision = fixture.inspection(inspection).revisions().last();
         assertEquals(2, rectifiedRevision.number());
         assertEquals(REASON, rectifiedRevision.reason());
         assertEquals(fixture.certifier, rectifiedRevision.sealedBy());

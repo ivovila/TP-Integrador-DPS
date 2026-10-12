@@ -4,7 +4,6 @@ import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.audit.AuditTrail;
 import ar.edu.itba.certiflow.models.evaluation.Severity;
-import ar.edu.itba.certiflow.models.finding.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.models.finding.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.models.finding.exceptions.FindingRequiresNonConformityException;
 import ar.edu.itba.certiflow.models.inspection.AttachedEvidence;
@@ -14,7 +13,6 @@ import ar.edu.itba.certiflow.models.schema.Criterion;
 import ar.edu.itba.certiflow.models.shared.Person;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 public final class Finding {
@@ -25,7 +23,7 @@ public final class Finding {
     private final Criterion<?> criterion;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
-    private final List<CorrectiveAction> actions = new ArrayList<>();
+    private final CorrectiveActions actions = new CorrectiveActions();
     private final AuditTrail auditTrail = new AuditTrail();
 
     Finding(FindingId id, InspectionId inspectionId, AssetCode assetCode, Person responsible, CriterionResponse<?> nonConformity,
@@ -45,9 +43,7 @@ public final class Finding {
     CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
                                        Instant plannedAt, LocalDate plannedOn) {
         ensureOpen();
-        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), description,
-                actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
-        actions.add(plannedAction);
+        CorrectiveAction plannedAction = actions.plan(description, actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
         auditTrail.record(FindingAudit.ACTION_PLANNED, plannedBy, plannedAt, description + ", due " + dueDate);
         return plannedAction;
     }
@@ -55,20 +51,17 @@ public final class Finding {
     Verification verifyAction(CorrectiveActionId actionId, Person verifier, VerificationResult verificationResult,
                                      String verificationNotes, Instant verifiedAt) {
         ensureOpen();
-        CorrectiveAction correctiveAction = actions.stream()
-                .filter(action -> action.isIdentifiedBy(actionId))
-                .findFirst()
-                .orElseThrow(() -> new CorrectiveActionNotInFindingException(actionId));
+        CorrectiveAction correctiveAction = actions.withId(actionId);
         Verification verification = correctiveAction.verify(verifier, verificationResult, verificationNotes, verifiedAt);
         if (verification.isAccepted()) {
-            actions.stream().filter(CorrectiveAction::isOpen).forEach(openAction -> openAction.cancel(verifier, verifiedAt));
+            actions.cancelOpen(verifier, verifiedAt);
         }
         auditTrail.record(verificationResult.audit(), verifier, verifiedAt, verificationNotes);
         return verification;
     }
 
     public boolean isOpen() {
-        return actions.stream().noneMatch(CorrectiveAction::isClosed);
+        return actions.noneAccepted();
     }
 
     public boolean blocksCertification() {
@@ -109,7 +102,7 @@ public final class Finding {
     }
 
     public List<CorrectiveAction> actions() {
-        return List.copyOf(actions);
+        return actions.asList();
     }
 
     List<AuditEntry> pullAuditEntries() {

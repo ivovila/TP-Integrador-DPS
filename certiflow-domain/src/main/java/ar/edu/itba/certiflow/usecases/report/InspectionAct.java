@@ -3,16 +3,16 @@ package ar.edu.itba.certiflow.usecases.report;
 import ar.edu.itba.certiflow.models.asset.AssetCode;
 import ar.edu.itba.certiflow.models.audit.AuditEntry;
 import ar.edu.itba.certiflow.models.inspection.InspectionAssignment;
-import ar.edu.itba.certiflow.models.inspection.Revision;
+import ar.edu.itba.certiflow.models.inspection.Revisions;
 import java.util.List;
 
 public record InspectionAct(AssetCode assetCode, String assetName, InspectionAssignment assignment,
-                            int schemaVersion, List<ActLine> lines, List<Revision> revisions,
+                            int schemaVersion, List<ActLine> lines, Revisions revisions,
                             List<AuditEntry> history) {
 
     public InspectionAct {
         lines = List.copyOf(lines);
-        revisions = List.copyOf(revisions);
+
         history = List.copyOf(history);
     }
 }

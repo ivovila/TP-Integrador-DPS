@@ -57,8 +57,10 @@ activo habría dejado sus hallazgos invisibles y al activo certificable.
 cerrada" pasa a `Inspection.ensureClosed()`; "un activo no se registra dos veces" a `AssetService`; el rechazo
 por elegibilidad, duplicado en emitir y renovar, al método `default CertificationEligibility.ensureEligible`.
 
+**16.8. Colecciones de primera clase donde hay invariante.** La devolución marcaba que varios return types podrían ser agregados con restricciones propias. Se agregan `Revisions` (numeración desde 1, la original no cambia, lanza `InspectionNotClosedException` si no hay ninguna) y `CorrectiveActions` (numeración dentro del hallazgo, búsqueda por id, cancelar las abiertas al aceptar una); `Inspection` y `Finding` delegan en ellas. `suspensions()`, `verifications()` y `evidence()` quedan como `List` inmutable, con el criterio escrito en la sección 4 de `DESIGN.md`. Test: `RevisionsTest`.
+
 **Documentación:** `DESIGN.md` (S4, S5, S6, S10, S11, S15, D3, D7, D8, D9, D10, D13, D14 nueva, tabla de tests
-y limitaciones), `README.md` y `docs/certiflow-domain.puml`. Total: 113 tests.
+y limitaciones), `README.md` y `docs/certiflow-domain.puml`. Total: 116 tests.
 
 ---
 

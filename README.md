@@ -29,9 +29,9 @@ certiflow-domain            toda la lógica de negocio y todas las interfaces; n
     │   ├── evaluation      respuestas, reglas de aprobación, severidad, evidencia
     │   ├── schema          InspectionSchema, SchemaVersionLog, SchemaVersion, Section, Criterion,
     │   │                  InspectionSchemaService, SchemaAudit
-    │   ├── inspection      Inspection, revisiones, evaluación, alcance, eventos de cierre y rectificación,
+    │   ├── inspection      Inspection, Revisions, Evaluation, alcance, eventos de cierre y rectificación,
     │   │                  su fábrica y InspectionService
-    │   ├── finding         Finding con sus CorrectiveAction, su fábrica y FindingService
+    │   ├── finding         Finding con sus CorrectiveActions, su fábrica y FindingService
     │   ├── certificate     Certificate, vigencia, ciclo de vida, su fábrica y CertificateService
     │   └── certification   servicio de elegibilidad y CertificationDecision
     ├── ports               puertos de salida: repositorios y CertificateNumbering

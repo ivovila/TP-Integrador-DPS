@@ -315,6 +315,13 @@ package "models.inspection" {
     +nonConformities(): List<CriterionResponse<?>>
     +ensureComplete()
   }
+  class Revisions <<coleccion de primera clase>> {
+    +sealedWith(reason, Evaluation, Person, Instant): Revisions
+    +original(): Revision
+    +last(): Revision
+    +size(): int
+    +isEmpty(): boolean
+  }
   class Revision <<value object>> {
     number: int
     reason: String
@@ -337,7 +344,8 @@ package "models.inspection" {
   Inspection --> InspectionAssignment
   Inspection --> SchemaVersion : fijada al asignar
   Inspection *-- "*" CriterionResponse
-  Inspection *-- "*" Revision
+  Inspection *-- Revisions
+  Revisions *-- "*" Revision
   Inspection ..> Evaluation : deriva
   Revision --> Evaluation
   Evaluation o-- "*" CriterionResponse
@@ -379,6 +387,12 @@ package "models.finding" {
     +planAction(Finding, description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
     +verifyAction(Finding, CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
   }
+  class CorrectiveActions <<coleccion de primera clase, de paquete>> {
+    ~plan(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
+    ~withId(CorrectiveActionId): CorrectiveAction
+    ~cancelOpen(Person, Instant)
+    ~noneAccepted(): boolean
+  }
   class CorrectiveAction <<entidad interna>> {
     -description: String
     -responsible: Person
@@ -419,11 +433,12 @@ package "models.finding" {
     VERIFICATION_REJECTED
   }
   FindingFactory ..> Finding : crea
+  Finding *-- CorrectiveActions
+  CorrectiveActions *-- CorrectiveAction
   Finding *-- AuditTrail
   Finding --> InspectionId : por id
   Finding --> Criterion
   Finding --> "*" AttachedEvidence
-  Finding *-- "*" CorrectiveAction
   CorrectiveAction *-- "*" Verification
   Verification --> VerificationResult
   AuditAction <|.. FindingAudit
