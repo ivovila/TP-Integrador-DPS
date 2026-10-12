@@ -34,17 +34,17 @@ public abstract class ApiTest {
         jdbcTemplate.execute("alter sequence certificate_number_seq restart with 1");
     }
 
-    protected ResultActions postAs(String personId, String uri, String json) throws Exception {
+    public ResultActions postAs(String personId, String uri, String json) throws Exception {
         return mvc.perform(post(uri).contentType(MediaType.APPLICATION_JSON).content(json)
                 .header("X-Person-Id", personId).header("X-Person-Name", "Person " + personId));
     }
 
-    protected ResultActions putAs(String personId, String uri, String json) throws Exception {
+    public ResultActions putAs(String personId, String uri, String json) throws Exception {
         return mvc.perform(put(uri).contentType(MediaType.APPLICATION_JSON).content(json)
                 .header("X-Person-Id", personId).header("X-Person-Name", "Person " + personId));
     }
 
-    protected ResultActions read(String uri) throws Exception {
+    public ResultActions read(String uri) throws Exception {
         return mvc.perform(get(uri).accept(MediaType.parseMediaType("application/hal+json")));
     }
 }
