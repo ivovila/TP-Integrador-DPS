@@ -1,0 +1,65 @@
+package ar.edu.itba.certiflow.web.support;
+
+import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
+import ar.edu.itba.certiflow.catalog.model.exceptions.DuplicateCharacteristicException;
+import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
+import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
+import ar.edu.itba.certiflow.inspection.model.exceptions.FindingNotFoundException;
+import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
+import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
+import ar.edu.itba.certiflow.schema.model.InvalidRuleConfigurationException;
+import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SectionNotInSchemaException;
+import ar.edu.itba.certiflow.shared.model.DomainException;
+import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
+import java.net.URI;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+@RestControllerAdvice
+public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_BY_EXCEPTION = Map.ofEntries(
+            Map.entry(AssetNotFoundException.class, HttpStatus.NOT_FOUND),
+            Map.entry(InspectionNotFoundException.class, HttpStatus.NOT_FOUND),
+            Map.entry(FindingNotFoundException.class, HttpStatus.NOT_FOUND),
+            Map.entry(CertificateNotFoundException.class, HttpStatus.NOT_FOUND),
+            Map.entry(NoInspectionSchemaForAssetTypeException.class, HttpStatus.NOT_FOUND),
+            Map.entry(CriterionNotInSchemaException.class, HttpStatus.NOT_FOUND),
+            Map.entry(CorrectiveActionNotInFindingException.class, HttpStatus.NOT_FOUND),
+            Map.entry(RequiredValueMissingException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(InvalidSchemaException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(InvalidRuleConfigurationException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(AnswerTypeMismatchException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(SectionNotInSchemaException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(DuplicateCharacteristicException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(NotEligibleForCertificationException.class, HttpStatus.UNPROCESSABLE_CONTENT));
+
+    @ExceptionHandler(DomainException.class)
+    ProblemDetail handle(DomainException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(statusOf(exception), exception.getMessage());
+        problem.setType(URI.create("urn:certiflow:" + exception.getClass().getSimpleName()));
+        problem.setTitle(exception.getClass().getSimpleName());
+        if (exception instanceof NotEligibleForCertificationException notEligible) {
+            problem.setProperty("ineligibilities", notEligible.decision().ineligibilities());
+        }
+        return problem;
+    }
+
+    private static HttpStatus statusOf(DomainException exception) {
+        for (Class<?> type = exception.getClass(); type != null; type = type.getSuperclass()) {
+            HttpStatus status = STATUS_BY_EXCEPTION.get(type);
+            if (status != null) {
+                return status;
+            }
+        }
+        return HttpStatus.CONFLICT;
+    }
+}

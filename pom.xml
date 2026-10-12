@@ -14,6 +14,7 @@
     <module>certiflow-domain</module>
     <module>certiflow-application</module>
     <module>certiflow-infrastructure</module>
+    <module>certiflow-web</module>
   </modules>
 
   <properties>
@@ -44,6 +45,11 @@
       <dependency>
         <groupId>ar.edu.itba</groupId>
         <artifactId>certiflow-infrastructure</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ar.edu.itba</groupId>
+        <artifactId>certiflow-web</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
