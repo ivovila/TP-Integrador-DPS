@@ -371,7 +371,7 @@ excepción en `type`:
 
 | Excepción | HTTP |
 |---|---|
-| `...NotFoundException` | 404 |
+| `...NotFoundException`, `CriterionOutOfScopeException`, revisión o versión inexistente | 404 |
 | `RequiredValueMissingException`, `InvalidSchemaException`, `InvalidRuleConfigurationException`, `AnswerTypeMismatchException`, JSON inválido, header faltante | 400 |
 | `NotEligibleForCertificationException` | 422, con las `Ineligibility` en el cuerpo |
 | cualquier otra `DomainException` | 409 |

@@ -65,4 +65,13 @@ class SchemaApiTest extends ApiTest {
         postAs("EMP-001", "/api/v1/schemas", "{\"name\":\"S\",\"assetType\":\"Boiler\",\"sections\":[null]}")
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void aMissingVersionIs404AsProblemJson() throws Exception {
+        postAs("EMP-001", "/api/v1/schemas", Payloads.schema());
+
+        read("/api/v1/schemas/Fire extinguisher/versions/9")
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Content-Type", "application/problem+json"));
+    }
 }

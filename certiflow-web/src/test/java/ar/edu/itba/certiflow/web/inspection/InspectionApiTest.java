@@ -176,4 +176,22 @@ class InspectionApiTest extends ApiTest {
         read("/api/v1/inspections?status=open").andExpect(jsonPath("$._embedded.inspections[0].closed").value(false));
         read("/api/v1/inspections?status=archived").andExpect(status().isBadRequest());
     }
+
+    @Test
+    void aMissingRevisionIs404AsProblemJson() throws Exception {
+        read(inspection + "/revisions/9")
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Content-Type", "application/problem+json"));
+    }
+
+    @Test
+    void answeringACriterionOutsideTheScopeIs404LikeReadingIt() throws Exception {
+        String scoped = postAs("EMP-001", "/api/v1/inspections", ASSIGNMENT.replace("\"sections\":null", "\"sections\":[\"Signage\"]"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+        String path = scoped.substring(scoped.indexOf("/api/v1/inspections/"));
+
+        read(path + "/responses/EXT-01").andExpect(status().isNotFound());
+        putAs("EMP-002", path + "/responses/EXT-01/answer", "{\"value\":7.00}").andExpect(status().isNotFound());
+    }
 }

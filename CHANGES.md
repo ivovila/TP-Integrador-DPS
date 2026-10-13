@@ -443,3 +443,11 @@ Cambios hechos para la Entrega 2, siguiendo
   `GET /api/v1/inspections?asset=&status=open|closed&page=&size=` (`ListInspectionsUseCase`,
   `InspectionRepository.findByAsset` y `findAll`). Un `status` desconocido responde 400.
 - Test: `InspectionApiTest.inspectionsAreListedByAssetAndStatusInPages`.
+
+## E2.19. 404 coherentes
+- Una revisión o una versión de esquema inexistente responde 404 en `problem+json` (`ResourceNotFoundException`),
+  como el resto de los recursos.
+- Un criterio que existe en el esquema pero queda fuera del alcance de la inspección responde 404 tanto al leerlo
+  como al responderlo (`CriterionOutOfScopeException` → 404); antes el `PUT` daba 409.
+- Tests: `InspectionApiTest.aMissingRevisionIs404AsProblemJson`, `answeringACriterionOutsideTheScopeIs404LikeReadingIt`,
+  `SchemaApiTest.aMissingVersionIs404AsProblemJson`.

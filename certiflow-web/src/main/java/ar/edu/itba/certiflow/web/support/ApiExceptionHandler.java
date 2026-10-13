@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.catalog.model.exceptions.DuplicateCharacteristicExc
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
+import ar.edu.itba.certiflow.inspection.model.exceptions.CriterionOutOfScopeException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingNotFoundException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
 import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
@@ -36,6 +37,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             Map.entry(NoInspectionSchemaForAssetTypeException.class, HttpStatus.NOT_FOUND),
             Map.entry(CriterionNotInSchemaException.class, HttpStatus.NOT_FOUND),
             Map.entry(CorrectiveActionNotInFindingException.class, HttpStatus.NOT_FOUND),
+            Map.entry(CriterionOutOfScopeException.class, HttpStatus.NOT_FOUND),
             Map.entry(RequiredValueMissingException.class, HttpStatus.BAD_REQUEST),
             Map.entry(InvalidSchemaException.class, HttpStatus.BAD_REQUEST),
             Map.entry(InvalidRuleConfigurationException.class, HttpStatus.BAD_REQUEST),
@@ -47,6 +49,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidRequestException.class)
     ProblemDetail handle(InvalidRequestException exception) {
         return problem(HttpStatus.BAD_REQUEST, "InvalidRequestException", exception.getMessage());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ProblemDetail handle(ResourceNotFoundException exception) {
+        return problem(HttpStatus.NOT_FOUND, "ResourceNotFoundException", exception.getMessage());
     }
 
     @ExceptionHandler(DuplicateKeyException.class)

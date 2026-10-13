@@ -16,6 +16,7 @@ import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
+import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import java.time.Duration;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.CacheControl;
@@ -85,7 +86,7 @@ public class SchemaController {
                         ? ResponseEntity.status(304).eTag(etag).<VersionResponse>build()
                         : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.maxAge(Duration.ofDays(1)))
                                 .body(versionResource(assetType, version)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Schema " + assetType + " has no version " + number));
     }
 
     @GetMapping("/{assetType}/audit-entries")

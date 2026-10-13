@@ -8,6 +8,7 @@ import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
 import ar.edu.itba.certiflow.web.support.InvalidRequestException;
 import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.springframework.hateoas.PagedModel;
@@ -194,7 +195,7 @@ public class InspectionController {
                         ? ResponseEntity.status(304).eTag(etag).<RevisionResource>build()
                         : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.maxAge(Duration.ofDays(1)))
                                 .body(revisionResource(id, revision)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection " + id + " has no revision " + number));
     }
 
     @GetMapping("/{id}/act")
