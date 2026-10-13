@@ -78,7 +78,11 @@ Con el backend levantado (`mvn -pl certiflow-web spring-boot:run`):
 cd certiflow-frontend && npm install && npm run dev
 ```
 
-Abre en `http://localhost:5173`. Para cargar datos de demostración a través de la API:
+Abre en `http://localhost:5173`. La persona elegida en "Acting as" define el rol (administradora, coordinadora,
+inspector, responsable del activo, verificador u oficial de certificación): cada rol ve sus secciones y solo las
+acciones que le corresponden. Es una separación de la interfaz; la API no restringe por rol.
+
+Para cargar datos de demostración a través de la API:
 
 ```bash
 cd certiflow-frontend && npm run seed
@@ -90,7 +94,7 @@ tipos de evidencia y jurisdicciones con política registrada), `subsystemCode` e
 subsistemas.
 
 Estructura, tests y cómo habla con la API en [certiflow-frontend/README.md](certiflow-frontend/README.md);
-decisiones de diseño en [DESIGN.md](DESIGN.md) (D22 y D23).
+decisiones de diseño en [DESIGN.md](DESIGN.md) (D22, D23 y D24).
 
 ## Integración continua
 
