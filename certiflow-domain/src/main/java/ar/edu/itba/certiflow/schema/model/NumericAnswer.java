@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public record NumericAnswer(BigDecimal value) implements Answer {
 
     @Override
-    public RawAnswer raw() {
-        return new RawAnswer(value);
+    public <T> T describedBy(AnswerDescriber<T> describer) {
+        return describer.number(value);
     }
 }

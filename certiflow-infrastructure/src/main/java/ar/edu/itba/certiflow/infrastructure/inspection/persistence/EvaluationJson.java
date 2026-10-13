@@ -46,7 +46,7 @@ final class EvaluationJson {
     }
 
     private static ResponseDocument document(CriterionResponse<?> response) {
-        Optional<AnswerColumns> answer = response.given().map(given -> AnswerColumns.of(given.value().raw()));
+        Optional<AnswerColumns> answer = response.given().map(given -> given.value().describedBy(new AnswerColumnsDescriber()));
         Optional<PersonColumns> by = response.given().map(given -> PersonColumns.of(given.answeredBy()));
         return new ResponseDocument(response.criterion().code(),
                 answer.map(AnswerColumns::type).orElse(null), answer.map(AnswerColumns::value).orElse(null),

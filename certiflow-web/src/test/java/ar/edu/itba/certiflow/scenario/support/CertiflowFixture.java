@@ -71,6 +71,7 @@ import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
 import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.schema.model.AnswerText;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
@@ -79,6 +80,7 @@ import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;
+import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
@@ -318,7 +320,7 @@ public final class CertiflowFixture {
     }
 
     public void answer(InspectionId inspection, Criterion<?> criterion, Answer answer, Person by) {
-        recordAnswer.execute(new RecordAnswerCommand(inspection, criterion.code(), answer.raw(), by));
+        recordAnswer.execute(new RecordAnswerCommand(inspection, criterion.code(), new RawAnswer(answer.describedBy(new AnswerText())), by));
     }
 
     public void attach(InspectionId inspection, Criterion<?> criterion, Evidence evidence, Person by) {
@@ -330,7 +332,7 @@ public final class CertiflowFixture {
     }
 
     public List<FindingId> rectify(InspectionId inspection, Criterion<?> criterion, Answer answer, String reason, Person by) {
-        return rectifyInspection.execute(new RectifyInspectionCommand(inspection, criterion.code(), answer.raw(), reason, by));
+        return rectifyInspection.execute(new RectifyInspectionCommand(inspection, criterion.code(), new RawAnswer(answer.describedBy(new AnswerText())), reason, by));
     }
 
     public CorrectiveActionId plan(FindingId finding, String description, Person responsible, LocalDate dueDate, Person by) {

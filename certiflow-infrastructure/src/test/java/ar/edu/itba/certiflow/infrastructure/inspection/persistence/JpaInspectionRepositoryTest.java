@@ -72,7 +72,7 @@ class JpaInspectionRepositoryTest {
         assertEquals(inspection.snapshot(), restored.snapshot());
         assertTrue(restored.isClosed());
         assertThrows(InspectionAlreadyClosedException.class, () -> DomainSamples.inspectionService()
-                .recordAnswer(restored, "EXT-02", new RawAnswer(false), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0)));
+                .recordAnswer(restored, "EXT-02", new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0)));
     }
 
     @Test
@@ -112,7 +112,7 @@ class JpaInspectionRepositoryTest {
     @Test
     void aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed() {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
-        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer(true), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_789)));
+        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_789)));
         DomainSamples.close(inspection);
 
         Inspection restored = reloaded(inspection);
@@ -131,7 +131,7 @@ class JpaInspectionRepositoryTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer(false), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(900)));
+        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(900)));
         repository.save(loaded);
         entityManager.flush();
 

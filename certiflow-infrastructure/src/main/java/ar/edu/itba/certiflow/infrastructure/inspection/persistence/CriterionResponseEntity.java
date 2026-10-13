@@ -64,7 +64,7 @@ public class CriterionResponseEntity {
         answeredByName = null;
         answeredAt = null;
         response.given().ifPresent(given -> {
-            AnswerColumns answer = AnswerColumns.of(given.value().raw());
+            AnswerColumns answer = given.value().describedBy(new AnswerColumnsDescriber());
             PersonColumns by = PersonColumns.of(given.answeredBy());
             answerType = answer.type();
             answerValue = answer.value();

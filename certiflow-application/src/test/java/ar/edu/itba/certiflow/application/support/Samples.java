@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.application.support;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.mockito.Mockito.mock;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
@@ -34,6 +33,7 @@ import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -92,9 +92,9 @@ public final class Samples {
         Inspection inspection = service.assign(new InspectionId("I-1"), ASSET,
                 new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()),
                 schema().latestPublishedVersion(), new Stamp(PLANNER, NOW));
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer(new BigDecimal(pressure)), new Stamp(INSPECTOR, NOW));
+        service.recordAnswer(inspection, "EXT-01", new RawAnswer(pressure), new Stamp(INSPECTOR, NOW));
         service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "gauge.jpg", "Gauge"), new Stamp(INSPECTOR, NOW));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer(true), new Stamp(INSPECTOR, NOW));
+        service.recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(INSPECTOR, NOW));
         service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, NOW));
         return inspection;
     }

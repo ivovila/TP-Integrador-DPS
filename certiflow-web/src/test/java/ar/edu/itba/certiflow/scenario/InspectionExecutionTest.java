@@ -136,7 +136,7 @@ class InspectionExecutionTest extends ScenarioTest {
         int entriesBefore = fixture.inspectionLog.historyOf(inspection).size();
 
         assertThrows(CriterionNotInSchemaException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer(true), fixture.inspector)));
+                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer("true"), fixture.inspector)));
 
         assertEquals(entriesBefore, fixture.inspectionLog.historyOf(inspection).size());
     }
@@ -146,7 +146,7 @@ class InspectionExecutionTest extends ScenarioTest {
         InspectionId inspection = fixture.assignedInspection();
 
         assertThrows(AnswerTypeMismatchException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer(true), fixture.inspector)));
+                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer("true"), fixture.inspector)));
 
         assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
     }

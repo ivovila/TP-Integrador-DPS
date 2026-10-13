@@ -2,5 +2,5 @@ package ar.edu.itba.certiflow.schema.model;
 
 public interface Answer {
 
-    RawAnswer raw();
+    <T> T describedBy(AnswerDescriber<T> describer);
 }

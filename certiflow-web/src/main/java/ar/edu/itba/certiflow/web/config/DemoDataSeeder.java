@@ -27,7 +27,9 @@ import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
+import ar.edu.itba.certiflow.schema.model.AnswerText;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
@@ -192,7 +194,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         InspectionId inspection = assignInspection.execute(new AssignInspectionCommand(new AssetCode(assetCode), inspector,
                 LocalDate.now(clock), new FullScope(), coordinator));
         answers.forEach((criterionCode, answer) ->
-                recordAnswer.execute(new RecordAnswerCommand(inspection, criterionCode, answer.raw(), inspector)));
+                recordAnswer.execute(new RecordAnswerCommand(inspection, criterionCode, new RawAnswer(answer.describedBy(new AnswerText())), inspector)));
         closeInspection.execute(new CloseInspectionCommand(inspection, inspector));
         return inspection;
     }

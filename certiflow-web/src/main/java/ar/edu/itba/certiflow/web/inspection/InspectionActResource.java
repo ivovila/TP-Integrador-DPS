@@ -11,7 +11,7 @@ import org.springframework.hateoas.RepresentationModel;
 
 public class InspectionActResource extends RepresentationModel<InspectionActResource> {
 
-    public record Line(String criterionCode, String criterionText, Object answer, PersonPayload answeredBy, Instant answeredAt,
+    public record Line(String criterionCode, String criterionText, AnswerPayload answer, PersonPayload answeredBy, Instant answeredAt,
                        int evidenceCount, List<String> observations, String outcome) {
     }
 
@@ -31,7 +31,7 @@ public class InspectionActResource extends RepresentationModel<InspectionActReso
         this.plannedDate = act.assignment().plannedDate();
         this.schemaVersion = act.schemaVersion();
         this.lines = act.lines().stream()
-                .map(line -> new Line(line.criterionCode(), line.criterionText(), line.answer().raw().value(),
+                .map(line -> new Line(line.criterionCode(), line.criterionText(), line.answer().describedBy(new AnswerPayloadDescriber()),
                         PersonPayload.of(line.answeredBy()), line.answeredAt(), line.evidenceCount(), line.observations(),
                         line.outcome().name()))
                 .toList();

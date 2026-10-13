@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.schema.model;
 
 import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
+
 public record OptionAnswer(String option) implements Answer {
 
     public OptionAnswer {
@@ -10,7 +11,7 @@ public record OptionAnswer(String option) implements Answer {
     }
 
     @Override
-    public RawAnswer raw() {
-        return new RawAnswer(option);
+    public <T> T describedBy(AnswerDescriber<T> describer) {
+        return describer.option(option);
     }
 }

@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import java.util.Arrays;
+
 public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswer> {
 
     @Override
@@ -9,7 +11,9 @@ public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswe
 
     @Override
     public YesNoAnswer answerFrom(RawAnswer raw) {
-        return raw.as(Boolean.class).map(YesNoAnswer::of)
+        return Arrays.stream(YesNoAnswer.values())
+                .filter(candidate -> candidate.isWrittenAs(raw))
+                .findFirst()
                 .orElseThrow(() -> new AnswerTypeMismatchException("yes/no", raw));
     }
 }

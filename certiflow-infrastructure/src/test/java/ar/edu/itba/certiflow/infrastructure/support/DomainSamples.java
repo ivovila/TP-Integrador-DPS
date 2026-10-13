@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.infrastructure.support;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.mockito.Mockito.mock;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
@@ -9,6 +8,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.inspection.model.ActionPlan;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingFactory;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -35,16 +35,16 @@ import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import ar.edu.itba.certiflow.inspection.model.ActionPlan;
-import ar.edu.itba.certiflow.shared.model.AuditLog;
 
 public final class DomainSamples {
 
@@ -86,10 +86,10 @@ public final class DomainSamples {
         InspectionService service = inspectionService();
         Inspection inspection = service.assign(new InspectionId("I-" + IDS.incrementAndGet()), ASSET,
                 new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), new Stamp(PLANNER, T0));
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer(new BigDecimal(pressure)), new Stamp(INSPECTOR, T0.plusSeconds(60)));
+        service.recordAnswer(inspection, "EXT-01", new RawAnswer(pressure), new Stamp(INSPECTOR, T0.plusSeconds(60)));
         service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), new Stamp(INSPECTOR, T0.plusSeconds(90)));
         service.addObservation(inspection, "EXT-01", "Needle trembles", new Stamp(INSPECTOR, T0.plusSeconds(100)));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer(true), new Stamp(INSPECTOR, T0.plusSeconds(120)));
+        service.recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(INSPECTOR, T0.plusSeconds(120)));
         service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, T0.plusSeconds(180)));
         return inspection;
     }

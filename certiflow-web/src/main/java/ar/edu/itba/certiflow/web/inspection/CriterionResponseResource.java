@@ -19,7 +19,7 @@ public class CriterionResponseResource extends RepresentationModel<CriterionResp
     }
 
     public final CriterionPayload criterion;
-    public final Object answer;
+    public final AnswerPayload answer;
     public final PersonPayload answeredBy;
     public final Instant answeredAt;
     public final List<EvidenceView> evidence;
@@ -28,7 +28,7 @@ public class CriterionResponseResource extends RepresentationModel<CriterionResp
 
     CriterionResponseResource(CriterionResponse<?> response) {
         this.criterion = SchemaPayloads.payload(response.criterion());
-        this.answer = response.given().map(given -> given.value().raw().value()).orElse(null);
+        this.answer = response.given().map(given -> given.value().describedBy(new AnswerPayloadDescriber())).orElse(null);
         this.answeredBy = response.given().map(given -> PersonPayload.of(given.answeredBy())).orElse(null);
         this.answeredAt = response.given().map(given -> given.answeredAt()).orElse(null);
         this.evidence = response.attachments().stream()

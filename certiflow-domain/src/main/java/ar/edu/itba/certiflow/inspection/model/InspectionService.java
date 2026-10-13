@@ -1,12 +1,12 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
-import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
-import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 
 /**
@@ -29,18 +29,17 @@ public final class InspectionService {
         return recorded(inspection);
     }
 
-    public <A extends Answer> void recordAnswer(Inspection inspection, Criterion<A> criterion, A answer, Stamp answered) {
-        inspection.recordAnswer(criterion, answer, answered);
+    public void recordAnswer(Inspection inspection, String criterionCode, RawAnswer answer, Stamp answered) {
+        recordTyped(inspection, inspection.schemaVersion().criterion(criterionCode), answer, answered);
+    }
+
+    public void attachEvidence(Inspection inspection, String criterionCode, Evidence evidence, Stamp attached) {
+        inspection.attachEvidence(inspection.schemaVersion().criterion(criterionCode), evidence, attached);
         recorded(inspection);
     }
 
-    public void attachEvidence(Inspection inspection, Criterion<?> criterion, Evidence evidence, Stamp attached) {
-        inspection.attachEvidence(criterion, evidence, attached);
-        recorded(inspection);
-    }
-
-    public void addObservation(Inspection inspection, Criterion<?> criterion, String observationText, Stamp observed) {
-        inspection.addObservation(criterion, observationText, observed);
+    public void addObservation(Inspection inspection, String criterionCode, String observationText, Stamp observed) {
+        inspection.addObservation(inspection.schemaVersion().criterion(criterionCode), observationText, observed);
         recorded(inspection);
     }
 
@@ -50,37 +49,21 @@ public final class InspectionService {
         return closure;
     }
 
-    public <A extends Answer> InspectionRectified rectify(Inspection inspection, Criterion<A> criterion, A answer,
-                                                          String reason, Stamp rectified) {
-        InspectionRectified rectification = inspection.rectify(criterion, answer, reason, rectified);
-        recorded(inspection);
-        return rectification;
-    }
-
-    public void recordAnswer(Inspection inspection, String criterionCode, RawAnswer answer, Stamp answered) {
-        recordTyped(inspection, inspection.schemaVersion().criterion(criterionCode), answer, answered);
-    }
-
-    public void attachEvidence(Inspection inspection, String criterionCode, Evidence evidence, Stamp attached) {
-        attachEvidence(inspection, inspection.schemaVersion().criterion(criterionCode), evidence, attached);
-    }
-
-    public void addObservation(Inspection inspection, String criterionCode, String observationText, Stamp observed) {
-        addObservation(inspection, inspection.schemaVersion().criterion(criterionCode), observationText, observed);
-    }
-
     public InspectionRectified rectify(Inspection inspection, String criterionCode, RawAnswer answer, String reason,
                                        Stamp rectified) {
         return rectifyTyped(inspection, inspection.schemaVersion().criterion(criterionCode), answer, reason, rectified);
     }
 
     private <A extends Answer> void recordTyped(Inspection inspection, Criterion<A> criterion, RawAnswer answer, Stamp answered) {
-        recordAnswer(inspection, criterion, criterion.answerFrom(answer), answered);
+        inspection.recordAnswer(criterion, criterion.answerFrom(answer), answered);
+        recorded(inspection);
     }
 
     private <A extends Answer> InspectionRectified rectifyTyped(Inspection inspection, Criterion<A> criterion, RawAnswer answer,
                                                                 String reason, Stamp rectified) {
-        return rectify(inspection, criterion, criterion.answerFrom(answer), reason, rectified);
+        InspectionRectified rectification = inspection.rectify(criterion, criterion.answerFrom(answer), reason, rectified);
+        recorded(inspection);
+        return rectification;
     }
 
     private Inspection recorded(Inspection inspection) {

@@ -1,7 +1,5 @@
 package ar.edu.itba.certiflow.schema.model;
 
-import java.util.Arrays;
-
 public enum YesNoAnswer implements Answer {
     YES(true),
     NO(false);
@@ -12,12 +10,12 @@ public enum YesNoAnswer implements Answer {
         this.value = value;
     }
 
-    public static YesNoAnswer of(boolean value) {
-        return Arrays.stream(values()).filter(answer -> answer.value == value).findFirst().orElseThrow();
+    boolean isWrittenAs(RawAnswer raw) {
+        return describedBy(new AnswerText()).equals(raw.text());
     }
 
     @Override
-    public RawAnswer raw() {
-        return new RawAnswer(value);
+    public <T> T describedBy(AnswerDescriber<T> describer) {
+        return describer.yesNo(value);
     }
 }

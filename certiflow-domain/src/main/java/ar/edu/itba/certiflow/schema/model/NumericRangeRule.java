@@ -11,7 +11,10 @@ public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<N
 
     @Override
     public NumericAnswer answerFrom(RawAnswer raw) {
-        return raw.as(BigDecimal.class).map(NumericAnswer::new)
-                .orElseThrow(() -> new AnswerTypeMismatchException("numeric", raw));
+        try {
+            return new NumericAnswer(new BigDecimal(raw.text()));
+        } catch (NumberFormatException notANumber) {
+            throw new AnswerTypeMismatchException("numeric", raw);
+        }
     }
 }
