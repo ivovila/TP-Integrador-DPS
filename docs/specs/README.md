@@ -75,4 +75,8 @@ descartadas y deuda de cada funcionalidad; README/CHANGES reflejan lo implementa
 
 | Spec | Decisión principal |
 |---|---|
-| [Login y logout](2026-10-13-login.md) | Basic en cualquier path devuelve un JWT; logout revoca el token actual; roles aplicados con `@PreAuthorize` |
+| [Login y logout](2026-10-13-login.md) | Basic en cualquier path devuelve un JWT; logout revoca el token actual; roles aplicados con `@AllowedRole` antes de leer el cuerpo |
+
+Esta spec agrega sus tablas a `V1__init.sql` en lugar de una migración nueva, por decisión explícita (no había
+datos que conservar); contradice la regla de §3 solo para este caso. La spec decía `@PreAuthorize`; se cambió por
+`@AllowedRole` porque `@PreAuthorize` se evalúa después de leer el cuerpo (ver D25).

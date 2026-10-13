@@ -62,7 +62,7 @@ src
 │   └── certiflowContract.ts   suite de contrato que corre contra el backend
 ├── adapters/
 │   └── http/          implementación sobre la API REST
-│       ├── HalClient.ts        fetch, headers, persona que actúa, errores, paginación
+│       ├── HalClient.ts        fetch, headers, credenciales, errores, paginación
 │       ├── actions.ts          tabla rel → acción
 │       ├── *Mapping.ts         de la respuesta de la API a los tipos de domain/
 │       ├── Http*Port.ts        un puerto por contexto
@@ -81,7 +81,7 @@ nunca `ui`.
 
 ## Roles
 
-La persona elegida en "Acting as" define el rol. Cada rol ve en el menú sus secciones y encuentra solo las
+Se ingresa con id de persona y contraseña; el rol sale del token. Cada rol ve en el menú sus secciones y encuentra solo las
 acciones que le corresponden; el resto se puede abrir por los links entre registros, en solo lectura.
 
 | Rol (persona de ejemplo) | Menú | Puede |
@@ -104,8 +104,11 @@ Una acción aparece si el sistema la permite en ese estado (lo dice la API) y el
   pasen por el mismo origen.
 - **Acciones.** Lo que se puede hacer con un recurso sale de sus links (`closure` → cerrar, `suspensions` →
   suspender…). La tabla está en `actions.ts`. Las pantallas muestran un botón por acción y no miran el estado.
-- **Persona que actúa.** Se elige en el encabezado ("Acting as") y viaja en `X-Person-Id` y `X-Person-Name` en
-  cada operación que escribe.
+- **Persona que actúa.** Es quien ingresó. `BrowserSession` manda Basic una vez (en `GET /api/v1`), guarda el
+  token que vuelve en `sessionStorage` y lo envía como `Authorization: Bearer` en cada request, junto con
+  `X-Requested-With` para que el navegador no abra su propio diálogo. Un 401 lo borra y vuelve al login; "Logout"
+  hace `DELETE /api/v1/tokens/current`. Los scripts y las suites e2e usan `PersonLogins`, que ingresa como la
+  persona de cada comando.
 - **Errores.** Un `problem+json` con una excepción de dominio se convierte en `DomainError`; cualquier otro rechazo,
   en `RejectedRequestError`. Las pantallas muestran siempre el motivo que dio el servidor.
 - **Fechas.** Los instantes se muestran en la hora local del navegador. Las fechas sin hora viajan como

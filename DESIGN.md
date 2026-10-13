@@ -356,11 +356,11 @@ determinista y los tests usan un reloj controlable.
 - **Dónde:** `certiflow-web`: `AssetController`, `SchemaController`, `InspectionController`, `FindingController`, `CertificateController`, `RootController`; `ApiExceptionHandler`; `ActingPersonResolver`; `PageLinks`.
 - **Por qué:**
   - Las rutas son sustantivos; ninguna lleva un verbo. Cada operación de negocio crea el recurso que produce: cerrar crea el **cierre** (`POST /inspections/{id}/closure`, revisión 1), rectificar una **rectificación**, suspender una **suspensión**, renovar una **renovación**, verificar una **verificación**. Los nombres coinciden con las clases del dominio (`Revision`, `Suspension`, `Verification`).
-  - Semántica de métodos: `GET` sin efectos, `PUT` idempotente para la respuesta de un criterio, `POST` para crear. No hay `DELETE` porque el dominio no borra nada.
+  - Semántica de métodos: `GET` sin efectos, `PUT` idempotente para la respuesta de un criterio, `POST` para crear. El único `DELETE` es el logout (`/tokens/current`, D25): el dominio no borra nada.
   - `201 Created` con `Location`; `204` en el `PUT`; errores en `application/problem+json` (RFC 9457) según el tipo de excepción: no encontrado → 404, entrada inválida → 400, regla violada → 409, no certificable → 409 con las razones.
   - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`.
   - `ETag` y `Cache-Control` en lo inmutable (versiones de esquema y revisiones); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
-  - Sin estado: la persona que actúa viaja en `X-Person-Id` y `X-Person-Name` en cada request.
+  - Sin estado: cada request se autentica (Basic o Bearer) y la persona que actúa sale de esa credencial (D25).
 - **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula.
 - **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
@@ -382,7 +382,7 @@ determinista y los tests usan un reloj controlable.
 ### D23. Adaptador HTTP del frontend y niveles de test
 
 - **Principio:** Adapter; anticorrupción en el borde (las pantallas no conocen la forma de la API); separar lo que se prueba rápido de lo que se prueba de verdad.
-- **Dónde:** `certiflow-frontend/src/adapters/http`: `HalClient` (fetch, headers, persona, errores, paginación), `actions.ts` (tabla `rel` → acción), `*Mapping.ts` (funciones puras de la respuesta de la API a los tipos del frontend), `Http*Port.ts`, `__fixtures__/` (respuestas reales). En el backend: `ListSchemasUseCase`, `ListJurisdictionsUseCase`, `RegisteredJurisdictions`, `VocabularyController`, y los campos y links nuevos de `FindingResource`, `FindingsSummaryResource` y `AssetController`.
+- **Dónde:** `certiflow-frontend/src/adapters/http`: `HalClient` (fetch, headers, credenciales, errores, paginación), `actions.ts` (tabla `rel` → acción), `*Mapping.ts` (funciones puras de la respuesta de la API a los tipos del frontend), `Http*Port.ts`, `__fixtures__/` (respuestas reales). En el backend: `ListSchemasUseCase`, `ListJurisdictionsUseCase`, `RegisteredJurisdictions`, `VocabularyController`, y los campos y links nuevos de `FindingResource`, `FindingsSummaryResource` y `AssetController`.
 - **Por qué:**
   - **Las URLs se arman, los links se siguen.** El adaptador construye la URL de un recurso con su identificador, porque las rutas del navegador llevan identificadores, y sigue los links de la respuesta para las acciones disponibles, la paginación y los recursos relacionados. Las acciones nunca se deducen del estado.
   - **Todo `href` se reduce a ruta y query.** La API mezcla links absolutos y relativos; seguido tal cual, un link absoluto saltearía el proxy del frontend y fallaría por origen cruzado.
@@ -400,19 +400,42 @@ determinista y los tests usan un reloj controlable.
 ### D24. Roles en la interfaz
 
 - **Principio:** SRP y OCP en la presentación: una sola tabla de datos decide qué hace cada rol; las pantallas no nombran roles.
-- **Dónde:** `certiflow-frontend/src/ui/app`: `roles.ts` (roles, secciones del menú y `roleThatMayDo`, el rol de cada acción), `roster.ts` (cada persona de ejemplo con su rol), `SessionContext` (persona, rol y `permitted(actions)`), `ActingPersonPicker`, `Layout` y `routes.tsx`; `ui/shared/RoleNotices.tsx`.
+- **Dónde:** `certiflow-frontend/src/ui/app`: `roles.ts` (roles, secciones del menú y `roleThatMayDo`, el rol de cada acción), `roster.ts` (cada persona de ejemplo con su rol), `SessionContext` (persona y rol de quien ingresó, `permitted(actions)`), `LoginPage`, `Layout` y `routes.tsx`; `ui/shared/RoleNotices.tsx`.
 - **Por qué:**
   - La interfaz le mostraba todas las acciones a cualquiera, como si una persona hiciera el proceso entero. Ahora hay seis roles (administradora, coordinadora de inspecciones, inspector, responsable del activo, verificador y oficial de certificación) y cada uno ve en el menú las secciones donde trabaja.
   - **Una acción se muestra si el sistema la permite y el rol puede.** `resource.actions` sigue significando "lo que el sistema permite en este estado" (D22, D23); la pantalla le aplica `permitted(...)`. Son dos preguntas distintas con dos dueños distintos: el estado lo decide el backend, el rol lo decide la interfaz.
   - **`roleThatMayDo` es un `Record` de acción a rol.** Como el compilador exige una entrada por acción, no puede quedar una acción sin rol ni con dos. Mover una acción de un rol a otro, o agregar un rol, es editar esa tabla.
-  - **El rol viene con la persona.** Elegir a alguien en "Acting as" define su rol; al escribir otra persona se elige el suyo. Las reglas de independencia del dominio (S19, verificador distinto del responsable) se siguen cumpliendo solas, porque cada paso lo hace otra persona.
+  - **El rol viene con la persona.** Lo trae el token de quien ingresó (D25); antes se elegía en "Acting as", que ya no existe. Las reglas de independencia del dominio (S19, verificador distinto del responsable) se siguen cumpliendo solas, porque cada paso lo hace otra persona.
   - Lo que no está en el menú de un rol se sigue alcanzando por los links entre registros y se ve completo, sin acciones, con un aviso de a qué rol pertenecen. Entrar por URL a un formulario de otro rol muestra qué rol hace falta.
 - **Alternativas descartadas:**
-  - *Que el backend rechace por rol:* sin login, el rol sería otro header que cualquiera puede escribir; cambia el backend sin dar seguridad.
+  - *Que el backend rechace por rol sin login:* el rol sería otro header que cualquiera puede escribir. Con el login de D25 la API sí aplica los roles.
   - *Elegir el rol aparte de la persona:* permite combinaciones sin sentido, como una inspectora que también verifica.
   - *Mostrar a cada persona solo sus registros:* exige definir quién ve todo y filtros que la API no ofrece.
   - *Preguntar por el rol en cada pantalla (`if (role === 'inspector')`):* reparte la tabla por toda la interfaz.
-- **Costo:** es separación de la interfaz, no control de acceso (ver §6). Quien registra un activo ya no puede asignarle una inspección sin cambiar de persona, que es justamente lo buscado pero hace más largo un recorrido de demostración.
+- **Costo:** la tabla de roles está dos veces, en `roles.ts` y en los `@AllowedRole` de la API (D25); un cambio de rol se hace en los dos. Quien registra un activo ya no puede asignarle una inspección sin cambiar de persona, que es justamente lo buscado pero hace más largo un recorrido de demostración.
+
+### D25. Autenticación y roles en la API
+
+- **Principio:** REST sin estado (la autenticación viaja en cada request y no es un recurso); la regla junto a lo que protege; los detalles (usuarios, contraseñas, tokens) fuera del dominio.
+- **Dónde:** `certiflow-infrastructure`: `infrastructure.security` (`UserAccountEntity`, `RevokedTokenEntity` y sus repositorios; tablas `user_account` y `revoked_token` en `V1__init.sql`). `certiflow-web`: `web.security` (`SecurityConfiguration`, `JwtProperties`, `TokenIssuer`, `IssueTokenAfterBasicFilter`, `NotRevokedValidator`, `UserAccountDetailsService`, `SecurityProblems`, `TokenController`, `StaffRole`, `AllowedRole`, `AllowedRoleInterceptor`, `DemoUsersSeeder`); `ActingPersonResolver` lee la persona de la credencial. En el frontend: `ports/AuthenticationPort`, `adapters/http/{CredentialSource,BrowserSession,PersonLogins}`, `ui/app/LoginPage` y `SessionContext`.
+- **Por qué:**
+  - **Se ingresa por cualquier path.** Cualquier request puede traer `Authorization: Basic`; si las credenciales son válidas, la respuesta (sea cual sea su estado) trae un JWT en `Authorization: Bearer` y su vencimiento en `Token-Expires`. No hay endpoint de login: autenticarse no crea ni cambia nada en el servidor, así que no es un recurso.
+  - **La contraseña viaja una vez.** El cliente usa después el token (HMAC-SHA256, 1 hora, con `sub`, `name`, `role` y `jti`). El navegador guarda un token que vence, no la contraseña, y verificar la firma cuesta microsegundos contra los ~100 ms de BCrypt en cada request.
+  - **El logout sí es un recurso: `DELETE /api/v1/tokens/current`.** Revocar cambia algo en el servidor (un token pasa a estar muerto), y en REST eso se hace sobre un recurso. `current` nombra la credencial con la que se habla, como `/users/me`: nadie puede revocar un token ajeno. Es el mismo esquema que el endpoint de revocación de OAuth 2.0 (RFC 7009).
+  - **Los roles se aplican en la API.** Cada escritura lleva `@AllowedRole(StaffRole.X)` y `AllowedRoleInterceptor` la controla **antes** de leer el cuerpo: un rol equivocado recibe 403 aunque el cuerpo sea inválido. Toda lectura la puede hacer cualquier persona autenticada. La tabla coincide con `roleThatMayDo` del frontend (D24).
+  - **La persona que actúa sale de la credencial.** Los controladores siguen recibiendo `@ActingPerson Person`; desaparecen los headers `X-Person-*`. Las reglas de independencia del dominio siguen comparando `PersonId`.
+  - **Los usuarios no son dominio.** Quién actúa ya es una `Person`; cómo lo prueba es un detalle técnico. Por eso las cuentas viven en infraestructura y web, y `certiflow-domain` y `certiflow-application` no cambian.
+  - **Clave y vencimiento por `@ConfigurationProperties`** (`certiflow.security.jwt.secret`, `ttl`), como en la clase 8. La clave se lee de `CERTIFLOW_JWT_SECRET`.
+  - **El navegador no abre su diálogo de login:** `SecurityProblems` no manda `WWW-Authenticate: Basic` cuando el request trae `X-Requested-With: XMLHttpRequest`, que el frontend envía siempre.
+- **Alternativas descartadas:**
+  - *Endpoint de login (`POST /sessions`):* trata ingresar como un lugar; contradice que cualquier path autentique.
+  - *Basic puro en cada request:* la contraseña quedaría guardada en el navegador y cada request pagaría BCrypt; sin vencimiento ni logout.
+  - *Logout solo en el cliente:* más simple y del todo sin estado, pero un token copiado sirve hasta que vence.
+  - *Sesión con cookie:* exige CSRF y estado en el servidor por cada usuario.
+  - *Usuarios en `@ConfigurationProperties`:* sin tablas, pero agregar una persona exige redeploy.
+  - *`@PreAuthorize`:* se evalúa después de leer el cuerpo, así que un rol equivocado con un cuerpo inválido recibía 400 en lugar de 403.
+  - *Reglas por patrón de URL en la configuración de seguridad:* separa la regla del endpoint y un cambio de path la rompe sin aviso.
+- **Costo:** la revocación agrega estado (la tabla `revoked_token`) y una consulta por request autenticado con token. Los usuarios se cargan por datos: no hay alta, baja ni cambio de contraseña. Cada persona tiene un solo rol.
 
 ---
 
@@ -532,8 +555,9 @@ Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).
 - **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
 - **Severidades y tipos de evidencia estándar.** La persistencia y la API resuelven severidades y tipos de evidencia por nombre contra `StandardSeverity` y `StandardEvidenceKind`. Una escala propia (D2) funciona en el dominio, pero para guardarla o recibirla por la API hay que registrarla en `SectionsJson`, `EvaluationJson` y `SchemaPayloads`.
-- **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
-- **Los roles no son un control de acceso.** Los roles de D24 solo deciden qué muestra la interfaz. La API no tiene login ni conoce los roles: acepta cualquier operación de cualquier persona que llegue en los headers.
+- **Usuarios cargados por datos.** No hay alta, baja ni cambio de contraseña; los seis usuarios de ejemplo los crea `DemoUsersSeeder` con los perfiles `demo` y `demo-users` (D25).
+- **Un token por pestaña.** El frontend guarda el token en `sessionStorage`: un script inyectado en la página podría leerlo, aunque vence en una hora y el logout lo revoca. Al vencer hay que volver a ingresar; no hay refresh token.
+- **Los roles no filtran registros.** Un rol limita qué se puede escribir, no qué se ve: cualquier persona autenticada lee todos los activos, inspecciones y certificados.
 - **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
 - **La API serializa tipos del dominio.** Certificados y decisiones de elegibilidad viajan como los records del dominio (`jurisdictionCode: {value}`, alcance y base sin discriminador). Contradice lo que D21 dice de los DTOs propios y ata al adaptador del frontend a esos nombres.
 - **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.

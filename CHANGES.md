@@ -603,3 +603,26 @@ puertos, el dominio o el adaptador del frontend se tocaron.
   `applicationFlow.e2e.test.tsx`, que ahora eligen la persona del rol antes de cada paso.
 - `DESIGN.md`: nueva D24 y la limitación "los roles no son un control de acceso".
 
+
+## 2026-10-13 · Login, logout y roles en la API
+
+Siguiendo [docs/specs/2026-10-13-login.md](docs/specs/2026-10-13-login.md) y su
+[plan](docs/plans/2026-10-13-login.md). `certiflow-domain` y `certiflow-application` no cambian.
+
+- Se ingresa por cualquier path con `Authorization: Basic`; la respuesta trae un JWT (`Authorization: Bearer`,
+  `Token-Expires`) que se usa en los requests siguientes. Sin credenciales válidas, 401 problem+json.
+- `DELETE /api/v1/tokens/current` hace logout revocando el token (tabla `revoked_token`).
+- Usuarios en la tabla `user_account` (BCrypt). Las dos tablas se agregaron a `V1__init.sql`: hay que recrear las
+  bases locales. Seis usuarios de ejemplo con los perfiles `demo` y `demo-users`, contraseña `certiflow`.
+- Cada escritura exige su rol con `@AllowedRole`, controlado antes de leer el cuerpo (403 problem+json).
+- La persona que actúa sale de la credencial; se eliminan los headers `X-Person-Id` y `X-Person-Name`.
+- Frontend: pantalla de login, botón "Logout" y vuelta al login ante un 401; se elimina "Acting as". `npm run seed`
+  y las suites e2e ingresan como el usuario de cada paso.
+- Contrato del frontend: registrar, crear esquemas y publicar versiones lo hace la administradora y planificar
+  acciones el responsable del activo. Las reglas "el responsable del activo no asigna" y "el responsable de una
+  acción no la verifica" se prueban con personas que tienen el rol pero violan la regla del dominio.
+- CI: el job `e2e` levanta el backend con el perfil `demo-users`.
+- Tests: `SecurityRepositoriesTest`, `AuthenticationApiTest`, `TokenApiTest`, `RoleAccessApiTest` (parametrizado
+  por escritura y por rol), `DemoUsersSeederTest`; `BrowserSession.test.ts`, `PersonLogins.test.ts`,
+  `LoginPage.test.tsx` y las pruebas de `HalClient` y `navigation` actualizadas.
+- `DESIGN.md`: nueva D25; D21 y D24 actualizadas; limitaciones de autenticación reemplazadas.

@@ -19,7 +19,7 @@ Para levantar la aplicación contra PostgreSQL:
 ```bash
 docker compose up -d
 mvn -q -DskipTests install
-mvn -pl certiflow-web spring-boot:run
+mvn -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo
 ```
 
 La conexión se configura con `CERTIFLOW_DB_URL` (por defecto `jdbc:postgresql://localhost:5432/certiflow`),
@@ -52,16 +52,32 @@ certiflow-frontend          interfaz web (fuera del build de Maven): puertos pro
 
 ## API
 
-Base `/api/v1`; `GET /api/v1` devuelve los links a todas las colecciones. Toda operación que escribe exige
-los headers `X-Person-Id` y `X-Person-Name`. Los recursos se devuelven en HAL (`application/hal+json`) y los
-errores en `application/problem+json`.
+Base `/api/v1`; `GET /api/v1` devuelve los links a todas las colecciones. Los recursos se devuelven en HAL
+(`application/hal+json`) y los errores en `application/problem+json`.
+
+**Autenticación.** Todo request se autentica. Se ingresa por cualquier path con `Authorization: Basic`; la
+respuesta trae un token en `Authorization: Bearer …` (vence en una hora, `Token-Expires`) que se usa en los
+requests siguientes. `DELETE /api/v1/tokens/current` hace logout: el token queda revocado. Cada escritura exige
+el rol que le corresponde (403 si no); las lecturas, cualquier persona autenticada. Detalle en
+[DESIGN.md](DESIGN.md) (D25).
 
 ```bash
-curl -i -X POST localhost:8080/api/v1/assets \
-  -H 'Content-Type: application/json' -H 'X-Person-Id: EMP-001' -H 'X-Person-Name: Paula' \
+curl -i -u EMP-006:certiflow localhost:8080/api/v1/assets        # devuelve Authorization: Bearer …
+TOKEN=eyJ…                                                       # el valor después de "Bearer "
+curl -i -X POST localhost:8080/api/v1/assets -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
   -d '{"code":"EXT-0042","name":"Lobby extinguisher","type":"Fire extinguisher","location":"Lobby",
-       "responsible":{"id":"EMP-003","name":"Raul"},"characteristics":[]}'
+       "jurisdictionCode":"DEMO-STANDARD","subsystems":[],"responsible":{"id":"EMP-003","name":"Raul Mendez"},
+       "characteristics":[]}'
+curl -i -X DELETE localhost:8080/api/v1/tokens/current -H "Authorization: Bearer $TOKEN"   # 204
 ```
+
+**Usuarios de ejemplo.** Con el perfil `demo` (usuarios y datos) o `demo-users` (solo usuarios), contraseña
+`certiflow`: `EMP-006` Ana Torres (Administrator), `EMP-001` Paula Rios (Inspection coordinator), `EMP-002` Ines
+Duarte (Inspector), `EMP-003` Raul Mendez (Asset responsible), `EMP-004` Vera Soto (Verifier) y `EMP-005` Carlos
+Vidal (Certification officer). La clave que firma los tokens se configura con `CERTIFLOW_JWT_SECRET` (mínimo 32
+bytes; el valor por defecto es solo para desarrollo). Las tablas de usuarios se agregaron a `V1__init.sql`: una
+base local creada antes hay que recrearla.
 
 Las rutas, los códigos de estado y las reglas REST que sigue la API están en
 [docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md](docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md) (§6)
@@ -78,11 +94,11 @@ Con el backend levantado (`mvn -pl certiflow-web spring-boot:run`):
 cd certiflow-frontend && npm install && npm run dev
 ```
 
-Abre en `http://localhost:5173`. La persona elegida en "Acting as" define el rol (administradora, coordinadora,
-inspector, responsable del activo, verificador u oficial de certificación): cada rol ve sus secciones y solo las
-acciones que le corresponden. Es una separación de la interfaz; la API no restringe por rol.
+Abre en `http://localhost:5173` con la pantalla de login (usuarios de ejemplo arriba). El rol de quien ingresa
+(administradora, coordinadora, inspector, responsable del activo, verificador u oficial de certificación) decide
+qué secciones ve y qué acciones encuentra; la API aplica los mismos roles. "Logout" revoca el token.
 
-Para cargar datos de demostración a través de la API:
+Para cargar datos de demostración a través de la API (con el backend en el perfil `demo-users`, que crea los usuarios):
 
 ```bash
 cd certiflow-frontend && npm run seed
