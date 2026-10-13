@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public record GrantedDecision(List<CertificationCondition> conditions, ValidityPeriod validity, String policyCode,
+public record GrantedDecision(List<CertificationCondition> conditions, ValidityPeriod validity, PolicyCode policyCode,
                               JurisdictionCode jurisdictionCode, Instant evaluatedAt, CertificationScope scope)
         implements CertificationDecision {
 

@@ -6,6 +6,6 @@ import ar.edu.itba.certiflow.shared.model.NotFoundException;
 public class CriterionOutOfScopeException extends NotFoundException {
 
     public CriterionOutOfScopeException(Criterion<?> criterion) {
-        super("Criterion " + criterion.code() + " is outside the scope assigned to this inspection");
+        super("Criterion " + criterion.code().value() + " is outside the scope assigned to this inspection");
     }
 }

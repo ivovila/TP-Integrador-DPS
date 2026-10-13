@@ -22,6 +22,7 @@ import ar.edu.itba.certiflow.certification.model.DecidedCertification;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
@@ -87,7 +88,7 @@ class IssueCertificateUseCaseImplTest {
     void aRejectedDecisionConsumesNoNumberAndSavesNothing() {
         CertificationDecision rejected = new RejectedDecision(
                 List.of(new Ineligibility(StandardIneligibilityReason.BLOCKING_FINDINGS, "Open finding")),
-                "STANDARD", new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
+                new PolicyCode("STANDARD"), new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenThrow(new NotEligibleForCertificationException(rejected));
 
         assertThrows(NotEligibleForCertificationException.class, () -> issueCertificate.execute(COMMAND));
@@ -101,7 +102,7 @@ class IssueCertificateUseCaseImplTest {
         InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), new ClosedAt(Samples.NOW), true, List.of(),
                 new SchemaReference(Samples.EXTINGUISHER, 1), List.of(), WHOLE);
         GrantedDecision approved = new GrantedDecision(List.of(),
-                new ValidityPeriod(today, today.plusYears(1).minusDays(1)), "STANDARD",
+                new ValidityPeriod(today, today.plusYears(1).minusDays(1)), new PolicyCode("STANDARD"),
                 Samples.ASSET.jurisdictionCode(), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenReturn(new DecidedCertification(result, approved));
         doThrow(new AssetAlreadyCertifiedException(Samples.ASSET.code(), new CertificateNumber("CERT-00001")))

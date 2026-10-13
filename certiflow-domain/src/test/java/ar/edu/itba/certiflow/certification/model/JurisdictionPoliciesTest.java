@@ -22,14 +22,14 @@ class JurisdictionPoliciesTest {
     }
 
     private SeverityCertificationPolicy strictPolicy() {
-        return new SeverityCertificationPolicy("STRICT",
+        return new SeverityCertificationPolicy(new PolicyCode("STRICT"),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     private SeverityCertificationPolicy conditionalPolicy() {
-        return new SeverityCertificationPolicy("CONDITIONAL",
+        return new SeverityCertificationPolicy(new PolicyCode("CONDITIONAL"),
                 Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
@@ -52,7 +52,7 @@ class JurisdictionPoliciesTest {
     @Test
     void assessmentPreservesTheAppliedPolicyAndJurisdiction() {
         var decision = evaluate(false, result(true, true, null));
-        assertEquals("CONDITIONAL", decision.policyCode());
+        assertEquals(new PolicyCode("CONDITIONAL"), decision.policyCode());
         assertEquals(new JurisdictionCode("DEMO-CONDITIONAL"), decision.jurisdictionCode());
         assertEquals(new WholeAssetScope(), decision.scope());
     }
@@ -78,7 +78,7 @@ class JurisdictionPoliciesTest {
     @Test
     void classifiesCustomSeverityWithoutKnowingItsImplementation() {
         CertificationPolicy policy = new CertificationPolicy() {
-            @Override public String code() { return "CUSTOM"; }
+            @Override public PolicyCode code() { return new PolicyCode("CUSTOM"); }
             @Override public CertificationDecision evaluate(CertificationAssessmentContext context) {
                 var from = context.issuanceDate();
                 var until = from.plusDays(14);

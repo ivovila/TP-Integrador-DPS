@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.certification;
 import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Instant;
 import java.util.List;
@@ -17,7 +18,7 @@ final class BasisLinks implements CertificateBasisDescriber<List<Link>> {
     }
 
     @Override
-    public List<Link> partialCertificates(List<CertificateNumber> partialCertificateNumbers, String globalPolicyCode,
+    public List<Link> partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
                                           Instant latestInspectionClosedAt) {
         return partialCertificateNumbers.stream()
                 .map(partialCertificateNumber -> Link.of(Uris.path("certificates", partialCertificateNumber.value()))

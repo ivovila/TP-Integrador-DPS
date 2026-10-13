@@ -1,22 +1,26 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.JpaInspectionSchemaRepository;
 import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionAlreadyClosedException;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.NumericAnswer;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.List;
@@ -27,9 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
-import ar.edu.itba.certiflow.catalog.model.Asset;
 
 @DataJpaTest
 @Import({JpaInspectionRepository.class, JpaInspectionSchemaRepository.class, PersistenceMappers.class})
@@ -73,7 +75,7 @@ class JpaInspectionRepositoryTest {
         assertEquals(inspection.snapshot(), restored.snapshot());
         assertTrue(restored.isClosed());
         assertThrows(InspectionAlreadyClosedException.class, () -> DomainSamples.inspectionService()
-                .recordAnswer(restored, "EXT-02", new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0)));
+                .recordAnswer(restored, new CriterionCode("EXT-02"), new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0)));
     }
 
     @Test
@@ -98,13 +100,13 @@ class JpaInspectionRepositoryTest {
     @Test
     void aSectionTitleWithALineBreakSurvivesTheScope() {
         InspectionSchema lined = DomainSamples.schemaWith("Lined", new AssetType("Lined boiler"),
-                List.of(new Section("Signage\nand lights", DomainSamples.sections().get(1).criteria())), DomainSamples.T0);
+                List.of(new Section(new SectionTitle("Signage\nand lights"), DomainSamples.sections().get(1).criteria())), DomainSamples.T0);
         schemas.save(lined);
         Asset sample = DomainSamples.ASSET;
         Asset linedBoiler = new Asset(sample.code(), sample.name(), lined.assetType(), sample.location(), sample.responsible(),
                 sample.characteristics(), sample.jurisdictionCode(), sample.subsystems());
         Inspection inspection = DomainSamples.inspectionService().assign(new InspectionId("I-lined"), linedBoiler,
-                new InspectionAssignment(DomainSamples.INSPECTOR, LocalDate.of(2026, 3, 13), new SectionsScope(Set.of("Signage\nand lights"))),
+                new InspectionAssignment(DomainSamples.INSPECTOR, LocalDate.of(2026, 3, 13), new SectionsScope(Set.of(new SectionTitle("Signage\nand lights")))),
                 lined.latestPublishedVersion(), new Stamp(DomainSamples.PLANNER, DomainSamples.T0));
 
         assertEquals(inspection.snapshot(), reloaded(inspection).snapshot());
@@ -114,7 +116,7 @@ class JpaInspectionRepositoryTest {
     @Test
     void aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed() {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
-        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_000)));
+        DomainSamples.inspectionService().recordAnswer(inspection, new CriterionCode("EXT-02"), new RawAnswer("true"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_000)));
         DomainSamples.close(inspection);
 
         Inspection restored = reloaded(inspection);
@@ -135,7 +137,7 @@ class JpaInspectionRepositoryTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(900)));
+        DomainSamples.inspectionService().recordAnswer(loaded, new CriterionCode("EXT-02"), new RawAnswer("false"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(900)));
         repository.save(loaded);
         entityManager.flush();
 
@@ -153,7 +155,7 @@ class JpaInspectionRepositoryTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        DomainSamples.inspectionService().rectify(loaded, "EXT-03", new RawAnswer("REFLECTIVE"), "Typo", new Stamp(DomainSamples.PLANNER, DomainSamples.T0.plusSeconds(1200)));
+        DomainSamples.inspectionService().rectify(loaded, new CriterionCode("EXT-03"), new RawAnswer("REFLECTIVE"), "Typo", new Stamp(DomainSamples.PLANNER, DomainSamples.T0.plusSeconds(1200)));
         repository.save(loaded);
         entityManager.flush();
 

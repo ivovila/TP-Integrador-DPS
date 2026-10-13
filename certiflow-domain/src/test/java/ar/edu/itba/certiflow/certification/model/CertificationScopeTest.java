@@ -94,7 +94,7 @@ class CertificationScopeTest {
     void aPartialCertificatesBasisIsNotSupportedWhenAPartialIsMissing() {
         Instant closedAt = Instant.parse("2026-01-31T10:00:00Z");
         PartialCertificatesBasis basis = new PartialCertificatesBasis(List.of(new CertificateNumber("CERT-00001")),
-                "ALL-REQUIRED-SUBSYSTEMS", closedAt);
+                new PolicyCode("ALL-REQUIRED-SUBSYSTEMS"), closedAt);
 
         assertEquals(closedAt, basis.latestInspectionClosedAt());
         assertFalse(basis.isSupportedOn(LocalDate.of(2026, 2, 1), List.of()));

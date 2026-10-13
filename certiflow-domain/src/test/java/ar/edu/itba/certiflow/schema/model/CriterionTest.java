@@ -61,11 +61,11 @@ class CriterionTest {
     @Test
     void schemaVersionRejectsDuplicatedCriterionCodes() {
         Criterion<YesNoAnswer> firstCriterion = criterionWith(StandardSeverity.MINOR);
-        Criterion<YesNoAnswer> criterionWithSameCode = new Criterion<>("C-1", "Another text", new YesNoRule(YesNoAnswer.NO),
+        Criterion<YesNoAnswer> criterionWithSameCode = new Criterion<>(new CriterionCode("C-1"), "Another text", new YesNoRule(YesNoAnswer.NO),
                 StandardSeverity.MAJOR, List.of());
 
         assertThrows(InvalidSchemaException.class,
-                () -> new SchemaSections(List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode)))));
+                () -> new SchemaSections(List.of(new Section(new SectionTitle("General"), List.of(firstCriterion, criterionWithSameCode)))));
     }
 
     @Test
@@ -74,23 +74,23 @@ class CriterionTest {
                 new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1),
                 new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1));
 
-        assertThrows(InvalidSchemaException.class, () -> new Criterion<>("C-1", "Guard is in place",
+        assertThrows(InvalidSchemaException.class, () -> new Criterion<>(new CriterionCode("C-1"), "Guard is in place",
                 new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, repeatedRequirements));
     }
 
     @Test
     void sectionWithoutCriteriaIsRejected() {
-        assertThrows(InvalidSchemaException.class, () -> new Section("Empty", List.of()));
+        assertThrows(InvalidSchemaException.class, () -> new Section(new SectionTitle("Empty"), List.of()));
     }
 
     private Criterion<YesNoAnswer> criterionWith(Severity severity) {
-        return new Criterion<>("C-1", "Guard is in place", new YesNoRule(YesNoAnswer.YES), severity, List.of());
+        return new Criterion<>(new CriterionCode("C-1"), "Guard is in place", new YesNoRule(YesNoAnswer.YES), severity, List.of());
     }
 
     @ParameterizedTest
     @CsvSource({"MINOR,OBSERVED,false", "MAJOR,REJECTED,true", "CRITICAL,REJECTED,true"})
     void anUnmetCriterionTakesTheOutcomeAndBlockingOfItsSeverity(StandardSeverity severity, Outcome outcome, boolean blocks) {
-        Criterion<YesNoAnswer> criterion = new Criterion<>("C-1", "Seal", new YesNoRule(YesNoAnswer.YES), severity, List.of());
+        Criterion<YesNoAnswer> criterion = new Criterion<>(new CriterionCode("C-1"), "Seal", new YesNoRule(YesNoAnswer.YES), severity, List.of());
 
         assertEquals(outcome, criterion.outcomeOf(YesNoAnswer.NO));
         assertEquals(Outcome.APPROVED, criterion.outcomeOf(YesNoAnswer.YES));

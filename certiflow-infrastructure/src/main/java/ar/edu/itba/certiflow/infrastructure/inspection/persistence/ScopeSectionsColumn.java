@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.inspection.model.InspectionScopeDescriber;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import java.util.Optional;
 import java.util.Set;
 
@@ -20,7 +21,7 @@ final class ScopeSectionsColumn implements InspectionScopeDescriber<Optional<Str
     }
 
     @Override
-    public Optional<String> sections(Set<String> sectionTitles) {
-        return Optional.of(codeDocuments.write(sectionTitles.stream().sorted().toList()));
+    public Optional<String> sections(Set<SectionTitle> sectionTitles) {
+        return Optional.of(codeDocuments.write(sectionTitles.stream().map(SectionTitle::value).sorted().toList()));
     }
 }

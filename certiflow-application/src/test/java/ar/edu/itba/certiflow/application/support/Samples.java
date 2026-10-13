@@ -17,6 +17,7 @@ import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
@@ -28,6 +29,7 @@ import ar.edu.itba.certiflow.schema.model.SchemaSections;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.SchemaVersionLog;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
@@ -62,13 +64,13 @@ public final class Samples {
 
     public static List<Section> sections() {
         return List.of(
-                new Section("Pressure and seal", List.of(
-                        new Criterion<>("EXT-01", "Gauge pressure within range",
+                new Section(new SectionTitle("Pressure and seal"), List.of(
+                        new Criterion<>(new CriterionCode("EXT-01"), "Gauge pressure within range",
                                 new NumericRangeRule(new Unit("bar"), new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),
                                 StandardSeverity.MAJOR, List.of(new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1))),
-                        new Criterion<>("EXT-02", "Seal intact", new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL,
+                        new Criterion<>(new CriterionCode("EXT-02"), "Seal intact", new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL,
                                 List.of()))),
-                new Section("Signage", List.of(new Criterion<>("EXT-03", "Signage condition",
+                new Section(new SectionTitle("Signage"), List.of(new Criterion<>(new CriterionCode("EXT-03"), "Signage condition",
                         new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of()))));
     }
 
@@ -97,10 +99,10 @@ public final class Samples {
         Inspection inspection = service.assign(new InspectionId("I-1"), ASSET,
                 new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()),
                 schema().latestPublishedVersion(), new Stamp(PLANNER, NOW));
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer(pressure), new Stamp(INSPECTOR, NOW));
-        service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "gauge.jpg", "Gauge"), new Stamp(INSPECTOR, NOW));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(INSPECTOR, NOW));
-        service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, NOW));
+        service.recordAnswer(inspection, new CriterionCode("EXT-01"), new RawAnswer(pressure), new Stamp(INSPECTOR, NOW));
+        service.attachEvidence(inspection, new CriterionCode("EXT-01"), new Evidence(StandardEvidenceKind.PHOTO, "gauge.jpg", "Gauge"), new Stamp(INSPECTOR, NOW));
+        service.recordAnswer(inspection, new CriterionCode("EXT-02"), new RawAnswer("true"), new Stamp(INSPECTOR, NOW));
+        service.recordAnswer(inspection, new CriterionCode("EXT-03"), new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, NOW));
         return inspection;
     }
 }

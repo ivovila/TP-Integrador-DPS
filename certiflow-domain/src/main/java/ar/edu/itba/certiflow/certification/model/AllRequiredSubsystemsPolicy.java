@@ -24,8 +24,8 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                     requiredSubsystems -> "Schema has no required subsystems")));
 
     @Override
-    public String code() {
-        return "ALL-REQUIRED-SUBSYSTEMS";
+    public PolicyCode code() {
+        return new PolicyCode("ALL-REQUIRED-SUBSYSTEMS");
     }
 
     @Override

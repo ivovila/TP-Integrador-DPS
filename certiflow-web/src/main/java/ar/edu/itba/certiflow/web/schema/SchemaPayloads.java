@@ -3,19 +3,21 @@ package ar.edu.itba.certiflow.web.schema;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
-import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.web.support.SubsystemCodeField;
 import java.util.Arrays;
@@ -53,18 +55,18 @@ public final class SchemaPayloads {
 
     public static List<Section> toSections(List<SectionPayload> sections) {
         return sections.stream()
-                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), new SubsystemCodeField(section.subsystemCode()).association()))
+                .map(section -> new Section(new SectionTitle(section.title()), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), new SubsystemCodeField(section.subsystemCode()).association()))
                 .toList();
     }
 
     public static List<SectionPayload> fromSections(List<Section> sections) {
         return sections.stream()
-                .map(section -> new SectionPayload(section.title(), section.criteria().stream().map(SchemaPayloads::payload).toList(), new SubsystemCodeField(section.subsystem()).subsystemCode()))
+                .map(section -> new SectionPayload(section.title().value(), section.criteria().stream().map(SchemaPayloads::payload).toList(), new SubsystemCodeField(section.subsystem()).subsystemCode()))
                 .toList();
     }
 
     public static CriterionPayload payload(Criterion<?> criterion) {
-        return new CriterionPayload(criterion.code(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
+        return new CriterionPayload(criterion.code().value(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
                 rulePayload(criterion.rule()),
                 criterion.requiredEvidence().stream()
                         .map(r -> new EvidenceRequirementPayload(r.kind().code(), r.minimum())).toList(), new SubsystemCodeField(criterion.subsystem()).subsystemCode());
@@ -79,7 +81,7 @@ public final class SchemaPayloads {
 
     private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Severity severity,
                                                             List<EvidenceRequirement> evidence) {
-        return new Criterion<>(payload.code(), payload.text(), rule, severity, evidence,
+        return new Criterion<>(new CriterionCode(payload.code()), payload.text(), rule, severity, evidence,
                 new SubsystemCodeField(payload.subsystemCode()).association());
     }
 

@@ -6,6 +6,6 @@ import ar.edu.itba.certiflow.shared.model.RuleViolationException;
 public class FindingRequiresNonConformityException extends RuleViolationException {
 
     public FindingRequiresNonConformityException(Criterion<?> criterion) {
-        super("Criterion " + criterion.code() + " was not observed nor rejected, so it raises no finding");
+        super("Criterion " + criterion.code().value() + " was not observed nor rejected, so it raises no finding");
     }
 }

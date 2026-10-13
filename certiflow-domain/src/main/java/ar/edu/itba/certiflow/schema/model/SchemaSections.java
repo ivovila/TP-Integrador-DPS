@@ -24,7 +24,7 @@ public record SchemaSections(List<Section> all) {
         if (all.stream().map(Section::title).distinct().count() != all.size()) {
             throw new InvalidSchemaException("Section titles must be unique");
         }
-        List<String> criterionCodes = all.stream()
+        List<CriterionCode> criterionCodes = all.stream()
                 .flatMap(section -> section.criteria().stream())
                 .map(Criterion::code)
                 .toList();
@@ -37,14 +37,14 @@ public record SchemaSections(List<Section> all) {
         return all.stream().flatMap(section -> section.criteria().stream()).toList();
     }
 
-    public Section withTitle(String title) {
+    public Section withTitle(SectionTitle title) {
         return all.stream()
                 .filter(section -> section.title().equals(title))
                 .findFirst()
                 .orElseThrow(() -> new SectionNotInSchemaException(title));
     }
 
-    public Criterion<?> withCode(String criterionCode) {
+    public Criterion<?> withCode(CriterionCode criterionCode) {
         return criteria().stream()
                 .filter(criterion -> criterion.code().equals(criterionCode))
                 .findFirst()

@@ -24,27 +24,27 @@ class SchemaSectionsTest {
     private final Criterion<YesNoAnswer> signage = criterion("SIGNAGE");
 
     private Criterion<YesNoAnswer> criterion(String code) {
-        return new Criterion<>(code, "Check " + code, new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of());
+        return new Criterion<>(new CriterionCode(code), "Check " + code, new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of());
     }
 
     @Test
     void sectionsAndCriteriaAreFoundByTitleAndCode() {
-        Section electrical = new Section("Electrical", List.of(grounding));
-        SchemaSections sections = new SchemaSections(List.of(electrical, new Section("Pressure", List.of(reliefValve))));
+        Section electrical = new Section(new SectionTitle("Electrical"), List.of(grounding));
+        SchemaSections sections = new SchemaSections(List.of(electrical, new Section(new SectionTitle("Pressure"), List.of(reliefValve))));
 
-        assertEquals(electrical, sections.withTitle("Electrical"));
-        assertEquals(reliefValve, sections.withCode("RELIEF-VALVE"));
+        assertEquals(electrical, sections.withTitle(new SectionTitle("Electrical")));
+        assertEquals(reliefValve, sections.withCode(new CriterionCode("RELIEF-VALVE")));
         assertEquals(List.of(grounding, reliefValve), sections.criteria());
-        assertThrows(SectionNotInSchemaException.class, () -> sections.withTitle("Signage"));
-        assertThrows(CriterionNotInSchemaException.class, () -> sections.withCode("SIGNAGE"));
+        assertThrows(SectionNotInSchemaException.class, () -> sections.withTitle(new SectionTitle("Signage")));
+        assertThrows(CriterionNotInSchemaException.class, () -> sections.withCode(new CriterionCode("SIGNAGE")));
         assertThrows(CriterionNotInSchemaException.class, () -> sections.ensureContains(signage));
     }
 
     @Test
     void theAssignedSubsystemsAreThoseOfTheCriteriaIncludingTheOnesInheritedFromTheirSection() {
         SchemaSections sections = new SchemaSections(List.of(
-                new Section("Electrical", List.of(grounding), new InSubsystem(ELECTRICAL)),
-                new Section("Pressure", List.of(reliefValve), new InSubsystem(PRESSURE))));
+                new Section(new SectionTitle("Electrical"), List.of(grounding), new InSubsystem(ELECTRICAL)),
+                new Section(new SectionTitle("Pressure"), List.of(reliefValve), new InSubsystem(PRESSURE))));
 
         assertEquals(Set.of(ELECTRICAL, PRESSURE), sections.assignedSubsystems());
         assertEquals(List.of(grounding), sections.assignedTo(ELECTRICAL));
@@ -54,8 +54,8 @@ class SchemaSectionsTest {
     @Test
     void aCriterionWithoutSubsystemInASectionWithoutSubsystemIsNoticed() {
         SchemaSections sections = new SchemaSections(List.of(
-                new Section("Electrical", List.of(grounding), new InSubsystem(ELECTRICAL)),
-                new Section("Signage", List.of(signage))));
+                new Section(new SectionTitle("Electrical"), List.of(grounding), new InSubsystem(ELECTRICAL)),
+                new Section(new SectionTitle("Signage"), List.of(signage))));
 
         assertTrue(sections.hasCriteriaWithoutSubsystem());
         assertEquals(Set.of(ELECTRICAL), sections.assignedSubsystems());
@@ -65,6 +65,6 @@ class SchemaSectionsTest {
     void aVersionNeedsSectionsWithDifferentTitles() {
         assertThrows(InvalidSchemaException.class, () -> new SchemaSections(List.of()));
         assertThrows(InvalidSchemaException.class, () -> new SchemaSections(List.of(
-                new Section("Electrical", List.of(grounding)), new Section("Electrical", List.of(reliefValve)))));
+                new Section(new SectionTitle("Electrical"), List.of(grounding)), new Section(new SectionTitle("Electrical"), List.of(reliefValve)))));
     }
 }

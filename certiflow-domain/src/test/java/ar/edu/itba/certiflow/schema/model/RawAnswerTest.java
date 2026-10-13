@@ -73,11 +73,11 @@ class RawAnswerTest {
 
     @Test
     void aVersionFindsItsCriterionByCodeAndRejectsAnUnknownOne() {
-        Criterion<YesNoAnswer> seal = new Criterion<>("EXT-02", "Seal intact", YES_NO, StandardSeverity.CRITICAL, List.of());
-        SchemaVersion version = new SchemaVersion(1, new SchemaSections(List.of(new Section("Seal", List.of(seal)))),
+        Criterion<YesNoAnswer> seal = new Criterion<>(new CriterionCode("EXT-02"), "Seal intact", YES_NO, StandardSeverity.CRITICAL, List.of());
+        SchemaVersion version = new SchemaVersion(1, new SchemaSections(List.of(new Section(new SectionTitle("Seal"), List.of(seal)))),
                 Instant.EPOCH, Instant.EPOCH);
 
-        assertEquals(seal, version.criterion("EXT-02"));
-        assertThrows(CriterionNotInSchemaException.class, () -> version.criterion("EXT-99"));
+        assertEquals(seal, version.criterion(new CriterionCode("EXT-02")));
+        assertThrows(CriterionNotInSchemaException.class, () -> version.criterion(new CriterionCode("EXT-99")));
     }
 }

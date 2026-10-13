@@ -24,7 +24,7 @@ public record GlobalAssessmentContext(AssetCode assetCode, SchemaReference schem
         return Collections.max(partials.stream().map(Certificate::latestInspectionClosedAt).toList());
     }
 
-    public DecidedGlobalCertification decidedWith(GrantedDecision decision, String globalPolicyCode) {
+    public DecidedGlobalCertification decidedWith(GrantedDecision decision, PolicyCode globalPolicyCode) {
         return new DecidedGlobalCertification(assetCode, schemaReference, requiredSubsystems,
                 partials.stream().map(Certificate::number).toList(), globalPolicyCode, latestInspectionClosedAt(),
                 decision);

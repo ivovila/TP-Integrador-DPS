@@ -53,7 +53,7 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
     /** Los hallazgos abiertos del activo, incluidos los de otras inspecciones, con la severidad de su criterio. */
     private List<OpenNonConformity> openNonConformitiesOf(Asset asset) {
         return findingRepository.findByAsset(asset.code()).stream().filter(Finding::isOpen)
-                .map(finding -> new OpenNonConformity(finding.criterion().code(), finding.severity(),
+                .map(finding -> new OpenNonConformity(finding.criterion().code().value(), finding.severity(),
                         finding.id().value(), finding.subsystem()))
                 .toList();
     }

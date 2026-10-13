@@ -37,7 +37,7 @@ public final class Finding {
         if (!nonConformity.outcome().raisesFinding()) {
             throw new FindingRequiresNonConformityException(criterion);
         }
-        auditTrail.record(FindingAudit.RAISED, source.raised(), criterion.code() + " " + nonConformity.outcome());
+        auditTrail.record(FindingAudit.RAISED, source.raised(), criterion.code().value() + " " + nonConformity.outcome());
     }
 
     Finding(FindingSnapshot snapshot) {

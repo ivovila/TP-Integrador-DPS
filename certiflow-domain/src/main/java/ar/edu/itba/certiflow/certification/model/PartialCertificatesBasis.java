@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-public record PartialCertificatesBasis(List<CertificateNumber> partialCertificateNumbers, String globalPolicyCode,
+public record PartialCertificatesBasis(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
                                        Instant latestInspectionClosedAt) implements CertificateBasis {
 
     public PartialCertificatesBasis {

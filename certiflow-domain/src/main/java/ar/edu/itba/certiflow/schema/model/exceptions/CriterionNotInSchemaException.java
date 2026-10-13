@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.schema.model.exceptions;
 
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.shared.model.NotFoundException;
 
 public class CriterionNotInSchemaException extends NotFoundException {
@@ -9,7 +10,7 @@ public class CriterionNotInSchemaException extends NotFoundException {
         this(criterion.code());
     }
 
-    public CriterionNotInSchemaException(String criterionCode) {
-        super("Criterion " + criterionCode + " does not belong to the schema version bound to this inspection");
+    public CriterionNotInSchemaException(CriterionCode criterionCode) {
+        super("Criterion " + criterionCode.value() + " does not belong to the schema version bound to this inspection");
     }
 }

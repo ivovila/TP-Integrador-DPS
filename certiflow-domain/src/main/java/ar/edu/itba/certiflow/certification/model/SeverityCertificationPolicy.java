@@ -10,18 +10,19 @@ import java.util.Map;
  */
 public final class SeverityCertificationPolicy implements CertificationPolicy {
 
-    private final String code;
+    private final PolicyCode code;
     private final Map<Severity, FindingTreatment> treatments;
     private final ValidityTerm approvedTerm;
 
-    public SeverityCertificationPolicy(String code, Map<Severity, FindingTreatment> treatments, ValidityTerm approvedTerm) {
+    public SeverityCertificationPolicy(PolicyCode code, Map<Severity, FindingTreatment> treatments,
+                                       ValidityTerm approvedTerm) {
         this.code = code;
         this.treatments = Map.copyOf(treatments);
         this.approvedTerm = approvedTerm;
     }
 
     @Override
-    public String code() {
+    public PolicyCode code() {
         return code;
     }
 

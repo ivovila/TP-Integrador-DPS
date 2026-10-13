@@ -19,7 +19,7 @@ public class FindingsSummaryResource extends RepresentationModel<FindingsSummary
     FindingsSummaryResource(FindingsSummary summary) {
         this.assetCode = summary.assetCode().value();
         this.findings = summary.findings().stream()
-                .map(line -> new Line(line.findingId().value(), line.criterionCode(), line.description(), line.severity(),
+                .map(line -> new Line(line.findingId().value(), line.criterionCode().value(), line.description(), line.severity(),
                         PersonPayload.of(line.responsible()), line.open(), line.overdueActions(),
                         new SubsystemCodeField(line.subsystem()).subsystemCode()))
                 .toList();

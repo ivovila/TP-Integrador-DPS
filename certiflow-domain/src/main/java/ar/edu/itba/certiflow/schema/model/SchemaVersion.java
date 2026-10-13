@@ -45,11 +45,11 @@ public record SchemaVersion(int number, SchemaSections sections, Instant publish
         return sections.criteria();
     }
 
-    public Section section(String title) {
+    public Section section(SectionTitle title) {
         return sections.withTitle(title);
     }
 
-    public Criterion<?> criterion(String criterionCode) {
+    public Criterion<?> criterion(CriterionCode criterionCode) {
         return sections.withCode(criterionCode);
     }
 

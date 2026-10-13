@@ -14,7 +14,7 @@ import java.util.Set;
  */
 public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference schemaReference,
                                          Set<SubsystemCode> requiredSubsystems, List<CertificateNumber> partialNumbers,
-                                         String globalPolicyCode, Instant latestInspectionClosedAt,
+                                         PolicyCode globalPolicyCode, Instant latestInspectionClosedAt,
                                          GrantedDecision decision) {
 
     public DecidedGlobalCertification {

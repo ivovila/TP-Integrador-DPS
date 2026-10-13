@@ -6,10 +6,12 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredD
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.schema.model.SeverityCatalog;
 import java.util.List;
@@ -59,19 +61,19 @@ public class SectionsDocumentMapper {
     }
 
     private SectionDocument sectionDocumentOf(Section section) {
-        return new SectionDocument(section.title(),
+        return new SectionDocument(section.title().value(),
                 section.criteria().stream().map(this::criterionDocumentOf).toList(),
                 new SubsystemColumn(section.subsystem()).subsystemCode());
     }
 
     private Section sectionOf(SectionDocument document) {
-        return new Section(document.title(),
+        return new Section(new SectionTitle(document.title()),
                 document.criteria().stream().<Criterion<?>>map(this::criterionOf).toList(),
                 new SubsystemColumn(document.subsystemCode()).association());
     }
 
     private CriterionDocument criterionDocumentOf(Criterion<?> criterion) {
-        return new CriterionDocument(criterion.code(), criterion.text(),
+        return new CriterionDocument(criterion.code().value(), criterion.text(),
                 criterion.rule().describedBy(new RuleDocumentDescriber()), criterion.severity().code(),
                 criterion.requiredEvidence().stream()
                         .map(requirement -> new EvidenceDocument(requirement.kind().code(), requirement.minimum()))
@@ -94,7 +96,7 @@ public class SectionsDocumentMapper {
         List<EvidenceRequirement> requiredEvidence = document.requiredEvidence().stream()
                 .map(requirement -> new EvidenceRequirement(evidenceKindOf(requirement), requirement.minimum()))
                 .toList();
-        return new Criterion<>(document.code(), document.text(), rule, severity, requiredEvidence,
+        return new Criterion<>(new CriterionCode(document.code()), document.text(), rule, severity, requiredEvidence,
                 new SubsystemColumn(document.subsystemCode()).association());
     }
 

@@ -2,11 +2,12 @@ package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import java.util.List;
 import java.util.Set;
 
-public record SectionsScope(Set<String> sectionTitles) implements InspectionScope {
+public record SectionsScope(Set<SectionTitle> sectionTitles) implements InspectionScope {
 
     public SectionsScope {
         sectionTitles = Set.copyOf(sectionTitles);

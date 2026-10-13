@@ -4,12 +4,14 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.inspection.model.FullScope;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import ar.edu.itba.certiflow.web.support.PersonPayload;
 import ar.edu.itba.certiflow.web.support.RequestFields;
 import java.time.LocalDate;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public record AssignmentRequest(String assetCode, PersonPayload inspector, LocalDate plannedDate, Set<String> sections) {
 
@@ -24,6 +26,9 @@ public record AssignmentRequest(String assetCode, PersonPayload inspector, Local
 
     AssignInspectionCommand toCommand(Person assignedBy) {
         return new AssignInspectionCommand(new AssetCode(assetCode), inspector.toDomain(), plannedDate,
-                sections == null ? new FullScope() : new SectionsScope(sections), assignedBy);
+                sections == null
+                        ? new FullScope()
+                        : new SectionsScope(sections.stream().map(SectionTitle::new).collect(Collectors.toSet())),
+                assignedBy);
     }
 }

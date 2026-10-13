@@ -13,6 +13,7 @@ import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateInspectionActUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
 import ar.edu.itba.certiflow.web.security.ReadableBy;
@@ -67,7 +68,8 @@ public class RevisionController {
     @PostMapping("/{id}/rectifications")
     public ResponseEntity<RevisionResource> rectify(@PathVariable String id, @RequestBody RectificationRequest request,
                                                     @ActingPerson Person rectifiedBy) {
-        List<FindingId> raised = rectifyInspection.execute(new RectifyInspectionCommand(new InspectionId(id), request.criterionCode(),
+        List<FindingId> raised = rectifyInspection.execute(new RectifyInspectionCommand(new InspectionId(id),
+                new CriterionCode(request.criterionCode()),
                 RawAnswers.from(request.value()), request.reason(), rectifiedBy));
         return createdRevision(id, raised);
     }

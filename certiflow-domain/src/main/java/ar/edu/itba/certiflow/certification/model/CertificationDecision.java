@@ -17,7 +17,7 @@ public interface CertificationDecision {
 
     Optional<GrantedDecision> granted();
 
-    String policyCode();
+    PolicyCode policyCode();
 
     JurisdictionCode jurisdictionCode();
 

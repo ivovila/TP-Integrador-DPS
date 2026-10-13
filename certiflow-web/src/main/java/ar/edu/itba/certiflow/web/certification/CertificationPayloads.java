@@ -48,7 +48,7 @@ public final class CertificationPayloads {
                                     condition.description(), condition.dueDate())).toList(),
                     decision.granted().map(granted -> granted.validity().validFrom()).orElse(null),
                     decision.granted().map(granted -> granted.validity().validUntil()).orElse(null),
-                    decision.policyCode(), decision.jurisdictionCode().value(), decision.evaluatedAt(),
+                    decision.policyCode().value(), decision.jurisdictionCode().value(), decision.evaluatedAt(),
                     ScopePayload.of(decision.scope()));
         }
     }

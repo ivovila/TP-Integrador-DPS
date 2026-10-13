@@ -50,7 +50,7 @@ public final class Certificate {
         this.decision = decision;
         this.issued = issued;
         auditTrail.record(CertificateAudit.ISSUED, issued, "Number " + number.value() + ", scope " + scope().describedBy(new ScopeLabel())
-                + ", policy " + decision.policyCode() + ", jurisdiction " + decision.jurisdictionCode().value()
+                + ", policy " + decision.policyCode().value() + ", jurisdiction " + decision.jurisdictionCode().value()
                 + ", outcome " + decision.outcome() + ", validity " + validity() + ", conditions " + decision.conditions());
     }
 

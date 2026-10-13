@@ -23,6 +23,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
@@ -75,6 +76,7 @@ import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.AnswerText;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.NumericAnswer;
@@ -85,6 +87,7 @@ import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
@@ -113,8 +116,8 @@ public final class CertiflowFixture {
     public static final Unit BAR = new Unit("bar");
     public static final AssetType EXTINGUISHER = new AssetType("Fire extinguisher");
     public static final LocalDate TODAY = LocalDate.of(2026, 3, 10);
-    public static final String PRESSURE_AND_SEAL = "Pressure and seal";
-    public static final String SIGNAGE = "Signage";
+    public static final SectionTitle PRESSURE_AND_SEAL = new SectionTitle("Pressure and seal");
+    public static final SectionTitle SIGNAGE = new SectionTitle("Signage");
 
     public final Person planner = new Person(new PersonId("EMP-001"), "Paula Planner");
     public final Person inspector = new Person(new PersonId("EMP-002"), "Ines Inspector");
@@ -123,12 +126,12 @@ public final class CertiflowFixture {
     public final Person verifier = new Person(new PersonId("EMP-005"), "Victor Verifier");
     public final Person certifier = new Person(new PersonId("EMP-006"), "Carla Certifier");
 
-    public final Criterion<NumericAnswer> pressureCriterion = new Criterion<>("EXT-01", "Gauge pressure within range",
+    public final Criterion<NumericAnswer> pressureCriterion = new Criterion<>(new CriterionCode("EXT-01"), "Gauge pressure within range",
             new NumericRangeRule(BAR, new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),
             StandardSeverity.MAJOR, List.of(new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1)));
-    public final Criterion<YesNoAnswer> sealIntactCriterion = new Criterion<>("EXT-02", "Safety seal is intact",
+    public final Criterion<YesNoAnswer> sealIntactCriterion = new Criterion<>(new CriterionCode("EXT-02"), "Safety seal is intact",
             new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL, List.of());
-    public final Criterion<OptionAnswer> signageCriterion = new Criterion<>("EXT-03", "Signage condition",
+    public final Criterion<OptionAnswer> signageCriterion = new Criterion<>(new CriterionCode("EXT-03"), "Signage condition",
             new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of());
 
     public final MutableClock clock;
@@ -269,7 +272,7 @@ public final class CertiflowFixture {
 
             @Override
             public Optional<InspectionId> partialCertificates(List<CertificateNumber> partialCertificateNumbers,
-                                                              String globalPolicyCode, Instant latestInspectionClosedAt) {
+                                                              PolicyCode globalPolicyCode, Instant latestInspectionClosedAt) {
                 return Optional.empty();
             }
         }).orElseThrow();

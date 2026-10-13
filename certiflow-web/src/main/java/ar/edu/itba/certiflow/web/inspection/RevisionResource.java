@@ -22,6 +22,6 @@ public class RevisionResource extends RepresentationModel<RevisionResource> {
         this.reason = revision.reason();
         this.sealedBy = PersonPayload.of(revision.sealedBy());
         this.sealedAt = revision.sealedAt();
-        revision.evaluation().responses().forEach(response -> outcomes.put(response.criterion().code(), response.outcome().name()));
+        revision.evaluation().responses().forEach(response -> outcomes.put(response.criterion().code().value(), response.outcome().name()));
     }
 }

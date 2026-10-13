@@ -30,8 +30,10 @@ import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
 import ar.edu.itba.certiflow.schema.model.AnswerText;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
@@ -169,22 +171,22 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (withAccess) {
             criteria.add(yesNo("ACCESS", "Access to the extinguisher unobstructed", StandardSeverity.MAJOR));
         }
-        return List.of(new Section("Condition", criteria));
+        return List.of(new Section(new SectionTitle("Condition"), criteria));
     }
 
     private List<Section> vesselSections() {
         return List.of(
-                new Section("Pressure system", List.of(
+                new Section(new SectionTitle("Pressure system"), List.of(
                         yesNo("RELIEF-VALVE", "Relief valve opens at its set pressure", StandardSeverity.CRITICAL),
                         yesNo("INSULATION", "Insulation in good condition", StandardSeverity.MINOR)),
                         new InSubsystem(PRESSURE)),
-                new Section("Electrical system", List.of(
+                new Section(new SectionTitle("Electrical system"), List.of(
                         yesNo("GROUNDING", "Burner grounding verified", StandardSeverity.MAJOR)),
                         new InSubsystem(ELECTRICAL)));
     }
 
     private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {
-        return new Criterion<>(code, text, new YesNoRule(YesNoAnswer.YES), severity, List.of());
+        return new Criterion<>(new CriterionCode(code), text, new YesNoRule(YesNoAnswer.YES), severity, List.of());
     }
 
     private void register(String code, String name, AssetType type, String jurisdiction, List<Subsystem> subsystems) {
@@ -196,7 +198,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         InspectionId inspection = assignInspection.execute(new AssignInspectionCommand(new AssetCode(assetCode), inspector,
                 LocalDate.now(clock), new FullScope(), coordinator));
         answers.forEach((criterionCode, answer) ->
-                recordAnswer.execute(new RecordAnswerCommand(inspection, criterionCode, new RawAnswer(answer.describedBy(new AnswerText())), inspector)));
+                recordAnswer.execute(new RecordAnswerCommand(inspection, new CriterionCode(criterionCode), new RawAnswer(answer.describedBy(new AnswerText())), inspector)));
         closeInspection.execute(new CloseInspectionCommand(inspection, inspector));
         return inspection;
     }

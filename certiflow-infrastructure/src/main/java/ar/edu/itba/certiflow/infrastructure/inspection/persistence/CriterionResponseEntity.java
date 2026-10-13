@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import jakarta.persistence.CollectionTable;
@@ -54,7 +55,7 @@ public class CriterionResponseEntity {
     }
 
     void copyFrom(CriterionResponse<?> response) {
-        criterionCode = response.criterion().code();
+        criterionCode = response.criterion().code().value();
         StoredAnswering answering = response.answering().describedBy(new StoredAnsweringDescriber<>());
         answerType = answering.answerType();
         answerValue = answering.answerValue();
@@ -69,7 +70,7 @@ public class CriterionResponseEntity {
 
     CriterionResponse<?> toDomain(SchemaVersion version, EvidenceKindCatalog evidenceKinds) {
         return new StoredAnswering(answerType, answerValue, answeredById, answeredByName, answeredAt)
-                .responseTo(version.criterion(criterionCode),
+                .responseTo(version.criterion(new CriterionCode(criterionCode)),
                         evidence.stream().map(attached -> attached.toDomain(evidenceKinds)).toList(),
                         observations.stream().map(ObservationEmbeddable::toDomain).toList());
     }

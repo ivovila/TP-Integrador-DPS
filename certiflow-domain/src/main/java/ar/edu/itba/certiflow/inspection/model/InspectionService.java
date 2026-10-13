@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.inspection.model;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
@@ -29,16 +30,16 @@ public final class InspectionService {
         return recordAuditEntriesOf(inspection);
     }
 
-    public void recordAnswer(Inspection inspection, String criterionCode, RawAnswer answer, Stamp answered) {
+    public void recordAnswer(Inspection inspection, CriterionCode criterionCode, RawAnswer answer, Stamp answered) {
         recordTyped(inspection, inspection.schemaVersion().criterion(criterionCode), answer, answered);
     }
 
-    public void attachEvidence(Inspection inspection, String criterionCode, Evidence evidence, Stamp attached) {
+    public void attachEvidence(Inspection inspection, CriterionCode criterionCode, Evidence evidence, Stamp attached) {
         inspection.attachEvidence(inspection.schemaVersion().criterion(criterionCode), evidence, attached);
         recordAuditEntriesOf(inspection);
     }
 
-    public void addObservation(Inspection inspection, String criterionCode, String observationText, Stamp observed) {
+    public void addObservation(Inspection inspection, CriterionCode criterionCode, String observationText, Stamp observed) {
         inspection.addObservation(inspection.schemaVersion().criterion(criterionCode), observationText, observed);
         recordAuditEntriesOf(inspection);
     }
@@ -49,7 +50,7 @@ public final class InspectionService {
         return closure;
     }
 
-    public InspectionRectified rectify(Inspection inspection, String criterionCode, RawAnswer answer, String reason,
+    public InspectionRectified rectify(Inspection inspection, CriterionCode criterionCode, RawAnswer answer, String reason,
                                        Stamp rectified) {
         return rectifyTyped(inspection, inspection.schemaVersion().criterion(criterionCode), answer, reason, rectified);
     }

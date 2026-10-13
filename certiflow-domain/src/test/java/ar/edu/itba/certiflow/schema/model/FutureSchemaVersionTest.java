@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.util.Set;
 
 class FutureSchemaVersionTest {
-    private final List<Section> sections = List.of(new Section("General", List.of(new Criterion<>("G", "Seal",
+    private final List<Section> sections = List.of(new Section(new SectionTitle("General"), List.of(new Criterion<>(new CriterionCode("G"), "Seal",
             new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of()))));
     private final Instant start = Instant.parse("2026-10-12T12:00:00Z");
 

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
@@ -31,7 +32,7 @@ class CertificationDecisionTest extends ScenarioTest {
         CertificationDecision decision = fixture.evaluate(partialInProgress);
 
         assertFalse(decision.isEligible());
-        assertEquals("STANDARD", decision.policyCode());
+        assertEquals(new PolicyCode("STANDARD"), decision.policyCode());
         assertTrue(decision.granted().isEmpty());
         assertEquals(2, decision.ineligibilities().size());
         assertTrue(CertiflowFixture.isBlockedBy(decision, StandardIneligibilityReason.INSPECTION_NOT_CLOSED));

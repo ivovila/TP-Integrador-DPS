@@ -8,9 +8,11 @@ import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaAudit;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
@@ -27,7 +29,7 @@ import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 
 class SchemaVersioningTest extends ScenarioTest {
 
-    private final Criterion<YesNoAnswer> hoseCriterion = new Criterion<>("EXT-04", "Hose shows no cracks",
+    private final Criterion<YesNoAnswer> hoseCriterion = new Criterion<>(new CriterionCode("EXT-04"), "Hose shows no cracks",
             new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of());
 
     @Test
@@ -96,6 +98,6 @@ class SchemaVersioningTest extends ScenarioTest {
     }
 
     private List<Section> sectionsIncludingHose() {
-        return List.of(new Section("General condition", List.of(fixture.pressureCriterion, fixture.sealIntactCriterion, fixture.signageCriterion, hoseCriterion)));
+        return List.of(new Section(new SectionTitle("General condition"), List.of(fixture.pressureCriterion, fixture.sealIntactCriterion, fixture.signageCriterion, hoseCriterion)));
     }
 }

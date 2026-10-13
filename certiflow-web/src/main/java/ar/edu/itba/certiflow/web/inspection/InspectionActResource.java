@@ -31,7 +31,7 @@ public class InspectionActResource extends RepresentationModel<InspectionActReso
         this.plannedDate = act.assignment().plannedDate();
         this.schemaVersion = act.schemaVersion();
         this.lines = act.lines().stream()
-                .map(line -> new Line(line.criterionCode(), line.criterionText(), line.answer().describedBy(new AnswerPayloadDescriber()),
+                .map(line -> new Line(line.criterionCode().value(), line.criterionText(), line.answer().describedBy(new AnswerPayloadDescriber()),
                         PersonPayload.of(line.answeredBy()), line.answeredAt(), line.evidenceCount(), line.observations(),
                         line.outcome().name()))
                 .toList();

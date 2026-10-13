@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public record RejectedDecision(List<Ineligibility> ineligibilities, String policyCode, JurisdictionCode jurisdictionCode,
+public record RejectedDecision(List<Ineligibility> ineligibilities, PolicyCode policyCode, JurisdictionCode jurisdictionCode,
                                Instant evaluatedAt, CertificationScope scope) implements CertificationDecision {
 
     public RejectedDecision {

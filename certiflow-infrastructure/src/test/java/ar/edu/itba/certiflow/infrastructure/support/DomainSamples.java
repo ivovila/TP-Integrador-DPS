@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.catalog.model.Location;
 import ar.edu.itba.certiflow.certification.model.ConditionalTreatment;
 import ar.edu.itba.certiflow.certification.model.DaysTerm;
 import ar.edu.itba.certiflow.certification.model.MonthsTerm;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.StandardFindingTreatment;
 import ar.edu.itba.certiflow.inspection.model.ActionPlan;
@@ -27,6 +28,7 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
@@ -38,6 +40,7 @@ import ar.edu.itba.certiflow.schema.model.SchemaSections;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.SchemaVersionLog;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
@@ -81,21 +84,21 @@ public final class DomainSamples {
     }
 
     public static SeverityCertificationPolicy strictPolicy() {
-        return new SeverityCertificationPolicy("STRICT",
+        return new SeverityCertificationPolicy(new PolicyCode("STRICT"),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     public static SeverityCertificationPolicy standardPolicy() {
-        return new SeverityCertificationPolicy("STANDARD",
+        return new SeverityCertificationPolicy(new PolicyCode("STANDARD"),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     public static SeverityCertificationPolicy conditionalPolicy() {
-        return new SeverityCertificationPolicy("CONDITIONAL",
+        return new SeverityCertificationPolicy(new PolicyCode("CONDITIONAL"),
                 Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
@@ -104,13 +107,13 @@ public final class DomainSamples {
 
     public static List<Section> sections() {
         return List.of(
-                new Section("Pressure and seal", List.of(
-                        new Criterion<>("EXT-01", "Gauge pressure within range",
+                new Section(new SectionTitle("Pressure and seal"), List.of(
+                        new Criterion<>(new CriterionCode("EXT-01"), "Gauge pressure within range",
                                 new NumericRangeRule(new Unit("bar"), new Range(new BigDecimal("6.00"), new BigDecimal("8.00"))),
                                 StandardSeverity.MAJOR, List.of(new EvidenceRequirement(StandardEvidenceKind.PHOTO, 1))),
-                        new Criterion<>("EXT-02", "Seal intact", new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL,
+                        new Criterion<>(new CriterionCode("EXT-02"), "Seal intact", new YesNoRule(YesNoAnswer.YES), StandardSeverity.CRITICAL,
                                 List.of()))),
-                new Section("Signage", List.of(new Criterion<>("EXT-03", "Signage condition",
+                new Section(new SectionTitle("Signage"), List.of(new Criterion<>(new CriterionCode("EXT-03"), "Signage condition",
                         new OptionInListRule(Set.of("VISIBLE", "REFLECTIVE")), StandardSeverity.MINOR, List.of()))));
     }
 
@@ -122,11 +125,11 @@ public final class DomainSamples {
         InspectionService service = inspectionService();
         Inspection inspection = service.assign(new InspectionId("I-" + IDS.incrementAndGet()), ASSET,
                 new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), new Stamp(PLANNER, T0));
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer(pressure), new Stamp(INSPECTOR, T0.plusSeconds(60)));
-        service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), new Stamp(INSPECTOR, T0.plusSeconds(90)));
-        service.addObservation(inspection, "EXT-01", "Needle trembles", new Stamp(INSPECTOR, T0.plusSeconds(100)));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(INSPECTOR, T0.plusSeconds(120)));
-        service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, T0.plusSeconds(180)));
+        service.recordAnswer(inspection, new CriterionCode("EXT-01"), new RawAnswer(pressure), new Stamp(INSPECTOR, T0.plusSeconds(60)));
+        service.attachEvidence(inspection, new CriterionCode("EXT-01"), new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), new Stamp(INSPECTOR, T0.plusSeconds(90)));
+        service.addObservation(inspection, new CriterionCode("EXT-01"), "Needle trembles", new Stamp(INSPECTOR, T0.plusSeconds(100)));
+        service.recordAnswer(inspection, new CriterionCode("EXT-02"), new RawAnswer("true"), new Stamp(INSPECTOR, T0.plusSeconds(120)));
+        service.recordAnswer(inspection, new CriterionCode("EXT-03"), new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, T0.plusSeconds(180)));
         return inspection;
     }
 

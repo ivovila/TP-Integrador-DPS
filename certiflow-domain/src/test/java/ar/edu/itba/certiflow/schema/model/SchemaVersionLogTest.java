@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class SchemaVersionLogTest {
 
-    private final List<Section> sections = List.of(new Section("General", List.of(new Criterion<>("GEN-01", "Seal intact",
+    private final List<Section> sections = List.of(new Section(new SectionTitle("General"), List.of(new Criterion<>(new CriterionCode("GEN-01"), "Seal intact",
             new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of()))));
 
     @Test

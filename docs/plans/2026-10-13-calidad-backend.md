@@ -138,9 +138,12 @@
 
 ### Task 13: Nombres, formato y código sin uso (spec §5.13)
 
-- [ ] Renombres con la convención del equipo; `CriterionCode`, `SectionTitle` y `PolicyCode`.
-- [ ] Imports, `var`, líneas largas y sentencias por línea. Secciones 13, 14 y 15 del inventario en cero.
-- [ ] Se borra lo que solo llaman los tests, o se mueve a los tests.
+- [x] Renombres con la convención del equipo: `Stamp(author, instant)`, `recordAuditEntriesOf`, `publishVersion`, `RevisionEmbeddable`, `ReplacementForAnotherAssetException`.
+- [x] `CriterionCode`, `SectionTitle` y `PolicyCode`: la persistencia y la API escriben `.value()`, así que lo guardado y el JSON no cambian.
+- [x] `ActionPlan` con su regla; `FindingsSummary.openFindings()` derivado.
+- [x] En dominio, aplicación e infraestructura: sin `var`, sin líneas de más de 150 caracteres y sin cuerpos en una línea.
+- [x] Se borra lo que solo llamaban los tests (`Evaluation.outcomeOf`, `Characteristics.valueOf`, `Revisions.size`, `InspectionSchema.appliesTo`), y los tests leen lo mismo por el comportamiento público.
+- [ ] Diferido al plan del módulo web: los nombres, los imports con comodín, las líneas largas y los cuerpos en una línea de `certiflow-web`.
 
 ### Task 14: Documentación y regla ejecutable
 

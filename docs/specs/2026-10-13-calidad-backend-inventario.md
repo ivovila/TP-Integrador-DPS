@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `68376ae` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `8b50f6b` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 288 | 5889 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| domain | 291 | 5945 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | application | 42 | 1558 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| infrastructure | 62 | 2466 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 22 | 0 | 0 | 0 | 0 |
-| web | 90 | 4114 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
-| **total** | 482 | 14027 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
+| infrastructure | 62 | 2476 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 22 | 0 | 0 | 0 | 0 |
+| web | 90 | 4134 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
+| **total** | 485 | 14113 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -70,8 +70,8 @@ Ninguna.
 |---|---|---|
 | web | `web/config/TransactionalUseCases.java:21` | `if (method.getDeclaringClass() == Object.class) {` |
 | web | `web/config/TransactionalUseCases.java:35` | `return useCase.cast(proxy);` |
-| web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
-| web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
+| web | `web/schema/SchemaPayloads.java:95` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
+| web | `web/schema/SchemaPayloads.java:96` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
 | web | `web/support/ProblemDetails.java:21` | `return of(status, exception.getClass().getSimpleName(), exception.getMessage());` |
 
 ## 5. Casts a un tipo concreto (heurística)
@@ -80,11 +80,11 @@ Ninguna.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| web | `web/config/DemoDataSeeder.java:160` | `answers.put((String) codesAndAnswers[index], (YesNoAnswer) codesAndAnswers[index + 1]);` |
-| web | `web/schema/SchemaPayloads.java:43` | `NumericRangeRule numeric = (NumericRangeRule) rule;` |
-| web | `web/schema/SchemaPayloads.java:47` | `YesNoRule.class, rule -> new RulePayload("yes-no", null, null, null, ((YesNoRule) rule).expected().name(), ...` |
-| web | `web/schema/SchemaPayloads.java:49` | `((OptionInListRule) rule).acceptedOptions()));` |
-| web | `web/schema/SchemaPayloads.java:67` | `return new CriterionPayload(criterion.code(), criterion.text(), ((StandardSeverity) criterion.severity()).n...` |
+| web | `web/config/DemoDataSeeder.java:162` | `answers.put((String) codesAndAnswers[index], (YesNoAnswer) codesAndAnswers[index + 1]);` |
+| web | `web/schema/SchemaPayloads.java:45` | `NumericRangeRule numeric = (NumericRangeRule) rule;` |
+| web | `web/schema/SchemaPayloads.java:49` | `YesNoRule.class, rule -> new RulePayload("yes-no", null, null, null, ((YesNoRule) rule).expected().name(), ...` |
+| web | `web/schema/SchemaPayloads.java:51` | `((OptionInListRule) rule).acceptedOptions()));` |
+| web | `web/schema/SchemaPayloads.java:69` | `return new CriterionPayload(criterion.code().value(), criterion.text(), ((StandardSeverity) criterion.sever...` |
 | web | `web/support/AuditEntryResponse.java:12` | `return new AuditEntryResponse(((Enum<?>) entry.action()).name(), entry.action().label(), entry.performedBy(...` |
 
 ## 6. Registros por clase o por texto (heurística)
@@ -94,8 +94,8 @@ Ninguna.
 | Módulo | Ubicación | Línea |
 |---|---|---|
 | web | `web/inspection/InspectionController.java:45` | `private static final Map<String, Boolean> CLOSED_BY_STATUS = Map.of("open", false, "closed", true);` |
-| web | `web/schema/SchemaPayloads.java:31` | `private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();` |
-| web | `web/schema/SchemaPayloads.java:41` | `private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(` |
+| web | `web/schema/SchemaPayloads.java:33` | `private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();` |
+| web | `web/schema/SchemaPayloads.java:43` | `private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(` |
 
 ## 7. Métodos y bloques estáticos
 
@@ -108,26 +108,26 @@ Ninguna.
 | web | `web/certification/CertificationPayloads.java:28` | `public static BasisPayload of(CertificateBasis basis) {` |
 | web | `web/certification/CertificationPayloads.java:42` | `public static DecisionPayload of(CertificationDecision decision) {` |
 | web | `web/certification/CertificationPayloads.java:57` | `public static SchemaReferencePayload of(SchemaReference reference) {` |
-| web | `web/config/DemoDataSeeder.java:157` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
-| web | `web/config/DemoDataSeeder.java:186` | `private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {` |
+| web | `web/config/DemoDataSeeder.java:159` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
+| web | `web/config/DemoDataSeeder.java:188` | `private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {` |
 | web | `web/config/TransactionalUseCases.java:13` | `public static <U> U wrap(Class<U> useCase, U target, TransactionTemplate transactions) {` |
 | web | `web/config/TransactionalUseCases.java:17` | `public static <U> U wrap(Class<U> useCase, U target, TransactionTemplate transactions,` |
 | web | `web/config/TransactionalUseCases.java:38` | `private static RuntimeException unchecked(Throwable cause) {` |
-| web | `web/inspection/CriterionResponseController.java:69` | `private static CriterionResponse<?> criterionResponse(InspectionView inspection, String code) {` |
+| web | `web/inspection/CriterionResponseController.java:70` | `private static CriterionResponse<?> criterionResponse(InspectionView inspection, String code) {` |
 | web | `web/inspection/InspectionController.java:125` | `private static boolean closedFor(String status) {` |
 | web | `web/inspection/RawAnswers.java:18` | `static RawAnswer from(JsonNode node) {` |
-| web | `web/schema/SchemaPayloads.java:33` | `static {` |
-| web | `web/schema/SchemaPayloads.java:54` | `public static List<Section> toSections(List<SectionPayload> sections) {` |
-| web | `web/schema/SchemaPayloads.java:60` | `public static List<SectionPayload> fromSections(List<Section> sections) {` |
-| web | `web/schema/SchemaPayloads.java:66` | `public static CriterionPayload payload(Criterion<?> criterion) {` |
-| web | `web/schema/SchemaPayloads.java:73` | `private static Criterion<?> criterion(CriterionPayload payload) {` |
-| web | `web/schema/SchemaPayloads.java:80` | `private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Se...` |
-| web | `web/schema/SchemaPayloads.java:86` | `private static ApprovalRule<?> rule(RulePayload rule) {` |
-| web | `web/schema/SchemaPayloads.java:92` | `private static RulePayload rulePayload(ApprovalRule<?> rule) {` |
-| web | `web/schema/SchemaPayloads.java:98` | `private static <T> T required(T value, String field) {` |
-| web | `web/schema/SchemaPayloads.java:103` | `private static YesNoAnswer expected(String name) {` |
-| web | `web/schema/SchemaPayloads.java:108` | `private static Severity severity(String name) {` |
-| web | `web/schema/SchemaPayloads.java:113` | `public static EvidenceKind evidenceKind(String name) {` |
+| web | `web/schema/SchemaPayloads.java:35` | `static {` |
+| web | `web/schema/SchemaPayloads.java:56` | `public static List<Section> toSections(List<SectionPayload> sections) {` |
+| web | `web/schema/SchemaPayloads.java:62` | `public static List<SectionPayload> fromSections(List<Section> sections) {` |
+| web | `web/schema/SchemaPayloads.java:68` | `public static CriterionPayload payload(Criterion<?> criterion) {` |
+| web | `web/schema/SchemaPayloads.java:75` | `private static Criterion<?> criterion(CriterionPayload payload) {` |
+| web | `web/schema/SchemaPayloads.java:82` | `private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Se...` |
+| web | `web/schema/SchemaPayloads.java:88` | `private static ApprovalRule<?> rule(RulePayload rule) {` |
+| web | `web/schema/SchemaPayloads.java:94` | `private static RulePayload rulePayload(ApprovalRule<?> rule) {` |
+| web | `web/schema/SchemaPayloads.java:100` | `private static <T> T required(T value, String field) {` |
+| web | `web/schema/SchemaPayloads.java:105` | `private static YesNoAnswer expected(String name) {` |
+| web | `web/schema/SchemaPayloads.java:110` | `private static Severity severity(String name) {` |
+| web | `web/schema/SchemaPayloads.java:115` | `public static EvidenceKind evidenceKind(String name) {` |
 | web | `web/security/AllowedRoleInterceptor.java:33` | `private static boolean isRead(HttpServletRequest request) {` |
 | web | `web/security/AllowedRoleInterceptor.java:37` | `private static boolean hasAnyRole(Authentication authentication, StaffRole... roles) {` |
 | web | `web/security/SecurityConfiguration.java:89` | `private static AbstractAuthenticationToken authenticationOf(Jwt jwt) {` |
@@ -149,31 +149,31 @@ Ninguna.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificateEntity.java` | 98 |
-| infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 36 |
+| infrastructure | `infrastructure/certification/persistence/CertificateEntity.java` | 99 |
+| infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 37 |
 | infrastructure | `infrastructure/inspection/persistence/InspectionEntity.java` | 88 |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnsweringDescriber.java` | 12 |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellationDescriber.java` | 11 |
 | infrastructure | `infrastructure/schema/persistence/RuleDocumentDescriber.java` | 15, 20, 25 |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java` | 17 |
-| web | `web/certification/BasisPayloadDescriber.java` | 14, 20 |
+| web | `web/certification/BasisPayloadDescriber.java` | 15, 21 |
 | web | `web/certification/CertificateController.java` | 189 |
 | web | `web/certification/CertificateResource.java` | 39 |
 | web | `web/certification/CertificationPayloads.java` | 49, 50 |
 | web | `web/certification/EligibilityController.java` | 37 |
 | web | `web/certification/ScopePayloadDescriber.java` | 11 |
-| web | `web/inspection/AssignmentRequest.java` | 20, 27 |
-| web | `web/inspection/CriterionResponseController.java` | 138, 139, 140 |
+| web | `web/inspection/AssignmentRequest.java` | 22, 29 |
+| web | `web/inspection/CriterionResponseController.java` | 139, 140, 141 |
 | web | `web/inspection/CriterionResponseResource.java` | 31, 32, 33 |
 | web | `web/inspection/EvidenceRequest.java` | 12 |
 | web | `web/inspection/FindingController.java` | 152, 164 |
 | web | `web/inspection/InspectionController.java` | 113, 116, 118, 120 |
 | web | `web/inspection/InspectionResponse.java` | 28 |
 | web | `web/inspection/RawAnswers.java` | 20 |
-| web | `web/inspection/RevisionController.java` | 112 |
+| web | `web/inspection/RevisionController.java` | 114 |
 | web | `web/inspection/VerificationRequest.java` | 12 |
 | web | `web/schema/SchemaController.java` | 140, 143, 149 |
-| web | `web/schema/SchemaPayloads.java` | 45, 47, 48 |
+| web | `web/schema/SchemaPayloads.java` | 47, 49, 50 |
 | web | `web/schema/SchemaRequest.java` | 10 |
 | web | `web/schema/VersionRequest.java` | 16 |
 | web | `web/security/AllowedRoleInterceptor.java` | 27, 38 |
@@ -192,7 +192,7 @@ Ninguna.
 | infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:30` | `return Optional.ofNullable(policies.get(jurisdictionCode));` |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnswering.java:28` | `return Optional.ofNullable(answerType)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellation.java:15` | `return Optional.ofNullable(cancelledAt)` |
-| infrastructure | `infrastructure/inspection/persistence/StoredInspectionScope.java:14` | `return Optional.ofNullable(scopeSections)` |
+| infrastructure | `infrastructure/inspection/persistence/StoredInspectionScope.java:15` | `return Optional.ofNullable(scopeSections)` |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java:21` | `return Optional.ofNullable(subsystemCode)` |
 | web | `web/catalog/AssetController.java:67` | `return PageLinks.page(Optional.ofNullable(type).map(value -> listAssets.execute(new AssetType(value))).orEl...` |
 | web | `web/certification/CertificateController.java:110` | `List<CertificateView> certificates = Optional.ofNullable(asset).map(code -> listCertificates.execute(new As...` |
@@ -202,9 +202,9 @@ Ninguna.
 | web | `web/inspection/InspectionController.java:74` | `Optional<Boolean> closed = Optional.ofNullable(status).map(InspectionController::closedFor);` |
 | web | `web/inspection/InspectionController.java:75` | `List<InspectionResponse> inspections = Optional.ofNullable(asset).map(code -> listInspections.execute(new A...` |
 | web | `web/inspection/InspectionController.java:126` | `return Optional.ofNullable(CLOSED_BY_STATUS.get(status))` |
-| web | `web/schema/SchemaPayloads.java:87` | `return Optional.ofNullable(RULE_READERS.get(rule.type()))` |
-| web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
-| web | `web/schema/SchemaPayloads.java:99` | `return Optional.ofNullable(value)` |
+| web | `web/schema/SchemaPayloads.java:89` | `return Optional.ofNullable(RULE_READERS.get(rule.type()))` |
+| web | `web/schema/SchemaPayloads.java:95` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
+| web | `web/schema/SchemaPayloads.java:101` | `return Optional.ofNullable(value)` |
 | web | `web/schema/VersionRequest.java:25` | `return Optional.ofNullable(effectiveFrom)` |
 | web | `web/support/SubsystemCodeField.java:21` | `return Optional.ofNullable(subsystemCode)` |
 | web | `web/support/Uris.java:23` | `return Optional.ofNullable(value).map(present -> name + "=" + UriUtils.encodeQueryParam(present, StandardCh...` |
@@ -237,7 +237,7 @@ Ninguna.
 |---|---|---|
 | web | `web/config/TransactionalUseCases.java:31` | `throw new IllegalStateException(failure);` |
 | web | `web/config/TransactionalUseCases.java:45` | `return new IllegalStateException(cause);` |
-| web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
+| web | `web/schema/SchemaPayloads.java:96` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
 | web | `web/security/JwtProperties.java:14` | `throw new IllegalStateException("certiflow.security.jwt.secret must have at least " + MINIMUM_SECRET_BYTES ...` |
 | web | `web/security/JwtProperties.java:17` | `throw new IllegalStateException("certiflow.security.jwt.ttl must be a positive duration");` |
 | web | `web/support/ActingPersonResolver.java:36` | `.orElseThrow(() -> new IllegalStateException("No user account for " + basic.getName()));` |
@@ -263,11 +263,11 @@ Ninguna.
 | web | `web/certification/CertificateController.java:188` | `if (status == CertificateStatus.ACTIVE) {` |
 | web | `web/certification/CertificateController.java:191` | `if (status != CertificateStatus.RENEWED) {` |
 | web | `web/certification/EligibilityController.java:43` | `if (eligibility.eligible) {` |
-| web | `web/config/DemoDataSeeder.java:110` | `if (!listAssets.execute().isEmpty()) {` |
-| web | `web/config/DemoDataSeeder.java:169` | `if (withAccess) {` |
+| web | `web/config/DemoDataSeeder.java:112` | `if (!listAssets.execute().isEmpty()) {` |
+| web | `web/config/DemoDataSeeder.java:171` | `if (withAccess) {` |
 | web | `web/config/TransactionalUseCases.java:21` | `if (method.getDeclaringClass() == Object.class) {` |
 | web | `web/config/TransactionalUseCases.java:39` | `if (cause instanceof RuntimeException runtime) {` |
-| web | `web/inspection/CriterionResponseController.java:137` | `if (!inspection.isClosed()) {` |
+| web | `web/inspection/CriterionResponseController.java:138` | `if (!inspection.isClosed()) {` |
 | web | `web/inspection/FindingController.java:151` | `if (finding.isOpen()) {` |
 | web | `web/inspection/FindingController.java:163` | `if (action.isOpen()) {` |
 | web | `web/inspection/InspectionController.java:115` | `if (inspection.isClosed()) {` |
@@ -287,7 +287,7 @@ Ninguna.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| web | `web/config/DemoDataSeeder.java:157` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
+| web | `web/config/DemoDataSeeder.java:159` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
 | web | `web/security/AllowedRoleInterceptor.java:15` | `public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {` |
 | web | `web/support/RequestFields.java:11` | `public static void require(Object value, String field) {` |
 

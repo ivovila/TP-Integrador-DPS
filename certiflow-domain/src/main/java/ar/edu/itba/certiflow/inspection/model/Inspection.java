@@ -87,21 +87,21 @@ public final class Inspection implements InspectionView {
     <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Stamp answered) {
         ensureOpen();
         replaceAnswer(criterion, answer, answered);
-        auditTrail.record(InspectionAudit.ANSWER_RECORDED, answered, criterion.code() + " = " + answer);
+        auditTrail.record(InspectionAudit.ANSWER_RECORDED, answered, criterion.code().value() + " = " + answer);
     }
 
     void attachEvidence(Criterion<?> criterion, Evidence evidence, Stamp attached) {
         ensureOpen();
         ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withEvidence(evidence, attached));
-        auditTrail.record(InspectionAudit.EVIDENCE_ATTACHED, attached, criterion.code() + ": " + evidence.reference());
+        auditTrail.record(InspectionAudit.EVIDENCE_ATTACHED, attached, criterion.code().value() + ": " + evidence.reference());
     }
 
     void addObservation(Criterion<?> criterion, String observationText, Stamp observed) {
         ensureOpen();
         ensureInScope(criterion);
         responses.put(criterion, responses.get(criterion).withObservation(new Observation(observationText, observed)));
-        auditTrail.record(InspectionAudit.OBSERVATION_ADDED, observed, criterion.code() + ": " + observationText);
+        auditTrail.record(InspectionAudit.OBSERVATION_ADDED, observed, criterion.code().value() + ": " + observationText);
     }
 
     InspectionClosed close(Stamp closed) {
@@ -121,7 +121,7 @@ public final class Inspection implements InspectionView {
         replaceAnswer(criterion, answer, rectified);
         Evaluation evaluation = evaluate();
         revisions = revisions.sealedWith(reason, evaluation, rectified);
-        auditTrail.record(InspectionAudit.RECTIFIED, rectified, criterion.code() + " = " + answer + " (" + reason + ")");
+        auditTrail.record(InspectionAudit.RECTIFIED, rectified, criterion.code().value() + " = " + answer + " (" + reason + ")");
         return new InspectionRectified(id, assetCode, assetResponsible, evaluation.nonConformities().stream()
                 .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectified, schemaVersion);
     }

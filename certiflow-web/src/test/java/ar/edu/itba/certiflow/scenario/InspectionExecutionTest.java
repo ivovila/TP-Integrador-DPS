@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.scenario;
 
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
@@ -36,7 +37,7 @@ class InspectionExecutionTest extends ScenarioTest {
         InspectionIncompleteException incompleteRejection = assertThrows(InspectionIncompleteException.class,
                 () -> fixture.close(inspection, fixture.inspector));
 
-        assertEquals(List.of("EXT-01", "EXT-03"), incompleteRejection.pendingCriteria());
+        assertEquals(List.of(new CriterionCode("EXT-01"), new CriterionCode("EXT-03")), incompleteRejection.pendingCriteria());
         assertFalse(fixture.inspection(inspection).isClosed());
     }
 
@@ -136,7 +137,7 @@ class InspectionExecutionTest extends ScenarioTest {
         int entriesBefore = fixture.inspectionLog.historyOf(inspection).size();
 
         assertThrows(CriterionNotInSchemaException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer("true"), fixture.inspector)));
+                new RecordAnswerCommand(inspection, new CriterionCode("EXT-99"), new RawAnswer("true"), fixture.inspector)));
 
         assertEquals(entriesBefore, fixture.inspectionLog.historyOf(inspection).size());
     }
@@ -146,7 +147,7 @@ class InspectionExecutionTest extends ScenarioTest {
         InspectionId inspection = fixture.assignedInspection();
 
         assertThrows(AnswerTypeMismatchException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer("true"), fixture.inspector)));
+                new RecordAnswerCommand(inspection, new CriterionCode("EXT-01"), new RawAnswer("true"), fixture.inspector)));
 
         assertEquals(Outcome.PENDING, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
     }

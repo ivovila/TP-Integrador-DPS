@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.InspectionBasis;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
 import ar.edu.itba.certiflow.certification.model.PartialCertificatesBasis;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
@@ -131,10 +132,10 @@ public class CertificateEntity {
         }
 
         @Override
-        public String partialCertificates(List<CertificateNumber> partialCertificateNumbers, String policyCode,
+        public String partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode policyCode,
                                           Instant closedAt) {
             partials.addAll(partialCertificateNumbers.stream().map(CertificateNumber::value).toList());
-            globalPolicyCode = policyCode;
+            globalPolicyCode = policyCode.value();
             latestInspectionClosedAt = closedAt;
             return PARTIAL_CERTIFICATES_BASIS;
         }
@@ -170,7 +171,7 @@ public class CertificateEntity {
         @Override
         public CertificateBasis basis() {
             return new PartialCertificatesBasis(partials.stream().map(CertificateNumber::new).toList(),
-                    globalPolicyCode, latestInspectionClosedAt);
+                    new PolicyCode(globalPolicyCode), latestInspectionClosedAt);
         }
     }
 

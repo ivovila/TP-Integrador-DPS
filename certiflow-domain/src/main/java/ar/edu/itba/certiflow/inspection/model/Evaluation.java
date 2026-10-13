@@ -21,7 +21,9 @@ public record Evaluation(List<CriterionResponse<?>> responses) {
     public void ensureComplete() {
         List<CriterionResponse<?>> pendingResponses = pending();
         if (!pendingResponses.isEmpty()) {
-            throw new InspectionIncompleteException(pendingResponses.stream().map(response -> response.criterion().code()).toList());
+            throw new InspectionIncompleteException(pendingResponses.stream()
+                    .map(response -> response.criterion().code())
+                    .toList());
         }
     }
 

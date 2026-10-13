@@ -7,6 +7,7 @@ import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.Evaluation;
 import ar.edu.itba.certiflow.inspection.model.Observation;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
@@ -53,7 +54,7 @@ public class EvaluationDocumentMapper {
 
     private ResponseDocument responseDocumentOf(CriterionResponse<?> response) {
         StoredAnswering answering = response.answering().describedBy(new StoredAnsweringDescriber<>());
-        return new ResponseDocument(response.criterion().code(), answering.answerType(), answering.answerValue(),
+        return new ResponseDocument(response.criterion().code().value(), answering.answerType(), answering.answerValue(),
                 answering.answeredById(), answering.answeredByName(), answering.answeredAt(),
                 response.attachments().stream().map(this::evidenceDocumentOf).toList(),
                 response.observations().stream().map(this::observationDocumentOf).toList());
@@ -75,7 +76,7 @@ public class EvaluationDocumentMapper {
     private CriterionResponse<?> responseOf(ResponseDocument document, SchemaVersion version) {
         StoredAnswering answering = new StoredAnswering(document.answerType(), document.answerValue(),
                 document.answeredById(), document.answeredByName(), document.answeredAt());
-        return answering.responseTo(version.criterion(document.criterionCode()),
+        return answering.responseTo(version.criterion(new CriterionCode(document.criterionCode())),
                 document.evidence().stream().map(this::attachedEvidenceOf).toList(),
                 document.observations().stream().map(this::observationOf).toList());
     }

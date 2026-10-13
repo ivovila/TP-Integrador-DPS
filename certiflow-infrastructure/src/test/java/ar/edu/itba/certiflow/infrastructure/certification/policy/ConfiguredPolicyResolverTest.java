@@ -19,7 +19,7 @@ class ConfiguredPolicyResolverTest {
     @Test void aNewJurisdictionChangesDecisionWithoutChangingCertificationService() {
         var third = new JurisdictionCode("THIRD");
         CertificationPolicy policy = new CertificationPolicy() {
-            @Override public String code() { return "THIRD-POLICY"; }
+            @Override public PolicyCode code() { return new PolicyCode("THIRD-POLICY"); }
             @Override public CertificationDecision evaluate(CertificationAssessmentContext context) {
                 var from = context.issuanceDate();
                 return new GrantedDecision(List.of(), new ValidityPeriod(from, from.plusMonths(3).minusDays(1)), code(),
@@ -32,7 +32,7 @@ class ConfiguredPolicyResolverTest {
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));
-        assertEquals("THIRD-POLICY", decision.policyCode());
+        assertEquals(new PolicyCode("THIRD-POLICY"), decision.policyCode());
         GrantedDecision grantedDecision = decision.granted().orElseThrow();
         assertEquals(LocalDate.of(2026, 5, 27), grantedDecision.validity().validUntil());
         assertThrows(JurisdictionPolicyNotFoundException.class, () -> resolver.resolve(new JurisdictionCode("MISSING")));
@@ -45,7 +45,7 @@ class ConfiguredPolicyResolverTest {
                 new JurisdictionCode("SOUTH"), DomainSamples.strictPolicy(),
                 new JurisdictionCode("NORTH"), DomainSamples.conditionalPolicy()));
         assertEquals(List.of(
-                new JurisdictionPolicy(new JurisdictionCode("NORTH"), "CONDITIONAL"),
-                new JurisdictionPolicy(new JurisdictionCode("SOUTH"), "STRICT")), resolver.all());
+                new JurisdictionPolicy(new JurisdictionCode("NORTH"), new PolicyCode("CONDITIONAL")),
+                new JurisdictionPolicy(new JurisdictionCode("SOUTH"), new PolicyCode("STRICT"))), resolver.all());
     }
 }

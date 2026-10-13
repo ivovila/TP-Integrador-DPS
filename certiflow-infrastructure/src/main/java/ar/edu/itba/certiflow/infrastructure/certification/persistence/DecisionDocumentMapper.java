@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.certification.model.CertificationCondition;
 import ar.edu.itba.certiflow.certification.model.CertificationOutcome;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
 import java.time.Instant;
@@ -32,13 +33,13 @@ public class DecisionDocumentMapper {
                 .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail()))
                 .toList();
         return storedJson.write(new DecisionDocument(decision.outcome(), ineligibilities, decision.conditions(),
-                decision.validity(), decision.policyCode(), decision.jurisdictionCode(), decision.evaluatedAt(),
+                decision.validity(), decision.policyCode().value(), decision.jurisdictionCode(), decision.evaluatedAt(),
                 decision.scope().describedBy(new ScopeSubsystemColumn()).orElse(null)));
     }
 
     public GrantedDecision read(String storedDecision) {
         DecisionDocument document = storedJson.read(storedDecision, DecisionDocument.class);
-        return new GrantedDecision(document.conditions(), document.validity(), document.policyCode(),
+        return new GrantedDecision(document.conditions(), document.validity(), new PolicyCode(document.policyCode()),
                 document.jurisdictionCode(), document.evaluatedAt(), new StoredScope(document.subsystemCode()).scope());
     }
 }

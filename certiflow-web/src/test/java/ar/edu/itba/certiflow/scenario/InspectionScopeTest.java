@@ -5,16 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CriterionOutOfScopeException;
+import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
+import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.exceptions.SectionNotInSchemaException;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
-import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 
 class InspectionScopeTest extends ScenarioTest {
 
@@ -34,7 +35,7 @@ class InspectionScopeTest extends ScenarioTest {
     @Test
     void scopeNamingASectionOutsideTheSchemaIsRejectedWhenAssigning() {
         assertThrows(SectionNotInSchemaException.class,
-                () -> fixture.assignedInspection(new SectionsScope(Set.of("Hose condition"))));
+                () -> fixture.assignedInspection(new SectionsScope(Set.of(new SectionTitle("Hose condition")))));
     }
 
     @Test

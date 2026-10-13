@@ -2,7 +2,7 @@ package ar.edu.itba.certiflow.certification.model;
 
 public interface GlobalCertificationPolicy {
 
-    String code();
+    PolicyCode code();
 
     CertificationDecision evaluate(GlobalAssessmentContext context);
 }

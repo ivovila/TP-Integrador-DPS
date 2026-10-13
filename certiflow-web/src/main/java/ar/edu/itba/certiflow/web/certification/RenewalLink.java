@@ -5,6 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
+import ar.edu.itba.certiflow.certification.model.PolicyCode;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.hateoas.Link;
@@ -24,7 +25,7 @@ final class RenewalLink implements CertificateBasisDescriber<Link> {
     }
 
     @Override
-    public Link partialCertificates(List<CertificateNumber> partialCertificateNumbers, String globalPolicyCode,
+    public Link partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
                                     Instant latestInspectionClosedAt) {
         return linkTo(CertificateController.class).slash(certificateNumber).slash("global-renewals").withRel("global-renewals");
     }

@@ -13,6 +13,7 @@ import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
@@ -68,16 +69,16 @@ public class CriterionResponseController {
 
     private static CriterionResponse<?> criterionResponse(InspectionView inspection, String code) {
         return inspection.evaluate().responses().stream()
-                .filter(response -> response.criterion().code().equals(code))
+                .filter(response -> response.criterion().code().equals(new CriterionCode(code)))
                 .findFirst()
-                .orElseThrow(() -> new CriterionNotInSchemaException(code));
+                .orElseThrow(() -> new CriterionNotInSchemaException(new CriterionCode(code)));
     }
 
     @AllowedRole(StaffRole.INSPECTOR)
     @PutMapping("/{id}/responses/{code}/answer")
     public ResponseEntity<Void> answer(@PathVariable String id, @PathVariable String code, @RequestBody AnswerRequest request,
                                        @ActingPerson Person answeredBy) {
-        recordAnswer.execute(new RecordAnswerCommand(new InspectionId(id), code, RawAnswers.from(request.value()), answeredBy));
+        recordAnswer.execute(new RecordAnswerCommand(new InspectionId(id), new CriterionCode(code), RawAnswers.from(request.value()), answeredBy));
         return ResponseEntity.noContent().build();
     }
 
@@ -87,7 +88,7 @@ public class CriterionResponseController {
                                                                                       @PathVariable String code,
                                                                                       @RequestBody EvidenceRequest request,
                                                                                       @ActingPerson Person attachedBy) {
-        attachEvidence.execute(new AttachEvidenceCommand(new InspectionId(id), code, request.toDomain(), attachedBy));
+        attachEvidence.execute(new AttachEvidenceCommand(new InspectionId(id), new CriterionCode(code), request.toDomain(), attachedBy));
         EntityModel<CriterionResponseResource.EvidenceView> evidence = evidence(id, code, criterionResponse(view(id), code).attachments().size());
         return ResponseEntity.created(evidence.getRequiredLink("self").toUri()).body(evidence);
     }
@@ -110,7 +111,7 @@ public class CriterionResponseController {
                                                                                           @PathVariable String code,
                                                                                           @RequestBody ObservationRequest request,
                                                                                           @ActingPerson Person observedBy) {
-        addObservation.execute(new AddObservationCommand(new InspectionId(id), code, request.text(), observedBy));
+        addObservation.execute(new AddObservationCommand(new InspectionId(id), new CriterionCode(code), request.text(), observedBy));
         EntityModel<CriterionResponseResource.ObservationView> observation =
                 observation(id, code, criterionResponse(view(id), code).observations().size());
         return ResponseEntity.created(observation.getRequiredLink("self").toUri()).body(observation);
@@ -130,7 +131,7 @@ public class CriterionResponseController {
 
     private CriterionResponseResource responseResource(InspectionView inspection, CriterionResponse<?> criterionResponse) {
         String id = inspection.id().value();
-        String code = criterionResponse.criterion().code();
+        String code = criterionResponse.criterion().code().value();
         CriterionResponseResource resource = new CriterionResponseResource(criterionResponse);
         resource.add(linkTo(methodOn(CriterionResponseController.class).response(id, code)).withSelfRel(),
                 linkTo(methodOn(InspectionController.class).find(id)).withRel("inspection"));

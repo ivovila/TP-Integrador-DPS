@@ -12,14 +12,14 @@ import java.util.List;
 public final class PolicyAssessment {
 
     private final CertificationAssessmentContext context;
-    private final String policyCode;
+    private final PolicyCode policyCode;
     private final ValidityTerm approvedTerm;
     private final List<Ineligibility> reasons = new ArrayList<>();
     private final List<OpenNonConformity> conditioned = new ArrayList<>();
     private final List<ValidityTerm> conditionalTerms = new ArrayList<>();
     private State state = State.APPROVED;
 
-    PolicyAssessment(CertificationAssessmentContext context, String policyCode, ValidityTerm approvedTerm) {
+    PolicyAssessment(CertificationAssessmentContext context, PolicyCode policyCode, ValidityTerm approvedTerm) {
         this.context = context;
         this.policyCode = policyCode;
         this.approvedTerm = approvedTerm;

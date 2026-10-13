@@ -57,7 +57,8 @@ public class VocabularyController {
                         .map(evidenceKind -> new EvidenceKindView(evidenceKind.name(), evidenceKind.label()))
                         .toList(),
                 listJurisdictions.execute().stream()
-                        .map(registered -> new JurisdictionView(registered.jurisdictionCode().value(), registered.policyCode()))
+                        .map(registered -> new JurisdictionView(registered.jurisdictionCode().value(),
+                                registered.policyCode().value()))
                         .toList());
         vocabulary.add(Link.of("/api/v1/vocabulary").withSelfRel());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(vocabulary);
