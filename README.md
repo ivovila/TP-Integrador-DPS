@@ -45,6 +45,9 @@ certiflow-infrastructure    adaptadores: JPA, Flyway, numeración, bitácora; re
 
 certiflow-web               Spring Boot: controladores REST, recursos HAL, composición, transacciones, errores
 └── ar/edu/itba/certiflow/web/<contexto>, config, support
+
+certiflow-frontend          interfaz web (fuera del build de Maven): puertos propios y adaptador en memoria
+└── src/domain, ports, adapters/inmemory, ui/<contexto>
 ```
 
 ## API
@@ -64,9 +67,23 @@ Las rutas, los códigos de estado y las reglas REST que sigue la API están en
 [docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md](docs/specs/2026-10-12-fase-1-ddd-persistencia-api.md) (§6)
 y en [DESIGN.md](DESIGN.md) (D21).
 
+## Frontend
+
+`certiflow-frontend/` tiene la interfaz web (React + TypeScript + Vite). Por ahora **no llama a la API**: define
+sus propios puertos y corre contra una implementación en memoria que aplica las reglas de negocio, así que se
+puede usar sin levantar el backend. Requiere Node 24 o superior.
+
+```bash
+cd certiflow-frontend && npm install && npm run dev
+```
+
+Abre en `http://localhost:5173` con datos de ejemplo. Estructura, uso y pasos para conectar la API en
+[certiflow-frontend/README.md](certiflow-frontend/README.md); decisión de diseño en [DESIGN.md](DESIGN.md) (D22).
+
 ## Integración continua
 
-`.github/workflows/ci.yml` corre `mvn -B clean verify` en cada push y en cada pull request a `main`. Para que
+`.github/workflows/ci.yml` corre `mvn -B clean verify` en cada push y en cada pull request a `main`. Un segundo job,
+`frontend`, corre `npm ci`, el chequeo de tipos, los tests y el build de `certiflow-frontend/`. Para que
 un pull request con el build en rojo no se pueda mergear, activar la protección de `main` (una vez que el
 check `build` haya corrido al menos una vez):
 

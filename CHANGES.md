@@ -477,3 +477,41 @@ Cambios hechos para la Entrega 2, siguiendo
 - Tests: `JpaInspectionRepositoryTest.aSectionTitleWithALineBreakSurvivesTheScope`,
   `aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed`, `recordingOneAnswerDoesNotRewriteTheEvidenceAndObservations`,
   `rectifyingDoesNotRewriteTheRevisionsAlreadySealed`.
+
+---
+
+# Entrega 2 · Frontend sobre puertos
+
+Interfaz web de las capacidades actuales, siguiendo
+[docs/specs/2026-10-12-frontend.md](docs/specs/2026-10-12-frontend.md) y su
+[plan](docs/plans/2026-10-12-frontend.md). No modifica ningún módulo de Java ni llama a la API.
+
+## FE.1. Proyecto y CI
+- Nueva carpeta `certiflow-frontend/` (Vite, React, TypeScript en modo `strict`, Vitest).
+- `ci.yml` gana el job `frontend` (chequeo de tipos, tests y build), independiente de `build`.
+- `.gitignore` ignora `node_modules/` y `dist/`; `.editorconfig` usa 2 espacios en `ts`, `tsx`, `json`, `css` y `html`.
+
+## FE.2. Puertos y adaptador en memoria
+- `src/domain`: tipos del lenguaje ubicuo. `src/ports`: `CatalogPort`, `SchemaPort`, `InspectionPort`, `FindingPort`,
+  `CertificationPort` y `AuditPort`, con un método por caso de uso, y `DomainError` con el nombre de la excepción.
+- Cada recurso leído trae sus `actions` disponibles; emitir un certificado es una acción de la decisión de
+  elegibilidad, no de la inspección (D16).
+- `src/adapters/inmemory`: reglas de S1 a S19, reloj controlable, bitácora y datos de ejemplo cargados por comandos.
+- Tests: `ports/certiflowContract.ts` (87 casos, corre contra el adaptador en `inMemoryCertiflow.test.ts`) y
+  `seedDemoData.test.ts`.
+
+## FE.3. Pantallas
+- Activos, esquemas (con editor de secciones, criterios, regla, severidad y evidencia exigida), versiones,
+  asignación, ejecución, evaluación, cierre, rectificación, hallazgos, acciones correctivas, certificación,
+  historial y los tres informes.
+- `ui/shared/ruleKinds.tsx`: registro con una entrada por tipo de regla.
+- Selector de la persona que actúa (lista de ejemplo o entrada libre) y control de la fecha de hoy.
+- Tests: `ruleKinds.test.tsx`, `ErrorBanner.test.tsx`, `InspectionDetailPage.test.tsx` (los botones salen de las
+  acciones que entrega el puerto), `application.test.tsx` (la aplicación compuesta con los datos de ejemplo) y
+  `applicationFlow.test.tsx` (el flujo completo, la rectificación, el editor de esquemas y los formularios de alta
+  y asignación, manejados desde las pantallas).
+
+## FE.4. Documentación
+- Nueva decisión D22 y una limitación en `DESIGN.md`; sección "Frontend" en el README; `certiflow-frontend/README.md`
+  con los pasos para conectar la API.
+

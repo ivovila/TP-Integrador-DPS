@@ -10,6 +10,8 @@ que tiene.
 mvn clean verify   # compila y prueba los cuatro módulos: dominio, aplicación, repositorios sobre H2 y API
 ```
 
+La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del build de Maven; ver D22.
+
 ---
 
 ## 1. Supuestos de negocio donde el enunciado es ambiguo
@@ -361,6 +363,23 @@ determinista y los tests usan un reloj controlable.
 - **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula.
 - **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
+### D22. Frontend sobre puertos, sin depender de la API
+
+- **Principio:** DIP; los detalles dependen de las reglas de negocio (Clase 7). Strategy con selección por tipo para las reglas.
+- **Dónde:** `certiflow-frontend/src`: `ports/` (una interfaz por contexto, con un método por caso de uso y su mismo comando), `adapters/inmemory/` (implementación actual), `composition.ts` (único archivo que conoce el adaptador), `ui/shared/ruleKinds.tsx` (registro de tipos de regla), `ports/certiflowContract.ts` (suite de contrato).
+- **Por qué:**
+  - La interfaz se construyó mientras la API seguía cambiando por F1, F2 y F3. Los puertos llevan los nombres de los casos de uso del dominio, que es lo estable; de dónde salen los datos es un detalle. Conectar la API es escribir `adapters/http/` y cambiar una línea de `composition.ts`: `domain/`, `ports/` y `ui/` no se tocan.
+  - Cada recurso llega con la lista de **acciones disponibles** en su estado (`actions`), y la pantalla muestra un botón por acción. Ninguna pantalla repite la regla "si está cerrada, entonces…". Hoy la lista la calcula el adaptador en memoria; con la API sale de los `_links` de HAL (D21), que ya traen solo las transiciones válidas.
+  - Todo lo que depende del tipo de regla de un criterio (campos del editor de esquemas, control con que se responde, texto de solo lectura) está en un registro con una entrada por tipo. Un tipo de criterio nuevo es una entrada más, sin tocar las pantallas.
+  - Severidades y tipos de evidencia llegan como datos por `vocabulary()`, no como uniones cerradas, para respetar los conjuntos extensibles de D2.
+  - El adaptador en memoria aplica los supuestos S1 a S19 y rechaza con el mismo nombre de excepción. Los datos de ejemplo se cargan ejecutando los comandos de los puertos, así que cumplen las reglas y tienen su historial.
+  - La suite de contrato prueba el negocio contra el puerto, no contra la clase en memoria: la misma suite corre contra el adaptador HTTP cuando exista.
+- **Alternativas descartadas:**
+  - *Llamar a la API actual:* cada cambio de F1 a F3 rompe pantallas ya terminadas.
+  - *Datos fijos sin reglas:* no permite recorrer el flujo (cerrar una inspección no levantaría hallazgos).
+  - *Empaquetar el frontend dentro del jar con Maven:* mete Node en el check `build` del backend. Se deja para la integración.
+- **Costo:** las reglas de S1 a S19 están escritas dos veces, en Java y en TypeScript, mientras exista el adaptador en memoria. Los ids (`INS-1`, `FND-1`, `CERT-1`) y la escala decimal son simplificaciones del adaptador. No hay paginación.
+
 ---
 
 ## 4. Patrones que se decidió no aplicar
@@ -480,4 +499,5 @@ Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 - **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
 - **Severidades y tipos de evidencia estándar.** La persistencia y la API resuelven severidades y tipos de evidencia por nombre contra `StandardSeverity` y `StandardEvidenceKind`. Una escala propia (D2) funciona en el dominio, pero para guardarla o recibirla por la API hay que registrarla en `SectionsJson`, `EvaluationJson` y `SchemaPayloads`.
 - **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
+- **Frontend sin API.** La interfaz corre contra un adaptador en memoria (D22). Hasta escribir el adaptador HTTP, lo que se carga en la interfaz no llega al backend y se pierde al recargar la página.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).

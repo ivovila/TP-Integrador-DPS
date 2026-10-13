@@ -7,6 +7,12 @@ export function localDateOf(date: Date): LocalDate {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+function wallClockTimeOf(date: Date): string {
+  const twoDigits = (value: number) => String(value).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  return `${twoDigits(date.getHours())}:${twoDigits(date.getMinutes())}:${twoDigits(date.getSeconds())}.${milliseconds}Z`;
+}
+
 function oneMillisecondAfter(instant: Instant): Instant {
   return new Date(new Date(instant).getTime() + 1).toISOString();
 }
@@ -28,8 +34,7 @@ export class ControllableClock implements DemoControls {
   }
 
   now(): Instant {
-    const timeOfDay = new Date().toISOString().slice(11);
-    const candidate = `${this.currentDate}T${timeOfDay}`;
+    const candidate = `${this.currentDate}T${wallClockTimeOf(new Date())}`;
     const sameDayAsLastInstant = this.lastInstant.startsWith(this.currentDate);
     const instant = sameDayAsLastInstant && candidate <= this.lastInstant ? oneMillisecondAfter(this.lastInstant) : candidate;
     this.lastInstant = instant;
