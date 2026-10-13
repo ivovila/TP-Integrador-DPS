@@ -2,37 +2,52 @@ package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.repository.AssetLock;
-import ar.edu.itba.certiflow.certification.usecase.*;
-import ar.edu.itba.certiflow.inspection.usecase.*;
+import ar.edu.itba.certiflow.shared.usecase.AssetLockKey;
+import ar.edu.itba.certiflow.shared.usecase.LocksAsset;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Antes de un comando que cambia algo de un activo, bloquea ese activo hasta el fin de la transacción.
+ * Un comando nuevo solo implementa {@link LocksAsset}; una forma nueva de llegar al activo es una entrada más.
+ */
 @Component
 public class CertificationTransactionLocks implements Consumer<Object[]> {
+
     private final AssetLock locks;
-    private final JdbcTemplate jdbc;
-    public CertificationTransactionLocks(AssetLock locks, JdbcTemplate jdbc) { this.locks = locks; this.jdbc = jdbc; }
+    private final Map<String, Function<String, Optional<String>>> assetCodeByOwner;
+
+    public CertificationTransactionLocks(AssetLock locks, JdbcTemplate jdbc) {
+        this.locks = locks;
+        this.assetCodeByOwner = Map.of(
+                "asset", Optional::of,
+                "inspection", id -> assetCode(jdbc, "select asset_code from inspection where id = ?", id),
+                "certificate", number -> assetCode(jdbc, "select asset_code from certificate where number = ?", number),
+                "finding", id -> assetCode(jdbc, "select asset_code from finding where id = ?", id));
+    }
 
     @Override
     public void accept(Object[] arguments) {
-        if (arguments == null || arguments.length == 0) { return; }
-        String code = switch (arguments[0]) {
-            case IssueCertificateCommand command -> assetFor("inspection", "id", command.inspectionId().value());
-            case RenewCertificateCommand command -> assetFor("inspection", "id", command.inspectionId().value());
-            case SuspendCertificateCommand command -> assetFor("certificate", "number", command.number().value());
-            case CloseInspectionCommand command -> assetFor("inspection", "id", command.inspectionId().value());
-            case RectifyInspectionCommand command -> assetFor("inspection", "id", command.inspectionId().value());
-            case VerifyCorrectiveActionCommand command -> assetFor("finding", "id", command.findingId().value());
-            case IssueGlobalCertificateCommand command -> command.assetCode().value();
-            case RenewGlobalCertificateCommand command -> command.assetCode().value();
-            default -> null;
-        };
-        if (code != null) { locks.lock(new AssetCode(code)); }
+        Optional.ofNullable(arguments).stream().flatMap(Arrays::stream)
+                .filter(LocksAsset.class::isInstance)
+                .map(LocksAsset.class::cast)
+                .findFirst()
+                .flatMap(command -> assetCodeOf(command.assetLockKey()))
+                .ifPresent(code -> locks.lock(new AssetCode(code)));
     }
 
-    private String assetFor(String table, String field, String id) {
-        var rows = jdbc.queryForList("select asset_code from " + table + " where " + field + " = ?", String.class, id);
-        return rows.isEmpty() ? null : rows.getFirst();
+    private Optional<String> assetCodeOf(AssetLockKey key) {
+        return Optional.ofNullable(assetCodeByOwner.get(key.owner()))
+                .orElseThrow(() -> new IllegalStateException("Unknown lock owner " + key.owner()))
+                .apply(key.id());
+    }
+
+    private static Optional<String> assetCode(JdbcTemplate jdbc, String query, String id) {
+        return jdbc.queryForList(query, String.class, id).stream().findFirst();
     }
 }

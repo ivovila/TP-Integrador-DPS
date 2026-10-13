@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
@@ -16,16 +17,18 @@ final class ResponseRebuilder {
     private ResponseRebuilder() {
     }
 
-    static CriterionResponse<?> rebuild(Criterion<?> criterion, Optional<AnswerColumns> answer, PersonColumns answeredBy,
+    /** El tipo y el valor de la respuesta faltan mientras el criterio no se respondió. */
+    static CriterionResponse<?> rebuild(Criterion<?> criterion, String answerType, String answerValue, PersonColumns answeredBy,
                                         Instant answeredAt, List<AttachedEvidence> attachments, List<Observation> observations) {
-        return typed(criterion, answer, answeredBy, answeredAt, attachments, observations);
+        return Optional.ofNullable(answerType)
+                .<CriterionResponse<?>>map(type -> answered(criterion, new AnswerColumns(type, answerValue),
+                        new Stamp(answeredBy.toDomain(), answeredAt), attachments, observations))
+                .orElseGet(() -> new CriterionResponse<>(criterion, null, attachments, observations));
     }
 
-    private static <A extends Answer> CriterionResponse<A> typed(Criterion<A> criterion, Optional<AnswerColumns> answer,
-                                                                 PersonColumns answeredBy, Instant answeredAt,
-                                                                 List<AttachedEvidence> attachments, List<Observation> observations) {
-        Optional<GivenAnswer<A>> given = answer.map(columns ->
-                new GivenAnswer<>(criterion.answerFrom(columns.toRaw()), answeredBy.toDomain(), answeredAt));
-        return new CriterionResponse<>(criterion, given, attachments, observations);
+    private static <A extends Answer> CriterionResponse<A> answered(Criterion<A> criterion, AnswerColumns answer, Stamp answered,
+                                                                    List<AttachedEvidence> attachments, List<Observation> observations) {
+        return new CriterionResponse<>(criterion, new GivenAnswer<>(criterion.answerFrom(answer.toRaw()), answered), attachments,
+                observations);
     }
 }

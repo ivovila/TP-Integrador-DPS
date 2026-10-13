@@ -2,8 +2,9 @@ package ar.edu.itba.certiflow.schema.repository;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
-import java.util.List;
 import java.util.Optional;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 public interface InspectionSchemaRepository {
 
@@ -15,5 +16,6 @@ public interface InspectionSchemaRepository {
 
     Optional<InspectionSchema> findByAssetType(AssetType assetType);
 
-    List<InspectionSchema> findAll();
+    /** Los esquemas ordenados por tipo de activo, de a una página. */
+    Page<InspectionSchema> findPage(PageRequest request);
 }

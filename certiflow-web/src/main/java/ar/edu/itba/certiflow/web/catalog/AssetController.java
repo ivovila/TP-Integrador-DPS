@@ -63,9 +63,9 @@ public class AssetController {
     }
 
     @GetMapping
-    public PagedModel<AssetResponse> list(@RequestParam Optional<String> type, @RequestParam(defaultValue = "0") int page,
+    public PagedModel<AssetResponse> list(@RequestParam(required = false) String type, @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "20") int size) {
-        return PageLinks.page(listAssets.execute(type.map(AssetType::new)).stream().map(this::resource).toList(), page, size,
+        return PageLinks.page(Optional.ofNullable(type).map(value -> listAssets.execute(new AssetType(value))).orElseGet(listAssets::execute).stream().map(this::resource).toList(), page, size,
                 "/api/v1/assets", Uris.query("type", type).orElse(""));
     }
 
@@ -82,8 +82,8 @@ public class AssetController {
         response.add(linkTo(methodOn(AssetController.class).find(code)).withSelfRel(),
                 Link.of(Uris.path("assets", code, "findings-summary")).withRel("findings-summary"),
                 linkTo(methodOn(AssetController.class).history(code)).withRel("audit-entries"),
-                Link.of("/api/v1/certificates?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("certificates"),
-                Link.of("/api/v1/findings?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("findings"));
+                Link.of("/api/v1/certificates?" + Uris.query("asset", code).orElseThrow()).withRel("certificates"),
+                Link.of("/api/v1/findings?" + Uris.query("asset", code).orElseThrow()).withRel("findings"));
         if (!asset.subsystems().isEmpty()) {
             response.add(Link.of(Uris.path("assets", code, "global-certificates")).withRel("global-certificates"));
         }

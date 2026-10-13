@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
@@ -24,7 +25,7 @@ public final class RecordAnswerUseCaseImpl implements RecordAnswerUseCase {
     public void execute(RecordAnswerCommand command) {
         Inspection inspection = inspectionRepository.findById(command.inspectionId())
                 .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
-        inspectionService.recordAnswer(inspection, command.criterionCode(), command.answer(), command.answeredBy(), clock.instant());
+        inspectionService.recordAnswer(inspection, command.criterionCode(), command.answer(), new Stamp(command.answeredBy(), clock.instant()));
         inspectionRepository.save(inspection);
     }
 }

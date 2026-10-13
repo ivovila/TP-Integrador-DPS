@@ -12,6 +12,11 @@ public enum StandardEvidenceKind implements EvidenceKind {
     }
 
     @Override
+    public String code() {
+        return name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

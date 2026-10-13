@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.schema;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
@@ -29,8 +30,8 @@ public final class PublishSchemaVersionUseCaseImpl implements PublishSchemaVersi
         InspectionSchema schema = inspectionSchemaRepository.findForUpdate(command.assetType())
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(command.assetType()));
         Instant publishedAt = StoredInstant.normalize(clock.instant());
-        InspectionSchema updatedSchema = inspectionSchemaService.addVersion(schema, command.sections(), command.publishedBy(),
-                publishedAt, command.effectiveFrom().orElse(publishedAt), command.requiredSubsystems());
+        InspectionSchema updatedSchema = inspectionSchemaService.addVersion(schema, command.sections(), new Stamp(command.publishedBy(), publishedAt),
+                command.effectiveFrom().orElse(publishedAt), command.requiredSubsystems());
         inspectionSchemaRepository.save(updatedSchema);
         return updatedSchema.latestPublishedVersion();
     }

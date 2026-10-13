@@ -28,15 +28,7 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
     }
 
     public static SchemaVersionLog startingWith(List<Section> sections, Instant publishedAt) {
-        return new SchemaVersionLog(List.of(new SchemaVersion(1, sections, publishedAt)));
-    }
-
-    public SchemaVersionLog append(List<Section> sections, Instant publishedAt) {
-        return append(sections, publishedAt, publishedAt);
-    }
-
-    public SchemaVersionLog append(List<Section> sections, Instant publishedAt, Instant effectiveFrom) {
-        return append(sections, publishedAt, effectiveFrom, Set.of());
+        return new SchemaVersionLog(List.of(new SchemaVersion(1, sections, publishedAt, publishedAt, Set.of())));
     }
 
     public SchemaVersionLog append(List<Section> sections, Instant publishedAt, Instant effectiveFrom,

@@ -6,23 +6,23 @@ import ar.edu.itba.certiflow.certification.model.CertificationAssessmentContext;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
-import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.Requirement;
 import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 
 public final class CertificationAssessmentService {
 
     /** Guardas comunes: ninguna política puede aprobar una inspección abierta o que no cubre el alcance. */
     private static final List<Requirement<InspectionResult>> COMMON_REQUIREMENTS = List.of(
-            Requirement.that(InspectionResult::isClosed, IneligibilityReason.INSPECTION_NOT_CLOSED,
+            Requirement.that(InspectionResult::isClosed, StandardIneligibilityReason.INSPECTION_NOT_CLOSED,
                     result -> "Inspection is still open"),
-            Requirement.that(result -> !result.requiresPartialCertificates(), IneligibilityReason.REQUIRES_PARTIAL_CERTIFICATES,
+            Requirement.that(result -> !result.requiresPartialCertificates(), StandardIneligibilityReason.REQUIRES_PARTIAL_CERTIFICATES,
                     result -> "Asset is split into subsystems: certify each subsystem and derive the global certificate"),
             Requirement.that(result -> result.requiresPartialCertificates() || result.coversWholeSchema(),
-                    IneligibilityReason.PARTIAL_INSPECTION, result -> "Inspection does not cover certification scope"));
+                    StandardIneligibilityReason.PARTIAL_INSPECTION, result -> "Inspection does not cover certification scope"));
 
     private final AssetRepository assets;
     private final CertificationPolicyResolver policies;

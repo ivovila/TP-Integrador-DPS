@@ -13,6 +13,11 @@ class EvidenceRequirementTest {
         CALIBRATION_CERTIFICATE;
 
         @Override
+        public String code() {
+            return name();
+        }
+
+        @Override
         public String label() {
             return "Calibration certificate";
         }

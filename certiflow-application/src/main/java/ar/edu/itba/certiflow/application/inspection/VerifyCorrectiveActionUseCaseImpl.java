@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingService;
@@ -25,8 +26,8 @@ public final class VerifyCorrectiveActionUseCaseImpl implements VerifyCorrective
     public Verification execute(VerifyCorrectiveActionCommand command) {
         Finding finding = findingRepository.findById(command.findingId())
                 .orElseThrow(() -> new FindingNotFoundException(command.findingId()));
-        Verification verification = findingService.verifyAction(finding, command.actionId(), command.verifier(), command.result(),
-                command.notes(), clock.instant());
+        Verification verification = findingService.verifyAction(finding, command.actionId(), command.result(), command.notes(),
+                new Stamp(command.verifier(), clock.instant()));
         findingRepository.save(finding);
         return verification;
     }

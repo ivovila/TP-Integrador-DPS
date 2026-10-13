@@ -27,7 +27,7 @@ public class FindingResource extends RepresentationModel<FindingResource> {
         this.inspectionId = finding.inspectionId().value();
         this.assetCode = finding.assetCode().value();
         this.criterion = SchemaPayloads.payload(finding.criterion());
-        this.severity = ((Enum<?>) finding.severity()).name();
+        this.severity = finding.severity().code();
         this.responsible = PersonPayload.of(finding.responsible());
         this.open = finding.isOpen();
         this.subsystemCode = finding.subsystemCode().map(code -> code.value()).orElse(null);

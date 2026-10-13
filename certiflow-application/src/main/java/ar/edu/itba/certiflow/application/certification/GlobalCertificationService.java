@@ -14,13 +14,14 @@ import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertif
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
-import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
+import ar.edu.itba.certiflow.certification.model.GlobalAssessmentContext;
 
 /**
  * Decide si un conjunto de parciales respalda el certificado global de un activo. Emitir y renovar un global
@@ -52,8 +53,8 @@ public final class GlobalCertificationService {
         Instant decidedAt = StoredInstant.normalize(clock.instant());
         LocalDate on = LocalDate.ofInstant(decidedAt, clock.getZone());
         SchemaReference reference = new SchemaReference(asset.type(), schemaVersionNumber);
-        CertificationDecision decision = globalCertificationPolicy.evaluate(assetCode, reference,
-                version.requiredSubsystems(), partials, asset.jurisdictionCode(), on, decidedAt);
+        CertificationDecision decision = globalCertificationPolicy.evaluate(new GlobalAssessmentContext(assetCode, reference,
+                version.requiredSubsystems(), partials, asset.jurisdictionCode(), on, decidedAt));
         if (!decision.isEligible()) {
             throw new NotEligibleForCertificationException(decision);
         }
@@ -63,9 +64,8 @@ public final class GlobalCertificationService {
 
     private SchemaVersion versionOf(Asset asset, int number) {
         return inspectionSchemaRepository.findByAssetType(asset.type())
-                .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type())).versions().stream()
-                .filter(version -> version.number() == number).findFirst()
-                .orElseThrow(() -> new SchemaVersionNotFoundException(asset.type(), number));
+                .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type()))
+                .version(number);
     }
 
     private Certificate certificateWithNumber(CertificateNumber number) {

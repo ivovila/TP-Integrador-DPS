@@ -1,9 +1,10 @@
 package ar.edu.itba.certiflow.schema.usecase;
 
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
-import java.util.List;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 public interface ListSchemasUseCase {
 
-    List<InspectionSchema> execute();
+    Page<InspectionSchema> execute(PageRequest request);
 }

@@ -6,10 +6,16 @@ import java.util.List;
 import java.util.Optional;
 
 public record Criterion<A extends Answer>(String code, String text, ApprovalRule<A> rule, Severity severity,
-                                          List<EvidenceRequirement> requiredEvidence, Optional<SubsystemCode> subsystemCode) {
+                                          List<EvidenceRequirement> requiredEvidence, SubsystemCode subsystem) {
+
+    /** El subsistema al que pertenece, si tiene uno. */
+    public Optional<SubsystemCode> subsystemCode() {
+        return Optional.ofNullable(subsystem);
+    }
+
 
     public Criterion(String code, String text, ApprovalRule<A> rule, Severity severity, List<EvidenceRequirement> requiredEvidence) {
-        this(code, text, rule, severity, requiredEvidence, Optional.empty());
+        this(code, text, rule, severity, requiredEvidence, null);
     }
 
     public Criterion {

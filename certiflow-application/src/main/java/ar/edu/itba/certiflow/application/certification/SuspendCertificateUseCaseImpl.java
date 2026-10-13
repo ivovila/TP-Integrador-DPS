@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.certification;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
@@ -27,7 +28,7 @@ public final class SuspendCertificateUseCaseImpl implements SuspendCertificateUs
         Certificate certificate = certificateRepository.findByNumber(command.number())
                 .orElseThrow(() -> new CertificateNotFoundException(command.number()));
         Instant suspendedAt = clock.instant();
-        certificateService.suspend(certificate, command.reason(), command.suspendedBy(), suspendedAt,
+        certificateService.suspend(certificate, command.reason(), new Stamp(command.suspendedBy(), suspendedAt),
                 LocalDate.ofInstant(suspendedAt, clock.getZone()));
         certificateRepository.save(certificate);
     }

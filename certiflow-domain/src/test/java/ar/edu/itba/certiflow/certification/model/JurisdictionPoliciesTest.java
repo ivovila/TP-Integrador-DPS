@@ -16,8 +16,8 @@ class JurisdictionPoliciesTest {
     private final Instant now = Instant.parse("2026-01-31T12:00:00Z");
 
     private InspectionResult result(boolean closed, boolean covered, ar.edu.itba.certiflow.schema.model.Severity severity) {
-        return new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"), closed ? Optional.of(now) : Optional.empty(),
-                covered, severity == null ? List.of() : List.of(new OpenNonConformity("C-1", severity, "F-1", Optional.empty())),
+        return new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"), closed ? now : null,
+                covered, severity == null ? List.of() : List.of(new OpenNonConformity("C-1", severity, "F-1", null)),
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new CertificationScope.WholeAsset());
     }
 
@@ -53,6 +53,7 @@ class JurisdictionPoliciesTest {
 
     private enum CustomSeverity implements ar.edu.itba.certiflow.schema.model.Severity {
         ADVISORY;
+        @Override public String code() { return name(); }
         @Override public String label() { return "Advisory"; }
         @Override public ar.edu.itba.certiflow.schema.model.Outcome outcomeWhenUnmet() {
             return ar.edu.itba.certiflow.schema.model.Outcome.OBSERVED;
@@ -82,7 +83,7 @@ class JurisdictionPoliciesTest {
     void unconfiguredSeverityCannotBeCertifiedByOmission() {
         var decision = evaluate(false, result(true, true, CustomSeverity.ADVISORY));
         assertEquals(CertificationOutcome.REJECTED, decision.outcome());
-        assertTrue(decision.isBlockedBy(IneligibilityReason.UNSUPPORTED_SEVERITY));
+        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.UNSUPPORTED_SEVERITY));
     }
 
 }

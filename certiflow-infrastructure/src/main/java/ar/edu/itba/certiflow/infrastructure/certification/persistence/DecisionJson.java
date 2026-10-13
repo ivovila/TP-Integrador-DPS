@@ -12,16 +12,19 @@ public final class DecisionJson {
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
     private DecisionJson() { }
 
-    record Document(CertificationOutcome outcome, List<Ineligibility> ineligibilities,
-            List<CertificationCondition> conditions, Optional<ValidityPeriod> validity,
+    record ReasonDocument(String reason, String detail) { }
+
+    record Document(CertificationOutcome outcome, List<ReasonDocument> ineligibilities,
+            List<CertificationCondition> conditions, ValidityPeriod validity,
             String policyCode, JurisdictionCode jurisdictionCode,
             Instant evaluatedAt, String subsystemCode) { }
 
     public static String write(CertificationDecision value) {
         String code = value.scope() instanceof CertificationScope.SubsystemScope subsystem
                 ? subsystem.code().value() : null;
-        return MAPPER.writeValueAsString(new Document(value.outcome(), value.ineligibilities(),
-                value.conditions(), value.validity(), value.policyCode(),
+        return MAPPER.writeValueAsString(new Document(value.outcome(), value.ineligibilities().stream()
+                .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail())).toList(),
+                value.conditions(), value.validityPeriod(), value.policyCode(),
                 value.jurisdictionCode(), value.evaluatedAt(), code));
     }
 
@@ -29,7 +32,9 @@ public final class DecisionJson {
         var value = MAPPER.readValue(json, Document.class);
         CertificationScope scope = value.subsystemCode() == null ? new CertificationScope.WholeAsset()
                 : new CertificationScope.SubsystemScope(new SubsystemCode(value.subsystemCode()));
-        return new CertificationDecision(value.outcome(), value.ineligibilities(), value.conditions(),
+        return new CertificationDecision(value.outcome(), value.ineligibilities().stream()
+                .map(reason -> new Ineligibility(StandardIneligibilityReason.valueOf(reason.reason()), reason.detail())).toList(),
+                value.conditions(),
                 value.validity(), value.policyCode(), value.jurisdictionCode(), value.evaluatedAt(), scope);
     }
 }

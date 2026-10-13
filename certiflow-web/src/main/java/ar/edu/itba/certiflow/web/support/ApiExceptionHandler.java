@@ -86,7 +86,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         problem.setTitle(exception.getClass().getSimpleName());
         if (exception instanceof NotEligibleForCertificationException notEligible) {
             problem.setProperty("ineligibilities", notEligible.decision().ineligibilities().stream()
-                    .map(ineligibility -> Map.of("reason", ineligibility.reason().name(), "detail", ineligibility.detail()))
+                    .map(ineligibility -> Map.of("reason", ineligibility.reason().code(), "detail", ineligibility.detail()))
                     .toList());
         }
         return problem;

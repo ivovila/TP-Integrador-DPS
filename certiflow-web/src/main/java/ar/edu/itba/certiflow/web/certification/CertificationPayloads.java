@@ -51,7 +51,7 @@ public final class CertificationPayloads {
         public static DecisionPayload of(CertificationDecision decision) {
             return new DecisionPayload(decision.outcome().name(), decision.isEligible(),
                     decision.ineligibilities().stream()
-                            .map(ineligibility -> new ReasonPayload(ineligibility.reason().name(), ineligibility.detail())).toList(),
+                            .map(ineligibility -> new ReasonPayload(ineligibility.reason().code(), ineligibility.detail())).toList(),
                     decision.conditions().stream()
                             .map(condition -> new ConditionPayload(condition.findingId(), condition.criterionCode(),
                                     condition.description(), condition.dueDate())).toList(),

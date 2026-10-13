@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.Verification;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
@@ -34,7 +35,7 @@ public class VerificationEmbeddable {
     }
 
     Verification toDomain() {
-        return new Verification(new PersonColumns(verifierId, verifierName).toDomain(), VerificationResult.valueOf(result), notes,
-                verifiedAt);
+        return new Verification(VerificationResult.valueOf(result), notes,
+                new Stamp(new PersonColumns(verifierId, verifierName).toDomain(), verifiedAt));
     }
 }

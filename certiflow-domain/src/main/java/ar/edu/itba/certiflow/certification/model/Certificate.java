@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.certification.model;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
@@ -27,21 +28,20 @@ public final class Certificate {
     private final Set<SubsystemCode> requiredSubsystems;
     private final ValidityPeriod validity;
     private final CertificationDecision decision;
-    private final Person issuedBy;
-    private final Instant issuedAt;
+    private final Stamp issued;
     private final List<Suspension> suspensions = new ArrayList<>();
     private final AuditTrail auditTrail = new AuditTrail();
     private CertificateLifecycle lifecycle = CertificateLifecycle.ISSUED;
 
-    Certificate(CertificateNumber number, InspectionResult basedOn, CertificationDecision decision, Person issuedBy, Instant issuedAt) {
+    Certificate(CertificateNumber number, InspectionResult basedOn, CertificationDecision decision, Stamp issued) {
         this(number, basedOn.assetCode(), new CertificateBasis.InspectionBasis(basedOn.reference()), basedOn.scope(),
                 basedOn.schemaReference(), basedOn.subsystems().stream().map(SubsystemResult::code).collect(Collectors.toSet()),
-                decision, issuedBy, issuedAt);
+                decision, issued);
     }
 
     Certificate(CertificateNumber number, AssetCode assetCode, CertificateBasis basis, CertificationScope scope,
             SchemaReference schemaReference, Set<SubsystemCode> requiredSubsystems,
-            CertificationDecision decision, Person issuedBy, Instant issuedAt) {
+            CertificationDecision decision, Stamp issued) {
         if (!decision.isEligible()) { throw new NotEligibleForCertificationException(decision); }
         if (!decision.scope().equals(scope)) { throw new CertificationConflictException("Decision scope must match certificate scope"); }
         this.number = number;
@@ -52,9 +52,8 @@ public final class Certificate {
         this.requiredSubsystems = Set.copyOf(requiredSubsystems);
         this.decision = decision;
         this.validity = decision.validity().orElseThrow();
-        this.issuedBy = issuedBy;
-        this.issuedAt = issuedAt;
-        auditTrail.record(CertificateAudit.ISSUED, issuedBy, issuedAt, "Number " + number.value() + ", scope " + scope
+        this.issued = issued;
+        auditTrail.record(CertificateAudit.ISSUED, issued, "Number " + number.value() + ", scope " + scope
                 + ", policy " + decision.policyCode() + ", jurisdiction " + decision.jurisdictionCode().value()
                 + ", outcome " + decision.outcome() + ", validity " + validity + ", conditions " + decision.conditions());
     }
@@ -68,44 +67,54 @@ public final class Certificate {
         this.requiredSubsystems = snapshot.requiredSubsystems();
         this.validity = snapshot.validity();
         this.decision = snapshot.decision();
-        this.issuedBy = snapshot.issuedBy();
-        this.issuedAt = snapshot.issuedAt();
+        this.issued = snapshot.issued();
         this.suspensions.addAll(snapshot.suspensions());
         this.lifecycle = snapshot.lifecycle();
     }
 
     public CertificateSnapshot snapshot() {
-        return new CertificateSnapshot(number, assetCode, basis, scope, schemaReference, requiredSubsystems, validity, issuedBy, issuedAt, suspensions(), lifecycle, decision);
+        return new CertificateSnapshot(number, assetCode, basis, scope, schemaReference, requiredSubsystems, validity, issued, suspensions(), lifecycle, decision);
     }
 
-    void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
-        if (statusOn(suspendedOn) != CertificateStatus.ACTIVE) {
+    void suspend(String reason, Stamp suspended, LocalDate suspendedOn) {
+        if (lifecycleStatusOn(suspendedOn) != CertificateStatus.ACTIVE) {
             throw new CertificateNotActiveException(number);
         }
-        suspensions.add(new Suspension(reason, suspendedBy, suspendedAt));
+        suspensions.add(new Suspension(reason, suspended));
         lifecycle = CertificateLifecycle.SUSPENDED;
-        auditTrail.record(CertificateAudit.SUSPENDED, suspendedBy, suspendedAt, reason);
+        auditTrail.record(CertificateAudit.SUSPENDED, suspended, reason);
     }
 
     void ensureRenewableWith(InspectionResult newBasis) {
+        ensureReplaceableBy(newBasis.assetCode(), newBasis.scope(), newBasis.reference().closedAt());
+    }
+
+    /**
+     * Las reglas para reemplazar este certificado, al renovar un parcial o un global: no puede estar ya renovado,
+     * y el reemplazo tiene que ser del mismo activo y alcance y apoyarse en una inspección posterior.
+     */
+    public void ensureReplaceableBy(AssetCode replacementAsset, CertificationScope replacementScope,
+                                    Instant replacementInspectionClosedAt) {
         if (lifecycle == CertificateLifecycle.RENEWED) {
             throw new CertificateAlreadyRenewedException(number);
         }
-        if (!newBasis.assetCode().equals(assetCode)) {
+        if (!assetCode.equals(replacementAsset)) {
             throw new InspectionOfAnotherAssetException(assetCode);
         }
-        if (!newBasis.scope().equals(scope)) { throw new CertificationConflictException("Renewal scope must match"); }
-        if (!newBasis.reference().closedAt().isAfter(latestInspectionClosedAt())) {
+        if (!scope.equals(replacementScope)) {
+            throw new CertificationConflictException("Renewal scope must match");
+        }
+        if (!replacementInspectionClosedAt.isAfter(latestInspectionClosedAt())) {
             throw new RenewalRequiresLaterInspectionException(number);
         }
     }
 
     Certificate renew(CertificateNumber newNumber, CertificationDecision newDecision, InspectionResult newBasis,
-                             Person renewedBy, Instant renewedAt) {
+                             Stamp renewed) {
         ensureRenewableWith(newBasis);
-        Certificate renewedCertificate = new Certificate(newNumber, newBasis, newDecision, renewedBy, renewedAt);
+        Certificate renewedCertificate = new Certificate(newNumber, newBasis, newDecision, renewed);
         lifecycle = CertificateLifecycle.RENEWED;
-        auditTrail.record(CertificateAudit.RENEWED, renewedBy, renewedAt, "Renewed by " + newNumber.value());
+        auditTrail.record(CertificateAudit.RENEWED, renewed, "Renewed by " + newNumber.value());
         return renewedCertificate;
     }
 
@@ -113,8 +122,13 @@ public final class Certificate {
         return auditTrail.pull();
     }
 
-    public CertificateStatus statusOn(LocalDate referenceDate) {
+    private CertificateStatus lifecycleStatusOn(LocalDate referenceDate) {
         return lifecycle.statusOn(validity, referenceDate);
+    }
+
+    /** Ocupa ese alcance en esa fecha: vigente y no renovado, aunque esté suspendido. */
+    public boolean isCurrentFor(CertificationScope candidate, LocalDate referenceDate) {
+        return scope.equals(candidate) && isCurrentOn(referenceDate);
     }
 
     public boolean isCurrentOn(LocalDate referenceDate) {
@@ -152,11 +166,17 @@ public final class Certificate {
         };
     }
 
-    public CertificateStatus effectiveStatusOn(LocalDate date, List<Certificate> partials) {
-        CertificateStatus own = statusOn(date);
+    /**
+     * El estado del certificado en una fecha: el de su ciclo de vida (emitido, suspendido, renovado) y su vigencia.
+     * Un global activo queda {@link CertificateStatus#DEPENDENCY_INVALID} si alguno de sus parciales, que se buscan
+     * entre los certificados del activo, ya no está activo.
+     */
+    public CertificateStatus statusOn(LocalDate date, List<Certificate> assetCertificates) {
+        CertificateStatus own = lifecycleStatusOn(date);
         if (own == CertificateStatus.ACTIVE && basis instanceof CertificateBasis.PartialCertificatesBasis backing) {
             for (CertificateNumber number : backing.partials()) {
-                if (partials.stream().noneMatch(partial -> partial.number().equals(number) && partial.statusOn(date) == CertificateStatus.ACTIVE)) {
+                if (assetCertificates.stream().noneMatch(partial -> partial.number().equals(number)
+                        && partial.statusOn(date, assetCertificates) == CertificateStatus.ACTIVE)) {
                     return CertificateStatus.DEPENDENCY_INVALID;
                 }
             }
@@ -164,16 +184,10 @@ public final class Certificate {
         return own;
     }
 
-    void renewedBy(Certificate replacement, Person by, Instant at) {
-        if (lifecycle == CertificateLifecycle.RENEWED) { throw new CertificateAlreadyRenewedException(number); }
-        if (!assetCode.equals(replacement.assetCode()) || !scope.equals(replacement.scope())) {
-            throw new CertificationConflictException("Renewal must retain asset and scope");
-        }
-        if (!replacement.latestInspectionClosedAt().isAfter(latestInspectionClosedAt())) {
-            throw new RenewalRequiresLaterInspectionException(number);
-        }
+    void renewedBy(Certificate replacement, Stamp renewed) {
+        ensureReplaceableBy(replacement.assetCode(), replacement.scope(), replacement.latestInspectionClosedAt());
         lifecycle = CertificateLifecycle.RENEWED;
-        auditTrail.record(CertificateAudit.RENEWED, by, at, "Renewed by " + replacement.number().value());
+        auditTrail.record(CertificateAudit.RENEWED, renewed, "Renewed by " + replacement.number().value());
     }
 
     public ValidityPeriod validity() {
@@ -181,11 +195,11 @@ public final class Certificate {
     }
 
     public Person issuedBy() {
-        return issuedBy;
+        return issued.by();
     }
 
     public Instant issuedAt() {
-        return issuedAt;
+        return issued.at();
     }
 
     public List<Suspension> suspensions() {

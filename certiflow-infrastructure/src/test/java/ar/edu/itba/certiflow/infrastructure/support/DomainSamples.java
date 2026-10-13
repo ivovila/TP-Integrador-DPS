@@ -1,12 +1,14 @@
 package ar.edu.itba.certiflow.infrastructure.support;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
+import static org.mockito.Mockito.mock;
+
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
-import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingFactory;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -41,6 +43,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import ar.edu.itba.certiflow.inspection.model.ActionPlan;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 
 public final class DomainSamples {
 
@@ -75,36 +79,35 @@ public final class DomainSamples {
     }
 
     public static InspectionService inspectionService() {
-        return new InspectionService(new InspectionFactory(), new InMemoryAuditLog<>());
+        return new InspectionService(new InspectionFactory(), mock(AuditLog.class));
     }
 
     public static Inspection answeredInspection(InspectionSchema schema, String pressure) {
         InspectionService service = inspectionService();
         Inspection inspection = service.assign(new InspectionId("I-" + IDS.incrementAndGet()), ASSET,
-                new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), PLANNER, T0);
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer(new BigDecimal(pressure)), INSPECTOR, T0.plusSeconds(60));
-        service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), INSPECTOR,
-                T0.plusSeconds(90));
-        service.addObservation(inspection, "EXT-01", "Needle trembles", INSPECTOR, T0.plusSeconds(100));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer(true), INSPECTOR, T0.plusSeconds(120));
-        service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), INSPECTOR, T0.plusSeconds(180));
+                new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), new Stamp(PLANNER, T0));
+        service.recordAnswer(inspection, "EXT-01", new RawAnswer(new BigDecimal(pressure)), new Stamp(INSPECTOR, T0.plusSeconds(60)));
+        service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), new Stamp(INSPECTOR, T0.plusSeconds(90)));
+        service.addObservation(inspection, "EXT-01", "Needle trembles", new Stamp(INSPECTOR, T0.plusSeconds(100)));
+        service.recordAnswer(inspection, "EXT-02", new RawAnswer(true), new Stamp(INSPECTOR, T0.plusSeconds(120)));
+        service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), new Stamp(INSPECTOR, T0.plusSeconds(180)));
         return inspection;
     }
 
     public static InspectionClosed close(Inspection inspection) {
-        return inspectionService().close(inspection, INSPECTOR, T0.plusSeconds(600));
+        return inspectionService().close(inspection, new Stamp(INSPECTOR, T0.plusSeconds(600)));
     }
 
     public static Finding findingWithTwoActions(InspectionClosed closure) {
-        FindingService service = new FindingService(new FindingFactory(), new InMemoryAuditLog<>());
+        FindingService service = new FindingService(new FindingFactory(), mock(AuditLog.class));
         Finding finding = service.raiseFrom(closure, () -> new FindingId("F-" + IDS.incrementAndGet())).getFirst();
         LocalDate today = LocalDate.of(2026, 3, 10);
-        service.planAction(finding, "Recharge", TECHNICIAN, today.plusDays(5), PLANNER, T0.plusSeconds(700), today);
-        service.planAction(finding, "Replace", TECHNICIAN, today.plusDays(9), PLANNER, T0.plusSeconds(710), today);
-        service.verifyAction(finding, finding.actions().getFirst().id(), VERIFIER, VerificationResult.REJECTED, "Still low",
-                T0.plusSeconds(800));
-        service.verifyAction(finding, finding.actions().getFirst().id(), VERIFIER, VerificationResult.ACCEPTED, "Recharged",
-                T0.plusSeconds(900));
+        service.planAction(finding, new ActionPlan("Recharge", TECHNICIAN, today.plusDays(5)), new Stamp(PLANNER, T0.plusSeconds(700)), today);
+        service.planAction(finding, new ActionPlan("Replace", TECHNICIAN, today.plusDays(9)), new Stamp(PLANNER, T0.plusSeconds(710)), today);
+        service.verifyAction(finding, finding.actions().getFirst().id(), VerificationResult.REJECTED, "Still low",
+                new Stamp(VERIFIER, T0.plusSeconds(800)));
+        service.verifyAction(finding, finding.actions().getFirst().id(), VerificationResult.ACCEPTED, "Recharged",
+                new Stamp(VERIFIER, T0.plusSeconds(900)));
         return finding;
     }
 

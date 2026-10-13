@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.inspection.model;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,8 +20,8 @@ class RevisionsTest {
     @Test
     void revisionsAreNumberedFromOneInTheOrderTheyWereSealed() {
         Revisions revisions = Revisions.none()
-                .sealedWith("Inspection closed", EMPTY_EVALUATION, INSPECTOR, Instant.EPOCH)
-                .sealedWith("Gauge reading transcribed incorrectly", EMPTY_EVALUATION, INSPECTOR, Instant.EPOCH);
+                .sealedWith("Inspection closed", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH))
+                .sealedWith("Gauge reading transcribed incorrectly", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
         assertEquals(List.of(1, 2), revisions.asList().stream().map(Revision::number).toList());
         assertEquals(1, revisions.original().number());
@@ -29,9 +30,9 @@ class RevisionsTest {
 
     @Test
     void sealingARevisionLeavesThePreviousOnesUntouched() {
-        Revisions closure = Revisions.none().sealedWith("Inspection closed", EMPTY_EVALUATION, INSPECTOR, Instant.EPOCH);
+        Revisions closure = Revisions.none().sealedWith("Inspection closed", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
-        Revisions rectified = closure.sealedWith("Corrected", EMPTY_EVALUATION, INSPECTOR, Instant.EPOCH);
+        Revisions rectified = closure.sealedWith("Corrected", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
         assertEquals(1, closure.size());
         assertEquals(2, rectified.size());

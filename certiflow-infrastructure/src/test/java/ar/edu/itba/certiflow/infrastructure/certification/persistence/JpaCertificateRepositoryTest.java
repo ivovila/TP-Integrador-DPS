@@ -1,5 +1,8 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
+import static org.mockito.Mockito.mock;
+
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,7 +18,6 @@ import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
-import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.infrastructure.inspection.persistence.JpaInspectionRepository;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.JpaInspectionSchemaRepository;
 import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 
 @DataJpaTest
 @Import({JpaCertificateRepository.class, SequenceCertificateNumbering.class, JpaInspectionRepository.class,
@@ -53,11 +56,11 @@ class JpaCertificateRepositoryTest {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
         DomainSamples.close(inspection);
         inspections.save(inspection);
-        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), Optional.of(inspection.originalRevision().sealedAt()), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new CertificationScope.WholeAsset());
+        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), inspection.originalRevision().sealedAt(), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new CertificationScope.WholeAsset());
         return new CertificateFactory().create(numbering.next(), result, SeverityCertificationPolicy.standard().evaluate(
                 new CertificationAssessmentContext(result,
                         new JurisdictionCode("DEMO-STANDARD"), DomainSamples.T0, TODAY)),
-                DomainSamples.PLANNER, DomainSamples.T0);
+                new Stamp(DomainSamples.PLANNER, DomainSamples.T0));
     }
 
     @Test
@@ -68,8 +71,8 @@ class JpaCertificateRepositoryTest {
         entityManager.clear();
 
         assertEquals(certificate.snapshot(), repository.findByNumber(certificate.number()).orElseThrow().snapshot());
-        assertEquals(certificate.number(), repository.findCurrentFor(certificate.assetCode(), TODAY).orElseThrow().number());
-        assertTrue(repository.findCurrentFor(certificate.assetCode(), TODAY.plusYears(2)).isEmpty());
+        assertEquals(certificate.number(), repository.findByAsset(certificate.assetCode()).stream().filter(found -> found.isCurrentFor(certificate.scope(), TODAY)).findFirst().orElseThrow().number());
+        assertTrue(repository.findByAsset(certificate.assetCode()).stream().filter(found -> found.isCurrentFor(certificate.scope(), TODAY.plusYears(2))).findFirst().isEmpty());
         assertEquals(1, repository.findByAsset(certificate.assetCode()).size());
     }
 
@@ -84,9 +87,9 @@ class JpaCertificateRepositoryTest {
 
     @Test
     void aSuspendedCertificateIsReadBackSuspended() {
-        CertificateService service = new CertificateService(new CertificateFactory(), new InMemoryAuditLog<>());
+        CertificateService service = new CertificateService(new CertificateFactory(), mock(AuditLog.class));
         Certificate certificate = issued();
-        service.suspend(certificate, "Seal tampered", DomainSamples.PLANNER, DomainSamples.T0.plusSeconds(60), TODAY);
+        service.suspend(certificate, "Seal tampered", new Stamp(DomainSamples.PLANNER, DomainSamples.T0.plusSeconds(60)), TODAY);
         repository.save(certificate);
         entityManager.flush();
         entityManager.clear();
@@ -94,6 +97,6 @@ class JpaCertificateRepositoryTest {
         Certificate restored = repository.findByNumber(certificate.number()).orElseThrow();
 
         assertEquals(certificate.snapshot(), restored.snapshot());
-        assertEquals(CertificateStatus.SUSPENDED, restored.statusOn(TODAY));
+        assertEquals(CertificateStatus.SUSPENDED, restored.statusOn(TODAY, List.of()));
     }
 }

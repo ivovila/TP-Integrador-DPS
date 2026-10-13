@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.schema;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaAlreadyDefinedForAssetTypeException;
@@ -27,7 +28,7 @@ public final class CreateInspectionSchemaUseCaseImpl implements CreateInspection
             throw new SchemaAlreadyDefinedForAssetTypeException(command.assetType());
         });
         InspectionSchema schema = inspectionSchemaService.create(command.name(), command.assetType(), command.sections(),
-                command.createdBy(), clock.instant(), command.requiredSubsystems());
+                new Stamp(command.createdBy(), clock.instant()), command.requiredSubsystems());
         inspectionSchemaRepository.save(schema);
         return schema;
     }

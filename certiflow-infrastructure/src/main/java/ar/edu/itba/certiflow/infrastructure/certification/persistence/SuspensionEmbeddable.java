@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.certification.model.Suspension;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import jakarta.persistence.Column;
@@ -31,6 +32,6 @@ public class SuspensionEmbeddable {
     }
 
     Suspension toDomain() {
-        return new Suspension(reason, new PersonColumns(suspendedById, suspendedByName).toDomain(), suspendedAt);
+        return new Suspension(reason, new Stamp(new PersonColumns(suspendedById, suspendedByName).toDomain(), suspendedAt));
     }
 }

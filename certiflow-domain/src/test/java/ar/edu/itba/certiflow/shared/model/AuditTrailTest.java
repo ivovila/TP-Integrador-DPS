@@ -15,8 +15,8 @@ class AuditTrailTest {
     @Test
     void pullingHandsOverThePendingEntriesInOrderAndLeavesTheTrailEmpty() {
         AuditTrail trail = new AuditTrail();
-        trail.record(InspectionAudit.ANSWER_RECORDED, inspector, Instant.EPOCH, "EXT-01 = 7.00");
-        trail.record(InspectionAudit.CLOSED, inspector, Instant.EPOCH.plusSeconds(60), "");
+        trail.record(InspectionAudit.ANSWER_RECORDED, new Stamp(inspector, Instant.EPOCH), "EXT-01 = 7.00");
+        trail.record(InspectionAudit.CLOSED, new Stamp(inspector, Instant.EPOCH.plusSeconds(60)), "");
 
         List<AuditEntry> pulled = trail.pull();
 

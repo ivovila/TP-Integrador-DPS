@@ -5,15 +5,20 @@ import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.inspection.model.exceptions.DuplicateEvidenceException;
 import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.shared.model.Person;
-import java.time.Instant;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Optional<GivenAnswer<A>> given,
+public record CriterionResponse<A extends Answer>(Criterion<A> criterion, GivenAnswer<A> givenAnswer,
                                                   List<AttachedEvidence> attachments,
                                                   List<Observation> observations) {
+
+    /** La respuesta dada, si ya se respondió. */
+    public Optional<GivenAnswer<A>> given() {
+        return Optional.ofNullable(givenAnswer);
+    }
+
 
     public CriterionResponse {
         attachments = List.copyOf(attachments);
@@ -21,31 +26,30 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
     }
 
     public CriterionResponse(Criterion<A> criterion) {
-        this(criterion, Optional.empty(), List.of(), List.of());
+        this(criterion, null, List.of(), List.of());
     }
 
-    public <B extends Answer> CriterionResponse<B> answeredWith(Criterion<B> answeredCriterion, B answer, Person answeredBy,
-                                                                Instant answeredAt) {
-        return new CriterionResponse<>(answeredCriterion, Optional.of(new GivenAnswer<>(answer, answeredBy, answeredAt)), attachments,
+    public <B extends Answer> CriterionResponse<B> answeredWith(Criterion<B> answeredCriterion, B answer, Stamp answered) {
+        return new CriterionResponse<>(answeredCriterion, new GivenAnswer<>(answer, answered), attachments,
                 observations);
     }
 
-    public CriterionResponse<A> withEvidence(Evidence evidence, Person attachedBy, Instant attachedAt) {
+    public CriterionResponse<A> withEvidence(Evidence evidence, Stamp attached) {
         if (evidence().stream().anyMatch(evidence::isSameFileAs)) {
             throw new DuplicateEvidenceException(criterion.code(), evidence.reference());
         }
-        return new CriterionResponse<>(criterion, given,
-                Stream.concat(attachments.stream(), Stream.of(new AttachedEvidence(evidence, attachedBy, attachedAt))).toList(),
+        return new CriterionResponse<>(criterion, givenAnswer,
+                Stream.concat(attachments.stream(), Stream.of(new AttachedEvidence(evidence, attached))).toList(),
                 observations);
     }
 
     public CriterionResponse<A> withObservation(Observation addedObservation) {
-        return new CriterionResponse<>(criterion, given, attachments,
+        return new CriterionResponse<>(criterion, givenAnswer, attachments,
                 Stream.concat(observations.stream(), Stream.of(addedObservation)).toList());
     }
 
     private Optional<A> answer() {
-        return given.map(GivenAnswer::value);
+        return given().map(GivenAnswer::value);
     }
 
     private List<Evidence> evidence() {

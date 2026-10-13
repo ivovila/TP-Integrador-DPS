@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.shared.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
@@ -20,8 +21,8 @@ class JpaAuditLogTest {
     @Test
     void historyIsReadBackInOrderAndOnlyForItsSubject() {
         JpaAuditLog<InspectionId> log = new JpaAuditLog<>(entries, "inspection", InspectionId::value);
-        AuditEntry assigned = new AuditEntry(InspectionAudit.ASSIGNED, DomainSamples.PLANNER, DomainSamples.T0, "Schema version 1");
-        AuditEntry closed = new AuditEntry(InspectionAudit.CLOSED, DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(60), "");
+        AuditEntry assigned = new AuditEntry(InspectionAudit.ASSIGNED, new Stamp(DomainSamples.PLANNER, DomainSamples.T0), "Schema version 1");
+        AuditEntry closed = new AuditEntry(InspectionAudit.CLOSED, new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusSeconds(60)), "");
 
         log.recordAll(new InspectionId("I-1"), List.of(assigned, closed));
         log.record(new InspectionId("I-2"), assigned);

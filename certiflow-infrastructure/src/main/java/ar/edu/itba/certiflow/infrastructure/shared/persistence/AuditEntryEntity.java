@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.shared.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,7 +47,7 @@ public class AuditEntryEntity {
     }
 
     AuditEntry toDomain() {
-        return new AuditEntry(AuditActions.valueOf(action), new PersonColumns(performedById, performedByName).toDomain(), occurredAt,
-                detail);
+        return new AuditEntry(AuditActions.valueOf(action),
+                new Stamp(new PersonColumns(performedById, performedByName).toDomain(), occurredAt), detail);
     }
 }

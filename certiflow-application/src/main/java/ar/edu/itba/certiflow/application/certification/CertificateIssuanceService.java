@@ -11,7 +11,8 @@ import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertif
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.function.Predicate;
+import ar.edu.itba.certiflow.certification.model.Certificate;
 
 /**
  * Lo que comparten consultar, emitir y renovar una certificación: traducir la inspección al alcance pedido
@@ -48,12 +49,23 @@ public final class CertificateIssuanceService {
 
     /**
      * Un certificado suspendido dentro de su vigencia también ocupa su alcance: no se evade una suspensión
-     * emitiendo otro. Al renovar, el que se está reemplazando no cuenta como ocupante.
+     * emitiendo otro.
      */
-    public void ensureScopeAvailable(AssetCode assetCode, CertificationScope scope, LocalDate on,
-                                     Optional<CertificateNumber> beingRenewed) {
-        certificateRepository.findCurrentFor(assetCode, scope, on)
-                .filter(current -> beingRenewed.filter(current.number()::equals).isEmpty())
+    public void ensureScopeAvailable(AssetCode assetCode, CertificationScope scope, LocalDate on) {
+        ensureNoOtherOccupant(assetCode, scope, on, occupant -> true);
+    }
+
+    /** Al renovar, el certificado que se reemplaza no cuenta como ocupante de su propio alcance. */
+    public void ensureScopeAvailableToReplace(CertificateNumber beingReplaced, AssetCode assetCode, CertificationScope scope,
+                                              LocalDate on) {
+        ensureNoOtherOccupant(assetCode, scope, on, occupant -> !occupant.number().equals(beingReplaced));
+    }
+
+    private void ensureNoOtherOccupant(AssetCode assetCode, CertificationScope scope, LocalDate on, Predicate<Certificate> counts) {
+        certificateRepository.findByAsset(assetCode).stream()
+                .filter(certificate -> certificate.isCurrentFor(scope, on))
+                .filter(counts)
+                .findFirst()
                 .ifPresent(current -> {
                     throw new AssetAlreadyCertifiedException(assetCode, current.number());
                 });

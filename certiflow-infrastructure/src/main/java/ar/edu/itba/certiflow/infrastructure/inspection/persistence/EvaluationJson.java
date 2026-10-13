@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
@@ -57,7 +58,7 @@ final class EvaluationJson {
 
     private static EvidenceDocument document(AttachedEvidence attached) {
         PersonColumns by = PersonColumns.of(attached.attachedBy());
-        return new EvidenceDocument(((StandardEvidenceKind) attached.evidence().kind()).name(), attached.evidence().reference(),
+        return new EvidenceDocument(attached.evidence().kind().code(), attached.evidence().reference(),
                 attached.evidence().description(), by.id(), by.name(), Instants.asStored(attached.attachedAt()));
     }
 
@@ -68,17 +69,17 @@ final class EvaluationJson {
 
     private static CriterionResponse<?> response(ResponseDocument document, SchemaVersion version) {
         return ResponseRebuilder.rebuild(version.criterion(document.criterionCode()),
-                Optional.ofNullable(document.answerType()).map(type -> new AnswerColumns(type, document.answerValue())),
+                document.answerType(), document.answerValue(),
                 new PersonColumns(document.answeredById(), document.answeredByName()), document.answeredAt(),
                 document.evidence().stream()
                         .map(evidence -> new AttachedEvidence(
                                 new Evidence(StandardEvidenceKind.valueOf(evidence.kind()), evidence.reference(), evidence.description()),
-                                new PersonColumns(evidence.attachedById(), evidence.attachedByName()).toDomain(), evidence.attachedAt()))
+                                new Stamp(new PersonColumns(evidence.attachedById(), evidence.attachedByName()).toDomain(), evidence.attachedAt())))
                         .toList(),
                 document.observations().stream()
                         .map(observation -> new Observation(observation.text(),
-                                new PersonColumns(observation.observedById(), observation.observedByName()).toDomain(),
-                                observation.observedAt()))
+                                new Stamp(new PersonColumns(observation.observedById(), observation.observedByName()).toDomain(),
+                                        observation.observedAt())))
                         .toList());
     }
 }

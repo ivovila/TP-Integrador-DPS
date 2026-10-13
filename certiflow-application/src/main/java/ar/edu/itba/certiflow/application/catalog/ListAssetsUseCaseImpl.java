@@ -5,7 +5,6 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
 import java.util.List;
-import java.util.Optional;
 
 public final class ListAssetsUseCaseImpl implements ListAssetsUseCase {
 
@@ -16,9 +15,12 @@ public final class ListAssetsUseCaseImpl implements ListAssetsUseCase {
     }
 
     @Override
-    public List<Asset> execute(Optional<AssetType> type) {
-        return assetRepository.findAll().stream()
-                .filter(asset -> type.map(asset.type()::equals).orElse(true))
-                .toList();
+    public List<Asset> execute() {
+        return assetRepository.findAll();
+    }
+
+    @Override
+    public List<Asset> execute(AssetType type) {
+        return assetRepository.findAll().stream().filter(asset -> asset.type().equals(type)).toList();
     }
 }

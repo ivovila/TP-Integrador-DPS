@@ -5,10 +5,11 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 @Repository
 public class JpaInspectionSchemaRepository implements InspectionSchemaRepository {
@@ -34,8 +35,11 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
     }
 
     @Override
-    public List<InspectionSchema> findAll() {
-        return schemas.findAll(Sort.by("assetType")).stream().map(InspectionSchemaEntity::toDomain).toList();
+    public Page<InspectionSchema> findPage(PageRequest request) {
+        var found = schemas.findAll(org.springframework.data.domain.PageRequest.of(request.number(), request.size(),
+                Sort.by("assetType")));
+        return new Page<>(found.getContent().stream().map(InspectionSchemaEntity::toDomain).toList(), request,
+                found.getTotalElements());
     }
 
     @Override

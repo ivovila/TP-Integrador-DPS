@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 
 @Entity
 @Table(name = "inspection")
@@ -104,7 +105,7 @@ public class InspectionEntity {
         InspectionScope scope = scopeSections == null ? new FullScope()
                 : new SectionsScope(Set.copyOf(MAPPER.readValue(scopeSections, new TypeReference<List<String>>() {
                 })));
-        return new InspectionSnapshot(new InspectionId(id), new AssetCode(assetCode),
+        return new InspectionSnapshot(new InspectionId(id), new AssetCode(assetCode), new AssetType(schemaVersion.assetType()),
                 new PersonColumns(assetResponsibleId, assetResponsibleName).toDomain(),
                 new InspectionAssignment(new PersonColumns(inspectorId, inspectorName).toDomain(), plannedDate, scope),
                 version,

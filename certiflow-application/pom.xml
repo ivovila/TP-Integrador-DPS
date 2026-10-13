@@ -19,11 +19,6 @@
       <artifactId>certiflow-domain</artifactId>
     </dependency>
     <dependency>
-      <groupId>ar.edu.itba</groupId>
-      <artifactId>certiflow-infrastructure</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>

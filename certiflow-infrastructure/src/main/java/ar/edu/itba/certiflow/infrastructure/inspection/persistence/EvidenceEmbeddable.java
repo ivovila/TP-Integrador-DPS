@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.schema.model.Evidence;
@@ -27,7 +28,7 @@ public class EvidenceEmbeddable {
     static EvidenceEmbeddable of(AttachedEvidence attached) {
         EvidenceEmbeddable embeddable = new EvidenceEmbeddable();
         PersonColumns by = PersonColumns.of(attached.attachedBy());
-        embeddable.kind = ((StandardEvidenceKind) attached.evidence().kind()).name();
+        embeddable.kind = attached.evidence().kind().code();
         embeddable.reference = attached.evidence().reference();
         embeddable.description = attached.evidence().description();
         embeddable.attachedById = by.id();
@@ -38,6 +39,6 @@ public class EvidenceEmbeddable {
 
     AttachedEvidence toDomain() {
         return new AttachedEvidence(new Evidence(StandardEvidenceKind.valueOf(kind), reference, description),
-                new PersonColumns(attachedById, attachedByName).toDomain(), attachedAt);
+                new Stamp(new PersonColumns(attachedById, attachedByName).toDomain(), attachedAt));
     }
 }

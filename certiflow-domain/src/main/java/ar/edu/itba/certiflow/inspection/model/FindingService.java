@@ -1,10 +1,7 @@
 package ar.edu.itba.certiflow.inspection.model;
 
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
-import ar.edu.itba.certiflow.shared.model.Person;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.function.Supplier;
@@ -24,8 +21,7 @@ public final class FindingService {
     }
 
     public List<Finding> raiseFrom(InspectionClosed closure, Supplier<FindingId> nextId) {
-        return raise(closure.nonConformities(), closure.inspectionId(), closure.assetCode(), closure.assetResponsible(),
-                closure.closedBy(), closure.closedAt(), nextId, closure.schemaVersion());
+        return raise(closure, closure.nonConformities(), nextId);
     }
 
     /**
@@ -37,28 +33,25 @@ public final class FindingService {
                 .filter(nonConformity -> assetFindings.stream()
                         .noneMatch(finding -> finding.isOpenFor(rectification.inspectionId(), nonConformity)))
                 .toList();
-        return raise(unaddressed, rectification.inspectionId(), rectification.assetCode(), rectification.assetResponsible(),
-                rectification.rectifiedBy(), rectification.rectifiedAt(), nextId, rectification.schemaVersion());
+        return raise(rectification, unaddressed, nextId);
     }
 
-    public CorrectiveAction planAction(Finding finding, String description, Person actionResponsible, LocalDate dueDate,
-                                       Person plannedBy, Instant plannedAt, LocalDate plannedOn) {
-        CorrectiveAction action = finding.planAction(description, actionResponsible, dueDate, plannedBy, plannedAt, plannedOn);
+    public CorrectiveAction planAction(Finding finding, ActionPlan plan, Stamp planned, LocalDate plannedOn) {
+        CorrectiveAction action = finding.planAction(plan, planned, plannedOn);
         recorded(finding);
         return action;
     }
 
-    public Verification verifyAction(Finding finding, CorrectiveActionId actionId, Person verifier,
-                                     VerificationResult verificationResult, String verificationNotes, Instant verifiedAt) {
-        Verification verification = finding.verifyAction(actionId, verifier, verificationResult, verificationNotes, verifiedAt);
+    public Verification verifyAction(Finding finding, CorrectiveActionId actionId, VerificationResult verificationResult,
+                                     String verificationNotes, Stamp verified) {
+        Verification verification = finding.verifyAction(actionId, verificationResult, verificationNotes, verified);
         recorded(finding);
         return verification;
     }
 
-    private List<Finding> raise(List<CriterionResponse<?>> nonConformities, InspectionId inspectionId, AssetCode assetCode,
-                                Person responsible, Person raisedBy, Instant raisedAt, Supplier<FindingId> nextId, SchemaVersion schemaVersion) {
+    private List<Finding> raise(RaisesFindings source, List<CriterionResponse<?>> nonConformities, Supplier<FindingId> nextId) {
         List<Finding> raisedFindings = nonConformities.stream()
-                .map(nonConformity -> findingFactory.create(nextId.get(), inspectionId, assetCode, responsible, nonConformity, raisedBy, raisedAt, schemaVersion.subsystemOf(nonConformity.criterion().code())))
+                .map(nonConformity -> findingFactory.create(nextId.get(), source, nonConformity))
                 .toList();
         raisedFindings.forEach(this::recorded);
         return raisedFindings;

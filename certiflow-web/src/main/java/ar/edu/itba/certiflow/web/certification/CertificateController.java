@@ -11,7 +11,6 @@ import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
-import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
@@ -36,8 +35,6 @@ import ar.edu.itba.certiflow.web.support.PageLinks;
 import ar.edu.itba.certiflow.web.support.RequestFields;
 import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import ar.edu.itba.certiflow.web.support.Uris;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,6 +51,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ar.edu.itba.certiflow.certification.usecase.CertificateView;
 
 @RestController
 @ReadableBy(StaffRole.CERTIFICATION_OFFICER)
@@ -67,16 +65,13 @@ public class CertificateController {
     private final SuspendCertificateUseCase suspendCertificate;
     private final RenewCertificateUseCase renewCertificate;
     private final AuditHistoryUseCase auditHistory;
-    private final Clock clock;
-    private final CertificateRepository certificates;
     private final IssueGlobalCertificateUseCase issueGlobal;
     private final RenewGlobalCertificateUseCase renewGlobal;
 
     public CertificateController(IssueCertificateUseCase issueCertificate, ListCertificatesUseCase listCertificates,
                                  FindCertificateUseCase findCertificate, GenerateCertificateDocumentUseCase generateCertificateDocument,
                                  SuspendCertificateUseCase suspendCertificate, RenewCertificateUseCase renewCertificate,
-                                 AuditHistoryUseCase auditHistory, Clock clock,
-                                 CertificateRepository certificates,
+                                 AuditHistoryUseCase auditHistory,
                                  IssueGlobalCertificateUseCase issueGlobal,
                                  RenewGlobalCertificateUseCase renewGlobal) {
         this.issueCertificate = issueCertificate;
@@ -86,8 +81,8 @@ public class CertificateController {
         this.suspendCertificate = suspendCertificate;
         this.renewCertificate = renewCertificate;
         this.auditHistory = auditHistory;
-        this.clock = clock;
-        this.certificates = certificates; this.issueGlobal = issueGlobal; this.renewGlobal = renewGlobal;
+        this.issueGlobal = issueGlobal;
+        this.renewGlobal = renewGlobal;
     }
 
     @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
@@ -106,13 +101,20 @@ public class CertificateController {
     @PostMapping("/{number}/global-renewals")
     public ResponseEntity<CertificateResource> renewGlobal(@PathVariable String number, @RequestBody GlobalRequest request, @ActingPerson Person by) {
         return created(renewGlobal.execute(new RenewGlobalCertificateCommand(
-                new CertificateNumber(number), findCertificate.execute(new CertificateNumber(number)).assetCode(), request.schemaVersion(), request.partialCertificateNumbers().stream().map(CertificateNumber::new).toList(), by)));
+                new CertificateNumber(number), findCertificate.execute(new CertificateNumber(number)).certificate().assetCode(), request.schemaVersion(), request.partialCertificateNumbers().stream().map(CertificateNumber::new).toList(), by)));
     }
 
     @GetMapping
-    public PagedModel<CertificateResource> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> subsystem, @RequestParam(defaultValue = "0") int page,
+    public PagedModel<CertificateResource> list(@RequestParam(required = false) String asset,
+                                                @RequestParam(required = false) String subsystem, @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
-        return PageLinks.page(listCertificates.execute(asset.map(AssetCode::new)).stream().filter(certificate -> subsystem.isEmpty() || certificate.scope().equals(new CertificationScope.SubsystemScope(new SubsystemCode(subsystem.orElseThrow())))).map(this::resource).toList(), page, size,
+        List<CertificateView> certificates = Optional.ofNullable(asset).map(code -> listCertificates.execute(new AssetCode(code)))
+                .orElseGet(listCertificates::execute);
+        return PageLinks.page(certificates.stream()
+                        .filter(view -> Optional.ofNullable(subsystem)
+                                .map(code -> view.certificate().scope().equals(new CertificationScope.SubsystemScope(new SubsystemCode(code))))
+                                .orElse(true))
+                        .map(this::resource).toList(), page, size,
                 "/api/v1/certificates", Stream.of(Uris.query("asset", asset).orElse(""), Uris.query("subsystem", subsystem).orElse("")).filter(value -> !value.isEmpty()).collect(Collectors.joining("&")));
     }
 
@@ -175,9 +177,10 @@ public class CertificateController {
         return ResponseEntity.created(resource.getRequiredLink("self").toUri()).body(resource);
     }
 
-    private CertificateResource resource(Certificate certificate) {
+    private CertificateResource resource(CertificateView view) {
+        Certificate certificate = view.certificate();
         String number = certificate.number().value();
-        CertificateStatus status = certificate.effectiveStatusOn(LocalDate.now(clock), certificates.findByAsset(certificate.assetCode()));
+        CertificateStatus status = view.status();
         CertificateResource resource = new CertificateResource(certificate, status);
         resource.add(linkTo(methodOn(CertificateController.class).find(number)).withSelfRel(),
                 Link.of(Uris.path("assets", certificate.assetCode().value())).withRel("asset"),

@@ -103,25 +103,42 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments arguments) {
-        if (!listAssets.execute(Optional.empty()).isEmpty()) {
+        if (!listAssets.execute().isEmpty()) {
             return;
         }
+        seedSchemas();
+        seedAssets();
+        seedExtinguisherInspections();
+        seedBoilerInspections();
+    }
+
+    /** Un extintor con una versión programada a 30 días y un recipiente a presión con dos subsistemas. */
+    private void seedSchemas() {
         createSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
                 extinguisherSections(false), coordinator, Set.of()));
         publishVersion.execute(new PublishSchemaVersionCommand(EXTINGUISHER, extinguisherSections(true), coordinator,
-                Optional.of(clock.instant().plus(Duration.ofDays(30))), Set.of()));
+                clock.instant().plus(Duration.ofDays(30)), Set.of()));
         createSchema.execute(new CreateInspectionSchemaCommand("Pressure vessel inspection", PRESSURE_VESSEL,
                 vesselSections(), coordinator, Set.of(ELECTRICAL, PRESSURE)));
+    }
 
+    /** Un activo por política de jurisdicción. */
+    private void seedAssets() {
         register("EXT-0042", "Lobby extinguisher", EXTINGUISHER, "DEMO-STRICT", List.of());
         register("EXT-0043", "Server room extinguisher", EXTINGUISHER, "DEMO-STANDARD", List.of());
         register("BLR-0007", "Boiler B", PRESSURE_VESSEL, "DEMO-STRICT", VESSEL_SUBSYSTEMS);
         register("BLR-0012", "Boiler C", PRESSURE_VESSEL, "DEMO-CONDITIONAL", VESSEL_SUBSYSTEMS);
+    }
 
+    /** Uno rechazado por la política estricta y otro aprobado y certificado. */
+    private void seedExtinguisherInspections() {
         inspectAndClose("EXT-0042", answers("SEAL", YesNoAnswer.NO, "SIGNAGE", YesNoAnswer.YES));
         InspectionId serverRoom = inspectAndClose("EXT-0043", answers("SEAL", YesNoAnswer.YES, "SIGNAGE", YesNoAnswer.YES));
         issueCertificate.execute(new IssueCertificateCommand(serverRoom, certifier, new CertificationScope.WholeAsset()));
+    }
 
+    /** Parciales por subsistema: uno suspendido en la caldera B y uno condicional en la caldera C. */
+    private void seedBoilerInspections() {
         InspectionId boilerB = inspectAndClose("BLR-0007", answers("RELIEF-VALVE", YesNoAnswer.YES, "INSULATION", YesNoAnswer.YES,
                 "GROUNDING", YesNoAnswer.YES));
         List<CertificateNumber> boilerBPartials = certifyEverySubsystem("BLR-0007", boilerB);
@@ -156,10 +173,10 @@ public class DemoDataSeeder implements ApplicationRunner {
                 new Section("Pressure system", List.of(
                         yesNo("RELIEF-VALVE", "Relief valve opens at its set pressure", StandardSeverity.CRITICAL),
                         yesNo("INSULATION", "Insulation in good condition", StandardSeverity.MINOR)),
-                        Optional.of(PRESSURE)),
+                        PRESSURE),
                 new Section("Electrical system", List.of(
                         yesNo("GROUNDING", "Burner grounding verified", StandardSeverity.MAJOR)),
-                        Optional.of(ELECTRICAL)));
+                        ELECTRICAL));
     }
 
     private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {

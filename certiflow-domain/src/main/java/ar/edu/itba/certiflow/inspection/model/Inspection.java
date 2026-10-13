@@ -18,11 +18,13 @@ import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
-import java.time.Instant;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 
 public final class Inspection implements InspectionView {
 
@@ -30,6 +32,7 @@ public final class Inspection implements InspectionView {
 
     private final InspectionId id;
     private final AssetCode assetCode;
+    private final AssetType assetType;
     private final Person assetResponsible;
     private final InspectionAssignment assignment;
     private final SchemaVersion schemaVersion;
@@ -37,12 +40,12 @@ public final class Inspection implements InspectionView {
     private Revisions revisions = Revisions.none();
     private final AuditTrail auditTrail = new AuditTrail();
 
-    Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Person assignedBy,
-               Instant assignedAt) {
+    Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Stamp assigned) {
         if (!asset.subsystems().stream().map(Subsystem::code).collect(Collectors.toSet())
                 .containsAll(schemaVersion.requiredSubsystems())) {
             throw new InvalidSchemaException("Asset lacks required subsystems");
         }
+        Person assignedBy = assigned.by();
         Person inspector = assignment.inspector();
         if (assignedBy.equals(inspector)) {
             throw new AssignerCannotInspectException(inspector);
@@ -55,16 +58,18 @@ public final class Inspection implements InspectionView {
         }
         this.id = id;
         this.assetCode = asset.code();
+        this.assetType = asset.type();
         this.assetResponsible = asset.responsible();
         this.assignment = assignment;
         this.schemaVersion = schemaVersion;
         assignment.scope().criteriaIn(schemaVersion).forEach(criterion -> responses.put(criterion, new CriterionResponse<>(criterion)));
-        auditTrail.record(InspectionAudit.ASSIGNED, assignedBy, assignedAt, "Schema version " + schemaVersion.number());
+        auditTrail.record(InspectionAudit.ASSIGNED, assigned, "Schema version " + schemaVersion.number());
     }
 
     Inspection(InspectionSnapshot snapshot) {
         this.id = snapshot.id();
         this.assetCode = snapshot.assetCode();
+        this.assetType = snapshot.assetType();
         this.assetResponsible = snapshot.assetResponsible();
         this.assignment = snapshot.assignment();
         this.schemaVersion = snapshot.schemaVersion();
@@ -73,50 +78,50 @@ public final class Inspection implements InspectionView {
     }
 
     public InspectionSnapshot snapshot() {
-        return new InspectionSnapshot(id, assetCode, assetResponsible, assignment, schemaVersion, List.copyOf(responses.values()),
+        return new InspectionSnapshot(id, assetCode, assetType, assetResponsible, assignment, schemaVersion, List.copyOf(responses.values()),
                 revisions);
     }
 
-    <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
+    <A extends Answer> void recordAnswer(Criterion<A> criterion, A answer, Stamp answered) {
         ensureOpen();
-        replaceAnswer(criterion, answer, answeredBy, answeredAt);
-        auditTrail.record(InspectionAudit.ANSWER_RECORDED, answeredBy, answeredAt, criterion.code() + " = " + answer);
+        replaceAnswer(criterion, answer, answered);
+        auditTrail.record(InspectionAudit.ANSWER_RECORDED, answered, criterion.code() + " = " + answer);
     }
 
-    void attachEvidence(Criterion<?> criterion, Evidence evidence, Person attachedBy, Instant attachedAt) {
-        ensureOpen();
-        ensureInScope(criterion);
-        responses.put(criterion, responses.get(criterion).withEvidence(evidence, attachedBy, attachedAt));
-        auditTrail.record(InspectionAudit.EVIDENCE_ATTACHED, attachedBy, attachedAt, criterion.code() + ": " + evidence.reference());
-    }
-
-    void addObservation(Criterion<?> criterion, String observationText, Person observedBy, Instant observedAt) {
+    void attachEvidence(Criterion<?> criterion, Evidence evidence, Stamp attached) {
         ensureOpen();
         ensureInScope(criterion);
-        responses.put(criterion, responses.get(criterion).withObservation(new Observation(observationText, observedBy, observedAt)));
-        auditTrail.record(InspectionAudit.OBSERVATION_ADDED, observedBy, observedAt, criterion.code() + ": " + observationText);
+        responses.put(criterion, responses.get(criterion).withEvidence(evidence, attached));
+        auditTrail.record(InspectionAudit.EVIDENCE_ATTACHED, attached, criterion.code() + ": " + evidence.reference());
     }
 
-    InspectionClosed close(Person closedBy, Instant closedAt) {
+    void addObservation(Criterion<?> criterion, String observationText, Stamp observed) {
+        ensureOpen();
+        ensureInScope(criterion);
+        responses.put(criterion, responses.get(criterion).withObservation(new Observation(observationText, observed)));
+        auditTrail.record(InspectionAudit.OBSERVATION_ADDED, observed, criterion.code() + ": " + observationText);
+    }
+
+    InspectionClosed close(Stamp closed) {
         ensureOpen();
         Evaluation evaluation = evaluate();
         evaluation.ensureComplete();
-        revisions = revisions.sealedWith(CLOSURE_REASON, evaluation, closedBy, closedAt);
-        auditTrail.record(InspectionAudit.CLOSED, closedBy, closedAt, "");
-        return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closedBy, closedAt, schemaVersion);
+        revisions = revisions.sealedWith(CLOSURE_REASON, evaluation, closed);
+        auditTrail.record(InspectionAudit.CLOSED, closed, "");
+        return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closed, schemaVersion);
     }
 
-    <A extends Answer> InspectionRectified rectify(Criterion<A> criterion, A answer, String reason, Person rectifiedBy, Instant rectifiedAt) {
+    <A extends Answer> InspectionRectified rectify(Criterion<A> criterion, A answer, String reason, Stamp rectified) {
         ensureClosed();
         if (reason.isBlank()) {
             throw new RectificationReasonRequiredException();
         }
-        replaceAnswer(criterion, answer, rectifiedBy, rectifiedAt);
+        replaceAnswer(criterion, answer, rectified);
         Evaluation evaluation = evaluate();
-        revisions = revisions.sealedWith(reason, evaluation, rectifiedBy, rectifiedAt);
-        auditTrail.record(InspectionAudit.RECTIFIED, rectifiedBy, rectifiedAt, criterion.code() + " = " + answer + " (" + reason + ")");
+        revisions = revisions.sealedWith(reason, evaluation, rectified);
+        auditTrail.record(InspectionAudit.RECTIFIED, rectified, criterion.code() + " = " + answer + " (" + reason + ")");
         return new InspectionRectified(id, assetCode, assetResponsible, evaluation.nonConformities().stream()
-                .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectifiedBy, rectifiedAt, schemaVersion);
+                .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectified, schemaVersion);
     }
 
     List<AuditEntry> pullAuditEntries() {
@@ -138,6 +143,11 @@ public final class Inspection implements InspectionView {
     @Override
     public boolean coversWholeSchema() {
         return responses.size() == schemaVersion.criteria().size();
+    }
+
+    /** Cubre un subsistema cuando su alcance incluye todos los criterios que la versión le asigna a ese subsistema. */
+    public boolean covers(SubsystemCode subsystem) {
+        return responses.keySet().containsAll(schemaVersion.criteriaFor(subsystem));
     }
 
     @Override
@@ -166,6 +176,11 @@ public final class Inspection implements InspectionView {
     }
 
     @Override
+    public AssetType assetType() {
+        return assetType;
+    }
+
+    @Override
     public Person assetResponsible() {
         return assetResponsible;
     }
@@ -180,9 +195,9 @@ public final class Inspection implements InspectionView {
         return schemaVersion;
     }
 
-    private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer, Person answeredBy, Instant answeredAt) {
+    private <A extends Answer> void replaceAnswer(Criterion<A> criterion, A answer, Stamp answered) {
         ensureInScope(criterion);
-        responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer, answeredBy, answeredAt));
+        responses.put(criterion, responses.get(criterion).answeredWith(criterion, answer, answered));
     }
 
     private void ensureInScope(Criterion<?> criterion) {

@@ -8,7 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 public record FindingSnapshot(FindingId id, InspectionId inspectionId, AssetCode assetCode, Criterion<?> criterion,
-                              List<AttachedEvidence> evidence, Person responsible, List<CorrectiveActionSnapshot> actions, Optional<SubsystemCode> subsystemCode) {
+                              List<AttachedEvidence> evidence, Person responsible, List<CorrectiveActionSnapshot> actions, SubsystemCode subsystem) {
+
+    /** El subsistema al que pertenece, si tiene uno. */
+    public Optional<SubsystemCode> subsystemCode() {
+        return Optional.ofNullable(subsystem);
+    }
+
 
     public FindingSnapshot {
         evidence = List.copyOf(evidence);
