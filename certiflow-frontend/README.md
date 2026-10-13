@@ -81,8 +81,9 @@ nunca `ui`.
 
 ## Roles
 
-Se ingresa con id de persona y contraseña; el rol sale del token. Cada rol ve en el menú sus secciones y encuentra solo las
-acciones que le corresponden; el resto se puede abrir por los links entre registros, en solo lectura.
+Se ingresa con nombre de usuario y contraseña; el rol sale del token. Cada rol ve en el menú sus secciones y encuentra solo las
+acciones que le corresponden. Las demás secciones no se abren ("Not available for your role") y los links hacia
+ellas no se muestran.
 
 | Rol (persona de ejemplo) | Menú | Puede |
 |---|---|---|

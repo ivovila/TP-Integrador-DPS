@@ -58,11 +58,11 @@ Base `/api/v1`; `GET /api/v1` devuelve los links a todas las colecciones. Los re
 **Autenticación.** Todo request se autentica. Se ingresa por cualquier path con `Authorization: Basic`; la
 respuesta trae un token en `Authorization: Bearer …` (vence en una hora, `Token-Expires`) que se usa en los
 requests siguientes. `DELETE /api/v1/tokens/current` hace logout: el token queda revocado. Cada escritura exige
-el rol que le corresponde (403 si no); las lecturas, cualquier persona autenticada. Detalle en
+el rol que le corresponde y cada rol lee solo sus secciones (403 si no); activos y esquemas los lee cualquiera. Detalle en
 [DESIGN.md](DESIGN.md) (D25).
 
 ```bash
-curl -i -u EMP-006:certiflow localhost:8080/api/v1/assets        # devuelve Authorization: Bearer …
+curl -i -u ana.torres:certiflow localhost:8080/api/v1/assets        # devuelve Authorization: Bearer …
 TOKEN=eyJ…                                                       # el valor después de "Bearer "
 curl -i -X POST localhost:8080/api/v1/assets -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
@@ -73,9 +73,8 @@ curl -i -X DELETE localhost:8080/api/v1/tokens/current -H "Authorization: Bearer
 ```
 
 **Usuarios de ejemplo.** Con el perfil `demo` (usuarios y datos) o `demo-users` (solo usuarios), contraseña
-`certiflow`: `EMP-006` Ana Torres (Administrator), `EMP-001` Paula Rios (Inspection coordinator), `EMP-002` Ines
-Duarte (Inspector), `EMP-003` Raul Mendez (Asset responsible), `EMP-004` Vera Soto (Verifier) y `EMP-005` Carlos
-Vidal (Certification officer). La clave que firma los tokens se configura con `CERTIFLOW_JWT_SECRET` (mínimo 32
+`certiflow`: `ana.torres` (Administrator), `paula.rios` (Inspection coordinator), `ines.duarte` (Inspector),
+`raul.mendez` (Asset responsible), `vera.soto` (Verifier) y `carlos.vidal` (Certification officer). La clave que firma los tokens se configura con `CERTIFLOW_JWT_SECRET` (mínimo 32
 bytes; el valor por defecto es solo para desarrollo). Las tablas de usuarios se agregaron a `V1__init.sql`: una
 base local creada antes hay que recrearla.
 

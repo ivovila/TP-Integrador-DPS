@@ -631,3 +631,18 @@ Siguiendo [docs/specs/2026-10-13-login.md](docs/specs/2026-10-13-login.md) y su
   logout, quien ingresa empieza en su sección; el aviso de rol ya no menciona "Acting as"; un test exige
   `@AllowedRole` en toda escritura; el job `e2e` espera al backend con credenciales; `captureApiResponses.sh`
   ingresa con Basic y escribe con el rol correcto.
+
+## 2026-10-13 · Usuario y lecturas por rol
+
+Siguiendo [docs/specs/2026-10-13-login.md](docs/specs/2026-10-13-login.md) §8.
+
+- Se ingresa con un nombre de usuario (`ana.torres`…) en lugar del id de la persona; el token sigue llevando el id.
+  `user_account` suma `username` en `V1__init.sql`: hay que recrear las bases locales.
+- Cada rol lee solo sus secciones: `@ReadableBy`/`@ReadableByAnyone` en los controladores, controlado por el mismo
+  interceptor (403). Activos, esquemas y vocabulario los lee cualquiera.
+- Frontend: las secciones fuera del menú muestran "Not available for your role"; `SectionLink` oculta los links
+  hacia secciones que el rol no abre; la ficha de un activo solo pide inspecciones y certificados si el rol los ve.
+- Scripts y suites e2e leen cada path como un usuario que puede leerlo (`demoLogins`); los flujos por pantallas
+  llegan a cada registro por el menú del rol.
+- Tests: `RoleReadAccessApiTest` (colección × rol y guarda de `@ReadableBy`), login por usuario en la API y en la
+  interfaz, `AssetDetailPage.test.tsx`, secciones bloqueadas en `navigation.test.tsx`.
