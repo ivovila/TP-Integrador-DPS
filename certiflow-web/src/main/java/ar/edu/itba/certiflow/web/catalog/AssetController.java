@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.catalog;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
@@ -60,7 +61,7 @@ public class AssetController {
     public PagedModel<AssetResponse> list(@RequestParam Optional<String> type, @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "20") int size) {
         return PageLinks.page(listAssets.execute(type.map(AssetType::new)).stream().map(this::resource).toList(), page, size,
-                "/api/v1/assets", type.map(t -> "type=" + t).orElse(""));
+                "/api/v1/assets", Uris.query("type", type).orElse(""));
     }
 
     @GetMapping("/{code}/audit-entries")
@@ -74,10 +75,10 @@ public class AssetController {
         String code = asset.code().value();
         AssetResponse response = new AssetResponse(asset);
         response.add(linkTo(methodOn(AssetController.class).find(code)).withSelfRel(),
-                Link.of("/api/v1/assets/" + code + "/findings-summary").withRel("findings-summary"),
+                Link.of(Uris.path("assets", code, "findings-summary")).withRel("findings-summary"),
                 linkTo(methodOn(AssetController.class).history(code)).withRel("audit-entries"),
-                Link.of("/api/v1/certificates?asset=" + code).withRel("certificates"),
-                Link.of("/api/v1/findings?asset=" + code).withRel("findings"));
+                Link.of("/api/v1/certificates?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("certificates"),
+                Link.of("/api/v1/findings?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("findings"));
         return response;
     }
 }

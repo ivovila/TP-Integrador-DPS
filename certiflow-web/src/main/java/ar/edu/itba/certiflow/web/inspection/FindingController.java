@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.inspection;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
@@ -65,7 +66,7 @@ public class FindingController {
     public PagedModel<FindingResource> list(@RequestParam Optional<String> asset, @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
         return PageLinks.page(listFindings.execute(asset.map(AssetCode::new)).stream().map(this::resource).toList(), page, size,
-                "/api/v1/findings", asset.map(code -> "asset=" + code).orElse(""));
+                "/api/v1/findings", Uris.query("asset", asset).orElse(""));
     }
 
     @GetMapping("/findings/{id}")
@@ -113,7 +114,7 @@ public class FindingController {
     public FindingsSummaryResource summary(@PathVariable String code) {
         FindingsSummaryResource summary = new FindingsSummaryResource(generateFindingsSummary.execute(new AssetCode(code)));
         summary.add(linkTo(methodOn(FindingController.class).summary(code)).withSelfRel(),
-                Link.of("/api/v1/assets/" + code).withRel("asset"));
+                Link.of(Uris.path("assets", code)).withRel("asset"));
         return summary;
     }
 
@@ -122,8 +123,8 @@ public class FindingController {
         FindingResource resource = new FindingResource(finding,
                 finding.actions().stream().map(action -> actionResource(finding, action)).toList());
         resource.add(linkTo(methodOn(FindingController.class).find(id)).withSelfRel(),
-                Link.of("/api/v1/inspections/" + finding.inspectionId().value()).withRel("inspection"),
-                Link.of("/api/v1/assets/" + finding.assetCode().value()).withRel("asset"),
+                Link.of(Uris.path("inspections", finding.inspectionId().value())).withRel("inspection"),
+                Link.of(Uris.path("assets", finding.assetCode().value())).withRel("asset"),
                 linkTo(methodOn(FindingController.class).history(id)).withRel("audit-entries"));
         if (finding.isOpen()) {
             resource.add(linkTo(methodOn(FindingController.class).plan(id, null, null)).withRel("corrective-actions"));

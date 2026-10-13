@@ -451,3 +451,9 @@ Cambios hechos para la Entrega 2, siguiendo
   como al responderlo (`CriterionOutOfScopeException` → 404); antes el `PUT` daba 409.
 - Tests: `InspectionApiTest.aMissingRevisionIs404AsProblemJson`, `answeringACriterionOutsideTheScopeIs404LikeReadingIt`,
   `SchemaApiTest.aMissingVersionIs404AsProblemJson`.
+
+## E2.20. Links codificados
+- Los links y las query strings se arman con `web.support.Uris`, que codifica cada segmento y cada valor
+  (`UriUtils`). Antes un tipo de activo con `&` o comillas rompía el link `next` de la paginación.
+- Los ETag de versiones y revisiones son un UUID derivado del recurso, siempre válido como header.
+- Tests: `AssetApiTest.linksEncodeValuesWithReservedCharacters`, `SchemaApiTest.theETagIsAValidHeaderWhateverTheAssetType`.

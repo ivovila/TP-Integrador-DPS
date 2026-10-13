@@ -74,4 +74,14 @@ class SchemaApiTest extends ApiTest {
                 .andExpect(status().isNotFound())
                 .andExpect(header().string("Content-Type", "application/problem+json"));
     }
+
+    @Test
+    void theETagIsAValidHeaderWhateverTheAssetType() throws Exception {
+        postAs("EMP-001", "/api/v1/schemas", Payloads.schema().replace("Fire extinguisher", "Caldera \\\"Vapor\\\" ñ"));
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/v1/schemas/{type}/versions/1", "Caldera \"Vapor\" ñ"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", org.hamcrest.Matchers.matchesPattern("\"[A-Za-z0-9-]+\"")));
+    }
 }

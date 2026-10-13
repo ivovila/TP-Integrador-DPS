@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.certification;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
@@ -76,7 +77,7 @@ public class CertificateController {
     public PagedModel<CertificateResource> list(@RequestParam Optional<String> asset, @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
         return PageLinks.page(listCertificates.execute(asset.map(AssetCode::new)).stream().map(this::resource).toList(), page, size,
-                "/api/v1/certificates", asset.map(code -> "asset=" + code).orElse(""));
+                "/api/v1/certificates", Uris.query("asset", asset).orElse(""));
     }
 
     @GetMapping("/{number}")
@@ -125,8 +126,8 @@ public class CertificateController {
         CertificateStatus status = certificate.statusOn(LocalDate.now(clock));
         CertificateResource resource = new CertificateResource(certificate, status);
         resource.add(linkTo(methodOn(CertificateController.class).find(number)).withSelfRel(),
-                Link.of("/api/v1/assets/" + certificate.assetCode().value()).withRel("asset"),
-                Link.of("/api/v1/inspections/" + certificate.basedOn().id().value()).withRel("inspection"),
+                Link.of(Uris.path("assets", certificate.assetCode().value())).withRel("asset"),
+                Link.of(Uris.path("inspections", certificate.basedOn().id().value())).withRel("inspection"),
                 linkTo(methodOn(CertificateController.class).document(number)).withRel("document"),
                 linkTo(methodOn(CertificateController.class).history(number)).withRel("audit-entries"));
         if (status == CertificateStatus.ACTIVE) {

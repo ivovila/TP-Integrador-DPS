@@ -83,4 +83,16 @@ class AssetApiTest extends ApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string("Content-Type", "application/problem+json"));
     }
+
+    @Test
+    void linksEncodeValuesWithReservedCharacters() throws Exception {
+        postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("Fire extinguisher", "Boiler & \\\"Steam\\\""));
+        postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("EXT-0042", "EXT-0043").replace("Fire extinguisher", "Boiler & \\\"Steam\\\""));
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/assets")
+                        .param("type", "Boiler & \"Steam\"").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.assets.length()").value(1))
+                .andExpect(jsonPath("$._links.next.href").value(org.hamcrest.Matchers.containsString("type=Boiler%20%26%20%22Steam%22")));
+    }
 }

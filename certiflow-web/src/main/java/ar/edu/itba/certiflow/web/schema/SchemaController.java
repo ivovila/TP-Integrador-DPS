@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.schema;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
@@ -78,7 +79,7 @@ public class SchemaController {
     @GetMapping("/{assetType}/versions/{number}")
     public ResponseEntity<VersionResponse> version(@PathVariable String assetType, @PathVariable int number, WebRequest request) {
         InspectionSchema schema = findSchema.execute(new AssetType(assetType));
-        String etag = "\"" + assetType.replace(' ', '-') + "-v" + number + "\"";
+        String etag = Uris.etag("schema", assetType, String.valueOf(number));
         return schema.versions().stream()
                 .filter(version -> version.number() == number)
                 .findFirst()

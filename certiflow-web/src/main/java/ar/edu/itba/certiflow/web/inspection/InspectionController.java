@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.inspection;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
@@ -106,7 +107,7 @@ public class InspectionController {
                 .filter(inspection -> closed.map(wanted -> inspection.isClosed() == wanted).orElse(true))
                 .map(this::resource)
                 .toList();
-        String query = Stream.of(asset.map(code -> "asset=" + code), status.map(value -> "status=" + value))
+        String query = Stream.of(Uris.query("asset", asset), Uris.query("status", status))
                 .flatMap(Optional::stream)
                 .reduce((left, right) -> left + "&" + right)
                 .orElse("");
@@ -187,7 +188,7 @@ public class InspectionController {
 
     @GetMapping("/{id}/revisions/{number}")
     public ResponseEntity<RevisionResource> revision(@PathVariable String id, @PathVariable int number, WebRequest request) {
-        String etag = "\"inspection-" + id + "-r" + number + "\"";
+        String etag = Uris.etag("inspection", id, String.valueOf(number));
         return view(id).revisions().asList().stream()
                 .filter(revision -> revision.number() == number)
                 .findFirst()
@@ -236,7 +237,7 @@ public class InspectionController {
     private ResponseEntity<RevisionResource> createdRevision(String id, List<FindingId> raised) {
         InspectionView inspection = view(id);
         RevisionResource revision = revisionResource(id, inspection.revisions().last());
-        raised.forEach(finding -> revision.add(Link.of("/api/v1/findings/" + finding.value()).withRel("findings")));
+        raised.forEach(finding -> revision.add(Link.of(Uris.path("findings", finding.value())).withRel("findings")));
         URI location = revision.getRequiredLink("self").toUri();
         return ResponseEntity.created(location).body(revision);
     }
@@ -247,8 +248,8 @@ public class InspectionController {
         String assetType = findAsset.execute(inspection.assetCode()).type().name();
         InspectionResponse response = new InspectionResponse(inspection);
         response.add(linkTo(methodOn(InspectionController.class).find(id)).withSelfRel(),
-                Link.of("/api/v1/assets/" + assetCode).withRel("asset"),
-                Link.of("/api/v1/schemas/" + assetType.replace(" ", "%20") + "/versions/" + inspection.schemaVersion().number())
+                Link.of(Uris.path("assets", assetCode)).withRel("asset"),
+                Link.of(Uris.path("schemas", assetType, "versions", String.valueOf(inspection.schemaVersion().number())))
                         .withRel("schema-version"),
                 linkTo(methodOn(InspectionController.class).responses(id)).withRel("responses"),
                 linkTo(methodOn(InspectionController.class).revisions(id)).withRel("revisions"),
