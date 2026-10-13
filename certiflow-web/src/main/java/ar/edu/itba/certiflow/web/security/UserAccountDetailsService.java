@@ -15,9 +15,9 @@ public class UserAccountDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String personId) {
-        return userAccounts.findById(personId)
-                .map(account -> User.withUsername(account.personId()).password(account.passwordHash()).roles(account.role()).build())
-                .orElseThrow(() -> new UsernameNotFoundException("No user account for " + personId));
+    public UserDetails loadUserByUsername(String username) {
+        return userAccounts.findByUsername(username)
+                .map(account -> User.withUsername(account.username()).password(account.passwordHash()).roles(account.role()).build())
+                .orElseThrow(() -> new UsernameNotFoundException("No user account for " + username));
     }
 }

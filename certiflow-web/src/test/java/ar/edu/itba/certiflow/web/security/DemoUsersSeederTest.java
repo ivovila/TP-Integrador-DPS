@@ -24,7 +24,7 @@ class DemoUsersSeederTest extends ApiTest {
 
     @Test
     void theDemoUsersCanLogInWithTheirRoleAndSeedingTwiceChangesNothing() throws Exception {
-        String authorization = mvc.perform(get("/api/v1/assets").with(httpBasic("EMP-005", "certiflow")))
+        String authorization = mvc.perform(get("/api/v1/assets").with(httpBasic("carlos.vidal", "certiflow")))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Authorization", startsWith("Bearer ")))
                 .andReturn().getResponse().getHeader("Authorization");
@@ -35,5 +35,6 @@ class DemoUsersSeederTest extends ApiTest {
         assertEquals(true, payload.contains("\"role\":\"CERTIFICATION_OFFICER\""));
         assertEquals(true, payload.contains("\"name\":\"Carlos Vidal\""));
         assertEquals(6, userAccounts.count());
+        assertEquals("EMP-006", userAccounts.findByUsername("ana.torres").orElseThrow().personId());
     }
 }

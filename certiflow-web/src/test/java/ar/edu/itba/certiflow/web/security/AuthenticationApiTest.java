@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.web.security;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,6 +16,7 @@ import ar.edu.itba.certiflow.web.support.ApiTest;
 import ar.edu.itba.certiflow.web.support.Payloads;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,13 +42,13 @@ class AuthenticationApiTest extends ApiTest {
 
     @BeforeEach
     void registerUsers() {
-        userAccounts.save(new UserAccountEntity("EMP-002", "Ines Duarte", "INSPECTOR", passwordEncoder.encode("secret")));
-        userAccounts.save(new UserAccountEntity("EMP-006", "Ana Torres", "ADMINISTRATOR", passwordEncoder.encode("secret")));
+        userAccounts.save(new UserAccountEntity("EMP-002", "ines.duarte", "Ines Duarte", "INSPECTOR", passwordEncoder.encode("secret")));
+        userAccounts.save(new UserAccountEntity("EMP-006", "ana.torres", "Ana Torres", "ADMINISTRATOR", passwordEncoder.encode("secret")));
     }
 
     @Test
     void basicCredentialsOnAnyPathReturnABearerToken() throws Exception {
-        String authorization = mvc.perform(get("/api/v1/assets").with(httpBasic("EMP-002", "secret")))
+        String authorization = mvc.perform(get("/api/v1/assets").with(httpBasic("ines.duarte", "secret")))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Authorization", startsWith("Bearer ")))
                 .andExpect(header().exists("Token-Expires"))
@@ -57,22 +59,37 @@ class AuthenticationApiTest extends ApiTest {
 
     @Test
     void aFailingRequestStillReturnsTheToken() throws Exception {
-        mvc.perform(get("/api/v1/assets/NOPE").with(httpBasic("EMP-002", "secret")))
+        mvc.perform(get("/api/v1/assets/NOPE").with(httpBasic("ines.duarte", "secret")))
                 .andExpect(status().isNotFound())
                 .andExpect(header().string("Authorization", startsWith("Bearer ")));
     }
 
     @Test
     void aWrongPasswordIsUnauthorized() throws Exception {
-        mvc.perform(get("/api/v1/assets").with(httpBasic("EMP-002", "wrong")))
+        mvc.perform(get("/api/v1/assets").with(httpBasic("ines.duarte", "wrong")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Content-Type", "application/problem+json"))
                 .andExpect(header().doesNotExist("Authorization"));
     }
 
     @Test
+    void thePersonIdIsNotAUsername() throws Exception {
+        mvc.perform(get("/api/v1/assets").with(httpBasic("EMP-002", "secret")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void theTokenOfAUsernameCarriesThePersonId() throws Exception {
+        String authorization = mvc.perform(get("/api/v1").with(httpBasic("ines.duarte", "secret")))
+                .andReturn().getResponse().getHeader("Authorization");
+        String payload = new String(Base64.getUrlDecoder().decode(authorization.substring("Bearer ".length()).split("\\.")[1]));
+
+        assertTrue(payload.contains("\"sub\":\"EMP-002\""));
+    }
+
+    @Test
     void anUnknownPersonIsUnauthorized() throws Exception {
-        mvc.perform(get("/api/v1/assets").with(httpBasic("EMP-404", "secret")))
+        mvc.perform(get("/api/v1/assets").with(httpBasic("nobody.here", "secret")))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -121,7 +138,7 @@ class AuthenticationApiTest extends ApiTest {
 
     @Test
     void theTokenIdentifiesTheActingPerson() throws Exception {
-        String authorization = mvc.perform(get("/api/v1").with(httpBasic("EMP-006", "secret")))
+        String authorization = mvc.perform(get("/api/v1").with(httpBasic("ana.torres", "secret")))
                 .andReturn().getResponse().getHeader("Authorization");
 
         mvc.perform(post("/api/v1/assets").header("Authorization", authorization)

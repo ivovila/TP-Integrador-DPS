@@ -12,6 +12,7 @@ public class UserAccountEntity {
     @Id
     @Column(name = "person_id")
     private String personId;
+    private String username;
     private String name;
     private String role;
     @Column(name = "password_hash")
@@ -20,8 +21,9 @@ public class UserAccountEntity {
     protected UserAccountEntity() {
     }
 
-    public UserAccountEntity(String personId, String name, String role, String passwordHash) {
+    public UserAccountEntity(String personId, String username, String name, String role, String passwordHash) {
         this.personId = personId;
+        this.username = username;
         this.name = name;
         this.role = role;
         this.passwordHash = passwordHash;
@@ -29,6 +31,10 @@ public class UserAccountEntity {
 
     public String personId() {
         return personId;
+    }
+
+    public String username() {
+        return username;
     }
 
     public String name() {

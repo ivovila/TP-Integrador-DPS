@@ -23,7 +23,7 @@ class TokenApiTest extends ApiTest {
 
     @BeforeEach
     void registerUser() {
-        userAccounts.save(new UserAccountEntity("EMP-002", "Ines Duarte", "INSPECTOR", passwordEncoder.encode("secret")));
+        userAccounts.save(new UserAccountEntity("EMP-002", "ines.duarte", "Ines Duarte", "INSPECTOR", passwordEncoder.encode("secret")));
     }
 
     @Test
@@ -47,13 +47,13 @@ class TokenApiTest extends ApiTest {
 
     @Test
     void logoutWithBasicCredentialsIsABadRequest() throws Exception {
-        mvc.perform(delete("/api/v1/tokens/current").with(httpBasic("EMP-002", "secret")))
+        mvc.perform(delete("/api/v1/tokens/current").with(httpBasic("ines.duarte", "secret")))
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string("Content-Type", "application/problem+json"));
     }
 
     private String logIn() throws Exception {
-        return mvc.perform(get("/api/v1").with(httpBasic("EMP-002", "secret")))
+        return mvc.perform(get("/api/v1").with(httpBasic("ines.duarte", "secret")))
                 .andReturn().getResponse().getHeader("Authorization");
     }
 }

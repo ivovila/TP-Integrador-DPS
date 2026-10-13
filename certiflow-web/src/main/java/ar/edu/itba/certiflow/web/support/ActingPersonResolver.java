@@ -31,7 +31,7 @@ public class ActingPersonResolver implements HandlerMethodArgumentResolver {
             return new Person(new PersonId(bearer.getToken().getSubject()), bearer.getToken().getClaimAsString("name"));
         }
         if (request.getUserPrincipal() instanceof Authentication basic) {
-            return userAccounts.findById(basic.getName())
+            return userAccounts.findByUsername(basic.getName())
                     .map(account -> new Person(new PersonId(account.personId()), account.name()))
                     .orElseThrow(() -> new IllegalStateException("No user account for " + basic.getName()));
         }

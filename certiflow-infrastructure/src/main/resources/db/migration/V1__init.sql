@@ -177,6 +177,7 @@ create index audit_entry_subject on audit_entry (subject_type, subject_id);
 
 create table user_account (
     person_id varchar(64) primary key,
+    username varchar(64) not null unique,
     name varchar(255) not null,
     role varchar(32) not null,
     password_hash varchar(255) not null

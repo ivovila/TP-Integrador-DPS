@@ -18,11 +18,12 @@ class SecurityRepositoriesTest {
     private SpringDataRevokedTokenRepository revokedTokens;
 
     @Test
-    void aUserAccountIsReadBackById() {
-        userAccounts.save(new UserAccountEntity("EMP-002", "Ines Duarte", "INSPECTOR", "{bcrypt}hash"));
+    void aUserAccountIsReadBackByUsername() {
+        userAccounts.save(new UserAccountEntity("EMP-002", "ines.duarte", "Ines Duarte", "INSPECTOR", "{bcrypt}hash"));
 
-        UserAccountEntity found = userAccounts.findById("EMP-002").orElseThrow();
+        UserAccountEntity found = userAccounts.findByUsername("ines.duarte").orElseThrow();
 
+        assertEquals("EMP-002", found.personId());
         assertEquals("Ines Duarte", found.name());
         assertEquals("INSPECTOR", found.role());
         assertEquals("{bcrypt}hash", found.passwordHash());

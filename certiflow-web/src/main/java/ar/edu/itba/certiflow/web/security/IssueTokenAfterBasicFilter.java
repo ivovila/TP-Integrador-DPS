@@ -29,7 +29,7 @@ public class IssueTokenAfterBasicFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof UsernamePasswordAuthenticationToken basic && basic.isAuthenticated()) {
-            userAccounts.findById(basic.getName()).map(tokenIssuer::issueFor).ifPresent(token -> {
+            userAccounts.findByUsername(basic.getName()).map(tokenIssuer::issueFor).ifPresent(token -> {
                 response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token.value());
                 response.setHeader(TOKEN_EXPIRES_HEADER, token.expiresAt().toString());
             });
