@@ -8,5 +8,9 @@ public interface InspectionSchemaRepository {
 
     void save(InspectionSchema schema);
 
+    default Optional<InspectionSchema> findForUpdate(AssetType assetType) {
+        return findByAssetType(assetType);
+    }
+
     Optional<InspectionSchema> findByAssetType(AssetType assetType);
 }

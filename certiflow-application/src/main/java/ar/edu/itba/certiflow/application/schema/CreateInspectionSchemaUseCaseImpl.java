@@ -1,10 +1,10 @@
 package ar.edu.itba.certiflow.application.schema;
 
-import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaAlreadyDefinedForAssetTypeException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import java.time.Clock;
 
@@ -27,7 +27,7 @@ public final class CreateInspectionSchemaUseCaseImpl implements CreateInspection
             throw new SchemaAlreadyDefinedForAssetTypeException(command.assetType());
         });
         InspectionSchema schema = inspectionSchemaService.create(command.name(), command.assetType(), command.sections(),
-                command.createdBy(), clock.instant());
+                command.createdBy(), clock.instant(), command.requiredSubsystems());
         inspectionSchemaRepository.save(schema);
         return schema;
     }

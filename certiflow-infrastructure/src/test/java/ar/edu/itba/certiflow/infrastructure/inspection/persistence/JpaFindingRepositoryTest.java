@@ -9,6 +9,7 @@ import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -53,6 +54,6 @@ class JpaFindingRepositoryTest {
 
         assertEquals(List.of(finding.id()), repository.findByAsset(DomainSamples.ASSET.code()).stream().map(Finding::id).toList());
         assertEquals(List.of(finding.id()), repository.findAll().stream().map(Finding::id).toList());
-        org.junit.jupiter.api.Assertions.assertNotEquals(repository.nextId(), repository.nextId());
+        Assertions.assertNotEquals(repository.nextId(), repository.nextId());
     }
 }

@@ -56,8 +56,7 @@ class SnapshotTest {
 
     @Test
     void aRestoredCertificateKeepsItsLifecycle() {
-        CertificateNumber number = fixture.issue(fixture.closedCompliantInspection(), CertiflowFixture.TODAY.plusYears(1),
-                fixture.certifier);
+        CertificateNumber number = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
         fixture.suspend(number, "Seal tampered", fixture.planner);
         Certificate original = fixture.certificate(number);
 

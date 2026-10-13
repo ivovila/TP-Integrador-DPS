@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.inspection.model.FullScope;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import ar.edu.itba.certiflow.web.support.PersonPayload;
 import ar.edu.itba.certiflow.web.support.RequestFields;
 import java.time.LocalDate;
@@ -17,7 +18,7 @@ public record AssignmentRequest(String assetCode, PersonPayload inspector, Local
         RequestFields.require(inspector, "inspector");
         RequestFields.require(plannedDate, "plannedDate");
         if (sections != null && sections.contains(null)) {
-            throw new ar.edu.itba.certiflow.shared.model.RequiredValueMissingException("Field sections contains a null element");
+            throw new RequiredValueMissingException("Field sections contains a null element");
         }
     }
 

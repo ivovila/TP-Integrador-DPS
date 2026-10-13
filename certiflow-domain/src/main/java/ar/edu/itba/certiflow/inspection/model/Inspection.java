@@ -2,10 +2,7 @@ package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.shared.model.AuditEntry;
-import ar.edu.itba.certiflow.shared.model.AuditTrail;
-import ar.edu.itba.certiflow.schema.model.Answer;
-import ar.edu.itba.certiflow.schema.model.Evidence;
+import ar.edu.itba.certiflow.catalog.model.Subsystem;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotAssignInspectionException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotInspectOwnAssetException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssignerCannotInspectException;
@@ -13,13 +10,19 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.CriterionOutOfScopeExce
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.RectificationReasonRequiredException;
+import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class Inspection implements InspectionView {
 
@@ -36,6 +39,10 @@ public final class Inspection implements InspectionView {
 
     Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Person assignedBy,
                Instant assignedAt) {
+        if (!asset.subsystems().stream().map(Subsystem::code).collect(Collectors.toSet())
+                .containsAll(schemaVersion.requiredSubsystems())) {
+            throw new InvalidSchemaException("Asset lacks required subsystems");
+        }
         Person inspector = assignment.inspector();
         if (assignedBy.equals(inspector)) {
             throw new AssignerCannotInspectException(inspector);
@@ -96,7 +103,7 @@ public final class Inspection implements InspectionView {
         evaluation.ensureComplete();
         revisions = revisions.sealedWith(CLOSURE_REASON, evaluation, closedBy, closedAt);
         auditTrail.record(InspectionAudit.CLOSED, closedBy, closedAt, "");
-        return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closedBy, closedAt);
+        return new InspectionClosed(id, assetCode, assetResponsible, evaluation.nonConformities(), closedBy, closedAt, schemaVersion);
     }
 
     <A extends Answer> InspectionRectified rectify(Criterion<A> criterion, A answer, String reason, Person rectifiedBy, Instant rectifiedAt) {
@@ -109,7 +116,7 @@ public final class Inspection implements InspectionView {
         revisions = revisions.sealedWith(reason, evaluation, rectifiedBy, rectifiedAt);
         auditTrail.record(InspectionAudit.RECTIFIED, rectifiedBy, rectifiedAt, criterion.code() + " = " + answer + " (" + reason + ")");
         return new InspectionRectified(id, assetCode, assetResponsible, evaluation.nonConformities().stream()
-                .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectifiedBy, rectifiedAt);
+                .filter(nonConformity -> nonConformity.isFor(criterion)).toList(), rectifiedBy, rectifiedAt, schemaVersion);
     }
 
     List<AuditEntry> pullAuditEntries() {

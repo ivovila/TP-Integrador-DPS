@@ -31,6 +31,11 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
         return schemas.findById(assetType.name()).map(InspectionSchemaEntity::toDomain);
     }
 
+    @Override
+    public Optional<InspectionSchema> findForUpdate(AssetType assetType) {
+        return schemas.findLocked(assetType.name()).map(InspectionSchemaEntity::toDomain);
+    }
+
     public SchemaVersionEntity versionEntity(AssetType assetType, int number) {
         return schemas.findById(assetType.name()).orElseThrow().versions().stream()
                 .filter(version -> version.number() == number)

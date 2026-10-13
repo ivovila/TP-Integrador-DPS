@@ -102,3 +102,34 @@ gh api -X PUT repos/ivovila/TP-Integrador-DPS/branches/main/protection \
 - [docs/consigna](docs/consigna): enunciado de la entrega.
 - [docs/clases](docs/clases): apuntes de las clases que guían la arquitectura.
 - [docs/certiflow-domain.puml](docs/certiflow-domain.puml): diagrama de clases en PlantUML.
+
+
+## F1, F2 y F3
+
+El modelo nuevo requiere jurisdicción explícita en cada activo y calcula vigencia de certificados en el
+servidor. No hay modo LEGACY ni migración de datos anteriores: usar una base nueva para esta versión.
+Las specs y planes viven en [docs/specs](docs/specs/README.md) y [docs/plans](docs/plans).
+
+- **F2:** publicar una versión admite `effectiveFrom` ISO-8601 con offset. `GET /api/v1/schemas/{type}/effective-version?at=...`
+  consulta historia; asignar captura la versión vigente al iniciar, independientemente de la visita prevista.
+- **F3:** `jurisdictionCode` selecciona una política declarada en código de dominio: DEMO-STRICT (12 meses, todo hallazgo
+  bloquea), DEMO-CONDITIONAL (6 meses sin hallazgos, 30 días con MINOR/MAJOR; CRITICAL bloquea) y DEMO-STANDARD
+  (12 meses, MAJOR/CRITICAL bloquean). Son ejemplos, no normativa. La composición registra explícitamente cada jurisdicción; no hay fallback.
+- **F1:** activo declara `subsystems: [{code, name}]`; esquema declara `requiredSubsystems` y `subsystemCode` en sección
+  o criterio. Emitir parcial: `POST /api/v1/certificates` con `inspectionId` y `subsystemCode`. No enviar `validUntil`.
+  Consultar decisión: `/api/v1/inspections/{id}/certification-eligibility?subsystem=...`.
+- **Global:** `POST /api/v1/assets/{code}/global-certificates` con `schemaVersion` y `partialCertificateNumbers`.
+  Renovación: `/api/v1/certificates/{number}/global-renewals` con el mismo cuerpo. Su vigencia termina con el
+  parcial más corto; estado DEPENDENCY_INVALID si pierde un respaldo. Los documentos muestran alcance,
+  bases, política, modalidad y condiciones.
+
+Para repetir la demostración completa y carreras sobre H2: `mvn -q clean verify`.
+Para repetirla sobre una base PostgreSQL 17 vacía en localhost:55433, DB certiflow, usuario postgres y clave
+de prueba certiflow-test: `mvn -q -Dcertiflow.postgres=true clean verify`.
+CI levanta esa base como servicio efímero. `DeliveryFeaturesApiTest` documenta la demostración paso a paso.
+
+
+Las políticas exponen únicamente `code()` y `evaluate(context)`. Sus reglas son privadas;
+la decisión conserva resultado, motivos, condiciones, vigencia y código de política.
+El resumen general de hallazgos muestra severidad y resolución. Los impedimentos de certificación
+se consultan en la evaluación de una inspección y alcance, no como propiedad absoluta de un hallazgo.

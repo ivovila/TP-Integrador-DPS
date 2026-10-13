@@ -15,6 +15,7 @@ import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,9 +40,9 @@ class InspectionResultTranslatorImplTest {
         when(findingRepository.findByAsset(fixture.extinguisher.code()))
                 .thenReturn(fixture.findingRepository.findByAsset(fixture.extinguisher.code()));
 
-        InspectionResult result = new InspectionResultTranslatorImpl(inspectionRepository, findingRepository).translate(inspection);
+        InspectionResult result = new InspectionResultTranslatorImpl(inspectionRepository, findingRepository, fixture.assetRepository).translate(inspection);
 
-        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR)), result.openNonConformities());
+        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR, fixture.findingRepository.findByAsset(fixture.extinguisher.code()).stream().filter(finding -> finding.isOpen()).findFirst().orElseThrow().id().value(), Optional.empty())), result.openNonConformities());
         assertEquals(fixture.inspection(inspection).originalRevision().sealedAt(), result.closedAt().orElseThrow());
     }
 
@@ -51,7 +52,7 @@ class InspectionResultTranslatorImplTest {
         when(inspectionRepository.findById(inspection)).thenReturn(Optional.of(fixture.inspection(inspection)));
         when(findingRepository.findByAsset(fixture.extinguisher.code())).thenReturn(List.of());
 
-        assertFalse(new InspectionResultTranslatorImpl(inspectionRepository, findingRepository).translate(inspection).isClosed());
+        assertFalse(new InspectionResultTranslatorImpl(inspectionRepository, findingRepository, fixture.assetRepository).translate(inspection).isClosed());
     }
 
     @Test
@@ -59,7 +60,7 @@ class InspectionResultTranslatorImplTest {
         InspectionId unknown = new InspectionId("missing");
         when(inspectionRepository.findById(unknown)).thenReturn(Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertThrows(InspectionNotFoundException.class,
-                () -> new InspectionResultTranslatorImpl(inspectionRepository, findingRepository).translate(unknown));
+        Assertions.assertThrows(InspectionNotFoundException.class,
+                () -> new InspectionResultTranslatorImpl(inspectionRepository, findingRepository, fixture.assetRepository).translate(unknown));
     }
 }

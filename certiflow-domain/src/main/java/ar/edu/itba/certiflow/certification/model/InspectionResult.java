@@ -8,10 +8,25 @@ import java.util.List;
 import java.util.Optional;
 
 public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, Optional<Instant> closedAt,
-                               boolean coversWholeSchema, List<OpenNonConformity> openNonConformities) {
+                               boolean coversWholeSchema, List<OpenNonConformity> openNonConformities, SchemaReference schemaReference, List<SubsystemResult> subsystems, CertificationScope scope) {
 
     public InspectionResult {
         openNonConformities = List.copyOf(openNonConformities);
+        subsystems = List.copyOf(subsystems);
+    }
+
+    public InspectionResult forScope(CertificationScope requested) {
+        if (requested instanceof CertificationScope.WholeAsset) {
+            if (!subsystems.isEmpty()) {
+                throw new CertificationConflictException("Global certificates must be derived from partial certificates");
+            }
+            return this;
+        }
+        var code = ((CertificationScope.SubsystemScope) requested).code();
+        var subsystem = subsystems.stream().filter(item -> item.code().equals(code)).findFirst()
+                .orElseThrow(() -> new SubsystemNotFoundException(code));
+        return new InspectionResult(inspectionId, assetCode, closedAt, subsystem.covered(), subsystem.openNonConformities(),
+                schemaReference, subsystems, requested);
     }
 
     public boolean isClosed() {
@@ -22,7 +37,4 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
         return new InspectionReference(inspectionId, closedAt.orElseThrow(InspectionNotClosedException::new));
     }
 
-    public List<OpenNonConformity> blockingNonConformities() {
-        return openNonConformities.stream().filter(OpenNonConformity::blocksCertification).toList();
-    }
 }

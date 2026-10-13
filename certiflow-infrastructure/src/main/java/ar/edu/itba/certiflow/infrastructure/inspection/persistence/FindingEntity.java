@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.SectionsJson;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionSnapshot;
@@ -21,6 +22,7 @@ import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "finding")
@@ -33,6 +35,8 @@ public class FindingEntity {
     @Column(name = "asset_code")
     private String assetCode;
     private String criterion;
+    @Column(name = "subsystem_code")
+    private String subsystemCode;
     @Column(name = "responsible_id")
     private String responsibleId;
     @Column(name = "responsible_name")
@@ -54,6 +58,7 @@ public class FindingEntity {
         this.inspectionId = snapshot.inspectionId().value();
         this.assetCode = snapshot.assetCode().value();
         this.criterion = SectionsJson.writeCriterion(snapshot.criterion());
+        this.subsystemCode = snapshot.subsystemCode().map(code -> code.value()).orElse(null);
         PersonColumns responsible = PersonColumns.of(snapshot.responsible());
         this.responsibleId = responsible.id();
         this.responsibleName = responsible.name();
@@ -76,6 +81,6 @@ public class FindingEntity {
         return new FindingSnapshot(new FindingId(id), new InspectionId(inspectionId), new AssetCode(assetCode),
                 SectionsJson.readCriterion(criterion), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
-                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList());
+                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(), Optional.ofNullable(subsystemCode).map(SubsystemCode::new));
     }
 }

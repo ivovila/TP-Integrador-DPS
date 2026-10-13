@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.support;
 
+
+
 public final class Payloads {
 
     private static final String SECTIONS = """
@@ -19,7 +21,7 @@ public final class Payloads {
 
     public static String asset() {
         return """
-                {"code":"EXT-0042","name":"Lobby extinguisher","type":"Fire extinguisher","location":"Lobby",
+                {"code":"EXT-0042","name":"Lobby extinguisher","type":"Fire extinguisher","jurisdictionCode":"DEMO-STANDARD","subsystems":[],"location":"Lobby",
                  "responsible":{"id":"EMP-003","name":"Raul Responsible"},
                  "characteristics":[{"name":"capacity","value":"10 kg"}]}""";
     }

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ar.edu.itba.certiflow.web.support.ApiTest;
 import ar.edu.itba.certiflow.web.support.Flows;
+import java.time.Clock;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class CertificateApiTest extends ApiTest {
         String second = flows.closedInspection("7.10");
 
         postAs("EMP-006", certificate + "/renewals",
-                "{\"inspectionId\":\"" + Flows.idOf(second) + "\",\"validUntil\":\"" + LocalDate.now().plusYears(2) + "\"}")
+                "{\"inspectionId\":\"" + Flows.idOf(second) + "\"}")
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/certificates/CERT-00002")));
 
@@ -65,7 +66,7 @@ class CertificateApiTest extends ApiTest {
     @Test
     void issuingTwiceForTheSameAssetIs409() throws Exception {
         postAs("EMP-006", "/api/v1/certificates",
-                "{\"inspectionId\":\"" + Flows.idOf(inspection) + "\",\"validUntil\":\"" + LocalDate.now().plusYears(1) + "\"}")
+                "{\"inspectionId\":\"" + Flows.idOf(inspection) + "\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("AssetAlreadyCertifiedException"));
     }
@@ -89,7 +90,7 @@ class CertificateApiTest extends ApiTest {
         read(certificate + "/document")
                 .andExpect(jsonPath("$.number").value("CERT-00001"))
                 .andExpect(jsonPath("$.assetCode").value("EXT-0042"))
-                .andExpect(jsonPath("$.validUntil").value(LocalDate.now().plusYears(1).toString()))
+                .andExpect(jsonPath("$.validUntil").value(LocalDate.now(Clock.systemUTC()).plusMonths(12).minusDays(1).toString()))
                 .andExpect(jsonPath("$.issuedBy.id").value("EMP-006"));
     }
 

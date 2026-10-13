@@ -1,14 +1,15 @@
 package ar.edu.itba.certiflow.web.inspection;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ar.edu.itba.certiflow.web.support.ApiTest;
 import ar.edu.itba.certiflow.web.support.Payloads;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ class InspectionApiTest extends ApiTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("InspectionIncompleteException"));
 
-        org.junit.jupiter.api.Assertions.assertEquals(before, jdbc.queryForObject("select count(*) from audit_entry", Integer.class));
+        Assertions.assertEquals(before, jdbc.queryForObject("select count(*) from audit_entry", Integer.class));
     }
 
     @Test
@@ -151,7 +152,7 @@ class InspectionApiTest extends ApiTest {
                 "{\"kind\":\"PHOTO\",\"reference\":\"" + "r".repeat(600) + "\",\"description\":\"G\"}")
                 .andExpect(status().isBadRequest());
 
-        org.junit.jupiter.api.Assertions.assertEquals(before, jdbc.queryForObject("select count(*) from audit_entry", Integer.class));
+        Assertions.assertEquals(before, jdbc.queryForObject("select count(*) from audit_entry", Integer.class));
     }
 
     @Test

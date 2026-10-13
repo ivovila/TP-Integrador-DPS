@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 class RootControllerTest extends ApiTest {
 
@@ -18,7 +19,7 @@ class RootControllerTest extends ApiTest {
 
     @Test
     void anUnsupportedMethodIs405() throws Exception {
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1"))
+        mvc.perform(MockMvcRequestBuilders.delete("/api/v1"))
                 .andExpect(status().isMethodNotAllowed());
     }
 }

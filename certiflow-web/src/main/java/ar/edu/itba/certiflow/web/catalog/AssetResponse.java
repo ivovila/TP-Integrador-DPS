@@ -13,6 +13,8 @@ public class AssetResponse extends RepresentationModel<AssetResponse> {
     public final String name;
     public final String type;
     public final String location;
+    public final String jurisdictionCode;
+    public final List<AssetRequest.SubsystemPayload> subsystems;
     public final PersonPayload responsible;
     public final List<AssetRequest.CharacteristicPayload> characteristics;
 
@@ -21,6 +23,8 @@ public class AssetResponse extends RepresentationModel<AssetResponse> {
         this.name = asset.name();
         this.type = asset.type().name();
         this.location = asset.location().description();
+        this.jurisdictionCode = asset.jurisdictionCode().value();
+        this.subsystems = asset.subsystems().stream().map(item -> new AssetRequest.SubsystemPayload(item.code().value(), item.name())).toList();
         this.responsible = PersonPayload.of(asset.responsible());
         this.characteristics = asset.characteristics().entries().stream()
                 .map(c -> new AssetRequest.CharacteristicPayload(c.name(), c.value())).toList();

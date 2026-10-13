@@ -1,10 +1,16 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.util.List;
+import java.util.Optional;
 
 public record Criterion<A extends Answer>(String code, String text, ApprovalRule<A> rule, Severity severity,
-                                          List<EvidenceRequirement> requiredEvidence) {
+                                          List<EvidenceRequirement> requiredEvidence, Optional<SubsystemCode> subsystemCode) {
+
+    public Criterion(String code, String text, ApprovalRule<A> rule, Severity severity, List<EvidenceRequirement> requiredEvidence) {
+        this(code, text, rule, severity, requiredEvidence, Optional.empty());
+    }
 
     public Criterion {
         requiredEvidence = List.copyOf(requiredEvidence);

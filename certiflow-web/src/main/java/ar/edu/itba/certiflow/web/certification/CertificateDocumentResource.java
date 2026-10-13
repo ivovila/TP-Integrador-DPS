@@ -1,5 +1,8 @@
 package ar.edu.itba.certiflow.web.certification;
 
+import ar.edu.itba.certiflow.certification.model.CertificateBasis;
+import ar.edu.itba.certiflow.certification.model.CertificationDecision;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
 import ar.edu.itba.certiflow.web.support.PersonPayload;
 import java.time.Instant;
@@ -16,6 +19,9 @@ public class CertificateDocumentResource extends RepresentationModel<Certificate
     public final LocalDate validUntil;
     public final LocalDate statusDate;
     public final String status;
+    public final CertificationDecision decision;
+    public final CertificationScope scope;
+    public final CertificateBasis basis;
     public final PersonPayload issuedBy;
     public final Instant issuedAt;
     public final List<CertificateResource.SuspensionView> suspensions;
@@ -28,6 +34,7 @@ public class CertificateDocumentResource extends RepresentationModel<Certificate
         this.validUntil = document.validity().validUntil();
         this.statusDate = document.statusDate();
         this.status = document.status().name();
+        this.decision = document.decision(); this.scope = document.scope(); this.basis = document.basis();
         this.issuedBy = PersonPayload.of(document.issuedBy());
         this.issuedAt = document.issuedAt();
         this.suspensions = document.suspensions().stream()

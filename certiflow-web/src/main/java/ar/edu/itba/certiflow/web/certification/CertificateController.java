@@ -3,18 +3,24 @@ package ar.edu.itba.certiflow.web.certification;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
+import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.IssueGlobalCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.ListCertificatesUseCase;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.RenewGlobalCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.RenewGlobalCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
@@ -24,10 +30,15 @@ import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.RequestFields;
 import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
+import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
@@ -53,11 +64,17 @@ public class CertificateController {
     private final RenewCertificateUseCase renewCertificate;
     private final AuditHistoryUseCase auditHistory;
     private final Clock clock;
+    private final CertificateRepository certificates;
+    private final IssueGlobalCertificateUseCase issueGlobal;
+    private final RenewGlobalCertificateUseCase renewGlobal;
 
     public CertificateController(IssueCertificateUseCase issueCertificate, ListCertificatesUseCase listCertificates,
                                  FindCertificateUseCase findCertificate, GenerateCertificateDocumentUseCase generateCertificateDocument,
                                  SuspendCertificateUseCase suspendCertificate, RenewCertificateUseCase renewCertificate,
-                                 AuditHistoryUseCase auditHistory, Clock clock) {
+                                 AuditHistoryUseCase auditHistory, Clock clock,
+                                 CertificateRepository certificates,
+                                 IssueGlobalCertificateUseCase issueGlobal,
+                                 RenewGlobalCertificateUseCase renewGlobal) {
         this.issueCertificate = issueCertificate;
         this.listCertificates = listCertificates;
         this.findCertificate = findCertificate;
@@ -66,20 +83,31 @@ public class CertificateController {
         this.renewCertificate = renewCertificate;
         this.auditHistory = auditHistory;
         this.clock = clock;
+        this.certificates = certificates; this.issueGlobal = issueGlobal; this.renewGlobal = renewGlobal;
     }
 
     @PostMapping
     public ResponseEntity<CertificateResource> issue(@RequestBody CertificateRequest request, @ActingPerson Person issuedBy) {
         CertificateNumber number = issueCertificate.execute(new IssueCertificateCommand(new InspectionId(request.inspectionId()),
-                request.validUntil(), issuedBy));
+                issuedBy, request.scope()));
         return created(number);
     }
 
+    public record GlobalRequest(int schemaVersion, List<String> partialCertificateNumbers) {
+        public GlobalRequest { RequestFields.requireElements(partialCertificateNumbers, "partialCertificateNumbers"); }
+    }
+
+    @PostMapping("/{number}/global-renewals")
+    public ResponseEntity<CertificateResource> renewGlobal(@PathVariable String number, @RequestBody GlobalRequest request, @ActingPerson Person by) {
+        return created(renewGlobal.execute(new RenewGlobalCertificateCommand(
+                new CertificateNumber(number), findCertificate.execute(new CertificateNumber(number)).assetCode(), request.schemaVersion(), request.partialCertificateNumbers().stream().map(CertificateNumber::new).toList(), by)));
+    }
+
     @GetMapping
-    public PagedModel<CertificateResource> list(@RequestParam Optional<String> asset, @RequestParam(defaultValue = "0") int page,
+    public PagedModel<CertificateResource> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> subsystem, @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
-        return PageLinks.page(listCertificates.execute(asset.map(AssetCode::new)).stream().map(this::resource).toList(), page, size,
-                "/api/v1/certificates", Uris.query("asset", asset).orElse(""));
+        return PageLinks.page(listCertificates.execute(asset.map(AssetCode::new)).stream().filter(certificate -> subsystem.isEmpty() || certificate.scope().equals(new CertificationScope.SubsystemScope(new SubsystemCode(subsystem.orElseThrow())))).map(this::resource).toList(), page, size,
+                "/api/v1/certificates", Stream.of(Uris.query("asset", asset).orElse(""), Uris.query("subsystem", subsystem).orElse("")).filter(value -> !value.isEmpty()).collect(Collectors.joining("&")));
     }
 
     @GetMapping("/{number}")
@@ -120,7 +148,7 @@ public class CertificateController {
     public ResponseEntity<CertificateResource> renew(@PathVariable String number, @RequestBody CertificateRequest request,
                                                      @ActingPerson Person renewedBy) {
         CertificateNumber renewed = renewCertificate.execute(new RenewCertificateCommand(new CertificateNumber(number),
-                new InspectionId(request.inspectionId()), request.validUntil(), renewedBy));
+                new InspectionId(request.inspectionId()), renewedBy, request.scope()));
         return created(renewed);
     }
 
@@ -138,18 +166,27 @@ public class CertificateController {
 
     private CertificateResource resource(Certificate certificate) {
         String number = certificate.number().value();
-        CertificateStatus status = certificate.statusOn(LocalDate.now(clock));
+        CertificateStatus status = certificate.effectiveStatusOn(LocalDate.now(clock), certificates.findByAsset(certificate.assetCode()));
         CertificateResource resource = new CertificateResource(certificate, status);
         resource.add(linkTo(methodOn(CertificateController.class).find(number)).withSelfRel(),
                 Link.of(Uris.path("assets", certificate.assetCode().value())).withRel("asset"),
-                Link.of(Uris.path("inspections", certificate.basedOn().id().value())).withRel("inspection"),
                 linkTo(methodOn(CertificateController.class).document(number)).withRel("document"),
                 linkTo(methodOn(CertificateController.class).history(number)).withRel("audit-entries"));
+        if (certificate.basis() instanceof CertificateBasis.InspectionBasis inspection) {
+            resource.add(Link.of(Uris.path("inspections", inspection.inspection().id().value())).withRel("inspection"));
+        } else {
+            var backing = (CertificateBasis.PartialCertificatesBasis) certificate.basis();
+            backing.partials().forEach(partial -> resource.add(Link.of(Uris.path("certificates", partial.value())).withRel("partial-certificates")));
+        }
         if (status == CertificateStatus.ACTIVE) {
             resource.add(linkTo(methodOn(CertificateController.class).suspend(number, null, null)).withRel("suspensions"));
         }
         if (status != CertificateStatus.RENEWED) {
-            resource.add(linkTo(methodOn(CertificateController.class).renew(number, null, null)).withRel("renewals"));
+            if (certificate.basis() instanceof CertificateBasis.PartialCertificatesBasis) {
+                resource.add(linkTo(methodOn(CertificateController.class).renewGlobal(number, null, null)).withRel("global-renewals"));
+            } else {
+                resource.add(linkTo(methodOn(CertificateController.class).renew(number, null, null)).withRel("renewals"));
+            }
         }
         return resource;
     }

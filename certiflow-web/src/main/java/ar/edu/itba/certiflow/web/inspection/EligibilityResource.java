@@ -10,10 +10,12 @@ public class EligibilityResource extends RepresentationModel<EligibilityResource
     }
 
     public final boolean eligible;
+    public final CertificationDecision decision;
     public final List<Reason> ineligibilities;
 
     EligibilityResource(CertificationDecision decision) {
         this.eligible = decision.isEligible();
+        this.decision = decision;
         this.ineligibilities = decision.ineligibilities().stream()
                 .map(ineligibility -> new Reason(ineligibility.reason().name(), ineligibility.detail()))
                 .toList();

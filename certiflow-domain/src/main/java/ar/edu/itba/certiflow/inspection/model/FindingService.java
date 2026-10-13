@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.time.Instant;
@@ -24,7 +25,7 @@ public final class FindingService {
 
     public List<Finding> raiseFrom(InspectionClosed closure, Supplier<FindingId> nextId) {
         return raise(closure.nonConformities(), closure.inspectionId(), closure.assetCode(), closure.assetResponsible(),
-                closure.closedBy(), closure.closedAt(), nextId);
+                closure.closedBy(), closure.closedAt(), nextId, closure.schemaVersion());
     }
 
     /**
@@ -37,7 +38,7 @@ public final class FindingService {
                         .noneMatch(finding -> finding.isOpenFor(rectification.inspectionId(), nonConformity)))
                 .toList();
         return raise(unaddressed, rectification.inspectionId(), rectification.assetCode(), rectification.assetResponsible(),
-                rectification.rectifiedBy(), rectification.rectifiedAt(), nextId);
+                rectification.rectifiedBy(), rectification.rectifiedAt(), nextId, rectification.schemaVersion());
     }
 
     public CorrectiveAction planAction(Finding finding, String description, Person actionResponsible, LocalDate dueDate,
@@ -55,9 +56,9 @@ public final class FindingService {
     }
 
     private List<Finding> raise(List<CriterionResponse<?>> nonConformities, InspectionId inspectionId, AssetCode assetCode,
-                                Person responsible, Person raisedBy, Instant raisedAt, Supplier<FindingId> nextId) {
+                                Person responsible, Person raisedBy, Instant raisedAt, Supplier<FindingId> nextId, SchemaVersion schemaVersion) {
         List<Finding> raisedFindings = nonConformities.stream()
-                .map(nonConformity -> findingFactory.create(nextId.get(), inspectionId, assetCode, responsible, nonConformity, raisedBy, raisedAt))
+                .map(nonConformity -> findingFactory.create(nextId.get(), inspectionId, assetCode, responsible, nonConformity, raisedBy, raisedAt, schemaVersion.subsystemOf(nonConformity.criterion().code())))
                 .toList();
         raisedFindings.forEach(this::recorded);
         return raisedFindings;

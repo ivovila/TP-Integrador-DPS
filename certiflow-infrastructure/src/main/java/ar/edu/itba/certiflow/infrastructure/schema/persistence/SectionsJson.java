@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
@@ -16,6 +17,7 @@ import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import tools.jackson.core.type.TypeReference;
@@ -25,10 +27,10 @@ public final class SectionsJson {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
-    record SectionDocument(String title, List<CriterionDocument> criteria) {
+    record SectionDocument(String title, List<CriterionDocument> criteria, String subsystemCode) {
     }
 
-    record CriterionDocument(String code, String text, RuleDocument rule, String severity, List<EvidenceDocument> requiredEvidence) {
+    record CriterionDocument(String code, String text, RuleDocument rule, String severity, List<EvidenceDocument> requiredEvidence, String subsystemCode) {
     }
 
     record RuleDocument(String type, String unit, BigDecimal minimum, BigDecimal maximum, String expected, Set<String> options) {
@@ -42,7 +44,7 @@ public final class SectionsJson {
 
     public static String write(List<Section> sections) {
         return MAPPER.writeValueAsString(sections.stream()
-                .map(section -> new SectionDocument(section.title(), section.criteria().stream().map(SectionsJson::document).toList()))
+                .map(section -> new SectionDocument(section.title(), section.criteria().stream().map(SectionsJson::document).toList(), section.subsystemCode().map(code -> code.value()).orElse(null)))
                 .toList());
     }
 
@@ -50,7 +52,7 @@ public final class SectionsJson {
         List<SectionDocument> documents = MAPPER.readValue(json, new TypeReference<List<SectionDocument>>() {
         });
         return documents.stream()
-                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList()))
+                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new)))
                 .toList();
     }
 
@@ -66,7 +68,7 @@ public final class SectionsJson {
         return new CriterionDocument(criterion.code(), criterion.text(), document(criterion.rule()), severityName(criterion.severity()),
                 criterion.requiredEvidence().stream()
                         .map(requirement -> new EvidenceDocument(evidenceKindName(requirement.kind()), requirement.minimum()))
-                        .toList());
+                        .toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
     }
 
     private static RuleDocument document(ApprovalRule<?> rule) {
@@ -88,11 +90,11 @@ public final class SectionsJson {
         RuleDocument rule = document.rule();
         return switch (rule.type()) {
             case "numeric-range" -> new Criterion<>(document.code(), document.text(),
-                    new NumericRangeRule(new Unit(rule.unit()), new Range(rule.minimum(), rule.maximum())), severity, evidence);
+                    new NumericRangeRule(new Unit(rule.unit()), new Range(rule.minimum(), rule.maximum())), severity, evidence, Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new));
             case "yes-no" -> new Criterion<>(document.code(), document.text(),
-                    new YesNoRule(YesNoAnswer.valueOf(rule.expected())), severity, evidence);
+                    new YesNoRule(YesNoAnswer.valueOf(rule.expected())), severity, evidence, Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new));
             case "option-in-list" -> new Criterion<>(document.code(), document.text(),
-                    new OptionInListRule(rule.options()), severity, evidence);
+                    new OptionInListRule(rule.options()), severity, evidence, Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new));
             default -> throw new IllegalArgumentException("Unknown rule type " + rule.type());
         };
     }

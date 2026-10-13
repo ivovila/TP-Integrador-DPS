@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.web.support;
 
 import com.jayway.jsonpath.JsonPath;
-import java.time.LocalDate;
 
 public final class Flows {
 
@@ -42,7 +41,7 @@ public final class Flows {
     public String certificateFor(String inspection) throws Exception {
         String id = inspection.substring(inspection.lastIndexOf('/') + 1);
         String location = api.postAs("EMP-006", "/api/v1/certificates",
-                        "{\"inspectionId\":\"" + id + "\",\"validUntil\":\"" + LocalDate.now().plusYears(1) + "\"}")
+                        "{\"inspectionId\":\"" + id + "\"}")
                 .andReturn().getResponse().getHeader("Location");
         return path(location);
     }

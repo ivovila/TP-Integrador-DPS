@@ -1,12 +1,11 @@
 package ar.edu.itba.certiflow.application;
 
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.ParameterizedTest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -18,10 +17,11 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.VerificationNotesRequir
 import ar.edu.itba.certiflow.inspection.model.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class CorrectiveActionTest {
 
@@ -67,7 +67,7 @@ class CorrectiveActionTest {
 
         assertTrue(fixture.action(finding, rechargeAction).isClosed());
         assertFalse(fixture.finding(finding).isOpen());
-        assertFalse(fixture.finding(finding).blocksCertification());
+        assertFalse(fixture.finding(finding).isOpen());
         assertFalse(fixture.action(finding, rechargeAction).isOverdueOn(LocalDate.now(fixture.clock)));
         assertEquals(FindingAudit.VERIFICATION_ACCEPTED, fixture.findingLog.historyOf(finding).getLast().action());
     }

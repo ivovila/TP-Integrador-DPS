@@ -1,13 +1,15 @@
 package ar.edu.itba.certiflow.application.schema;
 
-import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
+import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
+import java.time.Instant;
 
 public final class PublishSchemaVersionUseCaseImpl implements PublishSchemaVersionUseCase {
 
@@ -24,11 +26,12 @@ public final class PublishSchemaVersionUseCaseImpl implements PublishSchemaVersi
 
     @Override
     public SchemaVersion execute(PublishSchemaVersionCommand command) {
-        InspectionSchema schema = inspectionSchemaRepository.findByAssetType(command.assetType())
+        InspectionSchema schema = inspectionSchemaRepository.findForUpdate(command.assetType())
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(command.assetType()));
+        Instant publishedAt = StoredInstant.normalize(clock.instant());
         InspectionSchema updatedSchema = inspectionSchemaService.addVersion(schema, command.sections(), command.publishedBy(),
-                clock.instant());
+                publishedAt, command.effectiveFrom().orElse(publishedAt), command.requiredSubsystems());
         inspectionSchemaRepository.save(updatedSchema);
-        return updatedSchema.currentVersion();
+        return updatedSchema.latestPublishedVersion();
     }
 }

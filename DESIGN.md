@@ -18,22 +18,22 @@ La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del bu
 
 | # | Tema | Decisión | Consecuencia |
 |---|---|---|---|
-| S1 | "Inspección iniciada" | La inspección nace asignada y abierta en un solo paso, y en ese momento captura la `SchemaVersion` vigente, que es inmutable. | Publicar una versión nueva crea otro objeto; la inspección conserva su referencia. Un criterio agregado en v2 lanza `CriterionNotInSchemaException` en una inspección abierta con v1. |
-| S2 | Esquema por tipo de activo | Existe un único `InspectionSchema` por `AssetType`, con N versiones guardadas en un `SchemaVersionLog` numerado de forma consecutiva desde 1. `InspectionSchema` es un record inmutable: `withNewVersion(...)` devuelve un esquema nuevo con el log extendido y el anterior queda intacto; el repositorio reemplaza el esquema de ese tipo de activo. Los casos de uso crean esquemas y agregan versiones a través del servicio de dominio `InspectionSchemaService`, que audita ambos hechos (`SchemaAudit.CREATED`, `VERSION_ADDED`) con su autor. | `AssignInspection` busca el esquema por el tipo del activo. Crear un segundo esquema para el mismo tipo falla con `SchemaAlreadyDefinedForAssetTypeException`. |
+| S1 | Inspección iniciada | La asignación captura `schema.versionAt(startedAt)` con un único instante normalizado a microsegundos. La fecha prevista no selecciona versión. | Publicar o activar otra versión nunca modifica la captura. |
+| S2 | Esquema y calendario | Un esquema por tipo; versiones consecutivas e inmutables, con publicación y vigencia separadas. Vigencias estrictamente crecientes e intervalos `[desde, próxima)`. | `latestPublishedVersion` puede diferir de `versionAt(now)`; publicación serializada por esquema. |
 | S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
 | S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. `close()` devuelve el evento `InspectionClosed` con las no conformidades, y `FindingService` genera los hallazgos a partir de él. Cerrar sin generarlos no es posible: el comando es de paquete y solo `InspectionService` lo expone (ver D14). | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. |
-| S5 | Qué bloquea la certificación | Los hallazgos abiertos cuya severidad lo declara (`Severity.blocksCertification()`): `MAJOR` y `CRITICAL`. Los `MINOR` se siguen con acciones correctivas pero no impiden certificar. Como toda no conformidad levanta su hallazgo, al cerrar y al rectificar (S6), esta única regla alcanza. | "Observado" y "rechazado" tienen consecuencias distintas y defendibles. Un activo vuelve a ser certificable cuando se cierran sus hallazgos bloqueantes por el flujo de acciones correctivas. |
+| S5 | Qué bloquea certificar | Lo decide `CertificationPolicy` según jurisdicción. La severidad solo determina la evaluación del criterio. | Políticas demo STRICT, CONDITIONAL y STANDARD; no hay fallback ni LEGACY. |
 | S6 | Rectificación y hallazgos | Rectificar corrige el acta y su evaluación derivada; no toca los hallazgos ya levantados. Si la respuesta nueva deja el criterio en no conformidad y no hay un hallazgo **abierto** por esa misma no conformidad, se levanta uno nuevo, atribuido a quien rectificó. `rectify()` devuelve el evento `InspectionRectified` y `RectifyInspection` devuelve los hallazgos levantados. | Un hallazgo ya cerrado no tapa una no conformidad reintroducida por una rectificación: se levanta otro y el activo deja de ser certificable hasta cerrarlo. |
 | S7 | Revisión original | Cerrar crea la `Revision` 1; cada rectificación agrega otra; ninguna se modifica. | `originalRevision()` devuelve siempre lo que se firmó al cerrar. |
 | S8 | Acción correctiva | Vive dentro de su hallazgo. Está cerrada cuando tiene una verificación aceptada; está vencida cuando sigue abierta y la fecha es posterior a `dueDate`. El verificador debe ser distinto del responsable de la acción. Cuando se acepta una acción, el hallazgo cancela sus otras acciones abiertas y registra la `Cancellation` (quién verificó y cuándo). La fecha límite no puede ser anterior al día en que se planifica, y una verificación rechazada tiene que explicar por qué (`VerificationResult.requiresNotes()`). | Una verificación aceptada cierra acción y hallazgo a la vez, sin coordinación externa. Ninguna acción queda huérfana ni figura como vencida en un hallazgo cerrado. El día `dueDate` todavía no está vencida. |
-| S9 | Vencimiento del certificado | `ValidityPeriod(validFrom, validUntil)` con ambos extremos incluidos. La vigencia arranca el día de emisión. `EXPIRED` se deriva de la fecha consultada. | Vigente todo el día `validUntil`, vencido el siguiente. No existe un booleano que pueda quedar desactualizado. |
-| S10 | Unicidad y suspensión | Un activo tiene a lo sumo un certificado vigente. Un certificado suspendido dentro de su validez sigue ocupando ese lugar. Solo se puede suspender un certificado `ACTIVE` en la fecha de la suspensión: uno vencido, ya suspendido o renovado lanza `CertificateNotActiveException`. Una suspensión no detiene el calendario: pasada la vigencia, el estado es `EXPIRED`. | No se puede esquivar una suspensión emitiendo otro certificado; la salida es renovar. Ningún estado guardado sobrevive a su fecha de vencimiento. |
+| S9 | Vigencia | Plazo calculado por política; N días incluyen el día inicial y N meses terminan un día antes del aniversario ajustado. Ambos extremos inclusivos. | El request no acepta vencimiento libre; EXPIRED se deriva del reloj. |
+| S10 | Unicidad y suspensión | A lo sumo un vigente por activo + alcance. Un suspendido dentro de vigencia ocupa su alcance. | Lock por activo evita emisiones concurrentes duplicadas; global y parciales tienen alcances distintos. |
 | S11 | Renovación | Emite un certificado nuevo, basado en una inspección del mismo activo, cerrada después que la del certificado actual (7.3) y sujeta a la misma elegibilidad; el anterior pasa a `RENEWED`, estado terminal. No se modela "levantar una suspensión". Todo lo que puede fallar (elegibilidad, vigencia, `ensureRenewableWith`) se valida antes de pedir el número. | La historia no se borra. Menos transiciones que probar. Una renovación rechazada no consume numeración, cualquiera sea el motivo. |
 | S12 | Límites numéricos | `Range[minimum, maximum]` cerrado en ambos extremos; un mínimo mayor que el máximo es configuración inválida. La unidad es configuración de la regla, no un dato libre de la respuesta numérica. | La inspección trabaja con el valor en la unidad que define su esquema; no hay conversión de unidades. |
 | S13 | Evidencia obligatoria | Un criterio puede exigir una cantidad mínima de evidencias de un tipo concreto: `EvidenceRequirement(kind, minimum)`, a lo sumo un requisito por tipo. Cada evidencia exigida tiene que ser un archivo distinto: adjuntar dos veces la misma referencia al mismo criterio se rechaza (`DuplicateEvidenceException`). | Un criterio respondido pero sin la foto exigida queda `PENDING` y bloquea el cierre. "Dos fotos" no se cumple con la misma foto dos veces, y un criterio con dos requisitos del mismo tipo es un esquema inválido (`InvalidSchemaException`) en lugar de dos requisitos que se cumplen con una sola foto. El mismo archivo sí puede respaldar criterios distintos. |
 | S14 | Personas | Inspector, responsable, verificador y emisor son `Person(id, name)`, una entidad identificada por `PersonId` (legajo o documento que asigna la organización) e igual solo por ese id. El rol lo da el campo que la referencia. | La regla "verificador distinto del responsable" compara identidades: dos homónimos son personas distintas y la misma persona se reconoce aunque su nombre se escriba distinto. |
 | S15 | Identidad | Todo agregado tiene identidad: `AssetCode` (placa del activo), `CertificateNumber`, `PersonId`, e `InspectionId` y `FindingId` generados por su repositorio (`nextId()`). `CorrectiveActionId` numera las acciones dentro de su hallazgo. Entre agregados se referencia siempre por id, también el activo: `Inspection`, `Finding` y `Certificate` guardan su `AssetCode`, y los puertos consultan por código (`findByAsset(AssetCode)`, `findCurrentFor(AssetCode, fecha)`). | Los casos de uso reciben y devuelven ids; cargan el agregado con `findById` y lanzan `...NotFoundException` si no existe. Editar el nombre o el responsable de un activo no desvincula sus hallazgos ni su certificado. Ver D3. |
-| S17 | Alcance de la inspección | La asignación fija un `InspectionScope`: `FullScope` (todo el esquema) o `SectionsScope` (secciones nombradas, que deben existir en la versión capturada, o falla con `SectionNotInSchemaException`). La inspección solo tiene respuestas para los criterios de su alcance: responder fuera lanza `CriterionOutOfScopeException`, y cerrar solo exige completar lo que está dentro. Solo una inspección que cubre todo el esquema puede respaldar un certificado (la decisión lo informa como `PARTIAL_INSPECTION`). | Una inspección parcial sirve para seguimiento y genera hallazgos, pero no certifica. El alcance deja de ser un texto libre que no restringía nada. |
+| S17 | Alcance | Una inspección parcial puede certificar un subsistema si cubre todos sus criterios. Un global de esquema descompuesto exige todos los parciales de la misma versión. | No se suman varias inspecciones para completar un parcial. |
 | S18 | Características del activo | `Characteristics` es una colección de `Characteristic(name, value)` con nombres únicos (`DuplicateCharacteristicException`) y consulta `valueOf(name)`. | Reemplaza al `Map<String,String>`: los datos del activo se validan y se consultan con el vocabulario del dominio. |
 | S19 | Independencia en la asignación | Quien asigna una inspección no puede realizarla (`AssignerCannotInspectException`); el responsable del activo no puede asignar su inspección (`AssetResponsibleCannotAssignInspectionException`) ni inspeccionarlo (`AssetResponsibleCannotInspectOwnAssetException`). Se valida al nacer la inspección. | La inspección la realiza alguien independiente de quien la pide y de quien responde por el activo. |
 | S16 | Informes | `InspectionAct`, `FindingsSummary` y `CertificateDocument` son records sin formato. El acta solo se emite para inspecciones cerradas. | Son modelos de lectura: ahí se usan getters a propósito. |
@@ -55,7 +55,7 @@ los repositorios y `web` con los controladores.
 | **Catálogo** | `catalog` | activo, placa, tipo, ubicación, responsable, característica | `Asset`, `AssetCode`, `AssetType`, `Location`, `Characteristics` |
 | **Esquemas** | `schema` | esquema, versión, sección, criterio, regla de aprobación, severidad, evidencia exigida | `InspectionSchema`, `SchemaVersion`, `Section`, `Criterion`, reglas, `Severity`, `EvidenceKind`, `RawAnswer` |
 | **Inspección** | `inspection` | inspección, alcance, respuesta, evidencia, observación, revisión, rectificación, hallazgo, acción correctiva, verificación | `Inspection`, `Evaluation`, `Revisions`, `Finding`, `CorrectiveActions` |
-| **Certificación** | `certification` | certificado, vigencia, suspensión, renovación, elegibilidad, resultado de inspección | `Certificate`, `CertificationEligibility`, `CertificationDecision`, `InspectionResult` |
+| **Certificación** | `certification` | certificado, vigencia, suspensión, renovación, elegibilidad, resultado de inspección | `Certificate`, `CertificationPolicy`, `CertificationDecision`, `InspectionResult` |
 | *Shared kernel* | `shared` | persona, auditoría | `Person`, `PersonId`, `DomainException`, `RequiredValueMissingException`, `AuditTrail`, `AuditEntry`, `AuditAction`, `AuditLog` |
 
 Hallazgos y acciones correctivas quedan en **Inspección**: nacen del cierre y de la rectificación (S4, S6)
@@ -137,7 +137,7 @@ en los métodos del agregado antes de modificarlo.
 
 Las reglas que necesitan consultar o coordinar más de un agregado viven en la capa que los orquesta.
 Para certificar hay que mirar los hallazgos del activo: la regla es de negocio y vive en el servicio de
-dominio `CertificationEligibility`, que recibe el `InspectionResult` ya armado por el ACL; para impedir dos
+dominio `CertificationPolicy`, que recibe el `InspectionResult` ya armado por el ACL; para impedir dos
 certificados vigentes se consulta el repositorio desde `IssueCertificate`; y para garantizar un único
 esquema por `AssetType`, `CreateInspectionSchema` consulta el repositorio de esquemas antes de crear uno.
 Así los agregados no dependen de repositorios ni conocen el resto del sistema.
@@ -259,14 +259,15 @@ determinista y los tests usan un reloj controlable.
 - **Dónde:** `AssetRepository {save, findByCode}`, `InspectionSchemaRepository {save, findByAssetType}`, `InspectionRepository {nextId, save, findById}`, `FindingRepository {nextId, save, saveAll, findById, findByAsset}`, `CertificateRepository {save, findByNumber, findCurrentFor}`, `CertificateNumbering {next}`, `AuditLog<S> {record, recordAll, historyOf}`. Los seis primeros viven en el paquete `repository` de su contexto; `AuditLog` vive en `shared.model` por el motivo explicado en la sección 2. Las consultas por activo reciben `AssetCode`, no `Asset` (D3).
 - **Por qué:** cada interfaz tiene lo que sus casos de uso usan. La única consulta con lógica, `findCurrentFor`, delega la decisión en `Certificate.isCurrentOn(date)`.
 
-### D10. Elegibilidad para certificar como política intercambiable
+### D10. Certificación como Strategy por jurisdicción
 
-- **Principio:** OCP; patrón Strategy; servicio de dominio.
-- **Dónde:** `certification.model`: interfaz `CertificationEligibility` e implementación `NoBlockingFindingsEligibility`, usadas por `IssueCertificate`, `RenewCertificate` y `EvaluateCertification`.
-- **Decisión explicable:** `evaluate(inspection, assetFindings)` no lanza excepciones: devuelve un `CertificationDecision` con todas las `Ineligibility(reason, detail)` que encuentra (`INSPECTION_NOT_CLOSED`, `PARTIAL_INSPECTION`, `BLOCKING_FINDINGS`). `EvaluateCertification` la expone tal cual; `IssueCertificate` y `RenewCertificate` usan el método `default ensureEligible(...)` de la interfaz, que consulta la decisión y lanza `NotEligibleForCertificationException` con ella, de modo que la regla no se repite en los dos casos de uso.
-- **Por qué es de dominio:** "no certificar con hallazgos bloqueantes" es una regla del negocio. El servicio no depende de repositorios: el caso de uso le entrega los hallazgos del activo.
-- **Por qué:** a diferencia de las fábricas, acá sí hay una segunda política identificada. El equipo discutió y descartó "cualquier hallazgo abierto impide certificar" (ver S5); otra entidad certificadora podría elegirla. Cambiar de política es escribir otra implementación y entregarla al armar la aplicación, sin tocar los casos de uso.
-- **Costo:** una interfaz con una sola implementación hoy. Se acepta porque el eje de variación es concreto y ya tiene un segundo candidato, que es el criterio que este documento exige para cada abstracción.
+- **Qué:** `CertificationPolicyResolver` selecciona una Strategy por `JurisdictionCode`; `CertificationAssessmentService`
+  comprueba cierre/cobertura, coordina contexto y reloj y delega en la Strategy.
+- **Dónde:** evaluación, emisión y renovación usan el mismo colaborador. Los informes generales no clasifican el bloqueo;
+  la evaluación por inspección/alcance muestra los impedimentos y condiciones; se eliminó el bloqueo universal de `Severity` y `Finding`.
+- **Por qué:** nuevas jurisdicciones se registran en configuración sin cambiar el servicio central.
+- **Alternativas:** switch por jurisdicción, una clase por combinación de plazos y motor de reglas; descartados
+  por acoplamiento o complejidad innecesaria. Se guardan la decisión completa y código de política para explicar cada certificado.
 
 ### D11. Errores explícitos
 
@@ -295,7 +296,7 @@ determinista y los tests usan un reloj controlable.
 - **Principios:** frontera de consistencia; SRP; el modelo protege sus invariantes.
 - **Dónde:** `InspectionService`, `FindingService`, `CertificateService` y `AssetService` (más `InspectionSchemaService`, que ya existía). Los comandos de `Inspection`, `Finding` y `Certificate` (`recordAnswer`, `attachEvidence`, `addObservation`, `close`, `rectify`, `planAction`, `verifyAction`, `suspend`, `renew`, `ensureRenewableWith`) y `pullAuditEntries()` pasaron a visibilidad de paquete; el servicio vive en el mismo paquete y es público.
 - **Por qué:** antes los comandos eran públicos y los repositorios devuelven el agregado vivo, así que `findById(id).get().close(...)` compilaba desde cualquier clase de `application`: se podía cerrar una inspección sin levantar sus hallazgos y sin auditar. Ahora el compilador lo impide. Cada servicio hace las tres cosas que tienen que ocurrir juntas: ejecutar el comando, producir los hechos que arrastra (los hallazgos de un cierre o de una rectificación) y volcar la bitácora. El caso de uso queda con lo suyo: buscar por id, llamar al servicio y guardar.
-- **Qué gana cada regla:** "toda no conformidad levanta su hallazgo" (S4, S6) ya no vive en el caso de uso; "quien emite y quien renueva exigen la misma elegibilidad" vive en `CertificationEligibility.ensureEligible`; "el acta solo se emite sobre una inspección cerrada" vive en `Inspection.ensureClosed()`; "un activo no se registra dos veces" vive en `AssetService`.
+- **Qué gana cada regla:** "toda no conformidad levanta su hallazgo" (S4, S6) ya no vive en el caso de uso; "quien emite y quien renueva exigen la misma elegibilidad" vive en el flujo compartido de `CertificationAssessmentService`; "el acta solo se emite sobre una inspección cerrada" vive en `Inspection.ensureClosed()`; "un activo no se registra dos veces" vive en `AssetService`.
 - **Alternativa descartada:** que los servicios reciban también los repositorios y guarden ellos. Dejaría a los casos de uso sin nada que hacer, pero obligaría a que `model` importe `repository`, que hoy importa `model`: un ciclo entre paquetes (ver sección 2).
 - **Costo:** cuatro clases más y una indirección en cada caso de uso. El agregado sigue sin validar que se lo guarde: si un caso de uso olvidara el `save`, el cambio se perdería (ver limitaciones).
 
@@ -312,8 +313,8 @@ determinista y los tests usan un reloj controlable.
 ### D16. Capa anticorrupción entre Inspección y Certificación
 
 - **Principio:** DDD, Context Mapping (ACL); DIP.
-- **Dónde:** `certification.model.InspectionResult`, `OpenNonConformity`, puerto `InspectionResultTranslator`; implementación `application.certification.InspectionResultTranslatorImpl`. `CertificationEligibility.evaluate(InspectionResult)`; `Certificate` recibe un `InspectionResult` para validar su base.
-- **Por qué:** `NoBlockingFindingsEligibility` y `Certificate` importaban `Finding` e `InspectionView`, así que cualquier cambio en cómo se modela una inspección o un hallazgo llegaba a Certificación. Ahora Certificación tiene su propio modelo de lo que necesita saber (cierre, alcance completo, no conformidades abiertas con su severidad), y el traductor es el único lugar que conoce los dos modelos. Es la base de F1 y F3: los resultados por subsistema y las políticas por jurisdicción se agregan sobre `InspectionResult` sin tocar Inspección.
+- **Dónde:** `certification.model.InspectionResult`, `OpenNonConformity`, puerto `InspectionResultTranslator`; implementación `application.certification.InspectionResultTranslatorImpl`. `CertificationPolicy.evaluate(InspectionResult)`; `Certificate` recibe un `InspectionResult` para validar su base.
+- **Por qué:** `las políticas Strict, Conditional y Standard` y `Certificate` importaban `Finding` e `InspectionView`, así que cualquier cambio en cómo se modela una inspección o un hallazgo llegaba a Certificación. Ahora Certificación tiene su propio modelo de lo que necesita saber (cierre, alcance completo, no conformidades abiertas con su severidad), y el traductor es el único lugar que conoce los dos modelos. Es la base de F1 y F3: los resultados por subsistema y las políticas por jurisdicción se agregan sobre `InspectionResult` sin tocar Inspección.
 - **Alternativas descartadas:** *que Certificación siga leyendo `Finding`:* más corto, pero mantiene el acoplamiento que la arquitectura pedía cortar; *un evento `InspectionClosed` que Certificación escuche y guarde:* sumaría una proyección persistida sin un caso de uso que la necesite.
 - **Costo:** el traductor carga la inspección y los hallazgos del activo en cada decisión. `InspectionResult` repite datos que ya están en Inspección, a propósito.
 
@@ -356,7 +357,7 @@ determinista y los tests usan un reloj controlable.
 - **Por qué:**
   - Las rutas son sustantivos; ninguna lleva un verbo. Cada operación de negocio crea el recurso que produce: cerrar crea el **cierre** (`POST /inspections/{id}/closure`, revisión 1), rectificar una **rectificación**, suspender una **suspensión**, renovar una **renovación**, verificar una **verificación**. Los nombres coinciden con las clases del dominio (`Revision`, `Suspension`, `Verification`).
   - Semántica de métodos: `GET` sin efectos, `PUT` idempotente para la respuesta de un criterio, `POST` para crear. No hay `DELETE` porque el dominio no borra nada.
-  - `201 Created` con `Location`; `204` en el `PUT`; errores en `application/problem+json` (RFC 9457) según el tipo de excepción: no encontrado → 404, entrada inválida → 400, regla violada → 409, no certificable → 422 con las razones.
+  - `201 Created` con `Location`; `204` en el `PUT`; errores en `application/problem+json` (RFC 9457) según el tipo de excepción: no encontrado → 404, entrada inválida → 400, regla violada → 409, no certificable → 409 con las razones.
   - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`.
   - `ETag` y `Cache-Control` en lo inmutable (versiones de esquema y revisiones); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
   - Sin estado: la persona que actúa viaja en `X-Person-Id` y `X-Person-Name` en cada request.
@@ -458,7 +459,7 @@ determinista y los tests usan un reloj controlable.
 
 | Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
 | Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
-| Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `NoBlockingFindingsEligibilityTest` (parametrizado), `InspectionResultTranslatorImplTest` |
+| Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `las políticas Strict, Conditional y StandardTest` (parametrizado), `InspectionResultTranslatorImplTest` |
 | Un agregado reconstruido se comporta distinto o repite su auditoría de nacimiento | `SnapshotTest` |
 | La bitácora no se encuentra para un agregado leído de la base | `AggregateIdentityTest.historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate`, `JpaAuditLogTest` |
 | Un agregado leído de la base pierde estado o la escala de un decimal | `JpaAssetRepositoryTest`, `JpaInspectionSchemaRepositoryTest`, `JpaInspectionRepositoryTest` (incluye `decimalScaleSurvivesTheDatabase`), `JpaFindingRepositoryTest`, `JpaCertificateRepositoryTest`, `SectionsJsonTest` |
@@ -501,3 +502,75 @@ Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 - **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
 - **Frontend sin API.** La interfaz corre contra un adaptador en memoria (D22). Hasta escribir el adaptador HTTP, lo que se carga en la interfaz no llega al backend y se pierde al recargar la página.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
+
+
+## 7. Funcionalidades nuevas F1, F2 y F3
+
+### F2 · Historial temporal inmutable
+
+- **Agregadas:** `StoredInstant`, `NoEffectiveSchemaVersionException`, `SchemaEffectiveDateConflictException`,
+  `FindEffectiveSchemaVersionUseCase`/`Impl`, migración V2 y pruebas de límites temporales.
+- **Modificadas:** `SchemaVersion`, `SchemaVersionLog`, `InspectionSchema`, su servicio/comandos,
+  `PublishSchemaVersionUseCaseImpl`, `AssignInspectionUseCaseImpl`, entidad/adapter JPA y recursos de esquema.
+- **Refactorización:** «última publicada» deja de llamarse «actual»; la vigente se resuelve con un instante explícito.
+- **Descartadas:** scheduler, bandera active, intervalos con fin editable y bitemporalidad. Resolver al leer es
+  determinista, permite historia y no depende de procesos de activación.
+- **Deuda:** no se cancelan ni reprograman versiones; no hay publicaciones retroactivas.
+
+### F3 · Estrategias jurisdiccionales y decisiones históricas
+
+- **Agregadas:** `JurisdictionCode`, `CertificationPolicy`, `CertificationAssessmentContext`, `policyCode`,
+  `CertificationOutcome`, `CertificationCondition`, `CertificationAssessmentService`, `ConfiguredPolicyResolver`, `DecisionJson`, migración V3.
+- **Modificadas:** `Asset`/registro/entidad/DTOs, `CertificationDecision`, `Certificate`/factory/service/snapshot,
+  evaluación/emisión/renovación, informes de certificado/hallazgos y composición.
+- **Eliminadas:** `CertificationEligibility`, `NoBlockingFindingsEligibility` y bloqueo universal en severidad/hallazgo.
+- **Refactorización:** las guardas comunes preceden a Strategy; modalidad se separa del estado de ciclo de vida;
+  decisión completa y referencia de política permanecen en el certificado. `validUntil` desaparece de commands/requests.
+- **Descartadas:** switch, tabla mutable administrable y motor de reglas; las políticas se definen en código de dominio y se registran en la composición. Una regla singular puede aportar otra Strategy.
+- **Deuda:** no hay administración REST, cambio de jurisdicción ni resolución automática de condiciones.
+
+### F1 · Alcances, parciales y globales
+
+- **Agregadas:** `SubsystemCode`, `Subsystem`, `CertificationScope`, `SubsystemResult`, `SchemaReference`,
+  `CertificateBasis`, `GlobalCertificationPolicy`, `AllRequiredSubsystemsPolicy`, `GlobalCertificates`,
+  commands/interfaces/implementaciones de emisión y renovación global, `GlobalCertificateController`, migración V4.
+- **Modificadas:** `Asset`, `Section`, `Criterion`, `SchemaVersion`, commands/DTOs/JSON de esquema, `Inspection`,
+  eventos de cierre/rectificación, `Finding`/snapshot/factory/service/entidad, ACL, certificado/repositorios e informes.
+- **Refactorización:** un mismo agregado conserva ciclo de vida; alcance determina cobertura/unicidad; base
+  distingue inspección de parciales. Cada hallazgo conserva el subsistema de su versión de origen.
+- **Descartadas:** agregado parcial duplicado, hijos de un certificado único y estado global materializado
+  mediante eventos. El global guarda referencias y deriva su estado de sus respaldos al consultar.
+- **Deuda:** secciones anidadas y parciales respaldados por varias inspecciones quedan fuera de alcance.
+
+### Consistencia, pruebas y alcance de datos
+
+`CertificationTransactionLocks` identifica el activo mediante JDBC antes de cargar agregados y adquiere su
+lock dentro del proxy transaccional. Emisión, renovación, suspensión, cierre, rectificación y verificación se
+serializan por activo. Publicación bloquea la fila del esquema. Auditoría y cambios se confirman juntos.
+Un global conserva referencias originales: renovar un parcial no modifica el global anterior.
+
+La aplicación parte de una base vacía por indicación del usuario. No se agregan adaptadores ni políticas de
+retrocompatibilidad. Activos nuevos sin descomposición siguen siendo un caso permitido de negocio, con
+jurisdicción explícita y alcance WholeAsset; no constituyen una categoría histórica.
+
+Las pruebas incluyen reglas parametrizadas, reconstrucción real, API completa, activación en el instante
+exacto, hallazgos cuyo código cambia de subsistema, parciales con fechas distintas, pérdida de respaldo global
+y carreras de publicación/emisión. CI ejecuta las mismas pruebas de funcionalidades sobre H2 y PostgreSQL 17.
+
+
+
+### Flujo simplificado de certificación
+
+`CertificationAssessmentService` obtiene contexto y comprueba cierre/cobertura. La Strategy
+`CertificationPolicy` expone solo `code()` y `evaluate(context)` y devuelve una decisión completa.
+`las políticas Strict, Conditional y Standard` encapsula un mapa privado de severidad a bloqueo, la admisión de
+condicionales y los plazos. Sus tres políticas demo se declaran en código de dominio y la composición
+solo registra jurisdicción → política. Una Strategy con otro algoritmo no necesita exponer ese mapa.
+
+Se eliminan CertificationRules, CertificationEffect, RuleBasedCertificationPolicy y CertificationPrerequisites.
+No hay reglas de negocio en application.properties. La decisión conserva resultado, motivos, condiciones,
+vigencia, jurisdicción, alcance y código de política; no serializa la implementación.
+
+El resumen general de hallazgos conserva severidad y resolución, sin booleano ni contador de bloqueo.
+La evaluación de certificación por inspección/alcance es la fuente de impedimentos y condiciones.
+Severity conserva label/outcomeWhenUnmet del modelo anterior; solo se quitó blocksCertification por F3.

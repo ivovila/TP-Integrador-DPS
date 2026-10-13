@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.schema;
 
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
@@ -18,6 +19,7 @@ import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public final class SchemaPayloads {
 
@@ -26,13 +28,13 @@ public final class SchemaPayloads {
 
     public static List<Section> toSections(List<SectionPayload> sections) {
         return sections.stream()
-                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList()))
+                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), Optional.ofNullable(section.subsystemCode()).map(SubsystemCode::new)))
                 .toList();
     }
 
     public static List<SectionPayload> fromSections(List<Section> sections) {
         return sections.stream()
-                .map(section -> new SectionPayload(section.title(), section.criteria().stream().map(SchemaPayloads::payload).toList()))
+                .map(section -> new SectionPayload(section.title(), section.criteria().stream().map(SchemaPayloads::payload).toList(), section.subsystemCode().map(code -> code.value()).orElse(null)))
                 .toList();
     }
 
@@ -40,7 +42,7 @@ public final class SchemaPayloads {
         return new CriterionPayload(criterion.code(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
                 rulePayload(criterion.rule()),
                 criterion.requiredEvidence().stream()
-                        .map(r -> new EvidenceRequirementPayload(((StandardEvidenceKind) r.kind()).name(), r.minimum())).toList());
+                        .map(r -> new EvidenceRequirementPayload(((StandardEvidenceKind) r.kind()).name(), r.minimum())).toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
     }
 
     private static Criterion<?> criterion(CriterionPayload payload) {
@@ -51,11 +53,11 @@ public final class SchemaPayloads {
         return switch (rule.type()) {
             case "numeric-range" -> new Criterion<>(payload.code(), payload.text(),
                     new NumericRangeRule(new Unit(required(rule.unit(), "unit")),
-                            new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))), severity, evidence);
+                            new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))), severity, evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
             case "yes-no" -> new Criterion<>(payload.code(), payload.text(), new YesNoRule(expected(rule.expected())), severity,
-                    evidence);
+                    evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
             case "option-in-list" -> new Criterion<>(payload.code(), payload.text(),
-                    new OptionInListRule(required(rule.options(), "options")), severity, evidence);
+                    new OptionInListRule(required(rule.options(), "options")), severity, evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
             default -> throw new InvalidRuleConfigurationException("Unknown rule type " + rule.type());
         };
     }

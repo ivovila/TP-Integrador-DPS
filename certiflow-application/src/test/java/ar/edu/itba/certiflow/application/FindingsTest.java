@@ -3,12 +3,12 @@ package ar.edu.itba.certiflow.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.schema.model.StandardSeverity;
-import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
+import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -31,14 +31,13 @@ class FindingsTest {
         assertEquals(fixture.gaugePhoto(), fixture.finding(lowPressureFinding).evidence().getFirst().evidence());
         assertEquals(fixture.inspector, fixture.finding(lowPressureFinding).evidence().getFirst().attachedBy());
         assertEquals(fixture.assetResponsible, fixture.finding(lowPressureFinding).responsible());
-        assertTrue(fixture.finding(lowPressureFinding).blocksCertification());
+        assertTrue(fixture.finding(lowPressureFinding).isOpen());
 
         FindingId fadedSignageFinding = findings.getLast();
         assertEquals(fixture.signageCriterion, fixture.finding(fadedSignageFinding).criterion());
         assertEquals(StandardSeverity.MINOR, fixture.finding(fadedSignageFinding).severity());
         assertEquals(fixture.assetResponsible, fixture.finding(fadedSignageFinding).responsible());
         assertTrue(fixture.finding(fadedSignageFinding).isOpen());
-        assertEquals(false, fixture.finding(fadedSignageFinding).blocksCertification());
     }
 
     @Test

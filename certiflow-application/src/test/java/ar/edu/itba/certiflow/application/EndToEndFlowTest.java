@@ -1,31 +1,33 @@
 package ar.edu.itba.certiflow.application;
 
-import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
-import ar.edu.itba.certiflow.inspection.usecase.AddObservationCommand;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.inspection.usecase.ActLine;
-import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
-import ar.edu.itba.certiflow.inspection.usecase.FindingsSummary;
-import ar.edu.itba.certiflow.inspection.usecase.InspectionAct;
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.catalog.model.AssetAudit;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredException;
-import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
+import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
+import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
+import ar.edu.itba.certiflow.inspection.model.FindingId;
+import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
+import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
+import ar.edu.itba.certiflow.inspection.usecase.ActLine;
+import ar.edu.itba.certiflow.inspection.usecase.AddObservationCommand;
+import ar.edu.itba.certiflow.inspection.usecase.FindingsSummary;
+import ar.edu.itba.certiflow.inspection.usecase.InspectionAct;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
-import ar.edu.itba.certiflow.inspection.model.FindingId;
-import ar.edu.itba.certiflow.inspection.model.VerificationResult;
-import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -63,8 +65,8 @@ class EndToEndFlowTest {
 
         FindingsSummary summaryAfterClosing = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(2, summaryAfterClosing.openFindings());
-        assertEquals(1, summaryAfterClosing.blockingFindings());
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
+        assertFalse(fixture.evaluateCertification.execute(inspection, new ar.edu.itba.certiflow.certification.model.CertificationScope.WholeAsset()).isEligible());
+        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, fixture.certifier));
 
         FindingId lowPressureFinding = findings.getFirst();
         CorrectiveActionId rechargeAction = fixture.plan(lowPressureFinding, "Recharge the extinguisher", fixture.maintenanceTechnician, CertiflowFixture.TODAY.plusDays(10), fixture.assetResponsible);
@@ -73,10 +75,10 @@ class EndToEndFlowTest {
 
         FindingsSummary summaryAfterVerification = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(1, summaryAfterVerification.openFindings());
-        assertEquals(0, summaryAfterVerification.blockingFindings());
+        assertTrue(fixture.evaluateCertification.execute(inspection, new ar.edu.itba.certiflow.certification.model.CertificationScope.WholeAsset()).isEligible());
 
-        LocalDate validUntil = LocalDate.now(fixture.clock).plusYears(1);
-        CertificateNumber certificate = fixture.issue(inspection, validUntil, fixture.certifier);
+        LocalDate validUntil = LocalDate.now(fixture.clock).plusMonths(12).minusDays(1);
+        CertificateNumber certificate = fixture.issue(inspection, fixture.certifier);
 
         CertificateDocument certificateDocument = fixture.generateCertificateDocument.execute(certificate);
         assertEquals(certificate, certificateDocument.number());
@@ -97,9 +99,7 @@ class EndToEndFlowTest {
 
     @Test
     void catalogRejectsASecondAssetWithTheSameCode() {
-        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(new RegisterAssetCommand(
-                fixture.extinguisher.code(), fixture.extinguisher.name(), fixture.extinguisher.type(), fixture.extinguisher.location(),
-                fixture.extinguisher.responsible(), fixture.extinguisher.characteristics(), fixture.planner)));
+        assertThrows(AssetAlreadyRegisteredException.class, () -> fixture.registerAsset.execute(new RegisterAssetCommand(fixture.extinguisher.code(), fixture.extinguisher.name(), fixture.extinguisher.type(), fixture.extinguisher.location(), fixture.extinguisher.responsible(), fixture.extinguisher.characteristics(), fixture.planner, new JurisdictionCode("DEMO-STANDARD"), List.of())));
         assertEquals(fixture.extinguisher, fixture.assetRepository.findByCode(fixture.extinguisher.code()).orElseThrow());
     }
 

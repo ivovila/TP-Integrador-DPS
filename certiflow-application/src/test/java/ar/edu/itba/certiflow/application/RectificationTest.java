@@ -4,15 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.shared.model.AuditEntry;
-import ar.edu.itba.certiflow.schema.model.Outcome;
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.Revision;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.RectificationReasonRequiredException;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
+import ar.edu.itba.certiflow.schema.model.Outcome;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import org.junit.jupiter.api.Test;
 
 class RectificationTest {
@@ -76,6 +76,6 @@ class RectificationTest {
         fixture.rectify(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), REASON, fixture.certifier);
 
         assertTrue(fixture.finding(finding).isOpen());
-        assertTrue(fixture.finding(finding).blocksCertification());
+        assertTrue(fixture.finding(finding).isOpen());
     }
 }

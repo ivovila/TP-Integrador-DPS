@@ -43,7 +43,7 @@ class QueriesTest {
 
     @Test
     void certificatesAreListedByAsset() {
-        var number = fixture.issue(fixture.closedCompliantInspection(), CertiflowFixture.TODAY.plusYears(1), fixture.certifier);
+        var number = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
 
         assertEquals(List.of(number), fixture.listCertificates.execute(Optional.of(fixture.extinguisher.code())).stream()
                 .map(c -> c.number()).toList());

@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
-import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CriterionOutOfScopeException;
+import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.exceptions.SectionNotInSchemaException;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -52,6 +52,6 @@ class InspectionScopeTest {
         fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
         fixture.close(inspection, fixture.inspector);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.PARTIAL_INSPECTION, () -> fixture.issue(inspection, CertiflowFixture.TODAY.plusYears(1), fixture.certifier));
+        CertiflowFixture.assertNotEligible(IneligibilityReason.PARTIAL_INSPECTION, () -> fixture.issue(inspection, fixture.certifier));
     }
 }

@@ -5,13 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 class RawAnswerTest {
 
@@ -59,7 +60,7 @@ class RawAnswerTest {
     @Test
     void aVersionFindsItsCriterionByCodeAndRejectsAnUnknownOne() {
         Criterion<YesNoAnswer> seal = new Criterion<>("EXT-02", "Seal intact", YES_NO, StandardSeverity.CRITICAL, List.of());
-        SchemaVersion version = new SchemaVersion(1, List.of(new Section("Seal", List.of(seal))), java.time.Instant.EPOCH);
+        SchemaVersion version = new SchemaVersion(1, List.of(new Section("Seal", List.of(seal))), Instant.EPOCH);
 
         assertEquals(seal, version.criterion("EXT-02"));
         assertThrows(CriterionNotInSchemaException.class, () -> version.criterion("EXT-99"));

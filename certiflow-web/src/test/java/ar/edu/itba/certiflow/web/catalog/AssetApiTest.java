@@ -1,7 +1,5 @@
 package ar.edu.itba.certiflow.web.catalog;
 
-import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.params.ParameterizedTest;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,8 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ar.edu.itba.certiflow.web.support.ApiTest;
 import ar.edu.itba.certiflow.web.support.Payloads;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 class AssetApiTest extends ApiTest {
 
@@ -48,7 +50,7 @@ class AssetApiTest extends ApiTest {
 
     @Test
     void writingWithoutTheActingPersonIs400() throws Exception {
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/assets")
+        mvc.perform(MockMvcRequestBuilders.post("/api/v1/assets")
                         .contentType(MediaType.APPLICATION_JSON).content(Payloads.asset()))
                 .andExpect(status().isBadRequest());
     }
@@ -89,10 +91,10 @@ class AssetApiTest extends ApiTest {
         postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("Fire extinguisher", "Boiler & \\\"Steam\\\""));
         postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("EXT-0042", "EXT-0043").replace("Fire extinguisher", "Boiler & \\\"Steam\\\""));
 
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/assets")
+        mvc.perform(MockMvcRequestBuilders.get("/api/v1/assets")
                         .param("type", "Boiler & \"Steam\"").param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.assets.length()").value(1))
-                .andExpect(jsonPath("$._links.next.href").value(org.hamcrest.Matchers.containsString("type=Boiler%20%26%20%22Steam%22")));
+                .andExpect(jsonPath("$._links.next.href").value(Matchers.containsString("type=Boiler%20%26%20%22Steam%22")));
     }
 }

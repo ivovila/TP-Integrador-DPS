@@ -3,17 +3,10 @@ package ar.edu.itba.certiflow.web.inspection;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
-import ar.edu.itba.certiflow.web.support.InvalidRequestException;
-import ar.edu.itba.certiflow.web.support.PageLinks;
-import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
-import java.util.Optional;
-import java.util.stream.Stream;
-import org.springframework.hateoas.PagedModel;
-import org.springframework.web.bind.annotation.RequestParam;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -29,6 +22,7 @@ import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateInspectionActUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
@@ -39,12 +33,19 @@ import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
+import ar.edu.itba.certiflow.web.support.InvalidRequestException;
+import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
+import ar.edu.itba.certiflow.web.support.Uris;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,6 +54,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
@@ -243,9 +245,11 @@ public class InspectionController {
     }
 
     @GetMapping("/{id}/certification-eligibility")
-    public EligibilityResource eligibility(@PathVariable String id) {
-        EligibilityResource eligibility = new EligibilityResource(evaluateCertification.execute(new InspectionId(id)));
-        eligibility.add(linkTo(methodOn(InspectionController.class).eligibility(id)).withSelfRel(),
+    public EligibilityResource eligibility(@PathVariable String id, @RequestParam(required = false) String subsystem) {
+        EligibilityResource eligibility = new EligibilityResource(evaluateCertification.execute(new InspectionId(id), subsystem == null
+                ? new CertificationScope.WholeAsset()
+                : new CertificationScope.SubsystemScope(new SubsystemCode(subsystem))));
+        eligibility.add(linkTo(methodOn(InspectionController.class).eligibility(id, subsystem)).withSelfRel(),
                 linkTo(methodOn(InspectionController.class).find(id)).withRel("inspection"));
         if (eligibility.eligible) {
             eligibility.add(Link.of("/api/v1/certificates").withRel("certificates"));
@@ -283,7 +287,7 @@ public class InspectionController {
                         .withRel("schema-version"),
                 linkTo(methodOn(InspectionController.class).responses(id)).withRel("responses"),
                 linkTo(methodOn(InspectionController.class).revisions(id)).withRel("revisions"),
-                linkTo(methodOn(InspectionController.class).eligibility(id)).withRel("certification-eligibility"),
+                linkTo(methodOn(InspectionController.class).eligibility(id, null)).withRel("certification-eligibility"),
                 linkTo(methodOn(InspectionController.class).history(id)).withRel("audit-entries"));
         if (inspection.isClosed()) {
             response.add(linkTo(methodOn(InspectionController.class).rectify(id, null, null)).withRel("rectifications"),

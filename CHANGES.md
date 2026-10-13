@@ -515,3 +515,41 @@ Interfaz web de las capacidades actuales, siguiendo
 - Nueva decisión D22 y una limitación en `DESIGN.md`; sección "Frontend" en el README; `certiflow-frontend/README.md`
   con los pasos para conectar la API.
 
+
+## 2026-10-12 · F1, F2 y F3
+
+- F2: calendario de vigencia inmutable, consulta temporal, selección por instante de asignación y lock de publicación.
+- F3: jurisdicción explícita, Strategy configurable, guardas comunes, plazos calculados y decisión histórica persistida.
+- F1: subsistemas y asociaciones congeladas, hallazgos por origen, parciales independientes y globales con respaldos.
+- Persistencia: migraciones V2–V4 para una base nueva; alcance autorizado sin retrocompatibilidad.
+- API: HAL ampliado, campos desconocidos rechazados, vigencia libre eliminada e informes con política/condiciones.
+- Consistencia: locks por activo en operaciones que cambian elegibilidad y auditoría transaccional.
+- Tests: unidades parametrizadas, repositorios, API/E2E y carreras; CI agrega PostgreSQL 17.
+
+
+- Nombres del flujo: CertificationAssessmentService, CertificationPrerequisites, RuleBasedCertificationPolicy,
+  CertificationAssessmentContext y CertificationRules. Accesores rules/policyRules y composición actualizados.
+- Prerequisites comprueba requisitos; AssessmentService coordina el rechazo o la aplicación de la política.
+
+- Se eliminó CertificationPrerequisites: el flujo compartido de CertificationAssessmentService comprueba
+  cierre y cobertura antes de delegar en una política. Se conserva la evaluación original de criterios.
+
+- Política de certificación con mapa tipado Severity → CertificationEffect. Se elimina blocks y el
+  reconocimiento de StandardSeverity en la política; informes y emisión consultan effectOf.
+- Se verifica clasificación de severidades propias y rechazo de severidades sin configurar.
+
+
+## 2026-10-13 · Simplificación de la política de certificación
+
+- CertificationPolicy queda con reference y evaluate. SeverityBasedCertificationPolicy encapsula sus reglas;
+  las políticas demo se definen en dominio y la composición registra las jurisdicciones.
+- Se eliminan CertificationRules, CertificationEffect y RuleBasedCertificationPolicy; no hay reglas en properties.
+- CertificationDecision conserva resultado completo y referencia/version de política, sin parámetros internos.
+- Los informes generales de hallazgos dejan de atribuir bloqueo absoluto; la evaluación contextual lo informa.
+
+
+## 2026-10-13 · Diseño final de políticas
+
+- Políticas concretas StrictCertificationPolicy, ConditionalCertificationPolicy y StandardCertificationPolicy.
+- Contrato code/evaluate y decisión histórica completa, sin versionado de políticas, mapas públicos ni reglas en properties.
+- Se conservan las incorporaciones remotas del frontend y su job de CI.

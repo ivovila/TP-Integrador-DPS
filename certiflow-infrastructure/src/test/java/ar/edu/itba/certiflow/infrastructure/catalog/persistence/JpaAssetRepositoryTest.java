@@ -8,6 +8,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristic;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
@@ -27,9 +28,7 @@ class JpaAssetRepositoryTest {
     @Autowired
     private EntityManager entityManager;
 
-    private final Asset extinguisher = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", new AssetType("Fire extinguisher"),
-            new Location("Lobby"), new Person(new PersonId("EMP-003"), "Raul"),
-            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC"))));
+    private final Asset extinguisher = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", new AssetType("Fire extinguisher"), new Location("Lobby"), new Person(new PersonId("EMP-003"), "Raul"), new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC"))), new JurisdictionCode("DEMO-STANDARD"), List.of());
 
     @Test
     void anAssetIsReadBackEqualToWhatWasSaved() {

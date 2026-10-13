@@ -1,26 +1,27 @@
 package ar.edu.itba.certiflow.application;
 
-import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
-import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.shared.model.AuditEntry;
-import ar.edu.itba.certiflow.schema.model.StandardSeverity;
-import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaAudit;
 import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
+import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaAlreadyDefinedForAssetTypeException;
-import ar.edu.itba.certiflow.application.support.CertiflowFixture;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
+import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class SchemaVersioningTest {
@@ -33,6 +34,7 @@ class SchemaVersioningTest {
     void newSchemaVersionDoesNotAffectAnInspectionAlreadyStarted() {
         InspectionId startedInspection = fixture.assignedInspection();
 
+        fixture.clock.advanceDays(1);
         fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         assertEquals(1, fixture.inspection(startedInspection).schemaVersion().number());
@@ -44,6 +46,7 @@ class SchemaVersioningTest {
 
     @Test
     void inspectionsAssignedAfterPublishingUseTheNewVersion() {
+        fixture.clock.advanceDays(1);
         fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         InspectionId inspectionAssignedLater = fixture.assignedInspection();
@@ -56,18 +59,20 @@ class SchemaVersioningTest {
     void publishingAVersionYieldsANewSchemaAndLeavesThePreviousOneUntouched() {
         InspectionSchema before = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
 
+        fixture.clock.advanceDays(1);
         fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.planner));
 
         InspectionSchema after = fixture.inspectionSchemaRepository.findByAssetType(CertiflowFixture.EXTINGUISHER).orElseThrow();
         assertEquals(1, before.versions().size());
-        assertEquals(1, before.currentVersion().number());
+        assertEquals(1, before.latestPublishedVersion().number());
         assertEquals(2, after.versions().size());
-        assertEquals(2, after.currentVersion().number());
+        assertEquals(2, after.latestPublishedVersion().number());
         assertEquals(before.versions().getFirst(), after.versions().getFirst());
     }
 
     @Test
     void creatingTheSchemaAndAddingVersionsIsAudited() {
+        fixture.clock.advanceDays(1);
         fixture.clock.advanceDays(1);
         fixture.publishSchemaVersion.execute(new PublishSchemaVersionCommand(CertiflowFixture.EXTINGUISHER, sectionsIncludingHose(), fixture.certifier));
 
@@ -76,7 +81,7 @@ class SchemaVersioningTest {
         assertEquals(fixture.planner, history.getFirst().performedBy());
         assertEquals(fixture.certifier, history.getLast().performedBy());
         assertEquals(fixture.clock.instant(), history.getLast().occurredAt());
-        assertEquals("Version 2", history.getLast().detail());
+        Assertions.assertTrue(history.getLast().detail().startsWith("Version 2, publishedAt "));
     }
 
     @Test

@@ -25,10 +25,6 @@ class CriterionTest {
             return Outcome.OBSERVED;
         }
 
-        @Override
-        public boolean blocksCertification() {
-            return false;
-        }
     }
 
     @ParameterizedTest(name = "unmet {0} criterion is {1}")
@@ -94,6 +90,5 @@ class CriterionTest {
 
         assertEquals(outcome, criterion.outcomeOf(YesNoAnswer.NO));
         assertEquals(Outcome.APPROVED, criterion.outcomeOf(YesNoAnswer.YES));
-        assertEquals(blocks, severity.blocksCertification());
     }
 }

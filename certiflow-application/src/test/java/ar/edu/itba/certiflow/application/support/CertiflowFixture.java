@@ -1,60 +1,70 @@
 package ar.edu.itba.certiflow.application.support;
 
-import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
-import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
-import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
-import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
-import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
-import ar.edu.itba.certiflow.application.schema.FindSchemaUseCaseImpl;
-import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
-import ar.edu.itba.certiflow.application.inspection.FindInspectionUseCaseImpl;
-import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
-import ar.edu.itba.certiflow.application.inspection.FindFindingUseCaseImpl;
-import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
-import ar.edu.itba.certiflow.application.inspection.ListFindingsUseCaseImpl;
-import ar.edu.itba.certiflow.certification.usecase.ListCertificatesUseCase;
-import ar.edu.itba.certiflow.application.certification.ListCertificatesUseCaseImpl;
-import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
-import ar.edu.itba.certiflow.application.certification.FindCertificateUseCaseImpl;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.application.shared.AuditHistoryUseCaseImpl;
-import ar.edu.itba.certiflow.application.certification.InspectionResultTranslatorImpl;
-import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
-import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
-import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
-import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
-import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
-import ar.edu.itba.certiflow.inspection.model.Verification;
-import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
-import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceCommand;
-import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
-import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
-import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
-import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
-import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
-import ar.edu.itba.certiflow.schema.model.Answer;
-import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
+import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.RegisterAssetUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.CertificationAssessmentService;
 import ar.edu.itba.certiflow.application.certification.EvaluateCertificationUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.FindCertificateUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.GenerateCertificateDocumentUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.InspectionResultTranslatorImpl;
 import ar.edu.itba.certiflow.application.certification.IssueCertificateUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.ListCertificatesUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.RenewCertificateUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.SuspendCertificateUseCaseImpl;
-import ar.edu.itba.certiflow.application.inspection.PlanCorrectiveActionUseCaseImpl;
-import ar.edu.itba.certiflow.application.inspection.VerifyCorrectiveActionUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.AddObservationUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.AssignInspectionUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.AttachEvidenceUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.CloseInspectionUseCaseImpl;
-import ar.edu.itba.certiflow.application.inspection.RecordAnswerUseCaseImpl;
-import ar.edu.itba.certiflow.application.inspection.RectifyInspectionUseCaseImpl;
-import ar.edu.itba.certiflow.application.certification.GenerateCertificateDocumentUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.FindFindingUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.FindInspectionUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.GenerateFindingsSummaryUseCaseImpl;
 import ar.edu.itba.certiflow.application.inspection.GenerateInspectionActUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.ListFindingsUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.PlanCorrectiveActionUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.RecordAnswerUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.RectifyInspectionUseCaseImpl;
+import ar.edu.itba.certiflow.application.inspection.VerifyCorrectiveActionUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.CreateInspectionSchemaUseCaseImpl;
+import ar.edu.itba.certiflow.application.schema.FindSchemaUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.PublishSchemaVersionUseCaseImpl;
+import ar.edu.itba.certiflow.application.shared.AuditHistoryUseCaseImpl;
+import ar.edu.itba.certiflow.catalog.model.Asset;
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.AssetService;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.catalog.model.Characteristic;
+import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
+import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
+import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
+import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
+import ar.edu.itba.certiflow.certification.model.Certificate;
+import ar.edu.itba.certiflow.certification.model.CertificateFactory;
+import ar.edu.itba.certiflow.certification.model.CertificateNumber;
+import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
+import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
+import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
+import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
+import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.ListCertificatesUseCase;
+import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.RenewCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
+import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAssetRepository;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryCertificateRepository;
@@ -62,70 +72,64 @@ import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryFindingRepository;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryInspectionRepository;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryInspectionSchemaRepository;
 import ar.edu.itba.certiflow.infrastructure.inmemory.SequentialCertificateNumbering;
-import ar.edu.itba.certiflow.catalog.model.Asset;
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.catalog.model.Characteristic;
-import ar.edu.itba.certiflow.catalog.model.AssetService;
-import ar.edu.itba.certiflow.catalog.model.Characteristics;
-import ar.edu.itba.certiflow.catalog.model.Location;
-import ar.edu.itba.certiflow.shared.model.AuditLog;
-import ar.edu.itba.certiflow.certification.model.Certificate;
-import ar.edu.itba.certiflow.certification.model.CertificateFactory;
-import ar.edu.itba.certiflow.certification.model.CertificateService;
-import ar.edu.itba.certiflow.certification.model.CertificateNumber;
-import ar.edu.itba.certiflow.certification.model.CertificationEligibility;
-import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
-import ar.edu.itba.certiflow.certification.model.NoBlockingFindingsEligibility;
-import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
+import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
+import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
+import ar.edu.itba.certiflow.inspection.model.Finding;
+import ar.edu.itba.certiflow.inspection.model.FindingFactory;
+import ar.edu.itba.certiflow.inspection.model.FindingId;
+import ar.edu.itba.certiflow.inspection.model.FindingService;
+import ar.edu.itba.certiflow.inspection.model.FullScope;
+import ar.edu.itba.certiflow.inspection.model.Inspection;
+import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
+import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.inspection.model.InspectionScope;
+import ar.edu.itba.certiflow.inspection.model.InspectionService;
+import ar.edu.itba.certiflow.inspection.model.Verification;
+import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import ar.edu.itba.certiflow.inspection.usecase.AddObservationUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceCommand;
+import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.GenerateFindingsSummaryUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.GenerateInspectionActUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
+import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
+import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
+import ar.edu.itba.certiflow.schema.model.Answer;
+import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
+import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.NumericAnswer;
 import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;
+import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
-import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
-import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
-import ar.edu.itba.certiflow.inspection.model.VerificationResult;
-import ar.edu.itba.certiflow.inspection.model.Finding;
-import ar.edu.itba.certiflow.inspection.model.FindingFactory;
-import ar.edu.itba.certiflow.inspection.model.FindingService;
-import ar.edu.itba.certiflow.inspection.model.FindingId;
-import ar.edu.itba.certiflow.inspection.model.FullScope;
-import ar.edu.itba.certiflow.inspection.model.Inspection;
-import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
-import ar.edu.itba.certiflow.inspection.model.InspectionService;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import ar.edu.itba.certiflow.inspection.model.InspectionScope;
-import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
-import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
+import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
+import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
+import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
-import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
-import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
-import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
-import ar.edu.itba.certiflow.certification.usecase.RenewCertificateUseCase;
-import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.AddObservationUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
-import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.GenerateFindingsSummaryUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.GenerateInspectionActUseCase;
-import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
-import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
+import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -173,7 +177,10 @@ public final class CertiflowFixture {
     private final InspectionService inspectionService = new InspectionService(new InspectionFactory(), inspectionLog);
     private final FindingService findingService = new FindingService(new FindingFactory(), findingLog);
     private final CertificateService certificateService = new CertificateService(new CertificateFactory(), certificateLog);
-    public final RegisterAssetUseCase registerAsset = new RegisterAssetUseCaseImpl(assetRepository, assetService, clock);
+    private final CertificationPolicyResolver policies = code -> new StandardCertificationPolicy();
+    private final CertificationAssessmentService certificationAssessment =
+            new CertificationAssessmentService(assetRepository, policies, clock);
+    public final RegisterAssetUseCase registerAsset = new RegisterAssetUseCaseImpl(assetRepository, assetService, clock, policies);
     public final CreateInspectionSchemaUseCase createInspectionSchema = new CreateInspectionSchemaUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final PublishSchemaVersionUseCase publishSchemaVersion = new PublishSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final AssignInspectionUseCase assignInspection = new AssignInspectionUseCaseImpl(assetRepository, inspectionSchemaRepository, inspectionRepository,
@@ -189,14 +196,12 @@ public final class CertiflowFixture {
     public final GenerateFindingsSummaryUseCase generateFindingsSummary = new GenerateFindingsSummaryUseCaseImpl(assetRepository, findingRepository, clock);
     public final GenerateCertificateDocumentUseCase generateCertificateDocument = new GenerateCertificateDocumentUseCaseImpl(certificateRepository, assetRepository, clock);
 
-    private final CertificationEligibility certificationEligibility = new NoBlockingFindingsEligibility();
-    private final InspectionResultTranslator inspectionResultTranslator = new InspectionResultTranslatorImpl(inspectionRepository,
-            findingRepository);
+    private final InspectionResultTranslator inspectionResultTranslator = new InspectionResultTranslatorImpl(inspectionRepository, findingRepository, assetRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificateUseCase issueCertificate = new IssueCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationEligibility, certificateNumbering, certificateService, clock);
-    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationEligibility);
+    public final IssueCertificateUseCase issueCertificate = new IssueCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock);
+    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationAssessment);
     public final SuspendCertificateUseCase suspendCertificate = new SuspendCertificateUseCaseImpl(certificateRepository, certificateService, clock);
-    public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationEligibility, certificateNumbering, certificateService, clock);
+    public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock);
 
     public final FindAssetUseCase findAsset = new FindAssetUseCaseImpl(assetRepository);
     public final ListAssetsUseCase listAssets = new ListAssetsUseCaseImpl(assetRepository);
@@ -209,9 +214,7 @@ public final class CertiflowFixture {
     public final AuditHistoryUseCase auditHistory = new AuditHistoryUseCaseImpl(assetLog, schemaLog, inspectionLog, findingLog,
             certificateLog);
 
-    public final Asset extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"),
-            "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible,
-            new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder"))), planner));
+    public final Asset extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible, new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder"))), planner, new JurisdictionCode("DEMO-STANDARD"), List.of()));
 
     public CertiflowFixture() {
         createInspectionSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
@@ -309,12 +312,12 @@ public final class CertiflowFixture {
         return verifyCorrectiveAction.execute(new VerifyCorrectiveActionCommand(finding, action, verifier, result, notes));
     }
 
-    public CertificateNumber issue(InspectionId inspection, LocalDate validUntil, Person by) {
-        return issueCertificate.execute(new IssueCertificateCommand(inspection, validUntil, by));
+    public CertificateNumber issue(InspectionId inspection, Person by) {
+        return issueCertificate.execute(new IssueCertificateCommand(inspection, by, new CertificationScope.WholeAsset()));
     }
 
-    public CertificateNumber renew(CertificateNumber current, InspectionId inspection, LocalDate validUntil, Person by) {
-        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, validUntil, by));
+    public CertificateNumber renew(CertificateNumber current, InspectionId inspection, Person by) {
+        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, by, new CertificationScope.WholeAsset()));
     }
 
     public void suspend(CertificateNumber number, String reason, Person by) {

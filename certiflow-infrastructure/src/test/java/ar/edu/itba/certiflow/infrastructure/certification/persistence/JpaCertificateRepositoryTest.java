@@ -1,15 +1,21 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
-import ar.edu.itba.certiflow.certification.model.CertificateService;
-import ar.edu.itba.certiflow.certification.model.CertificateStatus;
-import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
+import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificateStatus;
+import ar.edu.itba.certiflow.certification.model.CertificationAssessmentContext;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
-import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
+import ar.edu.itba.certiflow.certification.model.SchemaReference;
+import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.infrastructure.inspection.persistence.JpaInspectionRepository;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.JpaInspectionSchemaRepository;
 import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
@@ -47,9 +53,10 @@ class JpaCertificateRepositoryTest {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
         DomainSamples.close(inspection);
         inspections.save(inspection);
-        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(),
-                Optional.of(inspection.originalRevision().sealedAt()), true, List.of());
-        return new CertificateFactory().create(numbering.next(), result, new ValidityPeriod(TODAY, TODAY.plusYears(1)),
+        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), Optional.of(inspection.originalRevision().sealedAt()), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new CertificationScope.WholeAsset());
+        return new CertificateFactory().create(numbering.next(), result, new StandardCertificationPolicy().evaluate(
+                new CertificationAssessmentContext(result,
+                        new JurisdictionCode("DEMO-STANDARD"), DomainSamples.T0, TODAY)),
                 DomainSamples.PLANNER, DomainSamples.T0);
     }
 

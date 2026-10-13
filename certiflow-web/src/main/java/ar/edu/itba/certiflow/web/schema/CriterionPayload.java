@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.web.support.RequestFields;
 import java.util.List;
 
 public record CriterionPayload(String code, String text, String severity, RulePayload rule,
-                               List<EvidenceRequirementPayload> requiredEvidence) {
+                               List<EvidenceRequirementPayload> requiredEvidence, String subsystemCode) {
 
     public CriterionPayload {
         RequestFields.require(code, "criterion.code");

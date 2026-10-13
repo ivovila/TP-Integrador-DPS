@@ -3,8 +3,8 @@ package ar.edu.itba.certiflow.application.inspection;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
-import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
+import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.usecase.FindingLine;
 import ar.edu.itba.certiflow.inspection.usecase.FindingsSummary;
@@ -32,13 +32,12 @@ public final class GenerateFindingsSummaryUseCaseImpl implements GenerateFinding
         List<Finding> findingsOfAsset = findingRepository.findByAsset(assetCode);
         List<FindingLine> findingLines = findingsOfAsset.stream().map(finding -> lineOf(finding, today)).toList();
         return new FindingsSummary(asset.code(), findingLines,
-                findingsOfAsset.stream().filter(Finding::isOpen).count(),
-                findingsOfAsset.stream().filter(Finding::blocksCertification).count());
+                findingsOfAsset.stream().filter(Finding::isOpen).count());
     }
 
     private FindingLine lineOf(Finding finding, LocalDate today) {
         long overdueActions = finding.actions().stream().filter(correctiveAction -> correctiveAction.isOverdueOn(today)).count();
         return new FindingLine(finding.criterion().code(), finding.criterion().text(), finding.severity().label(),
-                finding.responsible(), finding.isOpen(), finding.blocksCertification(), overdueActions);
+                finding.responsible(), finding.isOpen(), overdueActions);
     }
 }

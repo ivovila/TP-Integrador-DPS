@@ -42,8 +42,8 @@ class EndToEndApiTest extends ApiTest {
         read(inspection + "/certification-eligibility")
                 .andExpect(jsonPath("$.ineligibilities[0].reason").value("BLOCKING_FINDINGS"));
         postAs("EMP-006", "/api/v1/certificates", "{\"inspectionId\":\"" + inspection.substring(inspection.lastIndexOf('/') + 1)
-                + "\",\"validUntil\":\"" + LocalDate.now().plusYears(1) + "\"}")
-                .andExpect(status().isUnprocessableContent())
+                + "\"}")
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.ineligibilities[0].reason").value("BLOCKING_FINDINGS"));
 
         String findingJson = read(finding).andExpect(jsonPath("$.severity").value("MAJOR")).andReturn().getResponse().getContentAsString();
@@ -60,7 +60,7 @@ class EndToEndApiTest extends ApiTest {
         String second = inspectionAnswered("7.00");
         postAs("EMP-002", second + "/closure", "{}");
         String certificate = postAs("EMP-006", "/api/v1/certificates", "{\"inspectionId\":\""
-                + second.substring(second.lastIndexOf('/') + 1) + "\",\"validUntil\":\"" + LocalDate.now().plusYears(1) + "\"}")
+                + second.substring(second.lastIndexOf('/') + 1) + "\"}")
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/certificates/CERT-00001")))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))

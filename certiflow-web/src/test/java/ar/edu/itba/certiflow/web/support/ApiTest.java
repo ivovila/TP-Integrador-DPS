@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 @AutoConfigureMockMvc
 public abstract class ApiTest {
 
-    private static final String[] TABLES = {"audit_entry", "suspension", "certificate", "verification", "corrective_action",
+    private static final String[] TABLES = {"certificate_backing", "audit_entry", "suspension", "certificate", "verification", "corrective_action",
             "finding_evidence", "finding", "revision", "observation", "attached_evidence", "criterion_response", "inspection",
             "schema_version", "inspection_schema", "asset_characteristic", "asset"};
 

@@ -1,20 +1,10 @@
 package ar.edu.itba.certiflow.infrastructure.support;
 
-import java.util.Set;
-import ar.edu.itba.certiflow.schema.model.YesNoRule;
-import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.schema.model.Unit;
-import ar.edu.itba.certiflow.schema.model.StandardSeverity;
-import ar.edu.itba.certiflow.schema.model.Section;
-import ar.edu.itba.certiflow.schema.model.Range;
-import ar.edu.itba.certiflow.schema.model.OptionInListRule;
-import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
-import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
-import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
 import ar.edu.itba.certiflow.infrastructure.inmemory.InMemoryAuditLog;
 import ar.edu.itba.certiflow.inspection.model.Finding;
@@ -29,16 +19,27 @@ import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.Evidence;
+import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
+import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
+import ar.edu.itba.certiflow.schema.model.OptionInListRule;
+import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
+import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
+import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.schema.model.Unit;
+import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
+import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class DomainSamples {
@@ -50,8 +51,7 @@ public final class DomainSamples {
     public static final Person RESPONSIBLE = new Person(new PersonId("EMP-003"), "Raul Responsible");
     public static final Person TECHNICIAN = new Person(new PersonId("EMP-004"), "Marta Maintenance");
     public static final Person VERIFIER = new Person(new PersonId("EMP-005"), "Victor Verifier");
-    public static final Asset ASSET = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Lobby"),
-            RESPONSIBLE, Characteristics.none());
+    public static final Asset ASSET = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Lobby"), RESPONSIBLE, Characteristics.none(), new JurisdictionCode("DEMO-STANDARD"), List.of());
 
     private static final AtomicInteger IDS = new AtomicInteger();
 
@@ -81,7 +81,7 @@ public final class DomainSamples {
     public static Inspection answeredInspection(InspectionSchema schema, String pressure) {
         InspectionService service = inspectionService();
         Inspection inspection = service.assign(new InspectionId("I-" + IDS.incrementAndGet()), ASSET,
-                new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.currentVersion(), PLANNER, T0);
+                new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), PLANNER, T0);
         service.recordAnswer(inspection, "EXT-01", new RawAnswer.Number(new BigDecimal(pressure)), INSPECTOR, T0.plusSeconds(60));
         service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), INSPECTOR,
                 T0.plusSeconds(90));

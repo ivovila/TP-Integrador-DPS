@@ -1,27 +1,27 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import org.hibernate.stat.Statistics;
-import org.hibernate.SessionFactory;
-import java.util.Set;
-import java.util.List;
-import java.time.LocalDate;
-import ar.edu.itba.certiflow.inspection.model.SectionsScope;
-import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
-import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import ar.edu.itba.certiflow.schema.model.Section;
-import ar.edu.itba.certiflow.catalog.model.AssetType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.JpaInspectionSchemaRepository;
 import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
+import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
+import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.NumericAnswer;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
+import ar.edu.itba.certiflow.schema.model.Section;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,7 +99,7 @@ class JpaInspectionRepositoryTest {
         schemas.save(lined);
         Inspection inspection = DomainSamples.inspectionService().assign(new InspectionId("I-lined"), DomainSamples.ASSET,
                 new InspectionAssignment(DomainSamples.INSPECTOR, LocalDate.of(2026, 3, 13), new SectionsScope(Set.of("Signage\nand lights"))),
-                lined.currentVersion(), DomainSamples.PLANNER, DomainSamples.T0);
+                lined.latestPublishedVersion(), DomainSamples.PLANNER, DomainSamples.T0);
 
         assertEquals(inspection.snapshot(), reloaded(inspection).snapshot());
     }

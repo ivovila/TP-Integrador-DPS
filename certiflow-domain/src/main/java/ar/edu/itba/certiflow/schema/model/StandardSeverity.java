@@ -1,19 +1,18 @@
 package ar.edu.itba.certiflow.schema.model;
 
 
+
 public enum StandardSeverity implements Severity {
-    MINOR("Minor", Outcome.OBSERVED, false),
-    MAJOR("Major", Outcome.REJECTED, true),
-    CRITICAL("Critical", Outcome.REJECTED, true);
+    MINOR("Minor", Outcome.OBSERVED),
+    MAJOR("Major", Outcome.REJECTED),
+    CRITICAL("Critical", Outcome.REJECTED);
 
     private final String label;
     private final Outcome outcomeWhenUnmet;
-    private final boolean blocksCertification;
 
-    StandardSeverity(String label, Outcome outcomeWhenUnmet, boolean blocksCertification) {
+    StandardSeverity(String label, Outcome outcomeWhenUnmet) {
         this.label = label;
         this.outcomeWhenUnmet = outcomeWhenUnmet;
-        this.blocksCertification = blocksCertification;
     }
 
     @Override
@@ -26,8 +25,4 @@ public enum StandardSeverity implements Severity {
         return outcomeWhenUnmet;
     }
 
-    @Override
-    public boolean blocksCertification() {
-        return blocksCertification;
-    }
 }

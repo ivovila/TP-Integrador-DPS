@@ -1,16 +1,18 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.shared.model.AuditEntry;
-import ar.edu.itba.certiflow.shared.model.AuditTrail;
-import ar.edu.itba.certiflow.schema.model.Severity;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingRequiresNonConformityException;
 import ar.edu.itba.certiflow.schema.model.Criterion;
+import ar.edu.itba.certiflow.schema.model.Severity;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public final class Finding {
 
@@ -18,14 +20,16 @@ public final class Finding {
     private final InspectionId inspectionId;
     private final AssetCode assetCode;
     private final Criterion<?> criterion;
+    private final Optional<SubsystemCode> subsystemCode;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final CorrectiveActions actions;
     private final AuditTrail auditTrail = new AuditTrail();
 
     Finding(FindingId id, InspectionId inspectionId, AssetCode assetCode, Person responsible, CriterionResponse<?> nonConformity,
-            Person raisedBy, Instant raisedAt) {
+            Person raisedBy, Instant raisedAt, Optional<SubsystemCode> subsystemCode) {
         this.id = id;
+        this.subsystemCode = subsystemCode;
         this.inspectionId = inspectionId;
         this.assetCode = assetCode;
         this.responsible = responsible;
@@ -40,6 +44,7 @@ public final class Finding {
 
     Finding(FindingSnapshot snapshot) {
         this.id = snapshot.id();
+        this.subsystemCode = snapshot.subsystemCode();
         this.inspectionId = snapshot.inspectionId();
         this.assetCode = snapshot.assetCode();
         this.criterion = snapshot.criterion();
@@ -49,7 +54,7 @@ public final class Finding {
     }
 
     public FindingSnapshot snapshot() {
-        return new FindingSnapshot(id, inspectionId, assetCode, criterion, evidence, responsible, actions.snapshot());
+        return new FindingSnapshot(id, inspectionId, assetCode, criterion, evidence, responsible, actions.snapshot(), subsystemCode);
     }
 
     CorrectiveAction planAction(String description, Person actionResponsible, LocalDate dueDate, Person plannedBy,
@@ -76,9 +81,6 @@ public final class Finding {
         return actions.noneAccepted();
     }
 
-    public boolean blocksCertification() {
-        return isOpen() && severity().blocksCertification();
-    }
 
     public boolean concerns(AssetCode candidate) {
         return assetCode.equals(candidate);
@@ -88,6 +90,8 @@ public final class Finding {
     public boolean isOpenFor(InspectionId sourceInspection, CriterionResponse<?> nonConformity) {
         return isOpen() && inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
     }
+
+    public Optional<SubsystemCode> subsystemCode() { return subsystemCode; }
 
     public FindingId id() {
         return id;

@@ -20,7 +20,7 @@ class SchemaVersionLogTest {
         SchemaVersionLog appended = original.append(sections, Instant.EPOCH.plusSeconds(60));
 
         assertEquals(1, original.versions().size());
-        assertEquals(2, appended.current().number());
+        assertEquals(2, appended.latestPublished().number());
     }
 
     @Test

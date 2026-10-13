@@ -5,7 +5,9 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristic;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.catalog.model.Subsystem;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -17,7 +19,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import tools.jackson.databind.json.JsonMapper;
 
 @Entity
 @Table(name = "asset")
@@ -28,6 +32,9 @@ public class AssetEntity {
     private String name;
     private String type;
     private String location;
+    @Column(name = "jurisdiction_code")
+    private String jurisdictionCode;
+    private String subsystems;
     @Column(name = "responsible_id")
     private String responsibleId;
     @Column(name = "responsible_name")
@@ -46,6 +53,8 @@ public class AssetEntity {
         entity.name = asset.name();
         entity.type = asset.type().name();
         entity.location = asset.location().description();
+        entity.jurisdictionCode = asset.jurisdictionCode().value();
+        entity.subsystems = JsonMapper.builder().build().writeValueAsString(asset.subsystems());
         PersonColumns responsible = PersonColumns.of(asset.responsible());
         entity.responsibleId = responsible.id();
         entity.responsibleName = responsible.name();
@@ -59,6 +68,6 @@ public class AssetEntity {
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
                 new Characteristics(characteristics.stream()
                         .map(characteristic -> new Characteristic(characteristic.name(), characteristic.value()))
-                        .toList()));
+                        .toList()), new JurisdictionCode(jurisdictionCode), Arrays.asList(JsonMapper.builder().build().readValue(subsystems, Subsystem[].class)));
     }
 }

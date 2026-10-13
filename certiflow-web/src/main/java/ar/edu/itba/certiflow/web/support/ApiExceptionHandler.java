@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.web.support;
 
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.model.exceptions.DuplicateCharacteristicException;
+import ar.edu.itba.certiflow.certification.model.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
@@ -12,6 +13,7 @@ import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
 import ar.edu.itba.certiflow.schema.model.InvalidRuleConfigurationException;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.schema.model.exceptions.NoEffectiveSchemaVersionException;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.schema.model.exceptions.SectionNotInSchemaException;
 import ar.edu.itba.certiflow.shared.model.DomainException;
@@ -30,6 +32,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_BY_EXCEPTION = Map.ofEntries(
+            Map.entry(NoEffectiveSchemaVersionException.class, HttpStatus.NOT_FOUND),
+            Map.entry(SubsystemNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(AssetNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(InspectionNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(FindingNotFoundException.class, HttpStatus.NOT_FOUND),
@@ -44,7 +48,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             Map.entry(AnswerTypeMismatchException.class, HttpStatus.BAD_REQUEST),
             Map.entry(SectionNotInSchemaException.class, HttpStatus.BAD_REQUEST),
             Map.entry(DuplicateCharacteristicException.class, HttpStatus.BAD_REQUEST),
-            Map.entry(NotEligibleForCertificationException.class, HttpStatus.UNPROCESSABLE_CONTENT));
+            Map.entry(NotEligibleForCertificationException.class, HttpStatus.CONFLICT));
 
     @ExceptionHandler(InvalidRequestException.class)
     ProblemDetail handle(InvalidRequestException exception) {
