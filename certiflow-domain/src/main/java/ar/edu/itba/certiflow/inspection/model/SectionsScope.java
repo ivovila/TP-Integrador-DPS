@@ -23,4 +23,9 @@ public record SectionsScope(Set<String> sectionTitles) implements InspectionScop
                 .flatMap(section -> section.criteria().stream())
                 .toList();
     }
+
+    @Override
+    public <T> T describedBy(InspectionScopeDescriber<T> describer) {
+        return describer.sections(sectionTitles);
+    }
 }

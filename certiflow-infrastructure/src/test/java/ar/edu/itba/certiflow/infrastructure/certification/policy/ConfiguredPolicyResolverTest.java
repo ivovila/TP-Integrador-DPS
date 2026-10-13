@@ -27,7 +27,7 @@ class ConfiguredPolicyResolverTest {
         var resolver = new ConfiguredPolicyResolver(Map.of(third, policy));
         var at = Instant.parse("2026-02-28T12:00:00Z");
         var result = new InspectionResult(new InspectionId("I"), new AssetCode("A"), at, true, List.of(),
-                new SchemaReference(new AssetType("Equipment"), 1), List.of(), new CertificationScope.WholeAsset());
+                new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));
         assertEquals("THIRD-POLICY", decision.policyCode());

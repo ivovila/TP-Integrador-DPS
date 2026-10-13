@@ -7,6 +7,8 @@ import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
+import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
+import ar.edu.itba.certiflow.certification.model.GlobalAssessmentContext;
 import ar.edu.itba.certiflow.certification.model.GlobalCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
@@ -21,8 +23,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
-import ar.edu.itba.certiflow.certification.model.GlobalAssessmentContext;
 
 /**
  * Decide si un conjunto de parciales respalda el certificado global de un activo. Emitir y renovar un global

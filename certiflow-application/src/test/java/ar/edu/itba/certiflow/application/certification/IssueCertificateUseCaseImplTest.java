@@ -15,8 +15,14 @@ import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
+import ar.edu.itba.certiflow.certification.model.InspectionResult;
+import ar.edu.itba.certiflow.certification.model.RejectedDecision;
+import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
+import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
+import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
@@ -25,24 +31,18 @@ import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ar.edu.itba.certiflow.certification.model.GrantedDecision;
-import ar.edu.itba.certiflow.certification.model.InspectionResult;
-import ar.edu.itba.certiflow.certification.model.RejectedDecision;
-import ar.edu.itba.certiflow.certification.model.SchemaReference;
-import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 
 /** Un número de certificado solo se pide cuando ya se sabe que se va a emitir. */
 @ExtendWith(MockitoExtension.class)
 class IssueCertificateUseCaseImplTest {
 
     private static final InspectionId INSPECTION = new InspectionId("I-1");
-    private static final CertificationScope WHOLE = new CertificationScope.WholeAsset();
+    private static final CertificationScope WHOLE = new WholeAssetScope();
     private static final IssueCertificateCommand COMMAND = new IssueCertificateCommand(INSPECTION, Samples.PLANNER, WHOLE);
 
     @Mock

@@ -1,20 +1,23 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.CertificateBasis;
+import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateLifecycle;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateSnapshot;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.InspectionBasis;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
+import ar.edu.itba.certiflow.certification.model.PartialCertificatesBasis;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
-import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesJson;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -31,10 +34,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "certificate")
 public class CertificateEntity {
+
+    private static final String INSPECTION_BASIS = "INSPECTION";
+    private static final String PARTIAL_CERTIFICATES_BASIS = "PARTIALS";
 
     @Id
     private String number;
@@ -89,23 +96,13 @@ public class CertificateEntity {
         PersonColumns issuer = PersonColumns.of(snapshot.issuedBy());
         assetCode = snapshot.assetCode().value();
         CertificationScope scope = snapshot.decision().scope();
-        scopeType = scope instanceof CertificationScope.WholeAsset ? "WHOLE" : "SUBSYSTEM";
-        subsystemCode = scope instanceof CertificationScope.SubsystemScope subsystem ? subsystem.code().value() : null;
+        scopeType = scope.describedBy(new ScopeTypeColumn());
+        subsystemCode = scope.describedBy(new ScopeSubsystemColumn()).orElse(null);
         schemaAssetType = snapshot.schemaReference().assetType().name();
         schemaNumber = snapshot.schemaReference().number();
         requiredSubsystems = CodesJson.write(snapshot.requiredSubsystems().stream().map(code -> code.value()).sorted().toList());
         partials.clear();
-        if (snapshot.basis() instanceof CertificateBasis.InspectionBasis inspection) {
-            basisType = "INSPECTION";
-            inspectionId = inspection.inspection().id().value();
-            inspectionClosedAt = inspection.inspection().closedAt();
-        } else {
-            basisType = "PARTIALS";
-            var backing = (CertificateBasis.PartialCertificatesBasis) snapshot.basis();
-            partials.addAll(backing.partials().stream().map(number -> number.value()).toList());
-            globalPolicyCode = backing.globalPolicy();
-            latestInspectionClosedAt = backing.latestInspectionClosedAt();
-        }
+        basisType = snapshot.basis().describedBy(new BasisColumns());
         validFrom = snapshot.decision().validity().validFrom();
         validUntil = snapshot.decision().validity().validUntil();
         issuedById = issuer.id();
@@ -118,12 +115,65 @@ public class CertificateEntity {
     }
 
     private CertificateBasis basis() {
-        if (basisType.equals("INSPECTION")) {
-            return new CertificateBasis.InspectionBasis(new InspectionReference(new InspectionId(inspectionId), inspectionClosedAt));
+        return Stream.of(new StoredInspectionBasis(), new StoredPartialCertificatesBasis())
+                .filter(storedBasis -> storedBasis.isStoredAs(basisType))
+                .findFirst()
+                .orElseThrow(() -> new UnreadableStoredDataException("certificate basis type", basisType))
+                .basis();
+    }
+
+    /** Escribe las columnas de la base que le describen y devuelve su etiqueta. */
+    private final class BasisColumns implements CertificateBasisDescriber<String> {
+
+        @Override
+        public String inspection(InspectionReference inspection) {
+            inspectionId = inspection.id().value();
+            inspectionClosedAt = inspection.closedAt();
+            return INSPECTION_BASIS;
         }
-        return new CertificateBasis.PartialCertificatesBasis(
-                partials.stream().map(CertificateNumber::new).toList(),
-                globalPolicyCode, latestInspectionClosedAt);
+
+        @Override
+        public String partialCertificates(List<CertificateNumber> partialCertificateNumbers, String policyCode,
+                                          Instant closedAt) {
+            partials.addAll(partialCertificateNumbers.stream().map(CertificateNumber::value).toList());
+            globalPolicyCode = policyCode;
+            latestInspectionClosedAt = closedAt;
+            return PARTIAL_CERTIFICATES_BASIS;
+        }
+    }
+
+    private interface StoredBasis {
+
+        boolean isStoredAs(String storedBasisType);
+
+        CertificateBasis basis();
+    }
+
+    private final class StoredInspectionBasis implements StoredBasis {
+
+        @Override
+        public boolean isStoredAs(String storedBasisType) {
+            return INSPECTION_BASIS.equals(storedBasisType);
+        }
+
+        @Override
+        public CertificateBasis basis() {
+            return new InspectionBasis(new InspectionReference(new InspectionId(inspectionId), inspectionClosedAt));
+        }
+    }
+
+    private final class StoredPartialCertificatesBasis implements StoredBasis {
+
+        @Override
+        public boolean isStoredAs(String storedBasisType) {
+            return PARTIAL_CERTIFICATES_BASIS.equals(storedBasisType);
+        }
+
+        @Override
+        public CertificateBasis basis() {
+            return new PartialCertificatesBasis(partials.stream().map(CertificateNumber::new).toList(),
+                    globalPolicyCode, latestInspectionClosedAt);
+        }
     }
 
     CertificateSnapshot toSnapshot() {

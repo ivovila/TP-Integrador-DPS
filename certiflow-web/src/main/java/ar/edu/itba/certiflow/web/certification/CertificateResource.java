@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.web.certification;
 
 import ar.edu.itba.certiflow.certification.model.Certificate;
-import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.web.certification.CertificationPayloads.BasisPayload;
 import ar.edu.itba.certiflow.web.certification.CertificationPayloads.DecisionPayload;
@@ -37,7 +36,7 @@ public class CertificateResource extends RepresentationModel<CertificateResource
     CertificateResource(Certificate certificate, CertificateStatus status) {
         this.number = certificate.number().value();
         this.assetCode = certificate.assetCode().value();
-        this.inspectionId = certificate.basis() instanceof CertificateBasis.InspectionBasis inspection ? inspection.inspection().id().value() : null;
+        this.inspectionId = certificate.basis().describedBy(new BasisInspectionId()).orElse(null);
         this.scope = ScopePayload.of(certificate.scope());
         this.basis = BasisPayload.of(certificate.basis());
         this.schemaReference = SchemaReferencePayload.of(certificate.schemaReference());

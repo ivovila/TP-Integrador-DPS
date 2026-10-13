@@ -11,16 +11,21 @@ import ar.edu.itba.certiflow.catalog.model.Characteristic;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
 import ar.edu.itba.certiflow.certification.model.Certificate;
+import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
+import ar.edu.itba.certiflow.certification.model.InspectionReference;
+import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
+import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationCommand;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
@@ -30,6 +35,7 @@ import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.ListCertificatesUseCase;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateUseCase;
+import ar.edu.itba.certiflow.certification.usecase.SameScopeAsCurrent;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
@@ -42,6 +48,8 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionScope;
 import ar.edu.itba.certiflow.inspection.model.Verification;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
+import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.inspection.usecase.AddObservationUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionUseCase;
@@ -77,6 +85,7 @@ import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.Unit;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
+import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
@@ -86,6 +95,7 @@ import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -93,11 +103,6 @@ import java.util.Set;
 import org.junit.jupiter.api.function.Executable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ResolvableType;
-import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
-import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
-import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
-import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
-import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 
 public final class CertiflowFixture {
 
@@ -239,7 +244,23 @@ public final class CertiflowFixture {
 
     public Optional<Certificate> currentWholeAssetCertificate(AssetCode asset, LocalDate date) {
         return certificateRepository.findByAsset(asset).stream()
-                .filter(certificate -> certificate.isCurrentFor(new CertificationScope.WholeAsset(), date)).findFirst();
+                .filter(certificate -> certificate.isCurrentFor(new WholeAssetScope(), date)).findFirst();
+    }
+
+    /** La inspección en la que se apoya un certificado emitido sobre una inspección. */
+    public InspectionId inspectionBacking(CertificateNumber number) {
+        return certificate(number).basis().describedBy(new CertificateBasisDescriber<Optional<InspectionId>>() {
+            @Override
+            public Optional<InspectionId> inspection(InspectionReference inspection) {
+                return Optional.of(inspection.id());
+            }
+
+            @Override
+            public Optional<InspectionId> partialCertificates(List<CertificateNumber> partialCertificateNumbers,
+                                                              String globalPolicyCode, Instant latestInspectionClosedAt) {
+                return Optional.empty();
+            }
+        }).orElseThrow();
     }
 
     public Certificate certificate(CertificateNumber number) {
@@ -247,7 +268,7 @@ public final class CertiflowFixture {
     }
 
     public CertificationDecision evaluate(InspectionId inspection) {
-        return evaluate(inspection, new CertificationScope.WholeAsset());
+        return evaluate(inspection, new WholeAssetScope());
     }
 
     public CertificationDecision evaluate(InspectionId inspection, CertificationScope scope) {
@@ -321,11 +342,11 @@ public final class CertiflowFixture {
     }
 
     public CertificateNumber issue(InspectionId inspection, Person by) {
-        return issueCertificate.execute(new IssueCertificateCommand(inspection, by, new CertificationScope.WholeAsset()));
+        return issueCertificate.execute(new IssueCertificateCommand(inspection, by, new WholeAssetScope()));
     }
 
     public CertificateNumber renew(CertificateNumber current, InspectionId inspection, Person by) {
-        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, by));
+        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, by, new SameScopeAsCurrent()));
     }
 
     public void suspend(CertificateNumber number, String reason, Person by) {

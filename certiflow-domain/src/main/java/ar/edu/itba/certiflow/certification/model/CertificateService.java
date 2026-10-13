@@ -43,6 +43,10 @@ public final class CertificateService {
         recorded(certificate);
     }
 
+    public void ensureGlobalRenewable(Certificate currentCertificate, DecidedGlobalCertification replacement) {
+        currentCertificate.ensureReplaceableByGlobal(replacement);
+    }
+
     public Certificate issueGlobal(CertificateNumber number, DecidedGlobalCertification decided, Person issuedBy) {
         Certificate certificate = certificateFactory.createGlobal(number, decided, issuedBy);
         recorded(certificate);

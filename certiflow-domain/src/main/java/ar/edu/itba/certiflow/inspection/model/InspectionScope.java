@@ -7,4 +7,6 @@ import java.util.List;
 public interface InspectionScope {
 
     List<Criterion<?>> criteriaIn(SchemaVersion schemaVersion);
+
+    <T> T describedBy(InspectionScopeDescriber<T> describer);
 }

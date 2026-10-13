@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.application.certification;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
@@ -13,7 +14,6 @@ import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.LocalDate;
 import java.util.function.Predicate;
-import ar.edu.itba.certiflow.certification.model.Certificate;
 
 /**
  * Lo que comparten consultar, emitir y renovar una certificación: traducir la inspección al alcance pedido

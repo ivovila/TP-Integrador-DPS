@@ -8,11 +8,11 @@ import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.Requirement;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
-import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 
 public final class CertificationAssessmentService {
 

@@ -1,16 +1,15 @@
 package ar.edu.itba.certiflow.web.certification;
 
-import ar.edu.itba.certiflow.web.security.ReadableBy;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
-import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
-import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.SubsystemScope;
+import ar.edu.itba.certiflow.certification.usecase.CertificateView;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
@@ -28,6 +27,7 @@ import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.ReadableBy;
 import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
@@ -51,7 +51,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ar.edu.itba.certiflow.certification.usecase.CertificateView;
 
 @RestController
 @ReadableBy(StaffRole.CERTIFICATION_OFFICER)
@@ -112,7 +111,7 @@ public class CertificateController {
                 .orElseGet(listCertificates::execute);
         return PageLinks.page(certificates.stream()
                         .filter(view -> Optional.ofNullable(subsystem)
-                                .map(code -> view.certificate().scope().equals(new CertificationScope.SubsystemScope(new SubsystemCode(code))))
+                                .map(code -> view.certificate().scope().equals(new SubsystemScope(new SubsystemCode(code))))
                                 .orElse(true))
                         .map(this::resource).toList(), page, size,
                 "/api/v1/certificates", Stream.of(Uris.query("asset", asset).orElse(""), Uris.query("subsystem", subsystem).orElse("")).filter(value -> !value.isEmpty()).collect(Collectors.joining("&")));
@@ -159,9 +158,8 @@ public class CertificateController {
                                                      @ActingPerson Person renewedBy) {
         CertificateNumber current = new CertificateNumber(number);
         InspectionId inspection = new InspectionId(request.inspectionId());
-        CertificateNumber renewed = renewCertificate.execute(request.requestedScope()
-                .map(scope -> new RenewCertificateCommand(current, inspection, renewedBy, scope))
-                .orElseGet(() -> new RenewCertificateCommand(current, inspection, renewedBy)));
+        CertificateNumber renewed = renewCertificate.execute(
+                new RenewCertificateCommand(current, inspection, renewedBy, request.requestedRenewalScope()));
         return created(renewed);
     }
 
@@ -186,21 +184,12 @@ public class CertificateController {
                 Link.of(Uris.path("assets", certificate.assetCode().value())).withRel("asset"),
                 linkTo(methodOn(CertificateController.class).document(number)).withRel("document"),
                 linkTo(methodOn(CertificateController.class).history(number)).withRel("audit-entries"));
-        if (certificate.basis() instanceof CertificateBasis.InspectionBasis inspection) {
-            resource.add(Link.of(Uris.path("inspections", inspection.inspection().id().value())).withRel("inspection"));
-        } else {
-            var backing = (CertificateBasis.PartialCertificatesBasis) certificate.basis();
-            backing.partials().forEach(partial -> resource.add(Link.of(Uris.path("certificates", partial.value())).withRel("partial-certificates")));
-        }
+        resource.add(certificate.basis().describedBy(new BasisLinks()));
         if (status == CertificateStatus.ACTIVE) {
             resource.add(linkTo(methodOn(CertificateController.class).suspend(number, null, null)).withRel("suspensions"));
         }
         if (status != CertificateStatus.RENEWED) {
-            if (certificate.basis() instanceof CertificateBasis.PartialCertificatesBasis) {
-                resource.add(linkTo(methodOn(CertificateController.class).renewGlobal(number, null, null)).withRel("global-renewals"));
-            } else {
-                resource.add(linkTo(methodOn(CertificateController.class).renew(number, null, null)).withRel("renewals"));
-            }
+            resource.add(certificate.basis().describedBy(new RenewalLink(number)));
         }
         return resource;
     }

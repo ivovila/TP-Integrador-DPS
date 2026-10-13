@@ -1,15 +1,17 @@
 package ar.edu.itba.certiflow.certification.model;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
 import ar.edu.itba.certiflow.certification.model.exceptions.InspectionOfAnotherAssetException;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotAGlobalCertificateException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalRequiresLaterInspectionException;
+import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -31,7 +33,7 @@ public final class Certificate {
     private CertificateLifecycle lifecycle = CertificateLifecycle.ISSUED;
 
     Certificate(CertificateNumber number, InspectionResult basedOn, GrantedDecision decision, Stamp issued) {
-        this(number, basedOn.assetCode(), new CertificateBasis.InspectionBasis(basedOn.reference()),
+        this(number, basedOn.assetCode(), new InspectionBasis(basedOn.reference()),
                 basedOn.schemaReference(), basedOn.subsystems().stream().map(SubsystemResult::code).collect(Collectors.toSet()),
                 decision, issued);
     }
@@ -46,7 +48,7 @@ public final class Certificate {
         this.requiredSubsystems = Set.copyOf(requiredSubsystems);
         this.decision = decision;
         this.issued = issued;
-        auditTrail.record(CertificateAudit.ISSUED, issued, "Number " + number.value() + ", scope " + scope()
+        auditTrail.record(CertificateAudit.ISSUED, issued, "Number " + number.value() + ", scope " + scope().describedBy(new ScopeLabel())
                 + ", policy " + decision.policyCode() + ", jurisdiction " + decision.jurisdictionCode().value()
                 + ", outcome " + decision.outcome() + ", validity " + validity() + ", conditions " + decision.conditions());
     }
@@ -85,8 +87,8 @@ public final class Certificate {
      * Las reglas para reemplazar este certificado, al renovar un parcial o un global: no puede estar ya renovado,
      * y el reemplazo tiene que ser del mismo activo y alcance y apoyarse en una inspección posterior.
      */
-    public void ensureReplaceableBy(AssetCode replacementAsset, CertificationScope replacementScope,
-                                    Instant replacementInspectionClosedAt) {
+    void ensureReplaceableBy(AssetCode replacementAsset, CertificationScope replacementScope,
+                             Instant replacementInspectionClosedAt) {
         if (lifecycle.isReplaced()) {
             throw new CertificateAlreadyRenewedException(number);
         }
@@ -94,7 +96,7 @@ public final class Certificate {
             throw new InspectionOfAnotherAssetException(assetCode);
         }
         if (!scope().equals(replacementScope)) {
-            throw new CertificationConflictException("Renewal scope must match");
+            throw new RenewalScopeMismatchException();
         }
         if (!replacementInspectionClosedAt.isAfter(latestInspectionClosedAt())) {
             throw new RenewalRequiresLaterInspectionException(number);
@@ -143,11 +145,6 @@ public final class Certificate {
         return assetCode;
     }
 
-    public InspectionReference basedOn() {
-        if (basis instanceof CertificateBasis.InspectionBasis inspection) { return inspection.inspection(); }
-        throw new CertificationConflictException("Global certificate has partial certificate bases");
-    }
-
     public CertificateBasis basis() { return basis; }
     public CertificationScope scope() {
         return decision.scope();
@@ -156,10 +153,7 @@ public final class Certificate {
     public Set<SubsystemCode> requiredSubsystems() { return requiredSubsystems; }
 
     public Instant latestInspectionClosedAt() {
-        return switch (basis) {
-            case CertificateBasis.InspectionBasis inspection -> inspection.inspection().closedAt();
-            case CertificateBasis.PartialCertificatesBasis partials -> partials.latestInspectionClosedAt();
-        };
+        return basis.latestInspectionClosedAt();
     }
 
     /**
@@ -168,16 +162,28 @@ public final class Certificate {
      * entre los certificados del activo, ya no está activo.
      */
     public CertificateStatus statusOn(LocalDate date, List<Certificate> assetCertificates) {
-        CertificateStatus own = lifecycleStatusOn(date);
-        if (own.isActive() && basis instanceof CertificateBasis.PartialCertificatesBasis backing) {
-            for (CertificateNumber number : backing.partials()) {
-                if (assetCertificates.stream().noneMatch(partial -> partial.number().equals(number)
-                        && partial.statusOn(date, assetCertificates).isActive())) {
-                    return CertificateStatus.DEPENDENCY_INVALID;
-                }
-            }
+        CertificateStatus lifecycleStatus = lifecycleStatusOn(date);
+        return basis.isSupportedOn(date, assetCertificates) ? lifecycleStatus : lifecycleStatus.withoutActiveBacking();
+    }
+
+    public boolean hasNumber(CertificateNumber candidate) {
+        return number.equals(candidate);
+    }
+
+    public List<SubsystemCode> certifiedSubsystems() {
+        return scope().describedBy(new CertifiedSubsystems());
+    }
+
+    public boolean certifiesOneOf(Set<SubsystemCode> candidateSubsystems) {
+        return certifiedSubsystems().stream().anyMatch(candidateSubsystems::contains);
+    }
+
+    /** Un global solo reemplaza a otro global, y con las mismas reglas que cualquier reemplazo. */
+    void ensureReplaceableByGlobal(DecidedGlobalCertification replacement) {
+        if (!basis.backsGlobalCertificate()) {
+            throw new NotAGlobalCertificateException(number);
         }
-        return own;
+        ensureReplaceableBy(replacement.assetCode(), replacement.scope(), replacement.latestInspectionClosedAt());
     }
 
     void renewedBy(Certificate replacement, Stamp renewed) {

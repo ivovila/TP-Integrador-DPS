@@ -1,7 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.*;
 import java.time.Instant;
 import java.util.List;
@@ -20,8 +19,7 @@ public final class DecisionJson {
             Instant evaluatedAt, String subsystemCode) { }
 
     public static String write(GrantedDecision value) {
-        String code = value.scope() instanceof CertificationScope.SubsystemScope subsystem
-                ? subsystem.code().value() : null;
+        String code = value.scope().describedBy(new ScopeSubsystemColumn()).orElse(null);
         return MAPPER.writeValueAsString(new Document(value.outcome(), value.ineligibilities().stream()
                 .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail())).toList(),
                 value.conditions(), value.validity(), value.policyCode(),
@@ -30,8 +28,7 @@ public final class DecisionJson {
 
     public static GrantedDecision read(String json) {
         var value = MAPPER.readValue(json, Document.class);
-        CertificationScope scope = value.subsystemCode() == null ? new CertificationScope.WholeAsset()
-                : new CertificationScope.SubsystemScope(new SubsystemCode(value.subsystemCode()));
+        CertificationScope scope = new StoredScope(value.subsystemCode()).scope();
         return new GrantedDecision(value.conditions(), value.validity(), value.policyCode(), value.jurisdictionCode(),
                 value.evaluatedAt(), scope);
     }

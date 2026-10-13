@@ -18,7 +18,7 @@ class JurisdictionPoliciesTest {
     private InspectionResult result(boolean closed, boolean covered, ar.edu.itba.certiflow.schema.model.Severity severity) {
         return new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"), closed ? now : null,
                 covered, severity == null ? List.of() : List.of(new OpenNonConformity("C-1", severity, "F-1", null)),
-                new SchemaReference(new AssetType("Equipment"), 1), List.of(), new CertificationScope.WholeAsset());
+                new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
     }
 
     private CertificationDecision evaluate(boolean strict, InspectionResult result) {
@@ -39,7 +39,7 @@ class JurisdictionPoliciesTest {
         var decision = evaluate(false, result(true, true, null));
         assertEquals("CONDITIONAL", decision.policyCode());
         assertEquals(new JurisdictionCode("DEMO-CONDITIONAL"), decision.jurisdictionCode());
-        assertEquals(new CertificationScope.WholeAsset(), decision.scope());
+        assertEquals(new WholeAssetScope(), decision.scope());
     }
 
     @Test

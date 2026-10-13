@@ -1,17 +1,15 @@
 package ar.edu.itba.certiflow.application.certification;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.certification.model.Certificate;
-import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
-import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
+import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.RenewGlobalCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.RenewGlobalCertificateUseCase;
-import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 
 public final class RenewGlobalCertificateUseCaseImpl implements RenewGlobalCertificateUseCase {
 
@@ -39,19 +37,12 @@ public final class RenewGlobalCertificateUseCaseImpl implements RenewGlobalCerti
                 .orElseThrow(() -> new CertificateNotFoundException(command.currentNumber()));
         DecidedGlobalCertification decided = globalCertification.decide(command.assetCode(), command.schemaVersion(),
                 command.partialCertificateNumbers());
-        ensureRenewable(currentCertificate, decided);
+        certificateService.ensureGlobalRenewable(currentCertificate, decided);
         certificateIssuance.ensureScopeAvailableToReplace(currentCertificate.number(), decided.assetCode(), decided.scope(), decided.validFrom());
         Certificate renewedCertificate = certificateService.issueGlobal(certificateNumbering.next(), decided, command.issuedBy());
         certificateService.markRenewed(currentCertificate, renewedCertificate, new Stamp(command.issuedBy(), decided.decidedAt()));
         certificateRepository.save(currentCertificate);
         certificateRepository.save(renewedCertificate);
         return renewedCertificate.number();
-    }
-
-    private static void ensureRenewable(Certificate currentCertificate, DecidedGlobalCertification decided) {
-        if (!(currentCertificate.basis() instanceof CertificateBasis.PartialCertificatesBasis)) {
-            throw new CertificationConflictException("Only a global certificate can be renewed as global");
-        }
-        currentCertificate.ensureReplaceableBy(decided.assetCode(), decided.scope(), decided.latestInspectionClosedAt());
     }
 }

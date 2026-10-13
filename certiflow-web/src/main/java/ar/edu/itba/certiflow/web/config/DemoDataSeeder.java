@@ -11,7 +11,8 @@ import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
-import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.SubsystemScope;
+import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.IssueGlobalCertificateCommand;
@@ -44,7 +45,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -134,7 +134,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private void seedExtinguisherInspections() {
         inspectAndClose("EXT-0042", answers("SEAL", YesNoAnswer.NO, "SIGNAGE", YesNoAnswer.YES));
         InspectionId serverRoom = inspectAndClose("EXT-0043", answers("SEAL", YesNoAnswer.YES, "SIGNAGE", YesNoAnswer.YES));
-        issueCertificate.execute(new IssueCertificateCommand(serverRoom, certifier, new CertificationScope.WholeAsset()));
+        issueCertificate.execute(new IssueCertificateCommand(serverRoom, certifier, new WholeAssetScope()));
     }
 
     /** Parciales por subsistema: uno suspendido en la caldera B y uno condicional en la caldera C. */
@@ -200,7 +200,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private List<CertificateNumber> certifyEverySubsystem(String assetCode, InspectionId inspection) {
         List<CertificateNumber> partials = VESSEL_SUBSYSTEMS.stream()
                 .map(subsystem -> issueCertificate.execute(new IssueCertificateCommand(inspection, certifier,
-                        new CertificationScope.SubsystemScope(subsystem.code()))))
+                        new SubsystemScope(subsystem.code()))))
                 .toList();
         issueGlobalCertificate.execute(new IssueGlobalCertificateCommand(new AssetCode(assetCode), 1, partials, certifier));
         return partials;

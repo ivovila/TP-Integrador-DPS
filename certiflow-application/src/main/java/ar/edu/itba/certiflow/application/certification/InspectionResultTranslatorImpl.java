@@ -4,12 +4,12 @@ import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
-import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.OpenNonConformity;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.SubsystemResult;
+import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
@@ -17,10 +17,8 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundExcep
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 public final class InspectionResultTranslatorImpl implements InspectionResultTranslator {
 
@@ -45,7 +43,7 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
         SchemaVersion version = inspection.schemaVersion();
         return new InspectionResult(inspection.id(), asset.code(), inspection.isClosed() ? inspection.originalRevision().sealedAt() : null,
                 inspection.coversWholeSchema(), open, new SchemaReference(asset.type(), version.number()),
-                resultsBySubsystem(inspection, version, open), new CertificationScope.WholeAsset());
+                resultsBySubsystem(inspection, version, open), new WholeAssetScope());
     }
 
     /** Los hallazgos abiertos del activo, incluidos los de otras inspecciones, con la severidad de su criterio. */

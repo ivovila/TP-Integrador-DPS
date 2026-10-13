@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Representación pública de alcance, base y decisión. Los tipos sellados del dominio llevan un campo {@code type}
+ * Representación pública de alcance, base y decisión. Alcance y base llevan un campo {@code type}
  * para que el cliente distinga cada variante sin depender de la forma de los records internos.
  */
 public final class CertificationPayloads {
@@ -19,23 +19,14 @@ public final class CertificationPayloads {
 
     public record ScopePayload(String type, String subsystemCode) {
         public static ScopePayload of(CertificationScope scope) {
-            return switch (scope) {
-                case CertificationScope.WholeAsset ignored -> new ScopePayload("WHOLE_ASSET", null);
-                case CertificationScope.SubsystemScope subsystem -> new ScopePayload("SUBSYSTEM", subsystem.code().value());
-            };
+            return scope.describedBy(new ScopePayloadDescriber());
         }
     }
 
     public record BasisPayload(String type, String inspectionId, Instant inspectionClosedAt,
                                List<String> partialCertificateNumbers, String globalPolicy) {
         public static BasisPayload of(CertificateBasis basis) {
-            return switch (basis) {
-                case CertificateBasis.InspectionBasis inspection -> new BasisPayload("INSPECTION",
-                        inspection.inspection().id().value(), inspection.inspection().closedAt(), List.of(), null);
-                case CertificateBasis.PartialCertificatesBasis partials -> new BasisPayload("PARTIAL_CERTIFICATES", null,
-                        partials.latestInspectionClosedAt(),
-                        partials.partials().stream().map(number -> number.value()).toList(), partials.globalPolicy());
-            };
+            return basis.describedBy(new BasisPayloadDescriber());
         }
     }
 

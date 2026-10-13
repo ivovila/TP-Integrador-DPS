@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
 import ar.edu.itba.certiflow.catalog.model.AssetAudit;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredException;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -23,6 +23,8 @@ import ar.edu.itba.certiflow.inspection.usecase.ActLine;
 import ar.edu.itba.certiflow.inspection.usecase.AddObservationCommand;
 import ar.edu.itba.certiflow.inspection.usecase.FindingsSummary;
 import ar.edu.itba.certiflow.inspection.usecase.InspectionAct;
+import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
@@ -30,8 +32,6 @@ import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
-import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 
 class EndToEndFlowTest extends ScenarioTest {
 
@@ -85,7 +85,7 @@ class EndToEndFlowTest extends ScenarioTest {
         assertEquals(CertificateStatus.ACTIVE, certificateDocument.status());
         assertEquals(validUntil, certificateDocument.validity().validUntil());
         assertEquals(fixture.certifier, certificateDocument.issuedBy());
-        assertEquals(inspection, fixture.certificate(certificate).basedOn().id());
+        assertEquals(inspection, fixture.inspectionBacking(certificate));
         assertTrue(fixture.currentWholeAssetCertificate(fixture.extinguisher.code(), LocalDate.now(fixture.clock)).isPresent());
     }
 

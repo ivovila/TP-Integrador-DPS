@@ -10,4 +10,9 @@ public record FullScope() implements InspectionScope {
     public List<Criterion<?>> criteriaIn(SchemaVersion schemaVersion) {
         return schemaVersion.criteria();
     }
+
+    @Override
+    public <T> T describedBy(InspectionScopeDescriber<T> describer) {
+        return describer.full();
+    }
 }

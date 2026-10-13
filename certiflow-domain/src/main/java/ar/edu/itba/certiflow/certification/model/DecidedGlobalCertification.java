@@ -34,7 +34,7 @@ public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference sc
         return decision.evaluatedAt();
     }
 
-    public CertificateBasis.PartialCertificatesBasis certificateBasis() {
-        return new CertificateBasis.PartialCertificatesBasis(partialNumbers, globalPolicyCode, latestInspectionClosedAt);
+    public CertificateBasis certificateBasis() {
+        return new PartialCertificatesBasis(partialNumbers, globalPolicyCode, latestInspectionClosedAt);
     }
 }

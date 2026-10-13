@@ -4,24 +4,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.CertificateAudit;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
-import ar.edu.itba.certiflow.certification.model.CertificationScope;
-import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.SubsystemNotFoundException;
+import ar.edu.itba.certiflow.certification.model.SubsystemScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalRequiresLaterInspectionException;
+import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
+import ar.edu.itba.certiflow.certification.usecase.ExplicitRenewalScope;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.RenewCertificateCommand;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.VerificationResult;
+import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import java.time.LocalDate;
@@ -29,8 +32,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
-import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 
 class CertificationTest extends ScenarioTest {
 
@@ -102,7 +103,7 @@ class CertificationTest extends ScenarioTest {
 
         assertEquals("CERT-00001", fixture.certificate(certificate).number().value());
         assertEquals(fixture.extinguisher.code(), fixture.certificate(certificate).assetCode());
-        assertEquals(inspection, fixture.certificate(certificate).basedOn().id());
+        assertEquals(inspection, fixture.inspectionBacking(certificate));
         AuditEntry issuanceEntry = fixture.certificateLog.historyOf(certificate).getFirst();
         assertEquals(CertificateAudit.ISSUED, issuanceEntry.action());
         assertEquals(fixture.certifier, issuanceEntry.performedBy());
@@ -179,7 +180,7 @@ class CertificationTest extends ScenarioTest {
         LocalDate currentDate = LocalDate.now(fixture.clock);
         assertEquals(CertificateStatus.RENEWED, fixture.certificate(originalCertificate).statusOn(currentDate, List.of()));
         assertEquals(CertificateStatus.ACTIVE, fixture.certificate(renewedCertificate).statusOn(currentDate, List.of()));
-        assertEquals(reinspection, fixture.certificate(renewedCertificate).basedOn().id());
+        assertEquals(reinspection, fixture.inspectionBacking(renewedCertificate));
         assertEquals(renewedCertificate, fixture.currentWholeAssetCertificate(fixture.extinguisher.code(), currentDate).orElseThrow().number());
         assertEquals(CertificateAudit.RENEWED, fixture.certificateLog.historyOf(originalCertificate).getLast().action());
         assertEquals(CertificateAudit.ISSUED, fixture.certificateLog.historyOf(renewedCertificate).getFirst().action());
@@ -226,7 +227,7 @@ class CertificationTest extends ScenarioTest {
         var inspection = fixture.closedCompliantInspection();
         assertThrows(SubsystemNotFoundException.class,
                 () -> fixture.issueCertificate.execute(new IssueCertificateCommand(
-                        inspection, fixture.certifier, new CertificationScope.SubsystemScope(
+                        inspection, fixture.certifier, new SubsystemScope(
                                 new SubsystemCode("MISSING")))));
         assertEquals("CERT-00001", fixture.issue(inspection, fixture.certifier).value());
     }
@@ -236,10 +237,10 @@ class CertificationTest extends ScenarioTest {
         var number = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
         fixture.clock.advanceDays(1);
         var inspection = fixture.closedCompliantInspection();
-        assertThrows(CertificationConflictException.class,
+        assertThrows(RenewalScopeMismatchException.class,
                 () -> fixture.renewCertificate.execute(new RenewCertificateCommand(
-                        number, inspection, fixture.certifier, new CertificationScope.SubsystemScope(
-                                new SubsystemCode("MISSING")))));
+                        number, inspection, fixture.certifier, new ExplicitRenewalScope(new SubsystemScope(
+                                new SubsystemCode("MISSING"))))));
         assertEquals("CERT-00002", fixture.renew(number, inspection, fixture.certifier).value());
     }
 

@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,7 +46,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                         partial -> partial.number().value() + " belongs to another asset"),
                 Requirement.that(partial -> partial.schemaReference().equals(context.schemaReference()), INVALID,
                         partial -> partial.number().value() + " was issued for another schema version"),
-                Requirement.that(partial -> partial.scope().subsystemCode().filter(context.requiredSubsystems()::contains).isPresent(),
+                Requirement.that(partial -> partial.certifiesOneOf(context.requiredSubsystems()),
                         INVALID, partial -> partial.number().value() + " does not certify a required subsystem"),
                 Requirement.that(partial -> partial.decision().jurisdictionCode().equals(context.jurisdictionCode()), INVALID,
                         partial -> partial.number().value() + " was decided under another jurisdiction"),
@@ -57,7 +56,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
 
     private CertificationDecision rejected(List<Ineligibility> reasons, GlobalAssessmentContext context) {
         return new RejectedDecision(reasons, code(), context.jurisdictionCode(), context.evaluatedAt(),
-                new CertificationScope.WholeAsset());
+                new WholeAssetScope());
     }
 
     private static List<Ineligibility> duplicatedSubsystems(List<Certificate> valid) {
@@ -76,7 +75,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
     }
 
     private static Map<SubsystemCode, Long> subsystemsOf(List<Certificate> partials) {
-        return partials.stream().flatMap(partial -> partial.scope().subsystemCode().stream())
+        return partials.stream().flatMap(partial -> partial.certifiedSubsystems().stream())
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 
@@ -88,6 +87,6 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                         Collections.min(List.of(condition.dueDate(), until))))
                 .distinct().toList();
         return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), until), code(),
-                context.jurisdictionCode(), context.evaluatedAt(), new CertificationScope.WholeAsset());
+                context.jurisdictionCode(), context.evaluatedAt(), new WholeAssetScope());
     }
 }

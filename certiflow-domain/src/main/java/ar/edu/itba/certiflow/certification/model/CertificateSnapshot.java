@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.certification.model;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;

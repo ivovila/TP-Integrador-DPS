@@ -1,16 +1,15 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.SchemaVersionEntity;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
-import ar.edu.itba.certiflow.inspection.model.FullScope;
 import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionScope;
 import ar.edu.itba.certiflow.inspection.model.InspectionSnapshot;
 import ar.edu.itba.certiflow.inspection.model.Revisions;
-import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -28,17 +27,10 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
-import ar.edu.itba.certiflow.catalog.model.AssetType;
 
 @Entity
 @Table(name = "inspection")
 public class InspectionEntity {
-
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @Id
     private String id;
@@ -86,8 +78,7 @@ public class InspectionEntity {
         inspectorId = inspector.id();
         inspectorName = inspector.name();
         plannedDate = snapshot.assignment().plannedDate();
-        scopeSections = snapshot.assignment().scope() instanceof SectionsScope(Set<String> titles)
-                ? MAPPER.writeValueAsString(new TreeSet<>(titles)) : null;
+        scopeSections = snapshot.assignment().scope().describedBy(new ScopeSectionsColumn()).orElse(null);
         List<CriterionResponse<?>> current = snapshot.responses();
         for (int index = 0; index < current.size(); index++) {
             if (index < responses.size()) {
@@ -102,9 +93,7 @@ public class InspectionEntity {
 
     InspectionSnapshot toSnapshot() {
         SchemaVersion version = schemaVersion.toDomain();
-        InspectionScope scope = scopeSections == null ? new FullScope()
-                : new SectionsScope(Set.copyOf(MAPPER.readValue(scopeSections, new TypeReference<List<String>>() {
-                })));
+        InspectionScope scope = new StoredInspectionScope(scopeSections).scope();
         return new InspectionSnapshot(new InspectionId(id), new AssetCode(assetCode), new AssetType(schemaVersion.assetType()),
                 new PersonColumns(assetResponsibleId, assetResponsibleName).toDomain(),
                 new InspectionAssignment(new PersonColumns(inspectorId, inspectorName).toDomain(), plannedDate, scope),

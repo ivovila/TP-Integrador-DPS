@@ -1,11 +1,9 @@
 package ar.edu.itba.certiflow.web.inspection;
 
 import ar.edu.itba.certiflow.inspection.model.InspectionView;
-import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import ar.edu.itba.certiflow.web.support.PersonPayload;
 import java.time.LocalDate;
 import java.util.Set;
-import java.util.TreeSet;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
@@ -27,7 +25,7 @@ public class InspectionResponse extends RepresentationModel<InspectionResponse> 
         this.inspector = PersonPayload.of(inspection.assignment().inspector());
         this.plannedDate = inspection.assignment().plannedDate();
         this.schemaVersion = inspection.schemaVersion().number();
-        this.sections = inspection.assignment().scope() instanceof SectionsScope(Set<String> titles) ? new TreeSet<>(titles) : null;
+        this.sections = inspection.assignment().scope().describedBy(new ScopeSections()).orElse(null);
         this.closed = inspection.isClosed();
         this.coversWholeSchema = inspection.coversWholeSchema();
     }

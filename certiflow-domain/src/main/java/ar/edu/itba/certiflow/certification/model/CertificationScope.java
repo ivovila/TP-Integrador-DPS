@@ -1,25 +1,12 @@
 package ar.edu.itba.certiflow.certification.model;
 
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.List;
 
-public sealed interface CertificationScope permits CertificationScope.WholeAsset, CertificationScope.SubsystemScope {
+public interface CertificationScope {
 
-    /** El subsistema que certifica, si el alcance es un subsistema. */
-    Optional<SubsystemCode> subsystemCode();
+    InspectionResult narrow(InspectionResult wholeAssetResult);
 
-    record WholeAsset(String kind) implements CertificationScope {
-        public WholeAsset() { this("WHOLE_ASSET"); }
-        public WholeAsset { if (!"WHOLE_ASSET".equals(kind)) { throw new IllegalArgumentException("Invalid whole asset scope"); } }
+    boolean requiresPartialCertificates(List<SubsystemResult> subsystems);
 
-        @Override
-        public Optional<SubsystemCode> subsystemCode() { return Optional.empty(); }
-    }
-    record SubsystemScope(SubsystemCode code) implements CertificationScope {
-        public SubsystemScope { Objects.requireNonNull(code); }
-
-        @Override
-        public Optional<SubsystemCode> subsystemCode() { return Optional.of(code); }
-    }
+    <T> T describedBy(CertificationScopeDescriber<T> describer);
 }
