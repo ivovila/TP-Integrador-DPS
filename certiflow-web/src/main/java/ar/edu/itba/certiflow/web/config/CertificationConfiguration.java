@@ -176,10 +176,9 @@ public class CertificationConfiguration {
     IssueCertificateUseCase issueCertificate(TransactionTemplate tx, CertificateIssuanceService certificateIssuance,
                                              CertificateRepository certificateRepository,
                                              CertificateNumbering certificateNumbering,
-                                             CertificateService certificateService,
-                                             InspectionRepository inspectionRepository, AssetLock assetLock) {
+                                             CertificateService certificateService, AssetLock assetLock) {
         return TransactionalUseCases.wrap(IssueCertificateUseCase.class, new IssueCertificateUseCaseImpl(certificateIssuance,
-                certificateRepository, certificateNumbering, certificateService, inspectionRepository, assetLock), tx);
+                certificateRepository, certificateNumbering, certificateService, assetLock), tx);
     }
 
     @Bean

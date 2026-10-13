@@ -35,10 +35,8 @@ import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
-import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,16 +59,14 @@ class IssueCertificateUseCaseImplTest {
     @Mock
     private CertificateNumbering numbering;
     @Mock
-    private InspectionRepository inspectionRepository;
-    @Mock
     private AssetLock assetLock;
     private IssueCertificateUseCaseImpl issueCertificate;
 
     @BeforeEach
     void setUp() {
         issueCertificate = new IssueCertificateUseCaseImpl(issuance, certificateRepository, numbering,
-                new CertificateService(new CertificateFactory(), Samples.auditLog()), inspectionRepository, assetLock);
-        when(inspectionRepository.assetCodeOf(INSPECTION)).thenReturn(Optional.of(Samples.ASSET.code()));
+                new CertificateService(new CertificateFactory(), Samples.auditLog()), assetLock);
+        when(issuance.assetCodeOf(INSPECTION)).thenReturn(Samples.ASSET.code());
     }
 
     @Test

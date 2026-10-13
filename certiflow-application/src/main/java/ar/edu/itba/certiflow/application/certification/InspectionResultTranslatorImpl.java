@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.application.certification;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
@@ -34,6 +35,12 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
         this.inspectionRepository = inspectionRepository;
         this.findingRepository = findingRepository;
         this.assetRepository = assetRepository;
+    }
+
+    @Override
+    public AssetCode assetCodeOf(InspectionId inspectionId) {
+        return inspectionRepository.assetCodeOf(inspectionId)
+                .orElseThrow(() -> new InspectionNotFoundException(inspectionId));
     }
 
     @Override

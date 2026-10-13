@@ -33,6 +33,11 @@ public final class CertificateIssuanceService {
         this.certificateRepository = certificateRepository;
     }
 
+    /** El activo que hay que bloquear antes de decidir sobre una inspección. */
+    public AssetCode assetCodeOf(InspectionId inspectionId) {
+        return inspectionResultTranslator.assetCodeOf(inspectionId);
+    }
+
     /** Previsualizar: la decisión se devuelve tal cual, también rechazada, y no reserva nada. */
     public CertificationDecision evaluate(InspectionId inspectionId, CertificationScope scope) {
         return certificationAssessment.evaluate(resultFor(inspectionId, scope));
