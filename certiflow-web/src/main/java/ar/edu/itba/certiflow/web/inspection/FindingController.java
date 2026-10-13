@@ -3,6 +3,8 @@ package ar.edu.itba.certiflow.web.inspection;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
@@ -76,6 +78,7 @@ public class FindingController {
         return resource(findFinding.execute(new FindingId(id)));
     }
 
+    @AllowedRole(StaffRole.ASSET_RESPONSIBLE)
     @PostMapping("/findings/{id}/corrective-actions")
     public ResponseEntity<CorrectiveActionResource> plan(@PathVariable String id, @RequestBody CorrectiveActionRequest request,
                                                          @ActingPerson Person plannedBy) {
@@ -96,6 +99,7 @@ public class FindingController {
                 .orElseThrow(() -> new CorrectiveActionNotInFindingException(wanted));
     }
 
+    @AllowedRole(StaffRole.VERIFIER)
     @PostMapping("/findings/{id}/corrective-actions/{actionId}/verifications")
     public ResponseEntity<EntityModel<CorrectiveActionResource.VerificationView>> verify(@PathVariable String id,
                                                                                          @PathVariable int actionId,

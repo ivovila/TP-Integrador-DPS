@@ -32,6 +32,8 @@ import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaExcepti
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.InvalidRequestException;
@@ -96,6 +98,7 @@ public class InspectionController {
         this.listInspections = listInspections;
     }
 
+    @AllowedRole(StaffRole.INSPECTION_COORDINATOR)
     @PostMapping
     public ResponseEntity<InspectionResponse> assign(@RequestBody AssignmentRequest request, @ActingPerson Person assignedBy) {
         InspectionId id = assignInspection.execute(request.toCommand(assignedBy));
@@ -152,6 +155,7 @@ public class InspectionController {
                 .orElseThrow(() -> new CriterionNotInSchemaException(code));
     }
 
+    @AllowedRole(StaffRole.INSPECTOR)
     @PutMapping("/{id}/responses/{code}/answer")
     public ResponseEntity<Void> answer(@PathVariable String id, @PathVariable String code, @RequestBody AnswerRequest request,
                                        @ActingPerson Person answeredBy) {
@@ -159,6 +163,7 @@ public class InspectionController {
         return ResponseEntity.noContent().build();
     }
 
+    @AllowedRole(StaffRole.INSPECTOR)
     @PostMapping("/{id}/responses/{code}/evidence")
     public ResponseEntity<EntityModel<CriterionResponseResource.EvidenceView>> attach(@PathVariable String id,
                                                                                       @PathVariable String code,
@@ -181,6 +186,7 @@ public class InspectionController {
                 linkTo(methodOn(InspectionController.class).response(id, code)).withRel("response"));
     }
 
+    @AllowedRole(StaffRole.INSPECTOR)
     @PostMapping("/{id}/responses/{code}/observations")
     public ResponseEntity<EntityModel<CriterionResponseResource.ObservationView>> observe(@PathVariable String id,
                                                                                           @PathVariable String code,
@@ -204,12 +210,14 @@ public class InspectionController {
                 linkTo(methodOn(InspectionController.class).response(id, code)).withRel("response"));
     }
 
+    @AllowedRole(StaffRole.INSPECTOR)
     @PostMapping("/{id}/closure")
     public ResponseEntity<RevisionResource> close(@PathVariable String id, @ActingPerson Person closedBy) {
         List<FindingId> raised = closeInspection.execute(new CloseInspectionCommand(new InspectionId(id), closedBy));
         return createdRevision(id, raised);
     }
 
+    @AllowedRole(StaffRole.INSPECTOR)
     @PostMapping("/{id}/rectifications")
     public ResponseEntity<RevisionResource> rectify(@PathVariable String id, @RequestBody RectificationRequest request,
                                                     @ActingPerson Person rectifiedBy) {

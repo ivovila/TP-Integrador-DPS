@@ -27,6 +27,8 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
@@ -86,6 +88,7 @@ public class CertificateController {
         this.certificates = certificates; this.issueGlobal = issueGlobal; this.renewGlobal = renewGlobal;
     }
 
+    @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping
     public ResponseEntity<CertificateResource> issue(@RequestBody CertificateRequest request, @ActingPerson Person issuedBy) {
         CertificateNumber number = issueCertificate.execute(new IssueCertificateCommand(new InspectionId(request.inspectionId()),
@@ -97,6 +100,7 @@ public class CertificateController {
         public GlobalRequest { RequestFields.requireElements(partialCertificateNumbers, "partialCertificateNumbers"); }
     }
 
+    @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping("/{number}/global-renewals")
     public ResponseEntity<CertificateResource> renewGlobal(@PathVariable String number, @RequestBody GlobalRequest request, @ActingPerson Person by) {
         return created(renewGlobal.execute(new RenewGlobalCertificateCommand(
@@ -124,6 +128,7 @@ public class CertificateController {
         return document;
     }
 
+    @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping("/{number}/suspensions")
     public ResponseEntity<EntityModel<CertificateResource.SuspensionView>> suspend(@PathVariable String number,
                                                                                    @RequestBody SuspensionRequest request,
@@ -144,6 +149,7 @@ public class CertificateController {
                 linkTo(methodOn(CertificateController.class).find(number)).withRel("certificate"));
     }
 
+    @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping("/{number}/renewals")
     public ResponseEntity<CertificateResource> renew(@PathVariable String number, @RequestBody CertificateRequest request,
                                                      @ActingPerson Person renewedBy) {

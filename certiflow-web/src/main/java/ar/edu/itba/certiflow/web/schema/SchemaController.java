@@ -17,6 +17,8 @@ import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
@@ -63,6 +65,7 @@ public class SchemaController {
         this.listSchemas = listSchemas;
     }
 
+    @AllowedRole(StaffRole.ADMINISTRATOR)
     @PostMapping
     public ResponseEntity<SchemaResponse> create(@RequestBody SchemaRequest request, @ActingPerson Person createdBy) {
         InspectionSchema schema = createInspectionSchema.execute(new CreateInspectionSchemaCommand(request.name(),
@@ -83,6 +86,7 @@ public class SchemaController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resource(findSchema.execute(new AssetType(assetType))));
     }
 
+    @AllowedRole(StaffRole.ADMINISTRATOR)
     @PostMapping("/{assetType}/versions")
     public ResponseEntity<VersionResponse> publish(@PathVariable String assetType, @RequestBody VersionRequest request,
                                                    @ActingPerson Person publishedBy) {

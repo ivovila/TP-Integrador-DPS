@@ -4,6 +4,8 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.usecase.*;
 import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,7 @@ public class GlobalCertificateController {
         this.issue = issue; this.certificates = certificates;
     }
 
+    @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping
     public ResponseEntity<CertificateResource> issue(@PathVariable String code,
             @RequestBody CertificateController.GlobalRequest request, @ActingPerson Person by) {

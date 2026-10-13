@@ -3,6 +3,8 @@ package ar.edu.itba.certiflow.web.catalog;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
@@ -46,6 +48,7 @@ public class AssetController {
         this.auditHistory = auditHistory;
     }
 
+    @AllowedRole(StaffRole.ADMINISTRATOR)
     @PostMapping
     public ResponseEntity<AssetResponse> register(@RequestBody AssetRequest request, @ActingPerson Person registeredBy) {
         AssetResponse response = resource(registerAsset.execute(request.toCommand(registeredBy)));
