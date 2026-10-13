@@ -80,3 +80,12 @@ descartadas y deuda de cada funcionalidad; README/CHANGES reflejan lo implementa
 Esta spec agrega sus tablas a `V1__init.sql` en lugar de una migración nueva, por decisión explícita (no había
 datos que conservar); contradice la regla de §3 solo para este caso. La spec decía `@PreAuthorize`; se cambió por
 `@AllowedRole` porque `@PreAuthorize` se evalúa después de leer el cuerpo (ver D25).
+
+## 8. Calidad de código
+
+| Spec | Decisión principal |
+|---|---|
+| [Calidad de código del backend](2026-10-13-calidad-backend.md) | sin `sealed` ni preguntas por el tipo: el objeto responde o se describe a un receptor; la ausencia es una variante; reglas de negocio en el dominio; sin cambios de comportamiento ni migraciones |
+
+Es una propuesta: ninguna de sus tareas está implementada. Su [inventario](2026-10-13-calidad-backend-inventario.md)
+lista cada ocurrencia con archivo y línea sobre el commit `c7d4b7a` y se regenera con el script que lo acompaña.

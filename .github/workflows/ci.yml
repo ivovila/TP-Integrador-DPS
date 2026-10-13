@@ -80,7 +80,7 @@ jobs:
         run: |
           nohup mvn -B -q -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo-users > backend.log 2>&1 &
           for attempt in $(seq 1 90); do
-            if curl -sf -u EMP-006:certiflow http://localhost:8080/api/v1 > /dev/null; then
+            if curl -sf -u ana.torres:certiflow http://localhost:8080/api/v1 > /dev/null; then
               exit 0
             fi
             sleep 2
