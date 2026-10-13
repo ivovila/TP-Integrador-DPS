@@ -62,3 +62,11 @@ Cada spec contiene una matriz riesgo → prueba de dominio, aplicación, reposit
 `mvn -q clean verify` para implementación, con migraciones comprobadas en PostgreSQL y regresiones de fase 1.
 La entrega final agrega a DESIGN.md las clases efectivamente modificadas, refactorizaciones, alternativas
 descartadas y deuda de cada funcionalidad; README/CHANGES reflejan lo implementado, sin confundir propuesta con hecho.
+
+## 6. Frontend
+
+| Spec | Decisión principal |
+|---|---|
+| [Frontend sobre puertos](2026-10-12-frontend.md) | puertos propios con los nombres de los casos de uso; acciones entregadas por el sistema |
+| [Frontend conectado a la API](2026-10-13-frontend-api.md) | adaptador HTTP detrás de los mismos puertos; se elimina el modo en memoria; tests rápidos y contra el backend real |
+
