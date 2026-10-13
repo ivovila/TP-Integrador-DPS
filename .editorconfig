@@ -10,3 +10,6 @@ indent_size = 4
 
 [*.{xml,md,yml,yaml,puml}]
 indent_size = 2
+
+[*.{ts,tsx,js,jsx,json,css,html}]
+indent_size = 2
