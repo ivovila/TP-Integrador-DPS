@@ -1,18 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, expect, test } from 'vitest';
 import type { Certiflow } from '../../ports/Certiflow';
 import { ApplicationProvider } from './CertiflowContext';
 import type { Role } from './roles';
-import { roster } from './roster';
 import { ApplicationRoutes } from './routes';
 import { SessionProvider } from './SessionContext';
+import { fakeAuthentication, signedInAs, type FakeAuthentication } from './testing';
 
-afterEach(() => {
-  cleanup();
-  window.localStorage.clear();
-});
+afterEach(cleanup);
 
 const emptySystem = {
   catalog: { listAssets: async () => [] },
@@ -23,16 +20,18 @@ const emptySystem = {
   audit: { auditHistory: async () => [] },
 } as unknown as Certiflow;
 
-function openAs(role: Role, path: string): void {
+function openAs(role: Role, path: string): FakeAuthentication {
+  const authentication = fakeAuthentication(signedInAs(role));
   render(
-    <ApplicationProvider application={{ certiflow: emptySystem }}>
-      <SessionProvider startingAs={roster.find((member) => member.role === role)!}>
-        <MemoryRouter initialEntries={[path]}>
+    <ApplicationProvider application={{ certiflow: emptySystem, authentication }}>
+      <MemoryRouter initialEntries={[path]}>
+        <SessionProvider>
           <ApplicationRoutes />
-        </MemoryRouter>
-      </SessionProvider>
+        </SessionProvider>
+      </MemoryRouter>
     </ApplicationProvider>,
   );
+  return authentication;
 }
 
 function menu(): string[] {
@@ -87,22 +86,26 @@ const formsThatNeedARole: [string, Role, string][] = [
 test.each(formsThatNeedARole)('opening %s as %s says which role it needs instead of showing the form', async (path, role, expectedNotice) => {
   openAs(role, path);
   expect((await screen.findByText(/Only the .* can do this/)).textContent).toContain(expectedNotice);
-  expect(screen.queryByRole('button')).toBeNull();
+  expect(within(screen.getByRole('main')).queryByRole('button')).toBeNull();
 });
 
-test('choosing another person changes the menu at once', async () => {
-  openAs('inspector', '/inspections');
-  await screen.findByRole('heading', { level: 1, name: 'Inspections' });
-  fireEvent.change(screen.getByLabelText('Acting as'), { target: { value: roster.find((member) => member.role === 'certificationOfficer')!.person.id } });
-  expect(menu()).toEqual(['Certificates', 'Inspections', 'Assets']);
+test('the header shows who is logged in and there is no way to act as someone else', async () => {
+  openAs('verifier', '/findings');
+  await screen.findByRole('heading', { level: 1, name: 'Findings' });
+  expect(screen.getByText('Vera Soto · Verifier')).toBeDefined();
+  expect(screen.queryByLabelText('Acting as')).toBeNull();
 });
 
-test('someone who is not on the list chooses their role', async () => {
+test('logging out returns to the login', async () => {
   openAs('inspector', '/inspections');
   await screen.findByRole('heading', { level: 1, name: 'Inspections' });
-  fireEvent.change(screen.getByLabelText('Acting as'), { target: { value: '__someone-else__' } });
-  fireEvent.change(screen.getByLabelText('Acting as id'), { target: { value: 'EMP-099' } });
-  fireEvent.change(screen.getByLabelText('Acting as name'), { target: { value: 'Nora Paz' } });
-  fireEvent.change(screen.getByLabelText('Acting as role'), { target: { value: 'verifier' } });
-  expect(menu()).toEqual(['Findings']);
+  fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Log in to CertiFlow' })).toBeDefined();
+});
+
+test('a token the server stops accepting returns to the login', async () => {
+  const authentication = openAs('inspector', '/inspections');
+  await screen.findByRole('heading', { level: 1, name: 'Inspections' });
+  act(() => authentication.tokenRejectedByTheServer());
+  expect(await screen.findByRole('heading', { level: 1, name: 'Log in to CertiFlow' })).toBeDefined();
 });

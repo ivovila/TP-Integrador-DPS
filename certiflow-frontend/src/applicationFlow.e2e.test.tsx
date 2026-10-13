@@ -2,8 +2,10 @@
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, test } from 'vitest';
+import { BrowserSession } from './adapters/http/BrowserSession';
 import { createHttpCertiflow } from './adapters/http/createHttpCertiflow';
 import { PersonLogins } from './adapters/http/PersonLogins';
+import type { Person } from './domain/shared';
 import type { Certiflow } from './ports/Certiflow';
 import { ApplicationProvider } from './ui/app/CertiflowContext';
 import { demoPeople } from './ui/app/roster';
@@ -16,6 +18,8 @@ const certiflow: Certiflow = createHttpCertiflow(
   process.env.CERTIFLOW_API_URL!,
   new PersonLogins('certiflow', demoPeople.coordinator),
 );
+const browserSession = new BrowserSession(process.env.CERTIFLOW_API_URL!);
+const screens = { certiflow: createHttpCertiflow(process.env.CERTIFLOW_API_URL!, browserSession), authentication: browserSession };
 const today = new Date().toISOString().slice(0, 10);
 
 function daysFromToday(days: number): string {
@@ -33,17 +37,17 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 function open(path: string): void {
   render(
-    <ApplicationProvider application={{ certiflow }}>
-      <SessionProvider>
-        <MemoryRouter initialEntries={[path]}>
+    <ApplicationProvider application={screens}>
+      <MemoryRouter initialEntries={[path]}>
+        <SessionProvider>
           <ApplicationRoutes />
-        </MemoryRouter>
-      </SessionProvider>
+        </SessionProvider>
+      </MemoryRouter>
     </ApplicationProvider>,
   );
 }
@@ -57,6 +61,17 @@ async function press(scope: ReturnType<typeof within>, name: string): Promise<vo
 }
 
 const page = within(document.body);
+
+async function logInAs(person: Person): Promise<void> {
+  const logout = page.queryByRole('button', { name: 'Logout' });
+  if (logout !== null) {
+    fireEvent.click(logout);
+  }
+  await fill(page, 'Person id', person.id);
+  await fill(page, 'Password', 'certiflow');
+  await press(page, 'Log in');
+  await page.findByRole('button', { name: 'Logout' });
+}
 
 async function cardTitled(title: string) {
   return within((await screen.findByText(title)).closest('.card') as HTMLElement);
@@ -127,7 +142,7 @@ async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: stri
 test('an inspection is executed, closed, corrected and certified through the screens', async () => {
   const { inspectionId } = await extinguisherWithAnAssignedInspection();
   open(`/inspections/${inspectionId}`);
-  await fill(page, 'Acting as', demoPeople.inspector.id);
+  await logInAs(demoPeople.inspector);
 
   const pressure = await criterionCard('PRESSURE');
   await fill(pressure, 'Measurement (bar)', '12');
@@ -157,7 +172,7 @@ test('an inspection is executed, closed, corrected and certified through the scr
   fireEvent.click(findingLink);
   await screen.findByText(new RegExp(`Finding ${findingId}`));
   expect(screen.queryByRole('button', { name: 'Plan corrective action' })).toBeNull();
-  await fill(page, 'Acting as', demoPeople.assetResponsible.id);
+  await logInAs(demoPeople.assetResponsible);
   await fill(page, 'What will be done', 'Fit a new safety seal');
   await fill(page, 'Responsible', demoPeople.assetResponsible.id);
   await fill(page, 'Due date', daysFromToday(20));
@@ -165,13 +180,13 @@ test('an inspection is executed, closed, corrected and certified through the scr
   await screen.findByText(/Action 1 · Fit a new safety seal/);
 
   expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
-  await fill(page, 'Acting as', demoPeople.verifier.id);
+  await logInAs(demoPeople.verifier);
   await press(page, 'Accept');
   await screen.findByText(/Verification accepted/);
   await waitFor(() => expect(screen.queryByText('Plan corrective action')).toBeNull());
   expect(screen.queryByText('Accept')).toBeNull();
 
-  await fill(page, 'Acting as', demoPeople.certifier.id);
+  await logInAs(demoPeople.certifier);
   await press(page, inspectionId);
   await press(page, 'Issue certificate');
   const certificateNumber = await certificateNumberShown();
@@ -206,7 +221,7 @@ test('a closed inspection is rectified through the screens and gains a revision'
   });
   await certiflow.inspections.closeInspection({ inspectionId, closedBy: demoPeople.inspector });
   open(`/inspections/${inspectionId}`);
-  await fill(page, 'Acting as', demoPeople.inspector.id);
+  await logInAs(demoPeople.inspector);
 
   const rectification = await cardTitled('Rectify an answer');
   await fill(rectification, 'Criterion', 'SEAL');
@@ -295,7 +310,7 @@ async function boilerWithAClosedInspection(): Promise<{ assetCode: string; inspe
 test('partial certificates are issued per subsystem and a global certificate is derived from them', async () => {
   const { assetCode, inspectionId } = await boilerWithAClosedInspection();
   open(`/inspections/${inspectionId}`);
-  await fill(page, 'Acting as', demoPeople.certifier.id);
+  await logInAs(demoPeople.certifier);
 
   await screen.findByText('Subsystem ELECTRICAL');
   expect(await screen.findByText('conditional')).toBeDefined();
@@ -327,7 +342,7 @@ test('a schema is created and a new version published with a future effective da
   const assetType = unique('Laboratory');
   const nextYear = new Date().getUTCFullYear() + 1;
   open('/schemas/new');
-  await fill(page, 'Acting as', demoPeople.administrator.id);
+  await logInAs(demoPeople.administrator);
 
   await screen.findByText('Add section');
   await fill(page, 'Schema name', 'Laboratory inspection');
@@ -368,7 +383,7 @@ test('an asset is registered and an inspection assigned through the forms', asyn
   const { assetType } = await extinguisherWithAnAssignedInspection();
   const assetCode = unique('WHS');
   open('/assets/new');
-  await fill(page, 'Acting as', demoPeople.administrator.id);
+  await logInAs(demoPeople.administrator);
 
   await fill(page, 'Code', assetCode);
   await fill(page, 'Name', 'Warehouse extinguisher');
@@ -381,7 +396,7 @@ test('an asset is registered and an inspection assigned through the forms', asyn
   await screen.findByText(`Asset ${assetCode}`);
   expect(screen.getByText('DEMO-STRICT')).toBeDefined();
   expect(screen.queryByRole('link', { name: 'Assign inspection' })).toBeNull();
-  await fill(page, 'Acting as', demoPeople.coordinator.id);
+  await logInAs(demoPeople.coordinator);
   await press(page, 'Assign inspection');
   await screen.findByText('Whole schema');
   await fill(page, 'Inspector', '__someone-else__');

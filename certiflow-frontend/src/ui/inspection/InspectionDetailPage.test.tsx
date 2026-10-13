@@ -5,8 +5,9 @@ import { afterEach, expect, test } from 'vitest';
 import type { InspectionAction, InspectionDetails } from '../../domain/inspection';
 import type { Certiflow } from '../../ports/Certiflow';
 import { ApplicationProvider } from '../app/CertiflowContext';
-import { roster, type RosterMember } from '../app/roster';
+import type { Role } from '../app/roles';
 import { SessionProvider } from '../app/SessionContext';
+import { fakeAuthentication, signedInAs } from '../app/testing';
 import { InspectionDetailPage } from './InspectionDetailPage';
 
 afterEach(cleanup);
@@ -61,18 +62,18 @@ function certiflowReturning(inspection: InspectionDetails): Certiflow {
   } as unknown as Certiflow;
 }
 
-const memberWithRole = (role: RosterMember['role']) => roster.find((member) => member.role === role)!;
-
-async function showInspectionOffering(actions: InspectionAction[], actingMember = memberWithRole('inspector')): Promise<void> {
+async function showInspectionOffering(actions: InspectionAction[], role: Role = 'inspector'): Promise<void> {
   render(
-    <ApplicationProvider application={{ certiflow: certiflowReturning(inspectionOffering(actions)) }}>
-      <SessionProvider startingAs={actingMember}>
-        <MemoryRouter initialEntries={['/inspections/INS-1']}>
+    <ApplicationProvider
+      application={{ certiflow: certiflowReturning(inspectionOffering(actions)), authentication: fakeAuthentication(signedInAs(role)) }}
+    >
+      <MemoryRouter initialEntries={['/inspections/INS-1']}>
+        <SessionProvider>
           <Routes>
             <Route path="inspections/:id" element={<InspectionDetailPage />} />
           </Routes>
-        </MemoryRouter>
-      </SessionProvider>
+        </SessionProvider>
+      </MemoryRouter>
     </ApplicationProvider>,
   );
   await screen.findByText('Safety seal intact');
@@ -95,10 +96,10 @@ test.each(offeredActions)('%s', async (_description, actions, expectedLabels) =>
 
 const everyActionOfAnOpenInspection: InspectionAction[] = ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection'];
 
-const rolesThatOnlyRead: RosterMember['role'][] = ['administrator', 'inspectionCoordinator', 'assetResponsible', 'verifier', 'certificationOfficer'];
+const rolesThatOnlyRead: Role[] = ['administrator', 'inspectionCoordinator', 'assetResponsible', 'verifier', 'certificationOfficer'];
 
 test.each(rolesThatOnlyRead)('the %s reads an open inspection but is offered none of its actions', async (role) => {
-  await showInspectionOffering(everyActionOfAnOpenInspection, memberWithRole(role));
+  await showInspectionOffering(everyActionOfAnOpenInspection, role);
   expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual([]);
   expect(screen.getByText(/you can read this inspection but not change it/).textContent).toContain('Its actions belong to the Inspector');
 });
@@ -110,7 +111,7 @@ test('the inspector is offered the actions of an open inspection and sees no rea
 });
 
 test('every role can open the inspection act', async () => {
-  await showInspectionOffering(['rectifyInspection', 'generateInspectionAct'], memberWithRole('verifier'));
+  await showInspectionOffering(['rectifyInspection', 'generateInspectionAct'], 'verifier');
   expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Inspection act']);
 });
 

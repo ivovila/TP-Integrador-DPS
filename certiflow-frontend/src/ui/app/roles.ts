@@ -3,6 +3,7 @@ import type { CertificateAction, CertificationDecisionAction } from '../../domai
 import type { CorrectiveActionAction, FindingAction } from '../../domain/finding';
 import type { InspectionAction } from '../../domain/inspection';
 import type { SchemaAction } from '../../domain/schema';
+import type { StaffRole } from '../../ports/AuthenticationPort';
 
 export type Role =
   | 'administrator'
@@ -70,6 +71,19 @@ export const sections: Record<Section, { label: string; path: string }> = {
 };
 
 export const everyRole = Object.keys(roles) as Role[];
+
+export const staffRoleOf: Record<Role, StaffRole> = {
+  administrator: 'ADMINISTRATOR',
+  inspectionCoordinator: 'INSPECTION_COORDINATOR',
+  inspector: 'INSPECTOR',
+  assetResponsible: 'ASSET_RESPONSIBLE',
+  verifier: 'VERIFIER',
+  certificationOfficer: 'CERTIFICATION_OFFICER',
+};
+
+export function roleOf(staffRole: StaffRole): Role {
+  return everyRole.find((role) => staffRoleOf[role] === staffRole)!;
+}
 
 function isRoleAction(action: SystemAction): action is RoleAction {
   return action in roleThatMayDo;

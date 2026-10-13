@@ -1,10 +1,9 @@
 import { NavLink, Outlet } from 'react-router';
-import { ActingPersonPicker } from './ActingPersonPicker';
 import { roles, sections } from './roles';
 import { useSession } from './SessionContext';
 
 export function Layout() {
-  const { role } = useSession();
+  const { actingPerson, role, logOut } = useSession();
 
   return (
     <>
@@ -18,7 +17,12 @@ export function Layout() {
           ))}
         </nav>
         <div className="session">
-          <ActingPersonPicker />
+          <span className="signed-in">
+            {actingPerson.name} · {roles[role].label}
+          </span>
+          <button type="button" className="secondary" onClick={() => void logOut()}>
+            Logout
+          </button>
         </div>
       </header>
       <main className="page">

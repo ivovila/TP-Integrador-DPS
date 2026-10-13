@@ -1,52 +1,39 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Person } from '../../domain/shared';
-import { everyRole, roleMayDo, type Role, type SystemAction } from './roles';
-import { roster, type RosterMember } from './roster';
+import type { SignedIn } from '../../ports/AuthenticationPort';
+import { useAuthentication } from './CertiflowContext';
+import { LoginPage } from './LoginPage';
+import { roleMayDo, roleOf, type Role, type SystemAction } from './roles';
 
 interface Session {
   actingPerson: Person;
   role: Role;
-  actAs(person: Person, role: Role): void;
   mayDo(action: SystemAction): boolean;
   permitted<Action extends SystemAction>(offeredActions: Action[]): Action[];
+  logOut(): Promise<void>;
 }
 
-const storageKey = 'certiflow.actingAs';
 const SessionContext = createContext<Session | undefined>(undefined);
 
-function rememberedMember(): RosterMember {
-  try {
-    const remembered = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as Partial<RosterMember> | null;
-    const isComplete =
-      remembered !== null &&
-      typeof remembered.person?.id === 'string' &&
-      typeof remembered.person.name === 'string' &&
-      everyRole.some((role) => role === remembered.role);
-    return isComplete ? (remembered as RosterMember) : roster[0]!;
-  } catch {
-    return roster[0]!;
-  }
-}
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const authentication = useAuthentication();
+  const [signedIn, setSignedIn] = useState<SignedIn | undefined>(() => authentication.current());
 
-function remember(member: RosterMember): void {
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(member));
-  } catch {
-    return;
-  }
-}
+  useEffect(() => authentication.onSignedOut(() => setSignedIn(undefined)), [authentication]);
 
-export function SessionProvider({ children, startingAs }: { children: ReactNode; startingAs?: RosterMember }) {
-  const [actingMember, setActingMember] = useState<RosterMember>(() => startingAs ?? rememberedMember());
+  if (signedIn === undefined) {
+    return <LoginPage onSignedIn={setSignedIn} />;
+  }
+  const role = roleOf(signedIn.role);
   const session: Session = {
-    actingPerson: actingMember.person,
-    role: actingMember.role,
-    actAs(person, role) {
-      setActingMember({ person, role });
-      remember({ person, role });
+    actingPerson: signedIn.person,
+    role,
+    mayDo: (action) => roleMayDo(role, action),
+    permitted: (offeredActions) => offeredActions.filter((action) => roleMayDo(role, action)),
+    logOut: async () => {
+      await authentication.logOut();
+      setSignedIn(undefined);
     },
-    mayDo: (action) => roleMayDo(actingMember.role, action),
-    permitted: (offeredActions) => offeredActions.filter((action) => roleMayDo(actingMember.role, action)),
   };
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }

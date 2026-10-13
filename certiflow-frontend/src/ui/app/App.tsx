@@ -7,11 +7,11 @@ import './styles.css';
 export function App({ application }: { application: Application }) {
   return (
     <ApplicationProvider application={application}>
-      <SessionProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <SessionProvider>
           <ApplicationRoutes />
-        </BrowserRouter>
-      </SessionProvider>
+        </SessionProvider>
+      </BrowserRouter>
     </ApplicationProvider>
   );
 }

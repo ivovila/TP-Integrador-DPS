@@ -89,11 +89,15 @@ h3 {
 .session {
   display: flex;
   gap: 1rem;
-  align-items: flex-end;
+  align-items: center;
 }
 
-.session .field {
-  margin: 0;
+.signed-in {
+  font-weight: 600;
+}
+
+.login-page {
+  max-width: 360px;
 }
 
 .page {
@@ -310,13 +314,6 @@ button:disabled {
   margin: 0 0 0.75rem;
 }
 
-.session .inline-fields select {
-  font: inherit;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-}
 
 .error-banner {
   background: var(--negative-soft);
