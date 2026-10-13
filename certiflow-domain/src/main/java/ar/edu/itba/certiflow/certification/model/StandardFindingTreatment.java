@@ -8,12 +8,6 @@ public enum StandardFindingTreatment implements FindingTreatment {
             assessment.block(StandardIneligibilityReason.BLOCKING_FINDINGS, finding);
         }
     },
-    REQUIRES_CONDITION {
-        @Override
-        public void applyTo(OpenNonConformity finding, PolicyAssessment assessment) {
-            assessment.requireCondition(finding);
-        }
-    },
     /** La política acepta el hallazgo tal como está: no bloquea ni condiciona. */
     TOLERATED {
         @Override

@@ -6,6 +6,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationAssessmentContext;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
+import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.Requirement;
 import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
@@ -43,7 +44,9 @@ public final class CertificationAssessmentService {
         var context = new CertificationAssessmentContext(result, asset.jurisdictionCode(),
                 now, LocalDate.ofInstant(now, clock.getZone()));
         var reasons = Requirement.unmetBy(COMMON_REQUIREMENTS, result);
-        return reasons.isEmpty() ? policy.evaluate(context) : CertificationDecision.rejected(context, policy.code(), reasons);
+        return reasons.isEmpty()
+                ? policy.evaluate(context)
+                : new RejectedDecision(reasons, policy.code(), context.jurisdictionCode(), context.evaluatedAt(), result.scope());
     }
 
 }

@@ -88,8 +88,9 @@ public class CertificateEntity {
     void copyFrom(CertificateSnapshot snapshot) {
         PersonColumns issuer = PersonColumns.of(snapshot.issuedBy());
         assetCode = snapshot.assetCode().value();
-        scopeType = snapshot.scope() instanceof CertificationScope.WholeAsset ? "WHOLE" : "SUBSYSTEM";
-        subsystemCode = snapshot.scope() instanceof CertificationScope.SubsystemScope subsystem ? subsystem.code().value() : null;
+        CertificationScope scope = snapshot.decision().scope();
+        scopeType = scope instanceof CertificationScope.WholeAsset ? "WHOLE" : "SUBSYSTEM";
+        subsystemCode = scope instanceof CertificationScope.SubsystemScope subsystem ? subsystem.code().value() : null;
         schemaAssetType = snapshot.schemaReference().assetType().name();
         schemaNumber = snapshot.schemaReference().number();
         requiredSubsystems = CodesJson.write(snapshot.requiredSubsystems().stream().map(code -> code.value()).sorted().toList());
@@ -105,8 +106,8 @@ public class CertificateEntity {
             globalPolicyCode = backing.globalPolicy();
             latestInspectionClosedAt = backing.latestInspectionClosedAt();
         }
-        validFrom = snapshot.validity().validFrom();
-        validUntil = snapshot.validity().validUntil();
+        validFrom = snapshot.decision().validity().validFrom();
+        validUntil = snapshot.decision().validity().validUntil();
         issuedById = issuer.id();
         issuedByName = issuer.name();
         issuedAt = snapshot.issuedAt();
@@ -127,11 +128,9 @@ public class CertificateEntity {
 
     CertificateSnapshot toSnapshot() {
         return new CertificateSnapshot(new CertificateNumber(number), new AssetCode(assetCode),
-                basis(), scopeType.equals("WHOLE") ? new CertificationScope.WholeAsset()
-                        : new CertificationScope.SubsystemScope(new SubsystemCode(subsystemCode)),
+                basis(),
                 new SchemaReference(new AssetType(schemaAssetType), schemaNumber),
                 CodesJson.read(requiredSubsystems).stream().map(SubsystemCode::new).collect(Collectors.toSet()),
-                new ValidityPeriod(validFrom, validUntil),
                 new Stamp(new PersonColumns(issuedById, issuedByName).toDomain(), issuedAt),
                 suspensions.stream().map(SuspensionEmbeddable::toDomain).toList(), lifecycle, DecisionJson.read(decision));
     }

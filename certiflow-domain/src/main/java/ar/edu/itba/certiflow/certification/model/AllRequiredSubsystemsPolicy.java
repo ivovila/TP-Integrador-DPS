@@ -51,13 +51,13 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                         INVALID, partial -> partial.number().value() + " does not certify a required subsystem"),
                 Requirement.that(partial -> partial.decision().jurisdictionCode().equals(context.jurisdictionCode()), INVALID,
                         partial -> partial.number().value() + " was decided under another jurisdiction"),
-                Requirement.that(partial -> partial.statusOn(context.issuanceDate(), context.partials()) == CertificateStatus.ACTIVE,
+                Requirement.that(partial -> partial.statusOn(context.issuanceDate(), context.partials()).isActive(),
                         INVALID, partial -> partial.number().value() + " is not active"));
     }
 
     private CertificationDecision rejected(List<Ineligibility> reasons, GlobalAssessmentContext context) {
-        return new CertificationDecision(CertificationOutcome.REJECTED, reasons, List.of(), null, code(),
-                context.jurisdictionCode(), context.evaluatedAt(), new CertificationScope.WholeAsset());
+        return new RejectedDecision(reasons, code(), context.jurisdictionCode(), context.evaluatedAt(),
+                new CertificationScope.WholeAsset());
     }
 
     private static List<Ineligibility> duplicatedSubsystems(List<Certificate> valid) {
@@ -82,12 +82,12 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
 
     /** Rige desde hoy hasta el menor vencimiento de sus parciales y hereda sus condiciones, sin extenderlas. */
     private CertificationDecision granted(List<Certificate> partials, GlobalAssessmentContext context) {
-        LocalDate until = partials.stream().map(partial -> partial.validity().validUntil()).min(LocalDate::compareTo).orElseThrow();
+        LocalDate until = Collections.min(partials.stream().map(partial -> partial.validity().validUntil()).toList());
         List<CertificationCondition> conditions = partials.stream().flatMap(partial -> partial.decision().conditions().stream())
                 .map(condition -> new CertificationCondition(condition.findingId(), condition.criterionCode(), condition.description(),
                         Collections.min(List.of(condition.dueDate(), until))))
                 .distinct().toList();
-        return CertificationDecision.granted(conditions, new ValidityPeriod(context.issuanceDate(), until), code(), context.jurisdictionCode(), context.evaluatedAt(),
-                new CertificationScope.WholeAsset());
+        return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), until), code(),
+                context.jurisdictionCode(), context.evaluatedAt(), new CertificationScope.WholeAsset());
     }
 }

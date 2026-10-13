@@ -15,7 +15,7 @@ import java.util.Set;
 public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference schemaReference,
                                          Set<SubsystemCode> requiredSubsystems, List<CertificateNumber> partialNumbers,
                                          String globalPolicyCode, Instant latestInspectionClosedAt,
-                                         CertificationDecision decision) {
+                                         GrantedDecision decision) {
 
     public DecidedGlobalCertification {
         requiredSubsystems = Set.copyOf(requiredSubsystems);
@@ -23,11 +23,11 @@ public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference sc
     }
 
     public CertificationScope scope() {
-        return new CertificationScope.WholeAsset();
+        return decision.scope();
     }
 
     public LocalDate validFrom() {
-        return decision.validity().orElseThrow().validFrom();
+        return decision.validity().validFrom();
     }
 
     public Instant decidedAt() {

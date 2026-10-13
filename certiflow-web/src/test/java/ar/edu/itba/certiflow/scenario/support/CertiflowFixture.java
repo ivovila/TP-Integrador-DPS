@@ -256,7 +256,11 @@ public final class CertiflowFixture {
 
     public static void assertNotEligible(IneligibilityReason reason, Executable certification) {
         NotEligibleForCertificationException rejection = assertThrows(NotEligibleForCertificationException.class, certification);
-        assertTrue(rejection.decision().isBlockedBy(reason), rejection.getMessage());
+        assertTrue(isBlockedBy(rejection.decision(), reason), rejection.getMessage());
+    }
+
+    public static boolean isBlockedBy(CertificationDecision decision, IneligibilityReason reason) {
+        return decision.ineligibilities().stream().anyMatch(ineligibility -> ineligibility.reason() == reason);
     }
 
     public NumericAnswer numericAnswer(String decimalValue) {

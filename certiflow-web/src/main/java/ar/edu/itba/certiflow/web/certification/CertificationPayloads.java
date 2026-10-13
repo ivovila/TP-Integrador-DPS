@@ -55,8 +55,8 @@ public final class CertificationPayloads {
                     decision.conditions().stream()
                             .map(condition -> new ConditionPayload(condition.findingId(), condition.criterionCode(),
                                     condition.description(), condition.dueDate())).toList(),
-                    decision.validity().map(validity -> validity.validFrom()).orElse(null),
-                    decision.validity().map(validity -> validity.validUntil()).orElse(null),
+                    decision.granted().map(granted -> granted.validity().validFrom()).orElse(null),
+                    decision.granted().map(granted -> granted.validity().validUntil()).orElse(null),
                     decision.policyCode(), decision.jurisdictionCode().value(), decision.evaluatedAt(),
                     ScopePayload.of(decision.scope()));
         }

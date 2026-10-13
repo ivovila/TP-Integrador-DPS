@@ -59,7 +59,7 @@ class JpaCertificateRepositoryTest {
         InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), inspection.originalRevision().sealedAt(), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new CertificationScope.WholeAsset());
         return new CertificateFactory().create(numbering.next(), result, SeverityCertificationPolicy.standard().evaluate(
                 new CertificationAssessmentContext(result,
-                        new JurisdictionCode("DEMO-STANDARD"), DomainSamples.T0, TODAY)),
+                        new JurisdictionCode("DEMO-STANDARD"), DomainSamples.T0, TODAY)).granted().orElseThrow(),
                 new Stamp(DomainSamples.PLANNER, DomainSamples.T0));
     }
 

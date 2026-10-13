@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
@@ -35,16 +36,16 @@ public final class CertificateIssuanceService {
 
     /** Previsualizar: la decisión se devuelve tal cual, también rechazada, y no reserva nada. */
     public CertificationDecision evaluate(InspectionId inspectionId, CertificationScope scope) {
-        return assess(inspectionId, scope).decision();
+        return certificationAssessment.evaluate(resultFor(inspectionId, scope));
     }
 
     /** Emitir o renovar: una decisión rechazada es un conflicto, no una respuesta. */
     public DecidedCertification decide(InspectionId inspectionId, CertificationScope scope) {
-        DecidedCertification assessed = assess(inspectionId, scope);
-        if (!assessed.decision().isEligible()) {
-            throw new NotEligibleForCertificationException(assessed.decision());
-        }
-        return assessed;
+        InspectionResult result = resultFor(inspectionId, scope);
+        CertificationDecision decision = certificationAssessment.evaluate(result);
+        GrantedDecision grantedDecision = decision.granted()
+                .orElseThrow(() -> new NotEligibleForCertificationException(decision));
+        return new DecidedCertification(result, grantedDecision);
     }
 
     /**
@@ -71,8 +72,7 @@ public final class CertificateIssuanceService {
                 });
     }
 
-    private DecidedCertification assess(InspectionId inspectionId, CertificationScope scope) {
-        InspectionResult result = inspectionResultTranslator.translate(inspectionId).forScope(scope);
-        return new DecidedCertification(result, certificationAssessment.evaluate(result));
+    private InspectionResult resultFor(InspectionId inspectionId, CertificationScope scope) {
+        return inspectionResultTranslator.translate(inspectionId).forScope(scope);
     }
 }

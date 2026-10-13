@@ -8,6 +8,7 @@ import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.GlobalCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
@@ -55,11 +56,10 @@ public final class GlobalCertificationService {
         SchemaReference reference = new SchemaReference(asset.type(), schemaVersionNumber);
         CertificationDecision decision = globalCertificationPolicy.evaluate(new GlobalAssessmentContext(assetCode, reference,
                 version.requiredSubsystems(), partials, asset.jurisdictionCode(), on, decidedAt));
-        if (!decision.isEligible()) {
-            throw new NotEligibleForCertificationException(decision);
-        }
+        GrantedDecision grantedDecision = decision.granted()
+                .orElseThrow(() -> new NotEligibleForCertificationException(decision));
         return new DecidedGlobalCertification(assetCode, reference, version.requiredSubsystems(), partialNumbers,
-                globalCertificationPolicy.code(), latestInspectionClosedAt(partials), decision);
+                globalCertificationPolicy.code(), latestInspectionClosedAt(partials), grantedDecision);
     }
 
     private SchemaVersion versionOf(Asset asset, int number) {

@@ -32,10 +32,10 @@ class CertificationDecisionTest extends ScenarioTest {
 
         assertFalse(decision.isEligible());
         assertEquals("STANDARD", decision.policyCode());
-        assertTrue(decision.validity().isEmpty());
+        assertTrue(decision.granted().isEmpty());
         assertEquals(2, decision.ineligibilities().size());
-        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.INSPECTION_NOT_CLOSED));
-        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.PARTIAL_INSPECTION));
+        assertTrue(CertiflowFixture.isBlockedBy(decision, StandardIneligibilityReason.INSPECTION_NOT_CLOSED));
+        assertTrue(CertiflowFixture.isBlockedBy(decision, StandardIneligibilityReason.PARTIAL_INSPECTION));
         assertTrue(fixture.currentWholeAssetCertificate(fixture.extinguisher.code(), LocalDate.now(fixture.clock)).isEmpty());
     }
 

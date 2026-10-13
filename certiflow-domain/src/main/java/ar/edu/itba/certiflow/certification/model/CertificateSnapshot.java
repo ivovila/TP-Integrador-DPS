@@ -8,10 +8,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
-public record CertificateSnapshot(CertificateNumber number, AssetCode assetCode, CertificateBasis basis, CertificationScope scope, SchemaReference schemaReference,
-                                  Set<SubsystemCode> requiredSubsystems,
-                                  ValidityPeriod validity, Stamp issued, List<Suspension> suspensions,
-                                  CertificateLifecycle lifecycle, CertificationDecision decision) {
+public record CertificateSnapshot(CertificateNumber number, AssetCode assetCode, CertificateBasis basis,
+                                  SchemaReference schemaReference, Set<SubsystemCode> requiredSubsystems,
+                                  Stamp issued, List<Suspension> suspensions,
+                                  CertificateLifecycle lifecycle, GrantedDecision decision) {
 
     public CertificateSnapshot {
         suspensions = List.copyOf(suspensions);

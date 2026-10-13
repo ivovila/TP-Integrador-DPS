@@ -5,12 +5,12 @@ import ar.edu.itba.certiflow.shared.model.Person;
 
 public final class CertificateFactory {
 
-    public Certificate create(CertificateNumber number, InspectionResult basedOn, CertificationDecision decision, Stamp issued) {
+    public Certificate create(CertificateNumber number, InspectionResult basedOn, GrantedDecision decision, Stamp issued) {
         return new Certificate(number, basedOn, decision, issued);
     }
 
     public Certificate createGlobal(CertificateNumber number, DecidedGlobalCertification decided, Person issuedBy) {
-        return new Certificate(number, decided.assetCode(), decided.certificateBasis(), decided.scope(),
+        return new Certificate(number, decided.assetCode(), decided.certificateBasis(),
                 decided.schemaReference(), decided.requiredSubsystems(), decided.decision(),
                 new Stamp(issuedBy, decided.decidedAt()));
     }

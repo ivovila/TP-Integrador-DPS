@@ -5,56 +5,25 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public record CertificationDecision(CertificationOutcome outcome, List<Ineligibility> ineligibilities,
-        List<CertificationCondition> conditions, ValidityPeriod validityPeriod,
-        String policyCode,
-        JurisdictionCode jurisdictionCode, Instant evaluatedAt, CertificationScope scope) {
+public interface CertificationDecision {
 
-    /** La vigencia que concede, si la decisión permite certificar. */
-    public Optional<ValidityPeriod> validity() {
-        return Optional.ofNullable(validityPeriod);
-    }
+    CertificationOutcome outcome();
 
-    public CertificationDecision {
-        ineligibilities = List.copyOf(ineligibilities);
-        conditions = List.copyOf(conditions);
-        if ((outcome != CertificationOutcome.REJECTED) != (validityPeriod != null)) {
-            throw new IllegalArgumentException("Only eligible decisions have validity");
-        }
-        if (outcome == CertificationOutcome.CONDITIONAL && conditions.isEmpty()) {
-            throw new IllegalArgumentException("Conditional decisions require conditions");
-        }
-    }
+    boolean isEligible();
 
-    public static CertificationDecision rejected(CertificationAssessmentContext context,
-            String policy, List<Ineligibility> reasons) {
-        return new CertificationDecision(CertificationOutcome.REJECTED, reasons, List.of(),
-                null, policy, context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
-    }
+    List<Ineligibility> ineligibilities();
 
-    public static CertificationDecision approved(CertificationAssessmentContext context,
-            String policy, ValidityPeriod validity) {
-        return new CertificationDecision(CertificationOutcome.APPROVED, List.of(), List.of(),
-                validity, policy, context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
-    }
+    List<CertificationCondition> conditions();
 
-    public static CertificationDecision conditional(CertificationAssessmentContext context,
-            String policy, ValidityPeriod validity, List<CertificationCondition> conditions) {
-        return new CertificationDecision(CertificationOutcome.CONDITIONAL, List.of(), conditions,
-                validity, policy, context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
-    }
+    Optional<GrantedDecision> granted();
 
-    /** Concede la vigencia indicada; con condiciones pendientes la modalidad es condicional. */
-    public static CertificationDecision granted(List<CertificationCondition> conditions, ValidityPeriod validity, String policy,
-            JurisdictionCode jurisdictionCode, Instant evaluatedAt, CertificationScope scope) {
-        CertificationOutcome outcome = conditions.isEmpty() ? CertificationOutcome.APPROVED : CertificationOutcome.CONDITIONAL;
-        return new CertificationDecision(outcome, List.of(), conditions, validity, policy, jurisdictionCode,
-                evaluatedAt, scope);
-    }
+    String policyCode();
 
-    public boolean isEligible() { return outcome != CertificationOutcome.REJECTED; }
+    JurisdictionCode jurisdictionCode();
 
-    public boolean isBlockedBy(IneligibilityReason reason) {
-        return ineligibilities.stream().anyMatch(item -> item.reason() == reason);
-    }
+    Instant evaluatedAt();
+
+    CertificationScope scope();
+
+    <T> T describedBy(CertificationDecisionDescriber<T> describer);
 }

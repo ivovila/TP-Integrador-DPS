@@ -1,6 +1,8 @@
 package ar.edu.itba.certiflow.certification.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -12,17 +14,15 @@ public final class PolicyAssessment {
     private final CertificationAssessmentContext context;
     private final String policyCode;
     private final ValidityTerm approvedTerm;
-    private final ValidityTerm conditionalTerm;
     private final List<Ineligibility> reasons = new ArrayList<>();
     private final List<OpenNonConformity> conditioned = new ArrayList<>();
+    private final List<ValidityTerm> conditionalTerms = new ArrayList<>();
     private State state = State.APPROVED;
 
-    PolicyAssessment(CertificationAssessmentContext context, String policyCode, ValidityTerm approvedTerm,
-                     ValidityTerm conditionalTerm) {
+    PolicyAssessment(CertificationAssessmentContext context, String policyCode, ValidityTerm approvedTerm) {
         this.context = context;
         this.policyCode = policyCode;
         this.approvedTerm = approvedTerm;
-        this.conditionalTerm = conditionalTerm;
     }
 
     public void block(IneligibilityReason reason, OpenNonConformity finding) {
@@ -30,8 +30,9 @@ public final class PolicyAssessment {
         state = State.REJECTED;
     }
 
-    public void requireCondition(OpenNonConformity finding) {
+    public void requireCondition(OpenNonConformity finding, ValidityTerm conditionalTerm) {
         conditioned.add(finding);
+        conditionalTerms.add(conditionalTerm);
         state = state.withCondition();
     }
 
@@ -39,23 +40,33 @@ public final class PolicyAssessment {
         return state.decide(this);
     }
 
+    /** Con varios hallazgos condicionados rige el plazo que vence primero. */
+    private ValidityPeriod shortestConditionalValidity() {
+        List<ValidityPeriod> conditionalValidities = conditionalTerms.stream()
+                .map(conditionalTerm -> conditionalTerm.startingOn(context.issuanceDate()))
+                .toList();
+        return Collections.min(conditionalValidities, Comparator.comparing(ValidityPeriod::validUntil));
+    }
+
     private enum State {
         APPROVED {
             @Override
             CertificationDecision decide(PolicyAssessment assessment) {
-                return CertificationDecision.approved(assessment.context, assessment.policyCode,
-                        assessment.approvedTerm.startingOn(assessment.context.issuanceDate()));
+                return new GrantedDecision(List.of(), assessment.approvedTerm.startingOn(assessment.context.issuanceDate()),
+                        assessment.policyCode, assessment.context.jurisdictionCode(), assessment.context.evaluatedAt(),
+                        assessment.context.result().scope());
             }
         },
         CONDITIONAL {
             @Override
             CertificationDecision decide(PolicyAssessment assessment) {
-                ValidityPeriod validity = assessment.conditionalTerm.startingOn(assessment.context.issuanceDate());
+                ValidityPeriod validity = assessment.shortestConditionalValidity();
                 List<CertificationCondition> conditions = assessment.conditioned.stream()
                         .map(finding -> new CertificationCondition(finding.findingId(), finding.criterionCode(),
                                 "Resolve and verify open nonconformity", validity.validUntil()))
                         .toList();
-                return CertificationDecision.conditional(assessment.context, assessment.policyCode, validity, conditions);
+                return new GrantedDecision(conditions, validity, assessment.policyCode, assessment.context.jurisdictionCode(),
+                        assessment.context.evaluatedAt(), assessment.context.result().scope());
             }
         },
         REJECTED {
@@ -66,7 +77,8 @@ public final class PolicyAssessment {
 
             @Override
             CertificationDecision decide(PolicyAssessment assessment) {
-                return CertificationDecision.rejected(assessment.context, assessment.policyCode, assessment.reasons);
+                return new RejectedDecision(assessment.reasons, assessment.policyCode, assessment.context.jurisdictionCode(),
+                        assessment.context.evaluatedAt(), assessment.context.result().scope());
             }
         };
 

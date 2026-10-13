@@ -20,8 +20,8 @@ class ConfiguredPolicyResolverTest {
             @Override public String code() { return "THIRD-POLICY"; }
             @Override public CertificationDecision evaluate(CertificationAssessmentContext context) {
                 var from = context.issuanceDate();
-                return CertificationDecision.approved(context, code(),
-                        new ValidityPeriod(from, from.plusMonths(3).minusDays(1)));
+                return new GrantedDecision(List.of(), new ValidityPeriod(from, from.plusMonths(3).minusDays(1)), code(),
+                        context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
             }
         };
         var resolver = new ConfiguredPolicyResolver(Map.of(third, policy));
@@ -31,10 +31,10 @@ class ConfiguredPolicyResolverTest {
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));
         assertEquals("THIRD-POLICY", decision.policyCode());
-        assertEquals(LocalDate.of(2026, 5, 27), decision.validity().orElseThrow().validUntil());
+        GrantedDecision grantedDecision = decision.granted().orElseThrow();
+        assertEquals(LocalDate.of(2026, 5, 27), grantedDecision.validity().validUntil());
         assertThrows(JurisdictionPolicyNotFoundException.class, () -> resolver.resolve(new JurisdictionCode("MISSING")));
-        assertEquals(decision, DecisionJson.read(
-                DecisionJson.write(decision)));
+        assertEquals(grantedDecision, DecisionJson.read(DecisionJson.write(grantedDecision)));
     }
 
     @Test void registeredJurisdictionsAreListedWithThePolicyThatDecidesForThem() {

@@ -19,7 +19,7 @@ public final class CertificateService {
         this.certificateLog = certificateLog;
     }
 
-    public Certificate issue(CertificateNumber number, InspectionResult basedOn, CertificationDecision decision, Stamp issued) {
+    public Certificate issue(CertificateNumber number, InspectionResult basedOn, GrantedDecision decision, Stamp issued) {
         Certificate certificate = certificateFactory.create(number, basedOn, decision, issued);
         recorded(certificate);
         return certificate;
@@ -30,7 +30,7 @@ public final class CertificateService {
         currentCertificate.ensureRenewableWith(newBasis);
     }
 
-    public Certificate renew(Certificate currentCertificate, CertificateNumber newNumber, CertificationDecision newDecision,
+    public Certificate renew(Certificate currentCertificate, CertificateNumber newNumber, GrantedDecision newDecision,
                              InspectionResult newBasis, Stamp renewed) {
         Certificate renewedCertificate = currentCertificate.renew(newNumber, newDecision, newBasis, renewed);
         recorded(currentCertificate);

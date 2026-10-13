@@ -19,22 +19,20 @@ public final class DecisionJson {
             String policyCode, JurisdictionCode jurisdictionCode,
             Instant evaluatedAt, String subsystemCode) { }
 
-    public static String write(CertificationDecision value) {
+    public static String write(GrantedDecision value) {
         String code = value.scope() instanceof CertificationScope.SubsystemScope subsystem
                 ? subsystem.code().value() : null;
         return MAPPER.writeValueAsString(new Document(value.outcome(), value.ineligibilities().stream()
                 .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail())).toList(),
-                value.conditions(), value.validityPeriod(), value.policyCode(),
+                value.conditions(), value.validity(), value.policyCode(),
                 value.jurisdictionCode(), value.evaluatedAt(), code));
     }
 
-    public static CertificationDecision read(String json) {
+    public static GrantedDecision read(String json) {
         var value = MAPPER.readValue(json, Document.class);
         CertificationScope scope = value.subsystemCode() == null ? new CertificationScope.WholeAsset()
                 : new CertificationScope.SubsystemScope(new SubsystemCode(value.subsystemCode()));
-        return new CertificationDecision(value.outcome(), value.ineligibilities().stream()
-                .map(reason -> new Ineligibility(StandardIneligibilityReason.valueOf(reason.reason()), reason.detail())).toList(),
-                value.conditions(),
-                value.validity(), value.policyCode(), value.jurisdictionCode(), value.evaluatedAt(), scope);
+        return new GrantedDecision(value.conditions(), value.validity(), value.policyCode(), value.jurisdictionCode(),
+                value.evaluatedAt(), scope);
     }
 }

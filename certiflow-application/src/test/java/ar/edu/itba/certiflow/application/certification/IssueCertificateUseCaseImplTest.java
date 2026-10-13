@@ -14,7 +14,6 @@ import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
-import ar.edu.itba.certiflow.certification.model.CertificationOutcome;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
@@ -32,7 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
+import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.ValidityPeriod;
 
@@ -60,9 +61,9 @@ class IssueCertificateUseCaseImplTest {
 
     @Test
     void aRejectedDecisionConsumesNoNumberAndSavesNothing() {
-        CertificationDecision rejected = new CertificationDecision(CertificationOutcome.REJECTED,
-                List.of(new Ineligibility(StandardIneligibilityReason.BLOCKING_FINDINGS, "Open finding")), List.of(),
-                null, "STANDARD", new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
+        CertificationDecision rejected = new RejectedDecision(
+                List.of(new Ineligibility(StandardIneligibilityReason.BLOCKING_FINDINGS, "Open finding")),
+                "STANDARD", new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenThrow(new NotEligibleForCertificationException(rejected));
 
         assertThrows(NotEligibleForCertificationException.class, () -> issueCertificate.execute(COMMAND));
@@ -75,7 +76,7 @@ class IssueCertificateUseCaseImplTest {
         LocalDate today = LocalDate.of(2026, 3, 10);
         InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), Samples.NOW, true, List.of(),
                 new SchemaReference(Samples.EXTINGUISHER, 1), List.of(), WHOLE);
-        CertificationDecision approved = new CertificationDecision(CertificationOutcome.APPROVED, List.of(), List.of(),
+        GrantedDecision approved = new GrantedDecision(List.of(),
                 new ValidityPeriod(today, today.plusYears(1).minusDays(1)), "STANDARD",
                 Samples.ASSET.jurisdictionCode(), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenReturn(new DecidedCertification(result, approved));
