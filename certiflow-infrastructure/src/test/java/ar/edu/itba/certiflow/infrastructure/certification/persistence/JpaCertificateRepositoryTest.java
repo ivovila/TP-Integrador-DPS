@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.CertificationAssessmentContext;
+import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
@@ -53,7 +54,7 @@ class JpaCertificateRepositoryTest {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
         DomainSamples.close(inspection);
         inspections.save(inspection);
-        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), inspection.originalRevision().sealedAt(), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new WholeAssetScope());
+        InspectionResult result = new InspectionResult(inspection.id(), inspection.assetCode(), new ClosedAt(inspection.originalRevision().sealedAt()), true, List.of(), new SchemaReference(new AssetType("Fire extinguisher"), 1), List.of(), new WholeAssetScope());
         return new CertificateFactory().create(numbering.next(), result, SeverityCertificationPolicy.standard().evaluate(
                 new CertificationAssessmentContext(result,
                         new JurisdictionCode("DEMO-STANDARD"), DomainSamples.T0, TODAY)).granted().orElseThrow(),

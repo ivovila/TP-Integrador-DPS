@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.SubsystemColumn;
+import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
@@ -20,11 +21,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
-import ar.edu.itba.certiflow.schema.model.Answer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 public final class SectionsJson {
 
@@ -68,7 +68,7 @@ public final class SectionsJson {
 
     public static String write(List<Section> sections) {
         return MAPPER.writeValueAsString(sections.stream()
-                .map(section -> new SectionDocument(section.title(), section.criteria().stream().map(SectionsJson::document).toList(), section.subsystemCode().map(code -> code.value()).orElse(null)))
+                .map(section -> new SectionDocument(section.title(), section.criteria().stream().map(SectionsJson::document).toList(), new SubsystemColumn(section.subsystem()).subsystemCode()))
                 .toList());
     }
 
@@ -76,7 +76,7 @@ public final class SectionsJson {
         List<SectionDocument> documents = MAPPER.readValue(json, new TypeReference<List<SectionDocument>>() {
         });
         return documents.stream()
-                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new).orElse(null)))
+                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), new SubsystemColumn(document.subsystemCode()).association()))
                 .toList();
     }
 
@@ -92,7 +92,7 @@ public final class SectionsJson {
         return new CriterionDocument(criterion.code(), criterion.text(), document(criterion.rule()), criterion.severity().code(),
                 criterion.requiredEvidence().stream()
                         .map(requirement -> new EvidenceDocument(requirement.kind().code(), requirement.minimum()))
-                        .toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
+                        .toList(), new SubsystemColumn(criterion.subsystem()).subsystemCode());
     }
 
     private static RuleDocument document(ApprovalRule<?> rule) {
@@ -114,7 +114,7 @@ public final class SectionsJson {
     private static <A extends Answer> Criterion<A> criterion(CriterionDocument document, ApprovalRule<A> rule, Severity severity,
                                                              List<EvidenceRequirement> evidence) {
         return new Criterion<>(document.code(), document.text(), rule, severity, evidence,
-                Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new).orElse(null));
+                new SubsystemColumn(document.subsystemCode()).association());
     }
 
     private static EvidenceKind evidenceKind(String name) {

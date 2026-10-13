@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.catalog.model.InSubsystem;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
 import ar.edu.itba.certiflow.certification.usecase.ExplicitRenewalScope;
@@ -24,10 +25,10 @@ class CertificationScopeTest {
     private static final SubsystemCode ELECTRICAL = new SubsystemCode("ELEC");
     private static final SubsystemCode PRESSURE = new SubsystemCode("PRES");
     private static final OpenNonConformity ELECTRICAL_FINDING =
-            new OpenNonConformity("GROUNDING", StandardSeverity.MAJOR, "F-1", ELECTRICAL);
+            new OpenNonConformity("GROUNDING", StandardSeverity.MAJOR, "F-1", new InSubsystem(ELECTRICAL));
 
     private final InspectionResult wholeAssetResult = new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"),
-            Instant.parse("2026-01-31T10:00:00Z"), true, List.of(ELECTRICAL_FINDING),
+            new ClosedAt(Instant.parse("2026-01-31T10:00:00Z")), true, List.of(ELECTRICAL_FINDING),
             new SchemaReference(new AssetType("Boiler"), 1),
             List.of(new SubsystemResult(ELECTRICAL, true, List.of(ELECTRICAL_FINDING)),
                     new SubsystemResult(PRESSURE, false, List.of())),

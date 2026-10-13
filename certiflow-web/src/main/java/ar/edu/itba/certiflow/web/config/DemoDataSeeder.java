@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.config;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
+import ar.edu.itba.certiflow.catalog.model.InSubsystem;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
 import ar.edu.itba.certiflow.catalog.model.Subsystem;
@@ -36,6 +37,7 @@ import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
+import ar.edu.itba.certiflow.schema.usecase.EffectiveFrom;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
@@ -119,7 +121,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         createSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
                 extinguisherSections(false), coordinator, Set.of()));
         publishVersion.execute(new PublishSchemaVersionCommand(EXTINGUISHER, extinguisherSections(true), coordinator,
-                clock.instant().plus(Duration.ofDays(30)), Set.of()));
+                new EffectiveFrom(clock.instant().plus(Duration.ofDays(30))), Set.of()));
         createSchema.execute(new CreateInspectionSchemaCommand("Pressure vessel inspection", PRESSURE_VESSEL,
                 vesselSections(), coordinator, Set.of(ELECTRICAL, PRESSURE)));
     }
@@ -175,10 +177,10 @@ public class DemoDataSeeder implements ApplicationRunner {
                 new Section("Pressure system", List.of(
                         yesNo("RELIEF-VALVE", "Relief valve opens at its set pressure", StandardSeverity.CRITICAL),
                         yesNo("INSULATION", "Insulation in good condition", StandardSeverity.MINOR)),
-                        PRESSURE),
+                        new InSubsystem(PRESSURE)),
                 new Section("Electrical system", List.of(
                         yesNo("GROUNDING", "Burner grounding verified", StandardSeverity.MAJOR)),
-                        ELECTRICAL));
+                        new InSubsystem(ELECTRICAL)));
     }
 
     private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {

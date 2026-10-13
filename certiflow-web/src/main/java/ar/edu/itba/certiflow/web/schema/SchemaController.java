@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.web.schema;
 
-import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -19,16 +18,18 @@ import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
+import ar.edu.itba.certiflow.web.support.PageLinks;
 import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,8 +40,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.hateoas.PagedModel;
-import ar.edu.itba.certiflow.web.support.PageLinks;
 
 @RestController
 @ReadableByAnyone
@@ -94,7 +93,7 @@ public class SchemaController {
     public ResponseEntity<VersionResponse> publish(@PathVariable String assetType, @RequestBody VersionRequest request,
                                                    @ActingPerson Person publishedBy) {
         SchemaVersion version = publishSchemaVersion.execute(new PublishSchemaVersionCommand(new AssetType(assetType),
-                SchemaPayloads.toSections(request.sections()), publishedBy, request.effectiveFrom(), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
+                SchemaPayloads.toSections(request.sections()), publishedBy, request.requestedEffectiveDate(), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
         VersionResponse response = versionResource(assetType, version);
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
     }

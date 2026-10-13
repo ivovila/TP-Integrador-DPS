@@ -16,8 +16,8 @@ class JurisdictionPoliciesTest {
     private final Instant now = Instant.parse("2026-01-31T12:00:00Z");
 
     private InspectionResult result(boolean closed, boolean covered, ar.edu.itba.certiflow.schema.model.Severity severity) {
-        return new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"), closed ? now : null,
-                covered, severity == null ? List.of() : List.of(new OpenNonConformity("C-1", severity, "F-1", null)),
+        return new InspectionResult(new InspectionId("I-1"), new AssetCode("A-1"), closed ? new ClosedAt(now) : new StillOpen(),
+                covered, severity == null ? List.of() : List.of(new OpenNonConformity("C-1", severity, "F-1", new NoSubsystem())),
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
     }
 

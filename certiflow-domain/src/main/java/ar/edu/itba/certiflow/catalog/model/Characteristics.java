@@ -1,23 +1,22 @@
 package ar.edu.itba.certiflow.catalog.model;
 
 import ar.edu.itba.certiflow.catalog.model.exceptions.DuplicateCharacteristicException;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public record Characteristics(List<Characteristic> entries) {
 
     public Characteristics {
         entries = List.copyOf(entries);
-        Set<String> names = new HashSet<>();
-        entries.stream()
-                .map(Characteristic::name)
-                .filter(name -> !names.add(name))
-                .findFirst()
-                .ifPresent(duplicatedName -> {
-                    throw new DuplicateCharacteristicException(duplicatedName);
-                });
+        List<String> names = entries.stream().map(Characteristic::name).toList();
+        List<String> duplicatedNames = names.stream()
+                .filter(name -> Collections.frequency(names, name) > 1)
+                .distinct()
+                .toList();
+        if (!duplicatedNames.isEmpty()) {
+            throw new DuplicateCharacteristicException(duplicatedNames.getFirst());
+        }
     }
 
     public static Characteristics none() {

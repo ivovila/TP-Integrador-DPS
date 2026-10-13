@@ -1,16 +1,16 @@
 package ar.edu.itba.certiflow.infrastructure.certification.policy;
 
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 import ar.edu.itba.certiflow.catalog.model.*;
 import ar.edu.itba.certiflow.certification.model.*;
+import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.exceptions.JurisdictionPolicyNotFoundException;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.DecisionJson;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.*;
 import java.util.*;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ConfiguredPolicyResolverTest {
@@ -26,7 +26,7 @@ class ConfiguredPolicyResolverTest {
         };
         var resolver = new ConfiguredPolicyResolver(Map.of(third, policy));
         var at = Instant.parse("2026-02-28T12:00:00Z");
-        var result = new InspectionResult(new InspectionId("I"), new AssetCode("A"), at, true, List.of(),
+        var result = new InspectionResult(new InspectionId("I"), new AssetCode("A"), new ClosedAt(at), true, List.of(),
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));

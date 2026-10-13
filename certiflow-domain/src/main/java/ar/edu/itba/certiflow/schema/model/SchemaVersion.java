@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.catalog.model.AssignedSubsystems;
+import ar.edu.itba.certiflow.catalog.model.SubsystemAssociation;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
@@ -8,9 +10,7 @@ import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public record SchemaVersion(int number, List<Section> sections, Instant publishedAt, Instant effectiveFrom, Set<SubsystemCode> requiredSubsystems) {
 
@@ -47,14 +47,16 @@ public record SchemaVersion(int number, List<Section> sections, Instant publishe
 
     /** Con subsistemas requeridos, cada criterio pertenece a uno, y los asignados son exactamente los requeridos. */
     private static void requireSubsystemAssociations(List<Section> sections, Set<SubsystemCode> requiredSubsystems) {
-        List<Optional<SubsystemCode>> associations = sections.stream()
-                .flatMap(section -> section.criteria().stream().map(criterion -> subsystemOf(section, criterion)))
+        List<SubsystemAssociation> associations = sections.stream()
+                .flatMap(section -> section.criteria().stream().map(criterion -> associationOf(section, criterion)))
                 .toList();
-        if (!requiredSubsystems.isEmpty() && associations.stream().anyMatch(Optional::isEmpty)) {
+        List<SubsystemCode> assignedPerCriterion = associations.stream()
+                .flatMap(association -> association.describedBy(new AssignedSubsystems()).stream())
+                .toList();
+        if (!requiredSubsystems.isEmpty() && assignedPerCriterion.size() < associations.size()) {
             throw new InvalidSchemaException("Every criterion must have a subsystem");
         }
-        Set<SubsystemCode> assigned = associations.stream().flatMap(Optional::stream).collect(Collectors.toSet());
-        if (!assigned.equals(requiredSubsystems)) {
+        if (!Set.copyOf(assignedPerCriterion).equals(requiredSubsystems)) {
             throw new InvalidSchemaException("Required subsystems must match the criterion associations");
         }
     }
@@ -66,20 +68,25 @@ public record SchemaVersion(int number, List<Section> sections, Instant publishe
     }
 
     /** El subsistema de un criterio: el propio, o si no tiene, el de su sección. */
-    private static Optional<SubsystemCode> subsystemOf(Section section, Criterion<?> criterion) {
-        return criterion.subsystemCode().or(section::subsystemCode);
+    private static SubsystemAssociation associationOf(Section section, Criterion<?> criterion) {
+        return criterion.subsystem().orElse(section.subsystem());
     }
 
-    public Optional<SubsystemCode> subsystemOf(String criterionCode) {
-        Criterion<?> criterion = criterion(criterionCode);
-        return sections.stream().filter(section -> section.criteria().contains(criterion)).findFirst()
-                .flatMap(section -> subsystemOf(section, criterion));
+    public SubsystemAssociation associationOf(Criterion<?> criterion) {
+        return associationOf(sectionOf(criterion), criterion);
+    }
+
+    private Section sectionOf(Criterion<?> criterion) {
+        return sections.stream()
+                .filter(section -> section.criteria().contains(criterion))
+                .findFirst()
+                .orElseThrow(() -> new CriterionNotInSchemaException(criterion));
     }
 
     public List<Criterion<?>> criteriaFor(SubsystemCode code) {
         return sections.stream()
                 .flatMap(section -> section.criteria().stream()
-                        .filter(criterion -> subsystemOf(section, criterion).filter(code::equals).isPresent()))
+                        .filter(criterion -> associationOf(section, criterion).isAssignedTo(code)))
                 .toList();
     }
 

@@ -2,7 +2,9 @@ package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Subsystem;
+import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotAssignInspectionException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotInspectOwnAssetException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssignerCannotInspectException;
@@ -19,12 +21,12 @@ import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.Stamp;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 
 public final class Inspection implements InspectionView {
 
@@ -153,6 +155,11 @@ public final class Inspection implements InspectionView {
     @Override
     public boolean isClosed() {
         return !revisions.isEmpty();
+    }
+
+    @Override
+    public Optional<Instant> closedAt() {
+        return revisions.firstSealedAt();
     }
 
     @Override

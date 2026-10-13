@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.web.schema.CriterionPayload;
 import ar.edu.itba.certiflow.web.schema.SchemaPayloads;
 import ar.edu.itba.certiflow.web.support.PersonPayload;
+import ar.edu.itba.certiflow.web.support.SubsystemCodeField;
 import java.util.List;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
@@ -30,7 +31,7 @@ public class FindingResource extends RepresentationModel<FindingResource> {
         this.severity = finding.severity().code();
         this.responsible = PersonPayload.of(finding.responsible());
         this.open = finding.isOpen();
-        this.subsystemCode = finding.subsystemCode().map(code -> code.value()).orElse(null);
+        this.subsystemCode = new SubsystemCodeField(finding.subsystem()).subsystemCode();
         this.evidence = finding.evidence().stream()
                 .map(attached -> new CriterionResponseResource.EvidenceView(attached.evidence().kind().label(),
                         attached.evidence().reference(), attached.evidence().description(), PersonPayload.of(attached.attachedBy()),

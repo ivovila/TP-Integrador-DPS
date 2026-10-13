@@ -1,21 +1,16 @@
 package ar.edu.itba.certiflow.schema.model;
 
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.catalog.model.NoSubsystem;
+import ar.edu.itba.certiflow.catalog.model.SubsystemAssociation;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.util.List;
-import java.util.Optional;
 
 public record Criterion<A extends Answer>(String code, String text, ApprovalRule<A> rule, Severity severity,
-                                          List<EvidenceRequirement> requiredEvidence, SubsystemCode subsystem) {
-
-    /** El subsistema al que pertenece, si tiene uno. */
-    public Optional<SubsystemCode> subsystemCode() {
-        return Optional.ofNullable(subsystem);
-    }
+                                          List<EvidenceRequirement> requiredEvidence, SubsystemAssociation subsystem) {
 
 
     public Criterion(String code, String text, ApprovalRule<A> rule, Severity severity, List<EvidenceRequirement> requiredEvidence) {
-        this(code, text, rule, severity, requiredEvidence, null);
+        this(code, text, rule, severity, requiredEvidence, new NoSubsystem());
     }
 
     public Criterion {

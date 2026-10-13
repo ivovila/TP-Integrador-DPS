@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.web.schema;
 
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
@@ -18,12 +17,12 @@ import ar.edu.itba.certiflow.schema.model.Unit;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.web.support.SubsystemCodeField;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 
 public final class SchemaPayloads {
@@ -54,13 +53,13 @@ public final class SchemaPayloads {
 
     public static List<Section> toSections(List<SectionPayload> sections) {
         return sections.stream()
-                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), Optional.ofNullable(section.subsystemCode()).map(SubsystemCode::new).orElse(null)))
+                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), new SubsystemCodeField(section.subsystemCode()).association()))
                 .toList();
     }
 
     public static List<SectionPayload> fromSections(List<Section> sections) {
         return sections.stream()
-                .map(section -> new SectionPayload(section.title(), section.criteria().stream().map(SchemaPayloads::payload).toList(), section.subsystemCode().map(code -> code.value()).orElse(null)))
+                .map(section -> new SectionPayload(section.title(), section.criteria().stream().map(SchemaPayloads::payload).toList(), new SubsystemCodeField(section.subsystem()).subsystemCode()))
                 .toList();
     }
 
@@ -68,7 +67,7 @@ public final class SchemaPayloads {
         return new CriterionPayload(criterion.code(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
                 rulePayload(criterion.rule()),
                 criterion.requiredEvidence().stream()
-                        .map(r -> new EvidenceRequirementPayload(r.kind().code(), r.minimum())).toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
+                        .map(r -> new EvidenceRequirementPayload(r.kind().code(), r.minimum())).toList(), new SubsystemCodeField(criterion.subsystem()).subsystemCode());
     }
 
     private static Criterion<?> criterion(CriterionPayload payload) {
@@ -81,7 +80,7 @@ public final class SchemaPayloads {
     private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Severity severity,
                                                             List<EvidenceRequirement> evidence) {
         return new Criterion<>(payload.code(), payload.text(), rule, severity, evidence,
-                Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new).orElse(null));
+                new SubsystemCodeField(payload.subsystemCode()).association());
     }
 
     private static ApprovalRule<?> rule(RulePayload rule) {

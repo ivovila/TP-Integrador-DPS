@@ -1,13 +1,14 @@
 package ar.edu.itba.certiflow.application.certification;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import ar.edu.itba.certiflow.application.support.Samples;
+import ar.edu.itba.certiflow.catalog.model.NoSubsystem;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
+import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.OpenNonConformity;
 import ar.edu.itba.certiflow.inspection.model.ActionPlan;
@@ -22,6 +23,7 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundExcep
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -60,9 +62,9 @@ class InspectionResultTranslatorImplTest {
 
         InspectionResult result = translator.translate(inspection.id());
 
-        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR, "F-open", null)),
+        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR, "F-open", new NoSubsystem())),
                 result.openNonConformities());
-        assertEquals(Samples.NOW, result.closedAt().orElseThrow());
+        assertEquals(new ClosedAt(Samples.NOW), result.closure());
     }
 
     @Test

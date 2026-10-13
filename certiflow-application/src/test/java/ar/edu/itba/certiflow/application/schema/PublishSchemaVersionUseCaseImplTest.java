@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.schema.usecase.EffectiveFrom;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import java.time.Instant;
 import java.util.Optional;
@@ -53,7 +54,7 @@ class PublishSchemaVersionUseCaseImplTest {
         when(schemaRepository.findForUpdate(Samples.EXTINGUISHER)).thenReturn(Optional.of(Samples.schema()));
 
         SchemaVersion version = publishVersion.execute(new PublishSchemaVersionCommand(Samples.EXTINGUISHER, Samples.sections(),
-                Samples.PLANNER, later, Set.of()));
+                Samples.PLANNER, new EffectiveFrom(later), Set.of()));
 
         assertEquals(later, version.effectiveFrom());
         assertEquals(Samples.NOW, version.publishedAt());

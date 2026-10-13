@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
@@ -10,9 +9,9 @@ import ar.edu.itba.certiflow.inspection.model.Observation;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,12 +45,9 @@ final class EvaluationJson {
     }
 
     private static ResponseDocument document(CriterionResponse<?> response) {
-        Optional<AnswerColumns> answer = response.given().map(given -> given.value().describedBy(new AnswerColumnsDescriber()));
-        Optional<PersonColumns> by = response.given().map(given -> PersonColumns.of(given.answeredBy()));
-        return new ResponseDocument(response.criterion().code(),
-                answer.map(AnswerColumns::type).orElse(null), answer.map(AnswerColumns::value).orElse(null),
-                by.map(PersonColumns::id).orElse(null), by.map(PersonColumns::name).orElse(null),
-                response.given().map(given -> Instants.asStored(given.answeredAt())).orElse(null),
+        StoredAnswering answering = response.answering().describedBy(new StoredAnsweringDescriber<>());
+        return new ResponseDocument(response.criterion().code(), answering.answerType(), answering.answerValue(),
+                answering.answeredById(), answering.answeredByName(), Instants.asStored(answering.answeredAt()),
                 response.attachments().stream().map(EvaluationJson::document).toList(),
                 response.observations().stream().map(EvaluationJson::document).toList());
     }
@@ -69,8 +65,8 @@ final class EvaluationJson {
 
     private static CriterionResponse<?> response(ResponseDocument document, SchemaVersion version) {
         return ResponseRebuilder.rebuild(version.criterion(document.criterionCode()),
-                document.answerType(), document.answerValue(),
-                new PersonColumns(document.answeredById(), document.answeredByName()), document.answeredAt(),
+                new StoredAnswering(document.answerType(), document.answerValue(), document.answeredById(),
+                        document.answeredByName(), document.answeredAt()),
                 document.evidence().stream()
                         .map(evidence -> new AttachedEvidence(
                                 new Evidence(StandardEvidenceKind.valueOf(evidence.kind()), evidence.reference(), evidence.description()),

@@ -21,9 +21,9 @@ public final class AssetService {
     }
 
     public Asset register(Asset asset, Stamp registered) {
-        assets.findByCode(asset.code()).ifPresent(existingAsset -> {
-            throw new AssetAlreadyRegisteredException(existingAsset.code());
-        });
+        if (assets.findByCode(asset.code()).isPresent()) {
+            throw new AssetAlreadyRegisteredException(asset.code());
+        }
         assetLog.record(asset.code(), new AuditEntry(AssetAudit.REGISTERED, registered, asset.name()));
         return asset;
     }

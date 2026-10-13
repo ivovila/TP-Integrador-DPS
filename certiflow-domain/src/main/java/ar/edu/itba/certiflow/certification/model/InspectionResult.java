@@ -2,20 +2,14 @@ package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.certification.model.exceptions.InspectionNotClosedForCertificationException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
-import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
-public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, Instant closingInstant,
-                               boolean coversWholeSchema, List<OpenNonConformity> openNonConformities, SchemaReference schemaReference, List<SubsystemResult> subsystems, CertificationScope scope) {
-
-    /** Cuándo se cerró la inspección, si ya se cerró. */
-    public Optional<Instant> closedAt() {
-        return Optional.ofNullable(closingInstant);
-    }
-
+public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, InspectionClosure closure,
+                               boolean coversWholeSchema, List<OpenNonConformity> openNonConformities,
+                               SchemaReference schemaReference, List<SubsystemResult> subsystems,
+                               CertificationScope scope) {
 
     public InspectionResult {
         openNonConformities = List.copyOf(openNonConformities);
@@ -35,7 +29,7 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, I
                 .filter(candidate -> candidate.code().equals(subsystemCode))
                 .findFirst()
                 .orElseThrow(() -> new SubsystemNotFoundException(subsystemCode));
-        return new InspectionResult(inspectionId, assetCode, closingInstant, subsystemResult.covered(),
+        return new InspectionResult(inspectionId, assetCode, closure, subsystemResult.covered(),
                 subsystemResult.openNonConformities(), schemaReference, subsystems, narrowedScope);
     }
 
@@ -44,11 +38,11 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, I
     }
 
     public boolean isClosed() {
-        return closedAt().isPresent();
+        return closure.isClosed();
     }
 
     public InspectionReference reference() {
-        return new InspectionReference(inspectionId, closedAt().orElseThrow(InspectionNotClosedException::new));
+        return closure.referenceOf(inspectionId)
+                .orElseThrow(() -> new InspectionNotClosedForCertificationException(inspectionId));
     }
-
 }

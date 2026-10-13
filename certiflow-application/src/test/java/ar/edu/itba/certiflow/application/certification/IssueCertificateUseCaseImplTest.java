@@ -15,6 +15,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
@@ -74,7 +75,7 @@ class IssueCertificateUseCaseImplTest {
     @Test
     void anOccupiedScopeConsumesNoNumberAndSavesNothing() {
         LocalDate today = LocalDate.of(2026, 3, 10);
-        InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), Samples.NOW, true, List.of(),
+        InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), new ClosedAt(Samples.NOW), true, List.of(),
                 new SchemaReference(Samples.EXTINGUISHER, 1), List.of(), WHOLE);
         GrantedDecision approved = new GrantedDecision(List.of(),
                 new ValidityPeriod(today, today.plusYears(1).minusDays(1)), "STANDARD",

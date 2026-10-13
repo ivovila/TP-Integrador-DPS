@@ -4,10 +4,13 @@ import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
+import ar.edu.itba.certiflow.certification.model.ClosedAt;
+import ar.edu.itba.certiflow.certification.model.InspectionClosure;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.OpenNonConformity;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
+import ar.edu.itba.certiflow.certification.model.StillOpen;
 import ar.edu.itba.certiflow.certification.model.SubsystemResult;
 import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.inspection.model.Finding;
@@ -41,7 +44,8 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
                 .orElseThrow(() -> new AssetNotFoundException(inspection.assetCode()));
         List<OpenNonConformity> open = openNonConformitiesOf(asset);
         SchemaVersion version = inspection.schemaVersion();
-        return new InspectionResult(inspection.id(), asset.code(), inspection.isClosed() ? inspection.originalRevision().sealedAt() : null,
+        InspectionClosure closure = inspection.closedAt().<InspectionClosure>map(ClosedAt::new).orElseGet(StillOpen::new);
+        return new InspectionResult(inspection.id(), asset.code(), closure,
                 inspection.coversWholeSchema(), open, new SchemaReference(asset.type(), version.number()),
                 resultsBySubsystem(inspection, version, open), new WholeAssetScope());
     }
@@ -50,7 +54,7 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
     private List<OpenNonConformity> openNonConformitiesOf(Asset asset) {
         return findingRepository.findByAsset(asset.code()).stream().filter(Finding::isOpen)
                 .map(finding -> new OpenNonConformity(finding.criterion().code(), finding.severity(),
-                        finding.id().value(), finding.subsystemCode().orElse(null)))
+                        finding.id().value(), finding.subsystem()))
                 .toList();
     }
 

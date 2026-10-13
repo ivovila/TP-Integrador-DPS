@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.schema.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ar.edu.itba.certiflow.catalog.model.InSubsystem;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.time.Instant;
@@ -15,13 +16,13 @@ class SubsystemAssociationsTest {
         return new Criterion<>(code, "Check", new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of());
     }
     private Criterion<YesNoAnswer> criterion(String code, SubsystemCode subsystem) {
-        return new Criterion<>(code, "Check", new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of(), subsystem);
+        return new Criterion<>(code, "Check", new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of(), new InSubsystem(subsystem));
     }
     @Test void criterionOverridesSectionAndOthersInherit() {
-        var section = new Section("Checks", List.of(criterion("A"), criterion("B", p)), e);
+        var section = new Section("Checks", List.of(criterion("A"), criterion("B", p)), new InSubsystem(e));
         var version = new SchemaVersion(1, List.of(section), Instant.EPOCH, Instant.EPOCH, Set.of(e, p));
-        assertEquals(e, version.subsystemOf("A").orElseThrow());
-        assertEquals(p, version.subsystemOf("B").orElseThrow());
+        assertEquals(new InSubsystem(e), version.associationOf(version.criterion("A")));
+        assertEquals(new InSubsystem(p), version.associationOf(version.criterion("B")));
         assertEquals(List.of("A"), version.criteriaFor(e).stream().map(Criterion::code).toList());
     }
     @Test void unassignedCriteriaAndEmptyRequiredSubsystemsAreRejected() {

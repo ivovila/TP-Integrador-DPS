@@ -1,10 +1,9 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
-import ar.edu.itba.certiflow.inspection.model.Cancellation;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionSnapshot;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -21,7 +20,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Entity
 @Table(name = "corrective_action")
@@ -106,10 +104,10 @@ public class CorrectiveActionEntity {
     void copyFrom(CorrectiveActionSnapshot snapshot) {
         verifications.clear();
         snapshot.verifications().forEach(verification -> verifications.add(VerificationEmbeddable.of(verification)));
-        Optional<PersonColumns> cancelledBy = snapshot.cancellation().map(cancellation -> PersonColumns.of(cancellation.cancelledBy()));
-        cancelledById = cancelledBy.map(PersonColumns::id).orElse(null);
-        cancelledByName = cancelledBy.map(PersonColumns::name).orElse(null);
-        cancelledAt = snapshot.cancellation().map(Cancellation::cancelledAt).orElse(null);
+        StoredCancellation cancellation = snapshot.cancellation().describedBy(new StoredCancellationDescriber());
+        cancelledById = cancellation.cancelledById();
+        cancelledByName = cancellation.cancelledByName();
+        cancelledAt = cancellation.cancelledAt();
     }
 
     CorrectiveActionSnapshot toSnapshot() {
@@ -117,6 +115,6 @@ public class CorrectiveActionEntity {
                 new PersonColumns(responsibleId, responsibleName).toDomain(), dueDate,
                 new Stamp(new PersonColumns(plannedById, plannedByName).toDomain(), plannedAt),
                 verifications.stream().map(VerificationEmbeddable::toDomain).toList(),
-                Optional.ofNullable(cancelledAt).map(at -> new Cancellation(new Stamp(new PersonColumns(cancelledById, cancelledByName).toDomain(), at))).orElse(null));
+                new StoredCancellation(cancelledById, cancelledByName, cancelledAt).state());
     }
 }

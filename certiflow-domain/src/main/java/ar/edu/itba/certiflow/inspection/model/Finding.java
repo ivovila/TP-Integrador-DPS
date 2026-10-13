@@ -1,8 +1,7 @@
 package ar.edu.itba.certiflow.inspection.model;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.catalog.model.SubsystemAssociation;
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingRequiresNonConformityException;
 import ar.edu.itba.certiflow.schema.model.Criterion;
@@ -10,9 +9,9 @@ import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public final class Finding {
 
@@ -20,7 +19,7 @@ public final class Finding {
     private final InspectionId inspectionId;
     private final AssetCode assetCode;
     private final Criterion<?> criterion;
-    private final SubsystemCode subsystem; // falta si el criterio no pertenece a un subsistema
+    private final SubsystemAssociation subsystem;
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final CorrectiveActions actions;
@@ -28,7 +27,7 @@ public final class Finding {
 
     Finding(FindingId id, RaisesFindings source, CriterionResponse<?> nonConformity) {
         this.id = id;
-        this.subsystem = source.schemaVersion().subsystemOf(nonConformity.criterion().code()).orElse(null);
+        this.subsystem = source.schemaVersion().associationOf(nonConformity.criterion());
         this.inspectionId = source.inspectionId();
         this.assetCode = source.assetCode();
         this.responsible = source.assetResponsible();
@@ -89,7 +88,9 @@ public final class Finding {
         return isOpen() && inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
     }
 
-    public Optional<SubsystemCode> subsystemCode() { return Optional.ofNullable(subsystem); }
+    public SubsystemAssociation subsystem() {
+        return subsystem;
+    }
 
     public FindingId id() {
         return id;

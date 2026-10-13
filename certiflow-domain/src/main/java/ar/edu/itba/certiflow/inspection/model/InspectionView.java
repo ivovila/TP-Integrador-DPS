@@ -1,10 +1,11 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.schema.model.SchemaVersion;
-import java.util.List;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.shared.model.Person;
+import java.time.Instant;
+import java.util.Optional;
 
 public interface InspectionView {
 
@@ -15,6 +16,9 @@ public interface InspectionView {
     boolean coversWholeSchema();
 
     boolean isClosed();
+
+    /** Cuándo se cerró la inspección, si ya se cerró. */
+    Optional<Instant> closedAt();
 
     Revision originalRevision();
 

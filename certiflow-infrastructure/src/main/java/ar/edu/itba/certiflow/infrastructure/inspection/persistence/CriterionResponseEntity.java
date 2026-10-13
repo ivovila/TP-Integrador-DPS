@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import jakarta.persistence.CollectionTable;
@@ -17,7 +16,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Entity
 @Table(name = "criterion_response")
@@ -58,20 +56,12 @@ public class CriterionResponseEntity {
 
     void copyFrom(CriterionResponse<?> response) {
         criterionCode = response.criterion().code();
-        answerType = null;
-        answerValue = null;
-        answeredById = null;
-        answeredByName = null;
-        answeredAt = null;
-        response.given().ifPresent(given -> {
-            AnswerColumns answer = given.value().describedBy(new AnswerColumnsDescriber());
-            PersonColumns by = PersonColumns.of(given.answeredBy());
-            answerType = answer.type();
-            answerValue = answer.value();
-            answeredById = by.id();
-            answeredByName = by.name();
-            answeredAt = given.answeredAt();
-        });
+        StoredAnswering answering = response.answering().describedBy(new StoredAnsweringDescriber<>());
+        answerType = answering.answerType();
+        answerValue = answering.answerValue();
+        answeredById = answering.answeredById();
+        answeredByName = answering.answeredByName();
+        answeredAt = answering.answeredAt();
         evidence.clear();
         response.attachments().forEach(attached -> evidence.add(EvidenceEmbeddable.of(attached)));
         observations.clear();
@@ -80,8 +70,7 @@ public class CriterionResponseEntity {
 
     CriterionResponse<?> toDomain(SchemaVersion version) {
         return ResponseRebuilder.rebuild(version.criterion(criterionCode),
-                answerType, answerValue,
-                new PersonColumns(answeredById, answeredByName), answeredAt,
+                new StoredAnswering(answerType, answerValue, answeredById, answeredByName, answeredAt),
                 evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 observations.stream().map(ObservationEmbeddable::toDomain).toList());
     }

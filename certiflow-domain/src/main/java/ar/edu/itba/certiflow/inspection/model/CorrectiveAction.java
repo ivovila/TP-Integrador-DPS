@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public final class CorrectiveAction {
 
@@ -20,7 +19,7 @@ public final class CorrectiveAction {
     private final LocalDate dueDate;
     private final Stamp planned;
     private final List<Verification> verifications = new ArrayList<>();
-    private Cancellation cancellation;
+    private CancellationState cancellation = new NotCancelled();
 
     CorrectiveAction(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate, Stamp planned,
                      LocalDate plannedOn) {
@@ -44,7 +43,7 @@ public final class CorrectiveAction {
         this.dueDate = snapshot.dueDate();
         this.planned = snapshot.planned();
         this.verifications.addAll(snapshot.verifications());
-        this.cancellation = snapshot.recordedCancellation();
+        this.cancellation = snapshot.cancellation();
     }
 
     CorrectiveActionSnapshot snapshot() {
@@ -71,7 +70,7 @@ public final class CorrectiveAction {
     }
 
     public boolean isCancelled() {
-        return cancellation != null;
+        return cancellation.isCancelled();
     }
 
     public boolean isOpen() {
@@ -114,8 +113,8 @@ public final class CorrectiveAction {
         return List.copyOf(verifications);
     }
 
-    public Optional<Cancellation> cancellation() {
-        return Optional.ofNullable(cancellation);
+    public CancellationState cancellation() {
+        return cancellation;
     }
 
     private void ensureOpen() {

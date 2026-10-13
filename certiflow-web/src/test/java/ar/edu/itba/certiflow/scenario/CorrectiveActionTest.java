@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.inspection.model.Cancellation;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -15,14 +15,16 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.DueDateInThePastExcepti
 import ar.edu.itba.certiflow.inspection.model.exceptions.FindingAlreadyClosedException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.VerificationNotesRequiredException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.VerifierMustDifferFromResponsibleException;
+import ar.edu.itba.certiflow.scenario.support.CertiflowFixture;
+import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import ar.edu.itba.certiflow.scenario.support.ScenarioTest;
 
 class CorrectiveActionTest extends ScenarioTest {
 
@@ -82,8 +84,8 @@ class CorrectiveActionTest extends ScenarioTest {
         assertFalse(fixture.finding(finding).isOpen());
         assertTrue(fixture.action(finding, replaceAction).isCancelled());
         assertFalse(fixture.action(finding, replaceAction).isClosed());
-        assertEquals(fixture.verifier, fixture.action(finding, replaceAction).cancellation().orElseThrow().cancelledBy());
-        assertEquals(fixture.clock.instant(), fixture.action(finding, replaceAction).cancellation().orElseThrow().cancelledAt());
+        assertEquals(new Cancellation(new Stamp(fixture.verifier, fixture.clock.instant())),
+                fixture.action(finding, replaceAction).cancellation());
         assertFalse(fixture.action(finding, replaceAction).isOverdueOn(LocalDate.now(fixture.clock)));
         assertEquals(0, fixture.generateFindingsSummary.execute(fixture.extinguisher.code()).findings().getFirst().overdueActions());
         assertFalse(fixture.action(finding, rechargeAction).isCancelled());

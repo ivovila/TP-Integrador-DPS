@@ -24,9 +24,9 @@ public final class CreateInspectionSchemaUseCaseImpl implements CreateInspection
 
     @Override
     public InspectionSchema execute(CreateInspectionSchemaCommand command) {
-        inspectionSchemaRepository.findByAssetType(command.assetType()).ifPresent(existingSchema -> {
+        if (inspectionSchemaRepository.findByAssetType(command.assetType()).isPresent()) {
             throw new SchemaAlreadyDefinedForAssetTypeException(command.assetType());
-        });
+        }
         InspectionSchema schema = inspectionSchemaService.create(command.name(), command.assetType(), command.sections(),
                 new Stamp(command.createdBy(), clock.instant()), command.requiredSubsystems());
         inspectionSchemaRepository.save(schema);

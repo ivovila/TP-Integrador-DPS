@@ -2,7 +2,9 @@ package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
 import ar.edu.itba.certiflow.shared.model.Stamp;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -37,6 +39,11 @@ public record Revisions(List<Revision> revisions) {
     public Revision original() {
         ensureSealed();
         return revisions.getFirst();
+    }
+
+    /** Cuándo se cerró la inspección, si ya se cerró: el sello de la primera revisión. */
+    public Optional<Instant> firstSealedAt() {
+        return revisions.stream().findFirst().map(Revision::sealedAt);
     }
 
     public Revision last() {
