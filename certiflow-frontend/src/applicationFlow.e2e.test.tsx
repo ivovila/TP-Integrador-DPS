@@ -3,6 +3,7 @@ import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { createHttpCertiflow } from './adapters/http/createHttpCertiflow';
+import { PersonLogins } from './adapters/http/PersonLogins';
 import type { Certiflow } from './ports/Certiflow';
 import { ApplicationProvider } from './ui/app/CertiflowContext';
 import { demoPeople } from './ui/app/roster';
@@ -11,7 +12,10 @@ import { SessionProvider } from './ui/app/SessionContext';
 
 configure({ asyncUtilTimeout: 10000 });
 
-const certiflow: Certiflow = createHttpCertiflow(process.env.CERTIFLOW_API_URL!);
+const certiflow: Certiflow = createHttpCertiflow(
+  process.env.CERTIFLOW_API_URL!,
+  new PersonLogins('certiflow', demoPeople.coordinator),
+);
 const today = new Date().toISOString().slice(0, 10);
 
 function daysFromToday(days: number): string {
@@ -81,7 +85,7 @@ async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: stri
     characteristics: [],
     jurisdictionCode: 'DEMO-STANDARD',
     subsystems: [],
-    registeredBy: demoPeople.coordinator,
+    registeredBy: demoPeople.administrator,
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Extinguisher inspection',
@@ -108,7 +112,7 @@ async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: stri
       },
     ],
     requiredSubsystems: [],
-    createdBy: demoPeople.coordinator,
+    createdBy: demoPeople.administrator,
   });
   const inspectionId = await certiflow.inspections.assignInspection({
     assetCode,
@@ -233,7 +237,7 @@ async function boilerWithAClosedInspection(): Promise<{ assetCode: string; inspe
       { code: 'ELECTRICAL', name: 'Electrical system' },
       { code: 'PRESSURE', name: 'Pressure system' },
     ],
-    registeredBy: demoPeople.coordinator,
+    registeredBy: demoPeople.administrator,
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Boiler inspection',
@@ -267,7 +271,7 @@ async function boilerWithAClosedInspection(): Promise<{ assetCode: string; inspe
       },
     ],
     requiredSubsystems: ['ELECTRICAL', 'PRESSURE'],
-    createdBy: demoPeople.coordinator,
+    createdBy: demoPeople.administrator,
   });
   const inspectionId = await certiflow.inspections.assignInspection({
     assetCode,

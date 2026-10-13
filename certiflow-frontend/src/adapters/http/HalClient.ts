@@ -1,6 +1,7 @@
 import type { Person } from '../../domain/shared';
 import { DomainError, isDomainErrorName } from '../../ports/DomainError';
 import { RejectedRequestError } from '../../ports/RejectedRequestError';
+import type { CredentialSource } from './CredentialSource';
 import type { WireCollection, WireLink, WireProblem, WireResource } from './wire';
 
 export type FetchFunction = (input: string, init?: RequestInit) => Promise<Response>;
@@ -54,11 +55,12 @@ async function rejectionOf(response: Response): Promise<Error> {
 export class HalClient {
   constructor(
     private readonly baseUrl: string,
+    private readonly credentials: CredentialSource,
     private readonly fetchFunction: FetchFunction = (input, init) => fetch(input, init),
   ) {}
 
   read<Body>(path: string): Promise<Body> {
-    return this.request<Body>('GET', path, {}, undefined);
+    return this.request<Body>('GET', path, undefined, undefined);
   }
 
   async readAll<Item>(path: string, collectionName: string): Promise<Item[]> {
@@ -74,11 +76,11 @@ export class HalClient {
   }
 
   write<Body>(method: 'POST' | 'PUT', path: string, actingPerson: Person, body?: unknown): Promise<Body> {
-    const personHeaders = { 'X-Person-Id': actingPerson.id, 'X-Person-Name': actingPerson.name };
-    return this.request<Body>(method, path, personHeaders, body);
+    return this.request<Body>(method, path, actingPerson, body);
   }
 
-  private async request<Body>(method: string, path: string, extraHeaders: Record<string, string>, body: unknown): Promise<Body> {
+  private async request<Body>(method: string, path: string, actingPerson: Person | undefined, body: unknown): Promise<Body> {
+    const credentialHeaders = await this.credentials.headersFor(actingPerson);
     const serializedBody = body instanceof SerializedJson ? body.text : body === undefined ? undefined : JSON.stringify(body);
     let response: Response;
     try {
@@ -86,13 +88,17 @@ export class HalClient {
         method,
         headers: {
           Accept: acceptedMediaTypes,
-          ...extraHeaders,
+          ...credentialHeaders,
           ...(serializedBody === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
         ...(serializedBody === undefined ? {} : { body: serializedBody }),
       });
     } catch {
       throw new RejectedRequestError(0, 'ServerUnreachable', 'The server could not be reached. Check that the backend is running.');
+    }
+    this.credentials.received(response, actingPerson);
+    if (response.status === 401) {
+      this.credentials.rejected();
     }
     if (!response.ok) {
       throw await rejectionOf(response);

@@ -1,10 +1,11 @@
 import { createHttpCertiflow } from '../src/adapters/http/createHttpCertiflow';
+import { PersonLogins } from '../src/adapters/http/PersonLogins';
 import type { RawAnswer, Section, Vocabulary } from '../src/domain/schema';
 import { DomainError } from '../src/ports/DomainError';
 import { demoPeople } from '../src/ui/app/roster';
 
 const apiUrl = process.env.CERTIFLOW_API_URL ?? 'http://localhost:8080';
-const certiflow = createHttpCertiflow(apiUrl);
+const certiflow = createHttpCertiflow(apiUrl, new PersonLogins('certiflow', demoPeople.coordinator));
 const { administrator, coordinator, inspector, assetResponsible, verifier, certifier } = demoPeople;
 
 const extinguisherType = 'Fire extinguisher';

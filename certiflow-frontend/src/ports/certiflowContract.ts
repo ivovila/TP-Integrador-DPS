@@ -8,6 +8,7 @@ export interface SystemUnderTest {
   certiflow: Certiflow;
 }
 
+const administrator: Person = { id: 'EMP-006', name: 'Ana Torres' };
 const coordinator: Person = { id: 'EMP-001', name: 'Paula Rios' };
 const inspector: Person = { id: 'EMP-002', name: 'Ines Duarte' };
 const assetResponsible: Person = { id: 'EMP-003', name: 'Raul Mendez' };
@@ -133,17 +134,17 @@ export function describeCertiflowContract(
       await expect(operation).rejects.toMatchObject({ name: expectedName });
     }
 
-    function registerExtinguisher(code = extinguisherCode, jurisdictionCode = 'DEMO-STANDARD') {
+    function registerExtinguisher(code = extinguisherCode, jurisdictionCode = 'DEMO-STANDARD', responsible = assetResponsible) {
       return certiflow.catalog.registerAsset({
         code,
         name: 'Lobby extinguisher',
         type: extinguisherType,
         location: 'Lobby',
-        responsible: assetResponsible,
+        responsible,
         characteristics: [{ name: 'Agent', value: 'ABC powder' }],
         jurisdictionCode,
         subsystems: [],
-        registeredBy: coordinator,
+        registeredBy: administrator,
       });
     }
 
@@ -153,7 +154,7 @@ export function describeCertiflowContract(
         assetType: extinguisherType,
         sections: extinguisherSections(vocabulary),
         requiredSubsystems: [],
-        createdBy: coordinator,
+        createdBy: administrator,
       });
     }
 
@@ -220,7 +221,7 @@ export function describeCertiflowContract(
         description: 'Replace the safety seal',
         responsible,
         dueDate,
-        plannedBy: coordinator,
+        plannedBy: assetResponsible,
       });
     }
 
@@ -249,7 +250,7 @@ export function describeCertiflowContract(
       test('registering an asset is recorded in its history with who did it', async () => {
         await registerExtinguisher();
         const history = await certiflow.audit.auditHistory({ kind: 'asset', code: extinguisherCode });
-        expect(history).toMatchObject([{ action: 'REGISTERED', performedBy: coordinator }]);
+        expect(history).toMatchObject([{ action: 'REGISTERED', performedBy: administrator }]);
       });
 
       test('the same asset code cannot be registered twice', async () => {
@@ -270,7 +271,7 @@ export function describeCertiflowContract(
           ],
           jurisdictionCode: 'DEMO-STANDARD',
           subsystems: [],
-          registeredBy: coordinator,
+          registeredBy: administrator,
         });
         await expectRejection(registration, 'DuplicateCharacteristicException');
       });
@@ -286,7 +287,7 @@ export function describeCertiflowContract(
           characteristics: [],
           jurisdictionCode: 'DEMO-STANDARD',
           subsystems: [],
-          registeredBy: coordinator,
+          registeredBy: administrator,
         });
         const extinguishers = await certiflow.catalog.listAssets({ type: extinguisherType });
         expect(extinguishers.map((asset) => asset.code)).toEqual([extinguisherCode]);
@@ -313,7 +314,7 @@ export function describeCertiflowContract(
           assetType: extinguisherType,
           sections: [sections[0]!],
           requiredSubsystems: [],
-          publishedBy: coordinator,
+          publishedBy: administrator,
         });
         const schema = await certiflow.schemas.findSchema(extinguisherType);
         expect(published.number).toBe(2);
@@ -329,7 +330,7 @@ export function describeCertiflowContract(
           assetType: extinguisherType,
           sections: extinguisherSections(vocabulary),
           requiredSubsystems: [],
-          publishedBy: coordinator,
+          publishedBy: administrator,
         });
         const history = await certiflow.audit.auditHistory({ kind: 'schema', assetType: extinguisherType });
         expect(history.map((entry) => entry.action)).toEqual(['CREATED', 'VERSION_ADDED']);
@@ -391,7 +392,7 @@ export function describeCertiflowContract(
           assetType: extinguisherType,
           sections: breakSections(extinguisherSections(vocabulary)),
           requiredSubsystems: [],
-          createdBy: coordinator,
+          createdBy: administrator,
         });
         await expectRejection(creation, expectedName);
       });
@@ -404,7 +405,7 @@ export function describeCertiflowContract(
           assetType: extinguisherType,
           sections: [extinguisherSections(vocabulary)[0]!],
           requiredSubsystems: [],
-          publishedBy: coordinator,
+          publishedBy: administrator,
         });
         const laterInspectionId = await assignInspection();
         const earlier = await certiflow.inspections.findInspection(inspectionId);
@@ -422,12 +423,6 @@ export function describeCertiflowContract(
 
       const independenceRules: [string, Person, Person, DomainErrorName][] = [
         ['whoever assigns the inspection cannot carry it out', coordinator, coordinator, 'AssignerCannotInspectException'],
-        [
-          'the asset responsible cannot assign its inspection',
-          assetResponsible,
-          inspector,
-          'AssetResponsibleCannotAssignInspectionException',
-        ],
         [
           'the asset responsible cannot inspect the asset',
           coordinator,
@@ -447,6 +442,19 @@ export function describeCertiflowContract(
           assignedBy,
         });
         await expectRejection(assignment, expectedName);
+      });
+
+      test('the asset responsible cannot assign its inspection', async () => {
+        await registerExtinguisher(extinguisherCode, 'DEMO-STANDARD', coordinator);
+        await createExtinguisherSchema();
+        const assignment = certiflow.inspections.assignInspection({
+          assetCode: extinguisherCode,
+          inspector,
+          plannedDate: today,
+          scope: { kind: 'full' },
+          assignedBy: coordinator,
+        });
+        await expectRejection(assignment, 'AssetResponsibleCannotAssignInspectionException');
       });
 
       test('the scope can only name sections of the schema', async () => {
@@ -653,7 +661,7 @@ export function describeCertiflowContract(
         const finding = await certiflow.findings.findFinding(findingId);
         expect(actionId).toBe(1);
         expect(finding.correctiveActions).toMatchObject([
-          { id: 1, responsible: assetResponsible, dueDate: inEighteenDays, plannedBy: coordinator, state: 'OPEN', overdue: false },
+          { id: 1, responsible: assetResponsible, dueDate: inEighteenDays, plannedBy: assetResponsible, state: 'OPEN', overdue: false },
         ]);
       });
 
@@ -664,9 +672,9 @@ export function describeCertiflowContract(
 
       test('the responsible for an action cannot verify it', async () => {
         const findingId = await findingForBrokenSeal();
-        await planAction(findingId);
+        await planAction(findingId, inEighteenDays, verifier);
         await expectRejection(
-          verify(findingId, 1, 'ACCEPTED', '', assetResponsible),
+          verify(findingId, 1, 'ACCEPTED', '', verifier),
           'VerifierMustDifferFromResponsibleException',
         );
       });
@@ -935,7 +943,7 @@ export function describeCertiflowContract(
           sections: [extinguisherSections(vocabulary)[0]!],
           requiredSubsystems: [],
           effectiveFrom,
-          publishedBy: coordinator,
+          publishedBy: administrator,
         });
       }
 
@@ -1049,7 +1057,7 @@ export function describeCertiflowContract(
           characteristics: [],
           jurisdictionCode,
           subsystems,
-          registeredBy: coordinator,
+          registeredBy: administrator,
         });
       }
 
@@ -1059,7 +1067,7 @@ export function describeCertiflowContract(
           assetType: boilerType(),
           sections,
           requiredSubsystems,
-          createdBy: coordinator,
+          createdBy: administrator,
         });
       }
 
