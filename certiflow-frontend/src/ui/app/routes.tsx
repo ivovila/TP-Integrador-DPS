@@ -4,6 +4,8 @@ import { AssetListPage } from '../catalog/AssetListPage';
 import { FindingsSummaryPage } from '../catalog/FindingsSummaryPage';
 import { RegisterAssetPage } from '../catalog/RegisterAssetPage';
 import { AssignInspectionPage } from '../inspection/AssignInspectionPage';
+import { FindingDetailPage } from '../inspection/FindingDetailPage';
+import { FindingListPage } from '../inspection/FindingListPage';
 import { InspectionActPage } from '../inspection/InspectionActPage';
 import { InspectionDetailPage } from '../inspection/InspectionDetailPage';
 import { InspectionListPage } from '../inspection/InspectionListPage';
@@ -32,6 +34,8 @@ export function ApplicationRoutes() {
         <Route path="inspections/new" element={<AssignInspectionPage />} />
         <Route path="inspections/:id" element={<InspectionDetailPage />} />
         <Route path="inspections/:id/act" element={<InspectionActPage />} />
+        <Route path="findings" element={<FindingListPage />} />
+        <Route path="findings/:id" element={<FindingDetailPage />} />
       </Route>
     </Routes>
   );
