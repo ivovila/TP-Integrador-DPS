@@ -3,7 +3,15 @@ package ar.edu.itba.certiflow.web.inspection;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
+import ar.edu.itba.certiflow.web.support.InvalidRequestException;
+import ar.edu.itba.certiflow.web.support.PageLinks;
+import java.util.Optional;
+import java.util.stream.Stream;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.web.bind.annotation.RequestParam;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -60,13 +68,14 @@ public class InspectionController {
     private final EvaluateCertificationUseCase evaluateCertification;
     private final AuditHistoryUseCase auditHistory;
     private final FindAssetUseCase findAsset;
+    private final ListInspectionsUseCase listInspections;
 
     public InspectionController(AssignInspectionUseCase assignInspection, FindInspectionUseCase findInspection,
                                 RecordAnswerUseCase recordAnswer, AttachEvidenceUseCase attachEvidence,
                                 AddObservationUseCase addObservation, CloseInspectionUseCase closeInspection,
                                 RectifyInspectionUseCase rectifyInspection, GenerateInspectionActUseCase generateInspectionAct,
                                 EvaluateCertificationUseCase evaluateCertification, AuditHistoryUseCase auditHistory,
-                                FindAssetUseCase findAsset) {
+                                FindAssetUseCase findAsset, ListInspectionsUseCase listInspections) {
         this.assignInspection = assignInspection;
         this.findInspection = findInspection;
         this.recordAnswer = recordAnswer;
@@ -78,6 +87,7 @@ public class InspectionController {
         this.evaluateCertification = evaluateCertification;
         this.auditHistory = auditHistory;
         this.findAsset = findAsset;
+        this.listInspections = listInspections;
     }
 
     @PostMapping
@@ -85,6 +95,29 @@ public class InspectionController {
         InspectionId id = assignInspection.execute(request.toCommand(assignedBy));
         InspectionResponse response = resource(findInspection.execute(id));
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
+    }
+
+    @GetMapping
+    public PagedModel<InspectionResponse> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> status,
+                                               @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        Optional<Boolean> closed = status.map(InspectionController::closedFor);
+        List<InspectionResponse> inspections = listInspections.execute(asset.map(AssetCode::new)).stream()
+                .filter(inspection -> closed.map(wanted -> inspection.isClosed() == wanted).orElse(true))
+                .map(this::resource)
+                .toList();
+        String query = Stream.of(asset.map(code -> "asset=" + code), status.map(value -> "status=" + value))
+                .flatMap(Optional::stream)
+                .reduce((left, right) -> left + "&" + right)
+                .orElse("");
+        return PageLinks.page(inspections, page, size, "/api/v1/inspections", query);
+    }
+
+    private static boolean closedFor(String status) {
+        return switch (status) {
+            case "open" -> false;
+            case "closed" -> true;
+            default -> throw new InvalidRequestException("status must be open or closed");
+        };
     }
 
     @GetMapping("/{id}")

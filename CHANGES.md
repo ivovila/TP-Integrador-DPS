@@ -437,3 +437,9 @@ Cambios hechos para la Entrega 2, siguiendo
   `aNullSectionIs400`, `InspectionApiTest.aFailureAfterTheAuditEntryIsWrittenRollsTheEntryBack`,
   `theDecimalScaleReachesTheClient`, `FindingApiTest.theFindingsSummaryUsesPlainValues`,
   `CertificateApiTest.theDocumentUsesPlainValues`.
+
+## E2.18. Listado de inspecciones
+- El punto de entrada anunciaba `/api/v1/inspections` pero un `GET` respondía 405. Nuevo
+  `GET /api/v1/inspections?asset=&status=open|closed&page=&size=` (`ListInspectionsUseCase`,
+  `InspectionRepository.findByAsset` y `findAll`). Un `status` desconocido responde 400.
+- Test: `InspectionApiTest.inspectionsAreListedByAssetAndStatusInPages`.

@@ -160,4 +160,20 @@ class InspectionApiTest extends ApiTest {
 
         read(inspection + "/responses/EXT-01").andExpect(content().string(containsString("\"answer\":7.00")));
     }
+
+    @Test
+    void inspectionsAreListedByAssetAndStatusInPages() throws Exception {
+        answerAll("7.00");
+        postAs("EMP-002", inspection + "/closure", "{}");
+        postAs("EMP-001", "/api/v1/inspections", ASSIGNMENT);
+
+        read("/api/v1/inspections?asset=EXT-0042&page=0&size=10")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.inspections.length()").value(2))
+                .andExpect(jsonPath("$.page.totalElements").value(2));
+        read("/api/v1/inspections?status=closed").andExpect(jsonPath("$._embedded.inspections.length()").value(1))
+                .andExpect(jsonPath("$._embedded.inspections[0].closed").value(true));
+        read("/api/v1/inspections?status=open").andExpect(jsonPath("$._embedded.inspections[0].closed").value(false));
+        read("/api/v1/inspections?status=archived").andExpect(status().isBadRequest());
+    }
 }

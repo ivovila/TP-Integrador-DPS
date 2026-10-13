@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.config;
 
+import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
+import ar.edu.itba.certiflow.application.inspection.ListInspectionsUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.RegisterAssetUseCaseImpl;
@@ -320,5 +322,10 @@ public class UseCaseConfiguration {
                                      AuditLog<InspectionId> inspectionLog, AuditLog<FindingId> findingLog,
                                      AuditLog<CertificateNumber> certificateLog) {
         return TransactionalUseCases.wrap(AuditHistoryUseCase.class, new AuditHistoryUseCaseImpl(assetLog, schemaLog, inspectionLog, findingLog, certificateLog), tx);
+    }
+
+    @Bean
+    ListInspectionsUseCase listInspections(TransactionTemplate tx, InspectionRepository inspectionRepository) {
+        return TransactionalUseCases.wrap(ListInspectionsUseCase.class, new ListInspectionsUseCaseImpl(inspectionRepository), tx);
     }
 }
