@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import type { CriterionResponse } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
+import { CertificationEligibilityCard } from '../certification/CertificationEligibilityCard';
 import { AuditHistory } from '../shared/AuditHistory';
 import { StatusBadge } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
@@ -181,6 +182,7 @@ export function InspectionDetailPage() {
                 />
               </Card>
             )}
+            <CertificationEligibilityCard inspectionId={foundInspection.id} refreshKey={changeCount} />
             <AuditHistory subject={{ kind: 'inspection', id: foundInspection.id }} refreshKey={changeCount} />
           </>
         );
