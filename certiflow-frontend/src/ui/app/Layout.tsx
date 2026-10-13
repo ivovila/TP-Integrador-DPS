@@ -1,31 +1,24 @@
 import { NavLink, Outlet } from 'react-router';
-import { PersonPicker } from '../shared/PersonPicker';
+import { ActingPersonPicker } from './ActingPersonPicker';
+import { roles, sections } from './roles';
 import { useSession } from './SessionContext';
 
-const navigation = [
-  { to: '/assets', label: 'Assets' },
-  { to: '/schemas', label: 'Schemas' },
-  { to: '/inspections', label: 'Inspections' },
-  { to: '/findings', label: 'Findings' },
-  { to: '/certificates', label: 'Certificates' },
-];
-
 export function Layout() {
-  const { actingPerson, actAs } = useSession();
+  const { role } = useSession();
 
   return (
     <>
       <header className="app-header">
         <span className="brand">CertiFlow</span>
         <nav>
-          {navigation.map((item) => (
-            <NavLink key={item.to} to={item.to}>
-              {item.label}
+          {roles[role].sections.map((section) => (
+            <NavLink key={section} to={sections[section].path}>
+              {sections[section].label}
             </NavLink>
           ))}
         </nav>
         <div className="session">
-          <PersonPicker label="Acting as" person={actingPerson} onChange={actAs} />
+          <ActingPersonPicker />
         </div>
       </header>
       <main className="page">

@@ -1,11 +1,13 @@
 import type { Person } from '../../domain/shared';
+import type { Role } from './roles';
 
 export interface RosterMember {
   person: Person;
-  role: string;
+  role: Role;
 }
 
 export const demoPeople = {
+  administrator: { id: 'EMP-006', name: 'Ana Torres' },
   coordinator: { id: 'EMP-001', name: 'Paula Rios' },
   inspector: { id: 'EMP-002', name: 'Ines Duarte' },
   assetResponsible: { id: 'EMP-003', name: 'Raul Mendez' },
@@ -14,9 +16,10 @@ export const demoPeople = {
 } satisfies Record<string, Person>;
 
 export const roster: RosterMember[] = [
-  { person: demoPeople.coordinator, role: 'Inspection coordinator' },
-  { person: demoPeople.inspector, role: 'Inspector' },
-  { person: demoPeople.assetResponsible, role: 'Asset responsible' },
-  { person: demoPeople.verifier, role: 'Verifier' },
-  { person: demoPeople.certifier, role: 'Certification officer' },
+  { person: demoPeople.administrator, role: 'administrator' },
+  { person: demoPeople.coordinator, role: 'inspectionCoordinator' },
+  { person: demoPeople.inspector, role: 'inspector' },
+  { person: demoPeople.assetResponsible, role: 'assetResponsible' },
+  { person: demoPeople.verifier, role: 'verifier' },
+  { person: demoPeople.certifier, role: 'certificationOfficer' },
 ];

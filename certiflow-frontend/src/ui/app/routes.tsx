@@ -17,24 +17,60 @@ import { PublishVersionPage } from '../schema/PublishVersionPage';
 import { SchemaDetailPage } from '../schema/SchemaDetailPage';
 import { SchemaListPage } from '../schema/SchemaListPage';
 import { SchemaVersionPage } from '../schema/SchemaVersionPage';
+import { RequiresRoleFor } from '../shared/RoleNotices';
 import { Layout } from './Layout';
+import { homeOf } from './roles';
+import { useSession } from './SessionContext';
+
+function RoleHome() {
+  const { role } = useSession();
+  return <Navigate to={homeOf(role)} replace />;
+}
 
 export function ApplicationRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/assets" replace />} />
+        <Route index element={<RoleHome />} />
         <Route path="assets" element={<AssetListPage />} />
-        <Route path="assets/new" element={<RegisterAssetPage />} />
+        <Route
+          path="assets/new"
+          element={
+            <RequiresRoleFor action="registerAsset">
+              <RegisterAssetPage />
+            </RequiresRoleFor>
+          }
+        />
         <Route path="assets/:code" element={<AssetDetailPage />} />
         <Route path="assets/:code/findings-summary" element={<FindingsSummaryPage />} />
         <Route path="schemas" element={<SchemaListPage />} />
-        <Route path="schemas/new" element={<CreateSchemaPage />} />
+        <Route
+          path="schemas/new"
+          element={
+            <RequiresRoleFor action="createInspectionSchema">
+              <CreateSchemaPage />
+            </RequiresRoleFor>
+          }
+        />
         <Route path="schemas/:assetType" element={<SchemaDetailPage />} />
-        <Route path="schemas/:assetType/versions/new" element={<PublishVersionPage />} />
+        <Route
+          path="schemas/:assetType/versions/new"
+          element={
+            <RequiresRoleFor action="publishSchemaVersion">
+              <PublishVersionPage />
+            </RequiresRoleFor>
+          }
+        />
         <Route path="schemas/:assetType/versions/:number" element={<SchemaVersionPage />} />
         <Route path="inspections" element={<InspectionListPage />} />
-        <Route path="inspections/new" element={<AssignInspectionPage />} />
+        <Route
+          path="inspections/new"
+          element={
+            <RequiresRoleFor action="assignInspection">
+              <AssignInspectionPage />
+            </RequiresRoleFor>
+          }
+        />
         <Route path="inspections/:id" element={<InspectionDetailPage />} />
         <Route path="inspections/:id/act" element={<InspectionActPage />} />
         <Route path="findings" element={<FindingListPage />} />

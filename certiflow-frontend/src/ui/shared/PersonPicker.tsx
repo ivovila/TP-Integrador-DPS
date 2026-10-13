@@ -1,18 +1,30 @@
 import { useState } from 'react';
 import type { Person } from '../../domain/shared';
+import { roles, type Role } from '../app/roles';
 import { roster } from '../app/roster';
 
-const someoneElse = '__someone-else__';
+export const someoneElse = '__someone-else__';
 
 export const nobody: Person = { id: '', name: '' };
 
-export function PersonPicker({ label, person, onChange }: { label: string; person: Person; onChange(person: Person): void }) {
-  const isOnRoster = roster.some((member) => member.person.id === person.id);
-  const [typingSomeoneElse, setTypingSomeoneElse] = useState(person.id !== '' && !isOnRoster);
+export function PersonPicker({
+  label,
+  person,
+  onChange,
+  role,
+}: {
+  label: string;
+  person: Person;
+  onChange(person: Person): void;
+  role?: Role;
+}) {
+  const offeredMembers = roster.filter((member) => role === undefined || member.role === role);
+  const isOffered = offeredMembers.some((member) => member.person.id === person.id);
+  const [typingSomeoneElse, setTypingSomeoneElse] = useState(person.id !== '' && !isOffered);
 
   function choose(choice: string): void {
     setTypingSomeoneElse(choice === someoneElse);
-    onChange(roster.find((member) => member.person.id === choice)?.person ?? nobody);
+    onChange(offeredMembers.find((member) => member.person.id === choice)?.person ?? nobody);
   }
 
   return (
@@ -21,9 +33,9 @@ export function PersonPicker({ label, person, onChange }: { label: string; perso
         {label}
         <select value={typingSomeoneElse ? someoneElse : person.id} onChange={(event) => choose(event.target.value)}>
           <option value="">Choose a person…</option>
-          {roster.map((member) => (
+          {offeredMembers.map((member) => (
             <option key={member.person.id} value={member.person.id}>
-              {member.person.name} · {member.role}
+              {member.person.name} · {roles[member.role].label}
             </option>
           ))}
           <option value={someoneElse}>Someone else…</option>

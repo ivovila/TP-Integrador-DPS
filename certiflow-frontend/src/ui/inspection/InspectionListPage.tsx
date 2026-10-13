@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { InspectionScope } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
+import { useSession } from '../app/SessionContext';
 import { StatusBadge } from '../shared/Badge';
 import { formatDate } from '../shared/format';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
@@ -16,6 +17,7 @@ export function describeScope(scope: InspectionScope): string {
 
 export function InspectionListPage() {
   const certiflow = useCertiflow();
+  const { mayDo } = useSession();
   const [assetCode, setAssetCode] = useState('');
   const [status, setStatus] = useState<StatusFilter>('');
   const assets = useQuery(() => certiflow.catalog.listAssets({}), []);
@@ -54,9 +56,11 @@ export function InspectionListPage() {
             </select>
           </label>
         </div>
-        <Link className="button primary" to="/inspections/new">
-          Assign inspection
-        </Link>
+        {mayDo('assignInspection') && (
+          <Link className="button primary" to="/inspections/new">
+            Assign inspection
+          </Link>
+        )}
       </PageHeader>
       <Card>
         <QueryView query={inspections}>

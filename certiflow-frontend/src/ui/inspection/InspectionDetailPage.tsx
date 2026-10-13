@@ -10,6 +10,7 @@ import { ErrorBanner } from '../shared/ErrorBanner';
 import { formatDate, formatInstant, formatPerson } from '../shared/format';
 import { Card, Details, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
 import { CriterionResponseCard } from './CriterionResponseCard';
@@ -44,7 +45,7 @@ function RaisedFindings({ findingIds }: { findingIds: string[] | undefined }) {
 
 export function InspectionDetailPage() {
   const certiflow = useCertiflow();
-  const { actingPerson } = useSession();
+  const { actingPerson, permitted } = useSession();
   const inspectionId = useParams().id!;
   const closure = useCommand();
   const [changeCount, setChangeCount] = useState(0);
@@ -76,6 +77,7 @@ export function InspectionDetailPage() {
       {(foundInspection) => {
         const pendingCount = foundInspection.responses.filter((response) => response.outcome === 'PENDING').length;
         const assetType = asset.data?.type;
+        const permittedActions = permitted(foundInspection.actions);
         return (
           <>
             <PageHeader
@@ -91,18 +93,19 @@ export function InspectionDetailPage() {
                 </>
               }
             >
-              {foundInspection.actions.includes('generateInspectionAct') && (
+              {permittedActions.includes('generateInspectionAct') && (
                 <Link className="button" to={`/inspections/${foundInspection.id}/act`}>
                   Inspection act
                 </Link>
               )}
-              {foundInspection.actions.includes('closeInspection') && (
+              {permittedActions.includes('closeInspection') && (
                 <button className="primary" onClick={close} disabled={closure.running}>
                   Close inspection
                 </button>
               )}
             </PageHeader>
             <ErrorBanner error={closure.error} />
+            <ReadOnlyNotice offeredActions={foundInspection.actions} record="inspection" />
             <Card>
               <Details
                 entries={[
@@ -131,7 +134,7 @@ export function InspectionDetailPage() {
                     key={response.criterion.code}
                     inspectionId={foundInspection.id}
                     response={response}
-                    actions={foundInspection.actions}
+                    actions={permittedActions}
                     evidenceKinds={vocabulary.data?.evidenceKinds ?? [{ name: '', label: '' }]}
                     onRecorded={recordChange}
                   />
@@ -169,7 +172,7 @@ export function InspectionDetailPage() {
                 </table>
               </Card>
             )}
-            {foundInspection.actions.includes('rectifyInspection') && (
+            {permittedActions.includes('rectifyInspection') && (
               <Card title="Rectify an answer">
                 <p className="muted">A closed inspection only changes through a rectification, which adds a revision.</p>
                 <RectificationForm

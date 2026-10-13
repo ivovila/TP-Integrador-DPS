@@ -5,6 +5,7 @@ import { useSession } from '../app/SessionContext';
 import { ErrorBanner } from '../shared/ErrorBanner';
 import { Card } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
 import { DecisionDetails } from './DecisionDetails';
@@ -38,6 +39,7 @@ function IssueCertificateForm({ inspectionId, subsystemCode }: { inspectionId: s
 
 function ScopeDecision({ inspectionId, subsystemCode, refreshKey }: { inspectionId: string; subsystemCode?: string; refreshKey: number }) {
   const certiflow = useCertiflow();
+  const { permitted } = useSession();
   const decision = useQuery(
     () => certiflow.certification.evaluateCertification(inspectionId, subsystemCode),
     [inspectionId, subsystemCode, refreshKey],
@@ -50,7 +52,8 @@ function ScopeDecision({ inspectionId, subsystemCode, refreshKey }: { inspection
         {(certificationDecision) => (
           <div className="stacked">
             <DecisionDetails decision={certificationDecision} />
-            {certificationDecision.actions.includes('issueCertificate') && (
+            <ReadOnlyNotice offeredActions={certificationDecision.actions} record="decision" />
+            {permitted(certificationDecision.actions).includes('issueCertificate') && (
               <IssueCertificateForm inspectionId={inspectionId} subsystemCode={subsystemCode} />
             )}
           </div>
