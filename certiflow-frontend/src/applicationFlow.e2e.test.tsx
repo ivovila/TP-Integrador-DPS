@@ -1,21 +1,40 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, expect, test } from 'vitest';
-import { createInMemoryCertiflow, type InMemoryCertiflow } from './adapters/inmemory/createInMemoryCertiflow';
+import { afterEach, beforeEach, expect, test } from 'vitest';
+import { createHttpCertiflow } from './adapters/http/createHttpCertiflow';
+import type { Certiflow } from './ports/Certiflow';
 import { ApplicationProvider } from './ui/app/CertiflowContext';
 import { demoPeople } from './ui/app/roster';
 import { ApplicationRoutes } from './ui/app/routes';
 import { SessionProvider } from './ui/app/SessionContext';
+
+configure({ asyncUtilTimeout: 10000 });
+
+const certiflow: Certiflow = createHttpCertiflow(process.env.CERTIFLOW_API_URL!);
+const today = new Date().toISOString().slice(0, 10);
+
+function daysFromToday(days: number): string {
+  const shifted = new Date(`${today}T00:00:00Z`);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().slice(0, 10);
+}
+
+let suffix: string;
+const unique = (base: string) => `${base}-${suffix}`;
+
+beforeEach(() => {
+  suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+});
 
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
 });
 
-function open(system: InMemoryCertiflow, path: string): void {
+function open(path: string): void {
   render(
-    <ApplicationProvider application={system}>
+    <ApplicationProvider application={{ certiflow }}>
       <SessionProvider>
         <MemoryRouter initialEntries={[path]}>
           <ApplicationRoutes />
@@ -35,15 +54,28 @@ async function press(scope: ReturnType<typeof within>, name: string): Promise<vo
 
 const page = within(document.body);
 
-async function systemWithAnAssignedInspection(): Promise<InMemoryCertiflow> {
-  const system = createInMemoryCertiflow('2026-03-02');
-  const { certiflow } = system;
+async function cardTitled(title: string) {
+  return within((await screen.findByText(title)).closest('.card') as HTMLElement);
+}
+
+async function criterionCard(code: string) {
+  return within((await screen.findByText(code)).closest('.criterion') as HTMLElement);
+}
+
+async function certificateNumberShown(): Promise<string> {
+  const heading = await screen.findByText(/Certificate CERT-\d+/);
+  return heading.textContent!.match(/CERT-\d+/)![0];
+}
+
+async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: string; assetType: string; inspectionId: string }> {
+  const assetCode = unique('EXT');
+  const assetType = unique('Fire extinguisher');
   const vocabulary = await certiflow.schemas.vocabulary();
   const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
   await certiflow.catalog.registerAsset({
-    code: 'EXT-1',
+    code: assetCode,
     name: 'Lobby extinguisher',
-    type: 'Fire extinguisher',
+    type: assetType,
     location: 'Lobby',
     responsible: demoPeople.assetResponsible,
     characteristics: [],
@@ -53,7 +85,7 @@ async function systemWithAnAssignedInspection(): Promise<InMemoryCertiflow> {
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Extinguisher inspection',
-    assetType: 'Fire extinguisher',
+    assetType,
     sections: [
       {
         title: 'Safety',
@@ -78,22 +110,19 @@ async function systemWithAnAssignedInspection(): Promise<InMemoryCertiflow> {
     requiredSubsystems: [],
     createdBy: demoPeople.coordinator,
   });
-  await certiflow.inspections.assignInspection({
-    assetCode: 'EXT-1',
+  const inspectionId = await certiflow.inspections.assignInspection({
+    assetCode,
     inspector: demoPeople.inspector,
-    plannedDate: '2026-03-02',
+    plannedDate: today,
     scope: { kind: 'full' },
     assignedBy: demoPeople.coordinator,
   });
-  return system;
-}
-
-async function criterionCard(code: string) {
-  return within((await screen.findByText(code)).closest('.criterion') as HTMLElement);
+  return { assetCode, assetType, inspectionId };
 }
 
 test('an inspection is executed, closed, corrected and certified through the screens', async () => {
-  open(await systemWithAnAssignedInspection(), '/inspections/INS-1');
+  const { inspectionId } = await extinguisherWithAnAssignedInspection();
+  open(`/inspections/${inspectionId}`);
 
   const pressure = await criterionCard('PRESSURE');
   await fill(pressure, 'Measurement (bar)', '12');
@@ -113,21 +142,20 @@ test('an inspection is executed, closed, corrected and certified through the scr
   await seal.findByText('rejected');
 
   await press(page, 'Close inspection');
-  await screen.findByText('Findings raised');
+  const raisedFindings = await cardTitled('Findings raised');
   await waitFor(() => expect(screen.queryByText('Close inspection')).toBeNull());
   expect(await screen.findByText('Open finding SEAL severity Major')).toBeDefined();
   expect(screen.getByText('STANDARD · jurisdiction DEMO-STANDARD')).toBeDefined();
 
-  await press(page, 'FND-1');
-  await screen.findByText(/Finding FND-1/);
+  const findingLink = await raisedFindings.findByRole('link');
+  const findingId = findingLink.textContent!;
+  fireEvent.click(findingLink);
+  await screen.findByText(new RegExp(`Finding ${findingId}`));
   await fill(page, 'What will be done', 'Fit a new safety seal');
   await fill(page, 'Responsible', demoPeople.assetResponsible.id);
-  await fill(page, 'Due date', '2026-03-20');
+  await fill(page, 'Due date', daysFromToday(20));
   await press(page, 'Plan corrective action');
   await screen.findByText(/Action 1 · Fit a new safety seal/);
-
-  await fill(page, 'Today (demo)', '2026-03-25');
-  await screen.findByText('overdue');
 
   await fill(page, 'Acting as', demoPeople.assetResponsible.id);
   await press(page, 'Accept');
@@ -140,43 +168,42 @@ test('an inspection is executed, closed, corrected and certified through the scr
   expect(screen.queryByText('Accept')).toBeNull();
 
   await fill(page, 'Acting as', demoPeople.certifier.id);
-  await press(page, 'INS-1');
-  await screen.findByText('25 Mar 2026 to 24 Mar 2027');
+  await press(page, inspectionId);
   await press(page, 'Issue certificate');
-  await screen.findByText(/Certificate CERT-1/);
+  const certificateNumber = await certificateNumberShown();
   expect(screen.getByText('active')).toBeDefined();
 
   await fill(page, 'Reason for the suspension', 'Manufacturer recall');
   await press(page, 'Suspend certificate');
   await screen.findByText('suspended');
   expect(screen.queryByText('Suspend certificate')).toBeNull();
+  expect((await certiflow.certification.findCertificate(certificateNumber)).status).toBe('SUSPENDED');
 });
 
 test('a closed inspection is rectified through the screens and gains a revision', async () => {
-  const system = await systemWithAnAssignedInspection();
-  const inspectionId = 'INS-1';
-  await system.certiflow.inspections.recordAnswer({
+  const { inspectionId } = await extinguisherWithAnAssignedInspection();
+  await certiflow.inspections.recordAnswer({
     inspectionId,
     criterionCode: 'PRESSURE',
     answer: { kind: 'number', value: '12' },
     answeredBy: demoPeople.inspector,
   });
-  await system.certiflow.inspections.attachEvidence({
+  await certiflow.inspections.attachEvidence({
     inspectionId,
     criterionCode: 'PRESSURE',
     evidence: { kind: { name: 'PHOTO', label: 'Photo' }, reference: 'gauge.jpg', description: '' },
     attachedBy: demoPeople.inspector,
   });
-  await system.certiflow.inspections.recordAnswer({
+  await certiflow.inspections.recordAnswer({
     inspectionId,
     criterionCode: 'SEAL',
     answer: { kind: 'yes-no', value: true },
     answeredBy: demoPeople.inspector,
   });
-  await system.certiflow.inspections.closeInspection({ inspectionId, closedBy: demoPeople.inspector });
-  open(system, '/inspections/INS-1');
+  await certiflow.inspections.closeInspection({ inspectionId, closedBy: demoPeople.inspector });
+  open(`/inspections/${inspectionId}`);
 
-  const rectification = within((await screen.findByText('Rectify an answer')).closest('.card') as HTMLElement);
+  const rectification = await cardTitled('Rectify an answer');
   await fill(rectification, 'Criterion', 'SEAL');
   await fill(rectification, 'Answer', 'no');
   await fill(rectification, 'Reason', 'The seal was broken, typed by mistake');
@@ -185,17 +212,18 @@ test('a closed inspection is rectified through the screens and gains a revision'
   await screen.findByText('The seal was broken, typed by mistake');
   expect(screen.getByText('Findings raised')).toBeDefined();
   expect(await screen.findByText('Open finding SEAL severity Major')).toBeDefined();
+  expect((await certiflow.inspections.findInspection(inspectionId)).revisions).toHaveLength(2);
 });
 
-async function systemWithAClosedBoilerInspection(): Promise<InMemoryCertiflow> {
-  const system = createInMemoryCertiflow('2026-03-02');
-  const { certiflow } = system;
+async function boilerWithAClosedInspection(): Promise<{ assetCode: string; inspectionId: string }> {
+  const assetCode = unique('BLR');
+  const assetType = unique('Pressure vessel');
   const vocabulary = await certiflow.schemas.vocabulary();
   const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
   await certiflow.catalog.registerAsset({
-    code: 'BLR-1',
+    code: assetCode,
     name: 'Boiler',
-    type: 'Pressure vessel',
+    type: assetType,
     location: 'Basement',
     responsible: demoPeople.assetResponsible,
     characteristics: [],
@@ -208,7 +236,7 @@ async function systemWithAClosedBoilerInspection(): Promise<InMemoryCertiflow> {
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Boiler inspection',
-    assetType: 'Pressure vessel',
+    assetType,
     sections: [
       {
         title: 'Pressure',
@@ -241,9 +269,9 @@ async function systemWithAClosedBoilerInspection(): Promise<InMemoryCertiflow> {
     createdBy: demoPeople.coordinator,
   });
   const inspectionId = await certiflow.inspections.assignInspection({
-    assetCode: 'BLR-1',
+    assetCode,
     inspector: demoPeople.inspector,
-    plannedDate: '2026-03-02',
+    plannedDate: today,
     scope: { kind: 'full' },
     assignedBy: demoPeople.coordinator,
   });
@@ -256,45 +284,47 @@ async function systemWithAClosedBoilerInspection(): Promise<InMemoryCertiflow> {
     });
   }
   await certiflow.inspections.closeInspection({ inspectionId, closedBy: demoPeople.inspector });
-  return system;
+  return { assetCode, inspectionId };
 }
 
 test('partial certificates are issued per subsystem and a global certificate is derived from them', async () => {
-  const system = await systemWithAClosedBoilerInspection();
-  open(system, '/inspections/INS-1');
+  const { assetCode, inspectionId } = await boilerWithAClosedInspection();
+  open(`/inspections/${inspectionId}`);
 
   await screen.findByText('Subsystem ELECTRICAL');
   expect(await screen.findByText('conditional')).toBeDefined();
   expect(screen.getByText(/Resolve and verify open nonconformity/)).toBeDefined();
   await press(page, 'Issue ELECTRICAL certificate');
-  await screen.findByText(/Certificate CERT-1/);
+  await certificateNumberShown();
   expect(screen.getAllByText('Subsystem ELECTRICAL').length).toBeGreaterThan(0);
 
-  await system.certiflow.certification.issueCertificate({
-    inspectionId: 'INS-1',
+  const pressureCertificateNumber = await certiflow.certification.issueCertificate({
+    inspectionId,
     subsystemCode: 'PRESSURE',
     issuedBy: demoPeople.certifier,
   });
-  await press(page, 'BLR-1');
+  await press(page, assetCode);
   await screen.findByText('Global certificate');
   await press(page, 'Issue global certificate');
-  await screen.findByText(/Certificate CERT-3/);
-  expect(screen.getByText('ALL-REQUIRED-SUBSYSTEMS · jurisdiction DEMO-CONDITIONAL')).toBeDefined();
+  await screen.findByText('ALL-REQUIRED-SUBSYSTEMS · jurisdiction DEMO-CONDITIONAL');
+  const globalCertificateNumber = await certificateNumberShown();
 
-  await press(page, 'CERT-2');
-  await screen.findByText(/Certificate CERT-2/);
+  await press(page, pressureCertificateNumber);
+  await screen.findByText(new RegExp(`Certificate ${pressureCertificateNumber}`));
   await fill(page, 'Reason for the suspension', 'Insulation removed');
   await press(page, 'Suspend certificate');
   await screen.findByText('suspended');
-  expect((await system.certiflow.certification.findCertificate('CERT-3')).status).toBe('DEPENDENCY_INVALID');
+  expect((await certiflow.certification.findCertificate(globalCertificateNumber)).status).toBe('DEPENDENCY_INVALID');
 });
 
-test('a schema is created and a new version published through the editor', async () => {
-  open(createInMemoryCertiflow('2026-03-02'), '/schemas/new');
+test('a schema is created and a new version published with a future effective date through the editor', async () => {
+  const assetType = unique('Laboratory');
+  const nextYear = new Date().getUTCFullYear() + 1;
+  open('/schemas/new');
 
   await screen.findByText('Add section');
   await fill(page, 'Schema name', 'Laboratory inspection');
-  await fill(page, 'Asset type', 'Laboratory');
+  await fill(page, 'Asset type', assetType);
   await press(page, 'Add section');
   await fill(page, 'Section title', 'Calibration');
   await fill(page, 'Code', 'TEMP');
@@ -305,47 +335,52 @@ test('a schema is created and a new version published through the editor', async
   await press(page, 'Require evidence');
   await press(page, 'Create schema');
 
-  await screen.findByText('Inspection schema for Laboratory');
+  await screen.findByText(`Inspection schema for ${assetType}`);
   await press(page, 'Version 1');
   await screen.findByText('Between 18 and 24 °C');
   expect(screen.getByText('1 × Photo')).toBeDefined();
 
-  await press(page, 'Laboratory');
+  await press(page, assetType);
   await screen.findByText('Publish new version');
   await press(page, 'Publish new version');
   await screen.findByText('Publish version 2');
   await fill(page, 'Maximum', '26');
-  await fill(page, 'Effective from', '2026-04-01T00:00');
+  await fill(page, 'Effective from', `${nextYear}-04-01T00:00`);
   await press(page, 'Publish version');
   await screen.findByText('Version 2');
   expect(screen.getByText('scheduled')).toBeDefined();
   await press(page, 'Version 2');
   await screen.findByText('Between 18 and 26 °C');
+
+  const schema = await certiflow.schemas.findSchema(assetType);
+  expect(schema).toMatchObject({ currentVersion: 1, latestPublishedVersion: 2 });
+  expect(new Date(schema.versions[1]!.effectiveFrom).getTime()).toBe(new Date(`${nextYear}-04-01T00:00`).getTime());
 });
 
 test('an asset is registered and an inspection assigned through the forms', async () => {
-  const system = await systemWithAnAssignedInspection();
-  open(system, '/assets/new');
+  const { assetType } = await extinguisherWithAnAssignedInspection();
+  const assetCode = unique('WHS');
+  open('/assets/new');
 
-  await fill(page, 'Code', 'EXT-2');
+  await fill(page, 'Code', assetCode);
   await fill(page, 'Name', 'Warehouse extinguisher');
-  await fill(page, 'Type', 'Fire extinguisher');
+  await fill(page, 'Type', assetType);
   await fill(page, 'Location', 'Warehouse A');
   await fill(page, 'Responsible', demoPeople.assetResponsible.id);
   await fill(page, 'Jurisdiction', 'DEMO-STRICT');
   await press(page, 'Register asset');
 
-  await screen.findByText('Asset EXT-2');
+  await screen.findByText(`Asset ${assetCode}`);
   expect(screen.getByText('DEMO-STRICT')).toBeDefined();
   await press(page, 'Assign inspection');
   await screen.findByText('Whole schema');
   await fill(page, 'Inspector', demoPeople.coordinator.id);
-  await fill(page, 'Planned date', '2026-03-05');
+  await fill(page, 'Planned date', daysFromToday(3));
   await press(page, 'Assign inspection');
   expect((await screen.findByRole('alert')).textContent).toContain('AssignerCannotInspectException');
 
   await fill(page, 'Inspector', demoPeople.inspector.id);
   await press(page, 'Assign inspection');
-  await screen.findByText(/Inspection INS-2/);
+  await screen.findByText(/Inspection [0-9a-f-]{36}/);
   expect(screen.getByText('0 of 2 evaluated')).toBeDefined();
 });

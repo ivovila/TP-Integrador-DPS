@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { PersonPicker } from '../shared/PersonPicker';
-import { useDemoControls } from './CertiflowContext';
 import { useSession } from './SessionContext';
 
 const navigation = [
@@ -14,16 +12,6 @@ const navigation = [
 
 export function Layout() {
   const { actingPerson, actAs } = useSession();
-  const demoControls = useDemoControls();
-  const [today, setToday] = useState(demoControls?.today() ?? '');
-
-  function changeToday(date: string): void {
-    if (date === '') {
-      return;
-    }
-    demoControls?.setToday(date);
-    setToday(date);
-  }
 
   return (
     <>
@@ -37,19 +25,11 @@ export function Layout() {
           ))}
         </nav>
         <div className="session">
-          {demoControls !== undefined && (
-            <div className="field">
-              <label>
-                Today (demo)
-                <input type="date" value={today} onChange={(event) => changeToday(event.target.value)} />
-              </label>
-            </div>
-          )}
           <PersonPicker label="Acting as" person={actingPerson} onChange={actAs} />
         </div>
       </header>
       <main className="page">
-        <Outlet key={today} />
+        <Outlet />
       </main>
     </>
   );
