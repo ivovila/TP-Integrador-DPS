@@ -4,6 +4,8 @@ import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 
 public record SubsystemCode(String value) {
     public SubsystemCode {
-        if (value == null || value.isBlank()) { throw new RequiredValueMissingException("Subsystem code is required"); }
+        if (value.isBlank()) {
+            throw new RequiredValueMissingException("Subsystem code is required");
+        }
     }
 }

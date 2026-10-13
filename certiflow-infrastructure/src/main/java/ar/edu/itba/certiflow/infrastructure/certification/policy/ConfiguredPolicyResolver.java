@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.JurisdictionPolicy;
 import ar.edu.itba.certiflow.certification.model.RegisteredJurisdictions;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.InvalidPersistenceSetupException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public final class ConfiguredPolicyResolver implements CertificationPolicyResolv
     public ConfiguredPolicyResolver(Map<JurisdictionCode, CertificationPolicy> policies) {
         this.policies = Map.copyOf(policies);
         if (policies.isEmpty()) {
-            throw new IllegalArgumentException("At least one jurisdiction policy is required");
+            throw new InvalidPersistenceSetupException("At least one jurisdiction policy is required");
         }
     }
 

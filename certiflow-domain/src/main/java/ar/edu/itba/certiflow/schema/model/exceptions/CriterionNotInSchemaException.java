@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.schema.model.exceptions;
 
 import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.shared.model.DomainException;
+import ar.edu.itba.certiflow.shared.model.NotFoundException;
 
-public class CriterionNotInSchemaException extends DomainException {
+public class CriterionNotInSchemaException extends NotFoundException {
 
     public CriterionNotInSchemaException(Criterion<?> criterion) {
         this(criterion.code());

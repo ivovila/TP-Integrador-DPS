@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Subsystem;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.inspection.model.exceptions.AssetLacksRequiredSubsystemsException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotAssignInspectionException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssetResponsibleCannotInspectOwnAssetException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.AssignerCannotInspectException;
@@ -16,7 +17,6 @@ import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.Evidence;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
-import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
@@ -45,7 +45,7 @@ public final class Inspection implements InspectionView {
     Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Stamp assigned) {
         if (!asset.subsystems().stream().map(Subsystem::code).collect(Collectors.toSet())
                 .containsAll(schemaVersion.requiredSubsystems())) {
-            throw new InvalidSchemaException("Asset lacks required subsystems");
+            throw new AssetLacksRequiredSubsystemsException(asset.code());
         }
         Person assignedBy = assigned.by();
         Person inspector = assignment.inspector();

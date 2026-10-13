@@ -1113,7 +1113,7 @@ export function describeCertiflowContract(
       test('an asset that lacks a required subsystem cannot be inspected with that schema', async () => {
         await registerBoiler(unique('BLR-0007'), 'DEMO-CONDITIONAL', [boilerSubsystems[0]!]);
         await createBoilerSchema();
-        await expectRejection(assignInspection(unique('BLR-0007')), 'InvalidSchemaException');
+        await expectRejection(assignInspection(unique('BLR-0007')), 'AssetLacksRequiredSubsystemsException');
       });
 
       test('a finding belongs to the subsystem of its criterion, which overrides the one of its section', async () => {

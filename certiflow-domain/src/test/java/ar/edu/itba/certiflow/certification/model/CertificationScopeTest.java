@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.InSubsystem;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
+import ar.edu.itba.certiflow.certification.model.exceptions.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.usecase.ExplicitRenewalScope;
 import ar.edu.itba.certiflow.certification.usecase.SameScopeAsCurrent;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;

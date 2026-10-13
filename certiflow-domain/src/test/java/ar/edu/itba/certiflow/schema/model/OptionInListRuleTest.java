@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.schema.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

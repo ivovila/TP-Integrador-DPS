@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.certification.model;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.InspectionNotClosedForCertificationException;
+import ar.edu.itba.certiflow.certification.model.exceptions.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.util.List;
 

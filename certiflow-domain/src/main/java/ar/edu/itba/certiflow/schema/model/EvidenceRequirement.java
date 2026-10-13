@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import java.util.List;
 
 public record EvidenceRequirement(EvidenceKind kind, int minimum) {

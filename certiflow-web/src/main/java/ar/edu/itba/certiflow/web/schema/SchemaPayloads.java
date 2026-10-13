@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
-import ar.edu.itba.certiflow.schema.model.InvalidRuleConfigurationException;
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;

@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.schema.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
 import java.math.BigDecimal;
 import java.time.Instant;

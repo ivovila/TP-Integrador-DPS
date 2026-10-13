@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.scenario;
 
-import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
+import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerCommand;
 import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import java.util.Arrays;
 
 public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswer> {

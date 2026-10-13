@@ -9,7 +9,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateAudit;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
-import ar.edu.itba.certiflow.certification.model.SubsystemNotFoundException;
+import ar.edu.itba.certiflow.certification.model.exceptions.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.model.SubsystemScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;

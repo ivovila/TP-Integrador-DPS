@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.web.inspection;
 
-import ar.edu.itba.certiflow.schema.model.AnswerTypeMismatchException;
+import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import java.util.List;
 import java.util.function.Predicate;

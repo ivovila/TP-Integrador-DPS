@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.schema.model.exceptions;
 
-import ar.edu.itba.certiflow.shared.model.DomainException;
+import ar.edu.itba.certiflow.shared.model.NotFoundException;
 import java.time.Instant;
 
-public final class NoEffectiveSchemaVersionException extends DomainException {
+public final class NoEffectiveSchemaVersionException extends NotFoundException {
     public NoEffectiveSchemaVersionException(Instant at) {
         super("No schema version was effective at " + at);
     }

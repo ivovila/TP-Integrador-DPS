@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import java.math.BigDecimal;
 
 public record Range(BigDecimal minimum, BigDecimal maximum) {

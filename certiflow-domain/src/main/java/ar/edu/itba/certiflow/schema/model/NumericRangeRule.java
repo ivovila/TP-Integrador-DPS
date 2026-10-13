@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.schema.model.exceptions.AnswerTypeMismatchException;
 import java.math.BigDecimal;
 
 public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<NumericAnswer> {

@@ -2,10 +2,10 @@ package ar.edu.itba.certiflow.certification.model.exceptions;
 
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
-import ar.edu.itba.certiflow.shared.model.DomainException;
+import ar.edu.itba.certiflow.shared.model.RuleViolationException;
 import java.util.stream.Collectors;
 
-public class NotEligibleForCertificationException extends DomainException {
+public class NotEligibleForCertificationException extends RuleViolationException {
 
     private final CertificationDecision decision;
 

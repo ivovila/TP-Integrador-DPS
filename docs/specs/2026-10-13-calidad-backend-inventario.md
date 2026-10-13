@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `d04fcad` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `2911a01` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 276 | 5731 | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 3 | 1 | 0 | 1 | 0 |
+| domain | 282 | 5801 | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 0 | 0 | 0 | 1 | 0 |
 | application | 40 | 1519 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 1 | 0 | 0 |
-| infrastructure | 63 | 2476 | 0 | 0 | 0 | 2 | 0 | 1 | 2 | 24 | 2 | 0 | 0 | 2 |
-| web | 89 | 4079 | 0 | 6 | 0 | 7 | 6 | 4 | 41 | 62 | 7 | 2 | 23 | 3 |
-| **total** | 468 | 13805 | 0 | 6 | 0 | 9 | 6 | 5 | 69 | 89 | 10 | 3 | 24 | 5 |
+| infrastructure | 64 | 2487 | 0 | 0 | 0 | 2 | 0 | 1 | 2 | 24 | 1 | 0 | 0 | 2 |
+| web | 90 | 4074 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
+| **total** | 476 | 13881 | 0 | 5 | 0 | 7 | 6 | 4 | 67 | 84 | 8 | 3 | 22 | 5 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -28,7 +28,7 @@ Ninguna.
 
 ## 2. `instanceof`
 
-6 ocurrencias. Tareas del plan: 2 (alcance, base y alcance de inspección), 6 (`ApiExceptionHandler`), 11 (seguridad).
+5 ocurrencias. Tareas del plan: 2 (alcance, base y alcance de inspección), 6 (`ApiExceptionHandler`), 11 (seguridad).
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
@@ -37,7 +37,6 @@ Ninguna.
 | web | `web/security/TokenController.java:30` | `if (!(authentication instanceof JwtAuthenticationToken bearer)) {` |
 | web | `web/support/ActingPersonResolver.java:30` | `if (request.getUserPrincipal() instanceof JwtAuthenticationToken bearer) {` |
 | web | `web/support/ActingPersonResolver.java:33` | `if (request.getUserPrincipal() instanceof Authentication basic) {` |
-| web | `web/support/ApiExceptionHandler.java:87` | `if (exception instanceof NotEligibleForCertificationException notEligible) {` |
 
 ## 2.1 `instanceof` dentro de `equals` (aceptado)
 
@@ -65,7 +64,7 @@ Ninguna.
 
 ## 4. Tipo consultado por reflexión (`isInstance`, `cast`, `getClass`)
 
-9 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
+7 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
@@ -75,9 +74,7 @@ Ninguna.
 | web | `web/config/TransactionalUseCases.java:35` | `return useCase.cast(proxy);` |
 | web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
 | web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
-| web | `web/support/ApiExceptionHandler.java:85` | `problem.setType(URI.create("urn:certiflow:" + exception.getClass().getSimpleName()));` |
-| web | `web/support/ApiExceptionHandler.java:86` | `problem.setTitle(exception.getClass().getSimpleName());` |
-| web | `web/support/ApiExceptionHandler.java:96` | `for (Class<?> type = exception.getClass(); type != null; type = type.getSuperclass()) {` |
+| web | `web/support/ProblemDetails.java:21` | `return of(status, exception.getClass().getSimpleName(), exception.getMessage());` |
 
 ## 5. Casts a un tipo concreto (heurística)
 
@@ -94,7 +91,7 @@ Ninguna.
 
 ## 6. Registros por clase o por texto (heurística)
 
-5 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
+4 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
@@ -102,11 +99,10 @@ Ninguna.
 | web | `web/inspection/InspectionController.java:46` | `private static final Map<String, Boolean> CLOSED_BY_STATUS = Map.of("open", false, "closed", true);` |
 | web | `web/schema/SchemaPayloads.java:31` | `private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();` |
 | web | `web/schema/SchemaPayloads.java:41` | `private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(` |
-| web | `web/support/ApiExceptionHandler.java:35` | `private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_BY_EXCEPTION = Map.ofEntries(` |
 
 ## 7. Métodos y bloques estáticos
 
-69 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
+67 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
@@ -133,7 +129,6 @@ Ninguna.
 | web | `web/schema/SchemaPayloads.java` | 33, 54, 60, 66, 73, 80, 86, 92, 98, 103, 108, 113 |
 | web | `web/security/AllowedRoleInterceptor.java` | 33, 37 |
 | web | `web/security/SecurityConfiguration.java` | 89 |
-| web | `web/support/ApiExceptionHandler.java` | 75, 95 |
 | web | `web/support/AuditEntryResponse.java` | 11 |
 | web | `web/support/PageLinks.java` | 14, 22, 28, 45 |
 | web | `web/support/PersonPayload.java` | 13 |
@@ -142,13 +137,10 @@ Ninguna.
 
 ## 8. Literales `null`
 
-89 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
+84 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
-| domain | `catalog/model/JurisdictionCode.java` | 7 |
-| domain | `catalog/model/Subsystem.java` | 9 |
-| domain | `catalog/model/SubsystemCode.java` | 7 |
 | infrastructure | `infrastructure/certification/persistence/CertificateEntity.java` | 98 |
 | infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 36 |
 | infrastructure | `infrastructure/inspection/persistence/InspectionEntity.java` | 88 |
@@ -180,7 +172,6 @@ Ninguna.
 | web | `web/security/AllowedRoleInterceptor.java` | 27, 38 |
 | web | `web/security/JwtProperties.java` | 13, 16 |
 | web | `web/security/NotRevokedValidator.java` | 11, 21 |
-| web | `web/support/ApiExceptionHandler.java` | 96, 98 |
 | web | `web/support/RequestFields.java` | 12, 18, 21 |
 | web | `web/support/SubsystemCodeField.java` | 17 |
 
@@ -193,7 +184,7 @@ Ninguna.
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:36` | `Optional.ofNullable(arguments).stream().flatMap(Arrays::stream)` |
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:45` | `return Optional.ofNullable(assetCodeByOwner.get(key.owner()))` |
 | infrastructure | `infrastructure/certification/persistence/StoredScope.java:13` | `return Optional.ofNullable(subsystemCode)` |
-| infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:27` | `return Optional.ofNullable(policies.get(jurisdictionCode));` |
+| infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:28` | `return Optional.ofNullable(policies.get(jurisdictionCode));` |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnswering.java:28` | `return Optional.ofNullable(answerType)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellation.java:15` | `return Optional.ofNullable(cancelledAt)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredInspectionScope.java:14` | `return Optional.ofNullable(scopeSections)` |
@@ -215,12 +206,9 @@ Ninguna.
 
 ## 8.2 `Objects.requireNonNull`
 
-2 ocurrencias. Tareas del plan: 6.
+0 ocurrencias. Tareas del plan: 6.
 
-| Módulo | Ubicación | Línea |
-|---|---|---|
-| domain | `catalog/model/Asset.java:16` | `Objects.requireNonNull(jurisdictionCode, "jurisdictionCode");` |
-| domain | `catalog/model/Subsystem.java:8` | `Objects.requireNonNull(code);` |
+Ninguna.
 
 ## 8.3 Parámetros de query opcionales
 
@@ -238,13 +226,11 @@ Ninguna.
 
 ## 9. `IllegalArgumentException` e `IllegalStateException`
 
-10 ocurrencias. Tareas del plan: 1, 6, 11.
+8 ocurrencias. Tareas del plan: 1, 6, 11.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| domain | `shared/model/PageRequest.java:8` | `throw new IllegalArgumentException("page must be 0 or more and size 1 or more");` |
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:46` | `.orElseThrow(() -> new IllegalStateException("Unknown lock owner " + key.owner()))` |
-| infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:21` | `throw new IllegalArgumentException("At least one jurisdiction policy is required");` |
 | web | `web/config/TransactionalUseCases.java:31` | `throw new IllegalStateException(failure);` |
 | web | `web/config/TransactionalUseCases.java:45` | `return new IllegalStateException(cause);` |
 | web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
@@ -265,7 +251,7 @@ Ninguna.
 
 ## 11. `if` cuyo cuerpo no lanza (heurística)
 
-24 ocurrencias. Tareas del plan: 2, 9, 10, 11. El de `Finding.verifyAction` está aceptado (D8) y los de `TransactionalUseCases` también.
+22 ocurrencias. Tareas del plan: 2, 9, 10, 11. El de `Finding.verifyAction` está aceptado (D8) y los de `TransactionalUseCases` también.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
@@ -288,8 +274,6 @@ Ninguna.
 | web | `web/security/SecurityProblems.java:28` | `if (!BROWSER_REQUEST_VALUE.equals(request.getHeader(BROWSER_REQUEST_HEADER))) {` |
 | web | `web/support/ActingPersonResolver.java:30` | `if (request.getUserPrincipal() instanceof JwtAuthenticationToken bearer) {` |
 | web | `web/support/ActingPersonResolver.java:33` | `if (request.getUserPrincipal() instanceof Authentication basic) {` |
-| web | `web/support/ApiExceptionHandler.java:87` | `if (exception instanceof NotEligibleForCertificationException notEligible) {` |
-| web | `web/support/ApiExceptionHandler.java:98` | `if (status != null) {` |
 | web | `web/support/PageLinks.java:36` | `if (number > 0) {` |
 | web | `web/support/PageLinks.java:39` | `if (number < totalPages - 1) {` |
 | web | `web/support/RequestFields.java:18` | `if (values == null) {` |

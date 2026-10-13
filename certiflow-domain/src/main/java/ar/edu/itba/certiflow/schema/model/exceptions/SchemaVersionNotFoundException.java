@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.schema.model.exceptions;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.shared.model.DomainException;
+import ar.edu.itba.certiflow.shared.model.NotFoundException;
 
-public final class SchemaVersionNotFoundException extends DomainException {
+public final class SchemaVersionNotFoundException extends NotFoundException {
     public SchemaVersionNotFoundException(AssetType assetType, int number) {
         super("Schema " + assetType.name() + " has no version " + number);
     }

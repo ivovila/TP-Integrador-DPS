@@ -5,7 +5,7 @@ public record PageRequest(int number, int size) {
 
     public PageRequest {
         if (number < 0 || size < 1) {
-            throw new IllegalArgumentException("page must be 0 or more and size 1 or more");
+            throw new InvalidPageRequestException(number, size);
         }
     }
 
