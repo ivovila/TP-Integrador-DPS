@@ -11,6 +11,6 @@ public record CriterionPayload(String code, String text, String severity, RulePa
         RequestFields.require(text, "criterion.text");
         RequestFields.require(severity, "criterion.severity");
         RequestFields.require(rule, "criterion.rule");
-        requiredEvidence = requiredEvidence == null ? List.of() : requiredEvidence;
+        requiredEvidence = RequestFields.requireElements(requiredEvidence, "requiredEvidence");
     }
 }

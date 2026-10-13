@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.schema;
 
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,5 +44,25 @@ class SchemaApiTest extends ApiTest {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/v1/schemas/Fire extinguisher/versions/1").header("If-None-Match", etag))
                 .andExpect(status().isNotModified());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "\"rule\":{\"type\":\"numeric-range\",\"minimum\":6.00,\"maximum\":8.00}",
+            "\"rule\":{\"type\":\"numeric-range\",\"unit\":\"bar\"}",
+            "\"rule\":{\"type\":\"yes-no\",\"expected\":\"MAYBE\"}",
+            "\"rule\":{\"type\":\"yes-no\"}",
+            "\"rule\":{\"type\":\"option-in-list\"}"})
+    void anIncompleteRuleIs400(String rule) throws Exception {
+        String schema = "{\"name\":\"S\",\"assetType\":\"Boiler\",\"sections\":[{\"title\":\"T\",\"criteria\":["
+                + "{\"code\":\"B-1\",\"text\":\"Check\",\"severity\":\"MAJOR\"," + rule + "}]}]}";
+
+        postAs("EMP-001", "/api/v1/schemas", schema).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aNullSectionIs400() throws Exception {
+        postAs("EMP-001", "/api/v1/schemas", "{\"name\":\"S\",\"assetType\":\"Boiler\",\"sections\":[null]}")
+                .andExpect(status().isBadRequest());
     }
 }

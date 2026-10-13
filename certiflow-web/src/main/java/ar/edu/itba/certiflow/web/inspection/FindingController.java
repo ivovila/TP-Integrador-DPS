@@ -10,7 +10,6 @@ import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
-import ar.edu.itba.certiflow.inspection.usecase.FindingsSummary;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateFindingsSummaryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
@@ -27,7 +26,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
@@ -112,10 +110,11 @@ public class FindingController {
     }
 
     @GetMapping("/assets/{code}/findings-summary")
-    public EntityModel<FindingsSummary> summary(@PathVariable String code) {
-        return EntityModel.of(generateFindingsSummary.execute(new AssetCode(code)),
-                linkTo(methodOn(FindingController.class).summary(code)).withSelfRel(),
+    public FindingsSummaryResource summary(@PathVariable String code) {
+        FindingsSummaryResource summary = new FindingsSummaryResource(generateFindingsSummary.execute(new AssetCode(code)));
+        summary.add(linkTo(methodOn(FindingController.class).summary(code)).withSelfRel(),
                 Link.of("/api/v1/assets/" + code).withRel("asset"));
+        return summary;
     }
 
     private FindingResource resource(Finding finding) {

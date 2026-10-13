@@ -7,6 +7,6 @@ public record SectionPayload(String title, List<CriterionPayload> criteria) {
 
     public SectionPayload {
         RequestFields.require(title, "section.title");
-        criteria = criteria == null ? List.of() : criteria;
+        criteria = RequestFields.requireElements(criteria, "criteria");
     }
 }

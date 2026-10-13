@@ -8,6 +8,6 @@ public record SchemaRequest(String name, String assetType, List<SectionPayload> 
     public SchemaRequest {
         RequestFields.require(name, "name");
         RequestFields.require(assetType, "assetType");
-        sections = sections == null ? List.of() : sections;
+        sections = RequestFields.requireElements(sections, "sections");
     }
 }

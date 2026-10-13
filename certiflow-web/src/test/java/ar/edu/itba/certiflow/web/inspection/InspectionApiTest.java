@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.inspection;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -139,5 +141,23 @@ class InspectionApiTest extends ApiTest {
         answerAll("7.00");
 
         read(inspection + "/audit-entries").andExpect(jsonPath("$._embedded.auditEntries.length()").value(5));
+    }
+
+    @Test
+    void aFailureAfterTheAuditEntryIsWrittenRollsTheEntryBack() throws Exception {
+        Integer before = jdbc.queryForObject("select count(*) from audit_entry", Integer.class);
+
+        postAs("EMP-002", inspection + "/responses/EXT-01/evidence",
+                "{\"kind\":\"PHOTO\",\"reference\":\"" + "r".repeat(600) + "\",\"description\":\"G\"}")
+                .andExpect(status().isBadRequest());
+
+        org.junit.jupiter.api.Assertions.assertEquals(before, jdbc.queryForObject("select count(*) from audit_entry", Integer.class));
+    }
+
+    @Test
+    void theDecimalScaleReachesTheClient() throws Exception {
+        putAs("EMP-002", inspection + "/responses/EXT-01/answer", "{\"value\":7.00}");
+
+        read(inspection + "/responses/EXT-01").andExpect(content().string(containsString("\"answer\":7.00")));
     }
 }

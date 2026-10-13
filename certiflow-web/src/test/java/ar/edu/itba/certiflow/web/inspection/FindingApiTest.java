@@ -71,4 +71,13 @@ class FindingApiTest extends ApiTest {
     void anUnknownActionIs404() throws Exception {
         read(finding + "/corrective-actions/9").andExpect(status().isNotFound());
     }
+
+    @Test
+    void theFindingsSummaryUsesPlainValues() throws Exception {
+        read("/api/v1/assets/EXT-0042/findings-summary")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assetCode").value("EXT-0042"))
+                .andExpect(jsonPath("$.findings[0].responsible.id").value("EMP-003"))
+                .andExpect(jsonPath("$.openFindings").value(1));
+    }
 }

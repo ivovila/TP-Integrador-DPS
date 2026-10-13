@@ -16,6 +16,9 @@ public record AssignmentRequest(String assetCode, PersonPayload inspector, Local
         RequestFields.require(assetCode, "assetCode");
         RequestFields.require(inspector, "inspector");
         RequestFields.require(plannedDate, "plannedDate");
+        if (sections != null && sections.contains(null)) {
+            throw new ar.edu.itba.certiflow.shared.model.RequiredValueMissingException("Field sections contains a null element");
+        }
     }
 
     AssignInspectionCommand toCommand(Person assignedBy) {

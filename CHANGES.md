@@ -422,3 +422,18 @@ Cambios hechos para la Entrega 2, siguiendo
 
 ## E2.16. CI y base local
 - `.github/workflows/ci.yml` (`mvn -B clean verify`) y `docker-compose.yml` con PostgreSQL 17.
+
+## E2.17. Correcciones de la revisión final
+- Paginación con `page < 0` o `size < 1` responde 400 en lugar de 500 (`PageLinks`).
+- Una regla incompleta en un esquema (sin unidad, sin límites, `expected` inválido, sin opciones) o un elemento
+  `null` en una lista del request responde 400 en lugar de 500 (`SchemaPayloads`, `RequestFields.requireElements`).
+- Un valor más largo que su columna responde 400 y una clave duplicada 409, en `problem+json` (`ApiExceptionHandler`).
+- El resumen de hallazgos, el documento del certificado y las razones de no elegibilidad se devuelven con recursos
+  propios (`FindingsSummaryResource`, `CertificateDocumentResource`), sin serializar objetos de dominio.
+- La escala de los decimales se pierde al leer el JSON: la propiedad `use-big-decimal-for-floats` no tiene efecto en
+  Spring Boot 4. Se activa con un `JsonMapperBuilderCustomizer`. Los tests de API usan ahora la configuración real
+  del módulo web.
+- Tests: `AssetApiTest.invalidPagingIs400`, `aValueTooLongForStorageIs400`, `SchemaApiTest.anIncompleteRuleIs400`,
+  `aNullSectionIs400`, `InspectionApiTest.aFailureAfterTheAuditEntryIsWrittenRollsTheEntryBack`,
+  `theDecimalScaleReachesTheClient`, `FindingApiTest.theFindingsSummaryUsesPlainValues`,
+  `CertificateApiTest.theDocumentUsesPlainValues`.

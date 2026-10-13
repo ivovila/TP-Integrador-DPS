@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.catalog;
 
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -67,5 +69,18 @@ class AssetApiTest extends ApiTest {
                 .andExpect(jsonPath("$.page.totalElements").value(2))
                 .andExpect(jsonPath("$._links.next.href").exists())
                 .andExpect(jsonPath("$._links.prev").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"page=0&size=0", "page=-1&size=10", "page=0&size=-5"})
+    void invalidPagingIs400(String query) throws Exception {
+        read("/api/v1/assets?" + query).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aValueTooLongForStorageIs400() throws Exception {
+        postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("Lobby extinguisher", "x".repeat(300)))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string("Content-Type", "application/problem+json"));
     }
 }

@@ -7,7 +7,6 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
-import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
@@ -28,7 +27,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
@@ -87,10 +85,12 @@ public class CertificateController {
     }
 
     @GetMapping("/{number}/document")
-    public EntityModel<CertificateDocument> document(@PathVariable String number) {
-        return EntityModel.of(generateCertificateDocument.execute(new CertificateNumber(number)),
-                linkTo(methodOn(CertificateController.class).document(number)).withSelfRel(),
+    public CertificateDocumentResource document(@PathVariable String number) {
+        CertificateDocumentResource document = new CertificateDocumentResource(
+                generateCertificateDocument.execute(new CertificateNumber(number)));
+        document.add(linkTo(methodOn(CertificateController.class).document(number)).withSelfRel(),
                 linkTo(methodOn(CertificateController.class).find(number)).withRel("certificate"));
+        return document;
     }
 
     @PostMapping("/{number}/suspensions")

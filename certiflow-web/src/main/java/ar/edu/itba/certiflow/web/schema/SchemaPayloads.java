@@ -50,11 +50,12 @@ public final class SchemaPayloads {
         RulePayload rule = payload.rule();
         return switch (rule.type()) {
             case "numeric-range" -> new Criterion<>(payload.code(), payload.text(),
-                    new NumericRangeRule(new Unit(rule.unit()), new Range(rule.minimum(), rule.maximum())), severity, evidence);
-            case "yes-no" -> new Criterion<>(payload.code(), payload.text(), new YesNoRule(YesNoAnswer.valueOf(rule.expected())),
-                    severity, evidence);
-            case "option-in-list" -> new Criterion<>(payload.code(), payload.text(), new OptionInListRule(rule.options()), severity,
+                    new NumericRangeRule(new Unit(required(rule.unit(), "unit")),
+                            new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))), severity, evidence);
+            case "yes-no" -> new Criterion<>(payload.code(), payload.text(), new YesNoRule(expected(rule.expected())), severity,
                     evidence);
+            case "option-in-list" -> new Criterion<>(payload.code(), payload.text(),
+                    new OptionInListRule(required(rule.options(), "options")), severity, evidence);
             default -> throw new InvalidRuleConfigurationException("Unknown rule type " + rule.type());
         };
     }
@@ -67,6 +68,18 @@ public final class SchemaPayloads {
             case OptionInListRule option -> new RulePayload("option-in-list", null, null, null, null, option.acceptedOptions());
             default -> throw new IllegalStateException("No payload for rule " + rule.getClass().getName());
         };
+    }
+
+    private static <T> T required(T value, String field) {
+        if (value == null) {
+            throw new InvalidRuleConfigurationException("The rule needs a " + field);
+        }
+        return value;
+    }
+
+    private static YesNoAnswer expected(String name) {
+        return Arrays.stream(YesNoAnswer.values()).filter(answer -> answer.name().equals(name)).findFirst()
+                .orElseThrow(() -> new InvalidRuleConfigurationException("A yes/no rule expects YES or NO, not " + name));
     }
 
     private static Severity severity(String name) {

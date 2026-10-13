@@ -83,4 +83,13 @@ class CertificateApiTest extends ApiTest {
     void anUnknownCertificateIs404() throws Exception {
         read("/api/v1/certificates/CERT-99999").andExpect(status().isNotFound());
     }
+
+    @Test
+    void theDocumentUsesPlainValues() throws Exception {
+        read(certificate + "/document")
+                .andExpect(jsonPath("$.number").value("CERT-00001"))
+                .andExpect(jsonPath("$.assetCode").value("EXT-0042"))
+                .andExpect(jsonPath("$.validUntil").value(LocalDate.now().plusYears(1).toString()))
+                .andExpect(jsonPath("$.issuedBy.id").value("EMP-006"));
+    }
 }

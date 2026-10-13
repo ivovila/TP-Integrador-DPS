@@ -242,7 +242,7 @@ determinista y los tests usan un reloj controlable.
   - *El agregado recibe el `AuditLog` y registra directamente:* evita el paso del caso de uso, pero el agregado quedaría acoplado a un puerto.
   - *Decorar casos de uso:* exige una interfaz genérica común a todos los casos de uso y audita con la granularidad equivocada, porque `CloseInspection` produce hechos de dos agregados.
   - *Bitácora global con `AuditEntry(Object subject, ...)`:* compilaba `entriesFor(asset)` y devolvía una lista vacía sin aviso. El sujeto como parámetro genérico del puerto dice qué se puede auditar.
-- **Costo:** el volcado ocurre al ejecutar el comando, antes de que el caso de uso guarde el agregado. Desde la Entrega 2 los dos pasos corren en la misma transacción (D20): si el `save` falla, la entrada de bitácora también se descarta. Los tests de integración comprueban el historial de cada operación y `InspectionApiTest.closingWithPendingCriteriaIs409AndLeavesNoAuditTrace` que una operación rechazada no deja filas.
+- **Costo:** el volcado ocurre al ejecutar el comando, antes de que el caso de uso guarde el agregado. Desde la Entrega 2 los dos pasos corren en la misma transacción (D20): si el `save` falla, la entrada de bitácora también se descarta. Los tests de integración comprueban el historial de cada operación y `InspectionApiTest.aFailureAfterTheAuditEntryIsWrittenRollsTheEntryBack` que una entrada ya escrita se descarta si el guardado falla después.
 
 ### D8. Política de condicionales
 
@@ -443,9 +443,12 @@ determinista y los tests usan un reloj controlable.
 | Un agregado reconstruido se comporta distinto o repite su auditoría de nacimiento | `SnapshotTest` |
 | La bitácora no se encuentra para un agregado leído de la base | `AggregateIdentityTest.historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate`, `JpaAuditLogTest` |
 | Un agregado leído de la base pierde estado o la escala de un decimal | `JpaAssetRepositoryTest`, `JpaInspectionSchemaRepositoryTest`, `JpaInspectionRepositoryTest` (incluye `decimalScaleSurvivesTheDatabase`), `JpaFindingRepositoryTest`, `JpaCertificateRepositoryTest`, `SectionsJsonTest` |
-| Una operación rechazada deja auditoría en la base | `InspectionApiTest.closingWithPendingCriteriaIs409AndLeavesNoAuditTrace`, `TransactionalUseCasesTest` |
+| Una operación rechazada deja auditoría en la base | `InspectionApiTest.aFailureAfterTheAuditEntryIsWrittenRollsTheEntryBack` (la entrada se escribe y el guardado falla después), `closingWithPendingCriteriaIs409AndLeavesNoAuditTrace`, `TransactionalUseCasesTest` |
 | La API ofrece transiciones inválidas para el estado del recurso | `InspectionApiTest.anOpenInspectionOffersItsResponsesAndClosureButNotRectifications`, `closingCreatesTheFirstRevisionAndLinksTheFindingsItRaised`, `CertificateApiTest.suspendingLeavesItSuspendedWithoutAnotherSuspensionAndCannotBeRepeated`, `renewingIssuesANewCertificateAndRetiresTheOldOne`, `EndToEndApiTest` |
 | La API responde un estado HTTP incorrecto | `AssetApiTest` (201 + `Location`, 409, 404 `problem+json`, 400 sin persona, 400 JSON inválido), `RootControllerTest.anUnsupportedMethodIs405`, `CertificateApiTest.issuingTwiceForTheSameAssetIs409`, `FindingApiTest` |
+| Un error del cliente termina en 500 (paginación inválida, regla incompleta, valor demasiado largo, elementos nulos) | `AssetApiTest.invalidPagingIs400`, `aValueTooLongForStorageIs400`, `SchemaApiTest.anIncompleteRuleIs400`, `aNullSectionIs400` |
+| La API expone la forma interna de los objetos de dominio | `FindingApiTest.theFindingsSummaryUsesPlainValues`, `CertificateApiTest.theDocumentUsesPlainValues` |
+| La escala de un decimal se pierde en la respuesta HTTP | `InspectionApiTest.theDecimalScaleReachesTheClient` |
 | Paginación o caché mal resueltas | `AssetApiTest.assetsAreListedByTypeInPages`, `SchemaApiTest.aVersionThatDidNotChangeAnswers304ToItsETag` |
 | El flujo completo no funciona por HTTP | `EndToEndApiTest.anAssetGoesFromInspectionToCertificateFollowingTheLinks` |
 
@@ -457,7 +460,7 @@ Tipos de test:
 - **De repositorio** en `certiflow-infrastructure`: `@DataJpaTest` con Flyway sobre H2 real.
 - **De API** en `certiflow-web`: `@SpringBootTest` + `MockMvc` sobre la aplicación completa con H2.
 
-Total: 239 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total: 224 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
@@ -465,7 +468,7 @@ Total: 239 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 - **El agregado no exige que se lo guarde.** El servicio ejecuta el comando y audita; persistir sigue siendo responsabilidad del caso de uso (D14). Un caso de uso nuevo que olvidara el `save` perdería el cambio, aunque la bitácora lo muestre.
 - **Responsable del activo congelado.** La inspección guarda quién era el responsable del activo cuando se la asignó (D3), y es a quien se le atribuyen sus hallazgos. Si el responsable cambia después, los hallazgos viejos siguen a nombre del anterior, que es lo que corresponde para el acta, pero significa que ese dato no se actualiza.
-- **Unicidad con concurrencia.** `RegisterAsset` y `CreateInspectionSchema` consultan el repositorio antes de guardar. Con escrituras concurrentes, la clave primaria de `asset` (código) y de `inspection_schema` (tipo de activo) hace fallar la segunda inserción, pero llega como error de base y no como la excepción de dominio.
+- **Unicidad con concurrencia.** `RegisterAsset` y `CreateInspectionSchema` consultan el repositorio antes de guardar. Con escrituras concurrentes, la clave primaria de `asset` (código) y de `inspection_schema` (tipo de activo) hace fallar la segunda inserción, pero llega como error de base: la API lo responde como 409 (`DuplicateKeyException`) y no como la excepción de dominio. Un valor más largo que su columna responde 400 (`DataIntegrityViolationException`); no hay validación de largo en los DTOs.
 - **Sin vista cronológica global.** Cada tipo de agregado tiene su propio historial (D7). Una consulta del estilo "todo lo que pasó el martes" exigiría recorrer los tres historiales o sumar un puerto de lectura global cuando algún caso de uso lo pida.
 - **Rectificación.** Levanta los hallazgos que introduce, pero no revisa ni cierra los ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).

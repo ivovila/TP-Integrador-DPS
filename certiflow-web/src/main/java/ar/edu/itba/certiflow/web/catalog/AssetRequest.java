@@ -28,7 +28,7 @@ public record AssetRequest(String code, String name, String type, String locatio
         RequestFields.require(type, "type");
         RequestFields.require(location, "location");
         RequestFields.require(responsible, "responsible");
-        characteristics = characteristics == null ? List.of() : characteristics;
+        characteristics = RequestFields.requireElements(characteristics, "characteristics");
     }
 
     RegisterAssetCommand toCommand(Person registeredBy) {
