@@ -449,6 +449,11 @@ determinista y los tests usan un reloj controlable.
 | Un error del cliente termina en 500 (paginación inválida, regla incompleta, valor demasiado largo, elementos nulos) | `AssetApiTest.invalidPagingIs400`, `aValueTooLongForStorageIs400`, `SchemaApiTest.anIncompleteRuleIs400`, `aNullSectionIs400` |
 | La API expone la forma interna de los objetos de dominio | `FindingApiTest.theFindingsSummaryUsesPlainValues`, `CertificateApiTest.theDocumentUsesPlainValues` |
 | La escala de un decimal se pierde en la respuesta HTTP | `InspectionApiTest.theDecimalScaleReachesTheClient` |
+| Un link con valores reservados (`&`, comillas) o un ETag inválido | `AssetApiTest.linksEncodeValuesWithReservedCharacters`, `SchemaApiTest.theETagIsAValidHeaderWhateverTheAssetType` |
+| Un 201 no apunta al recurso creado | `InspectionApiTest.evidenceAndObservationsAreResourcesOfTheirOwn`, `CertificateApiTest.aSuspensionIsAResourceOfItsOwn`, `FindingApiTest.aVerificationIsAResourceOfItsOwn` |
+| Un recurso inexistente o fuera de alcance responde distinto según el método o sin `problem+json` | `InspectionApiTest.aMissingRevisionIs404AsProblemJson`, `answeringACriterionOutsideTheScopeIs404LikeReadingIt`, `SchemaApiTest.aMissingVersionIs404AsProblemJson` |
+| La raíz anuncia una colección que no se puede leer | `InspectionApiTest.inspectionsAreListedByAssetAndStatusInPages` |
+| La persistencia altera el alcance, la precisión de los instantes o reescribe filas sin cambios | `JpaInspectionRepositoryTest.aSectionTitleWithALineBreakSurvivesTheScope`, `aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed`, `recordingOneAnswerDoesNotRewriteTheEvidenceAndObservations`, `rectifyingDoesNotRewriteTheRevisionsAlreadySealed` |
 | Paginación o caché mal resueltas | `AssetApiTest.assetsAreListedByTypeInPages`, `SchemaApiTest.aVersionThatDidNotChangeAnswers304ToItsETag` |
 | El flujo completo no funciona por HTTP | `EndToEndApiTest.anAssetGoesFromInspectionToCertificateFollowingTheLinks` |
 
@@ -460,7 +465,7 @@ Tipos de test:
 - **De repositorio** en `certiflow-infrastructure`: `@DataJpaTest` con Flyway sobre H2 real.
 - **De API** en `certiflow-web`: `@SpringBootTest` + `MockMvc` sobre la aplicación completa con H2.
 
-Total: 224 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
