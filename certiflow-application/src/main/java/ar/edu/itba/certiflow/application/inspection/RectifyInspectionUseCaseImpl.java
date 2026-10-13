@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionCommand;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -36,7 +37,7 @@ public final class RectifyInspectionUseCaseImpl implements RectifyInspectionUseC
         Inspection inspection = inspectionRepository.findById(command.inspectionId())
                 .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
         InspectionRectified rectification = inspectionService.rectify(inspection, command.criterionCode(), command.answer(),
-                command.reason(), command.rectifiedBy(), clock.instant());
+                command.reason(), new Stamp(command.rectifiedBy(), clock.instant()));
         List<Finding> raisedFindings = findingService.raiseFrom(rectification,
                 findingRepository.findByAsset(inspection.assetCode()), findingRepository::nextId);
         inspectionRepository.save(inspection);

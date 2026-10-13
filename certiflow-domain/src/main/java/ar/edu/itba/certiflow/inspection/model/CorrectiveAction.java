@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.inspection.model.exceptions.DueDateInThePastExcepti
 import ar.edu.itba.certiflow.inspection.model.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,19 +18,17 @@ public final class CorrectiveAction {
     private final String description;
     private final Person responsible;
     private final LocalDate dueDate;
-    private final Person plannedBy;
-    private final Instant plannedAt;
+    private final Stamp planned;
     private final List<Verification> verifications = new ArrayList<>();
     private Cancellation cancellation;
 
-    CorrectiveAction(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate, Person plannedBy,
-                     Instant plannedAt, LocalDate plannedOn) {
+    CorrectiveAction(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate, Stamp planned,
+                     LocalDate plannedOn) {
         this.id = id;
         this.description = description;
         this.responsible = responsible;
         this.dueDate = dueDate;
-        this.plannedBy = plannedBy;
-        this.plannedAt = plannedAt;
+        this.planned = planned;
         if (description.isBlank()) {
             throw new RequiredValueMissingException("A corrective action must describe what will be done");
         }
@@ -43,30 +42,28 @@ public final class CorrectiveAction {
         this.description = snapshot.description();
         this.responsible = snapshot.responsible();
         this.dueDate = snapshot.dueDate();
-        this.plannedBy = snapshot.plannedBy();
-        this.plannedAt = snapshot.plannedAt();
+        this.planned = snapshot.planned();
         this.verifications.addAll(snapshot.verifications());
         this.cancellation = snapshot.cancellation().orElse(null);
     }
 
     CorrectiveActionSnapshot snapshot() {
-        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, plannedBy, plannedAt, verifications(),
-                cancellation());
+        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, planned, verifications(), cancellation());
     }
 
-    Verification verify(Person verifier, VerificationResult verificationResult, String verificationNotes, Instant verifiedAt) {
+    Verification verify(VerificationResult verificationResult, String verificationNotes, Stamp verified) {
         ensureOpen();
-        if (verifier.equals(responsible)) {
-            throw new VerifierMustDifferFromResponsibleException(verifier);
+        if (verified.by().equals(responsible)) {
+            throw new VerifierMustDifferFromResponsibleException(verified.by());
         }
-        Verification verification = new Verification(verifier, verificationResult, verificationNotes, verifiedAt);
+        Verification verification = new Verification(verificationResult, verificationNotes, verified);
         verifications.add(verification);
         return verification;
     }
 
-    void cancel(Person cancelledBy, Instant cancelledAt) {
+    void cancel(Stamp cancelled) {
         ensureOpen();
-        cancellation = new Cancellation(cancelledBy, cancelledAt);
+        cancellation = new Cancellation(cancelled);
     }
 
     public boolean isClosed() {
@@ -106,11 +103,11 @@ public final class CorrectiveAction {
     }
 
     public Person plannedBy() {
-        return plannedBy;
+        return planned.by();
     }
 
     public Instant plannedAt() {
-        return plannedAt;
+        return planned.at();
     }
 
     public List<Verification> verifications() {

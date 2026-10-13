@@ -1,8 +1,7 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
-import ar.edu.itba.certiflow.shared.model.Person;
-import java.time.Instant;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +25,9 @@ final class CorrectiveActions {
         return actions.stream().map(CorrectiveAction::snapshot).toList();
     }
 
-    CorrectiveAction plan(String description, Person responsible, LocalDate dueDate, Person plannedBy,
-                          Instant plannedAt, LocalDate plannedOn) {
-        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), description,
-                responsible, dueDate, plannedBy, plannedAt, plannedOn);
+    CorrectiveAction plan(ActionPlan plan, Stamp planned, LocalDate plannedOn) {
+        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), plan.description(),
+                plan.responsible(), plan.dueDate(), planned, plannedOn);
         actions.add(plannedAction);
         return plannedAction;
     }
@@ -42,8 +40,8 @@ final class CorrectiveActions {
     }
 
     /** Una acción aceptada cierra el hallazgo; las demás se cancelan para que ninguna quede huérfana. */
-    void cancelOpen(Person cancelledBy, Instant cancelledAt) {
-        actions.stream().filter(CorrectiveAction::isOpen).forEach(openAction -> openAction.cancel(cancelledBy, cancelledAt));
+    void cancelOpen(Stamp cancelled) {
+        actions.stream().filter(CorrectiveAction::isOpen).forEach(openAction -> openAction.cancel(cancelled));
     }
 
     boolean noneAccepted() {

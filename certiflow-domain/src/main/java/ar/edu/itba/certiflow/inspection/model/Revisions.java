@@ -1,8 +1,7 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotClosedException;
-import ar.edu.itba.certiflow.shared.model.Person;
-import java.time.Instant;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -21,8 +20,8 @@ public record Revisions(List<Revision> revisions) {
     }
 
     /** Sella una revisión nueva con el número siguiente. La inspección queda cerrada con la primera. */
-    public Revisions sealedWith(String reason, Evaluation evaluation, Person sealedBy, Instant sealedAt) {
-        Revision revision = new Revision(revisions.size() + 1, reason, evaluation, sealedBy, sealedAt);
+    public Revisions sealedWith(String reason, Evaluation evaluation, Stamp sealed) {
+        Revision revision = new Revision(revisions.size() + 1, reason, evaluation, sealed);
         return new Revisions(Stream.concat(revisions.stream(), Stream.of(revision)).toList());
     }
 

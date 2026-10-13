@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
@@ -41,7 +42,7 @@ public final class AssignInspectionUseCaseImpl implements AssignInspectionUseCas
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type()));
         Instant startedAt = StoredInstant.normalize(clock.instant());
         Inspection inspection = inspectionService.assign(inspectionRepository.nextId(), asset, command.assignment(),
-                schema.versionAt(startedAt), command.assignedBy(), startedAt);
+                schema.versionAt(startedAt), new Stamp(command.assignedBy(), startedAt));
         inspectionRepository.save(inspection);
         return inspection.id();
     }

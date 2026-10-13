@@ -6,6 +6,7 @@ import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 
 public record InspectionSchema(String name, AssetType assetType, SchemaVersionLog versionLog) {
 
@@ -19,14 +20,6 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
         this(name, assetType, SchemaVersionLog.startingWith(sections, publishedAt));
     }
 
-    public InspectionSchema withNewVersion(List<Section> sections, Instant publishedAt) {
-        return new InspectionSchema(name, assetType, versionLog.append(sections, publishedAt));
-    }
-
-    public InspectionSchema withNewVersion(List<Section> sections, Instant publishedAt, Instant effectiveFrom) {
-        return new InspectionSchema(name, assetType, versionLog.append(sections, publishedAt, effectiveFrom));
-    }
-
     public InspectionSchema withNewVersion(List<Section> sections, Instant publishedAt, Instant effectiveFrom,
             Set<SubsystemCode> requiredSubsystems) {
         return new InspectionSchema(name, assetType, versionLog.append(sections, publishedAt, effectiveFrom, requiredSubsystems));
@@ -34,6 +27,11 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
 
     public SchemaVersion versionAt(Instant at) {
         return versionLog.versionAt(at);
+    }
+
+    public SchemaVersion version(int number) {
+        return versions().stream().filter(version -> version.number() == number).findFirst()
+                .orElseThrow(() -> new SchemaVersionNotFoundException(assetType, number));
     }
 
     public SchemaVersion latestPublishedVersion() {

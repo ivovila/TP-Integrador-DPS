@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.certification.usecase;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
@@ -15,9 +16,17 @@ import java.util.List;
 
 public record CertificateDocument(CertificateNumber number, AssetCode assetCode, String assetName,
                                   ValidityPeriod validity, LocalDate statusDate, CertificateStatus status,
-                                  Person issuedBy, Instant issuedAt, List<Suspension> suspensions, CertificationDecision decision, CertificationScope scope, CertificateBasis basis) {
+                                  Stamp issued, List<Suspension> suspensions, CertificationDecision decision, CertificationScope scope, CertificateBasis basis) {
 
     public CertificateDocument {
         suspensions = List.copyOf(suspensions);
+    }
+
+    public Person issuedBy() {
+        return issued.by();
+    }
+
+    public Instant issuedAt() {
+        return issued.at();
     }
 }

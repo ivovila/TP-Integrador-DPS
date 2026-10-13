@@ -19,7 +19,6 @@ import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
-import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Clock;
 import java.time.Duration;
@@ -114,14 +113,11 @@ public class SchemaController {
     public ResponseEntity<VersionResponse> version(@PathVariable String assetType, @PathVariable int number, WebRequest request) {
         InspectionSchema schema = findSchema.execute(new AssetType(assetType));
         String etag = Uris.etag("schema", assetType, String.valueOf(number));
-        return schema.versions().stream()
-                .filter(version -> version.number() == number)
-                .findFirst()
-                .map(version -> request.checkNotModified(etag)
-                        ? ResponseEntity.status(304).eTag(etag).<VersionResponse>build()
-                        : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.maxAge(Duration.ofDays(1)))
-                                .body(versionResource(assetType, version)))
-                .orElseThrow(() -> new ResourceNotFoundException("Schema " + assetType + " has no version " + number));
+        SchemaVersion version = schema.version(number);
+        return request.checkNotModified(etag)
+                ? ResponseEntity.status(304).eTag(etag).<VersionResponse>build()
+                : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.maxAge(Duration.ofDays(1)))
+                        .body(versionResource(assetType, version));
     }
 
     @GetMapping("/{assetType}/audit-entries")

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.inspection.usecase.AttachEvidenceCommand;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionService;
@@ -24,7 +25,7 @@ public final class AttachEvidenceUseCaseImpl implements AttachEvidenceUseCase {
     public void execute(AttachEvidenceCommand command) {
         Inspection inspection = inspectionRepository.findById(command.inspectionId())
                 .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
-        inspectionService.attachEvidence(inspection, command.criterionCode(), command.evidence(), command.attachedBy(), clock.instant());
+        inspectionService.attachEvidence(inspection, command.criterionCode(), command.evidence(), new Stamp(command.attachedBy(), clock.instant()));
         inspectionRepository.save(inspection);
     }
 }

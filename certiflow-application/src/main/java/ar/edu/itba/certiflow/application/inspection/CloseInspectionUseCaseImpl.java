@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.inspection.usecase.CloseInspectionCommand;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -35,7 +36,7 @@ public final class CloseInspectionUseCaseImpl implements CloseInspectionUseCase 
     public List<FindingId> execute(CloseInspectionCommand command) {
         Inspection inspection = inspectionRepository.findById(command.inspectionId())
                 .orElseThrow(() -> new InspectionNotFoundException(command.inspectionId()));
-        InspectionClosed closure = inspectionService.close(inspection, command.closedBy(), clock.instant());
+        InspectionClosed closure = inspectionService.close(inspection, new Stamp(command.closedBy(), clock.instant()));
         List<Finding> raisedFindings = findingService.raiseFrom(closure, findingRepository::nextId);
         inspectionRepository.save(inspection);
         findingRepository.saveAll(raisedFindings);

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.certification;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
@@ -34,7 +35,7 @@ public final class GenerateCertificateDocumentUseCaseImpl implements GenerateCer
         Asset asset = assetRepository.findByCode(certificate.assetCode())
                 .orElseThrow(() -> new AssetNotFoundException(certificate.assetCode()));
         return new CertificateDocument(certificate.number(), asset.code(), asset.name(), certificate.validity(), today,
-                statuses.statusOf(certificate, today), certificate.issuedBy(), certificate.issuedAt(),
+                statuses.statusOf(certificate, today), new Stamp(certificate.issuedBy(), certificate.issuedAt()),
                 certificate.suspensions(), certificate.decision(), certificate.scope(), certificate.basis());
     }
 }

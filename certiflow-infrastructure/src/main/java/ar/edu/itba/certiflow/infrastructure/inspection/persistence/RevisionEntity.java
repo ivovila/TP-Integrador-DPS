@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.Revision;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
@@ -37,6 +38,6 @@ public class RevisionEntity {
 
     Revision toDomain(SchemaVersion version) {
         return new Revision(number, reason, EvaluationJson.read(evaluation, version),
-                new PersonColumns(sealedById, sealedByName).toDomain(), sealedAt);
+                new Stamp(new PersonColumns(sealedById, sealedByName).toDomain(), sealedAt));
     }
 }

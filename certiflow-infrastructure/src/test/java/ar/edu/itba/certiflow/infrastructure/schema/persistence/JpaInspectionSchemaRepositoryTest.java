@@ -42,7 +42,7 @@ class JpaInspectionSchemaRepositoryTest {
     void everyVersionIsReadBackEqualToWhatWasPublished() {
         AssetType extinguisher = new AssetType("Fire extinguisher");
         InspectionSchema schema = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"))
-                .withNewVersion(DomainSamples.sections().subList(0, 1), Instant.parse("2026-03-05T00:00:00Z"));
+                .withNewVersion(DomainSamples.sections().subList(0, 1), Instant.parse("2026-03-05T00:00:00Z"), Instant.parse("2026-03-05T00:00:00Z"), Set.of());
 
         repository.save(schema);
         entityManager.flush();
@@ -59,7 +59,7 @@ class JpaInspectionSchemaRepositoryTest {
         entityManager.flush();
         Long firstVersionId = repository.versionEntity(extinguisher, 1).getId();
 
-        repository.save(first.withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-05T00:00:00Z")));
+        repository.save(first.withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-05T00:00:00Z"), Instant.parse("2026-03-05T00:00:00Z"), Set.of()));
         entityManager.flush();
         entityManager.clear();
 

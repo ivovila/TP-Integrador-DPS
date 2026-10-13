@@ -44,6 +44,10 @@ public class SchemaVersionEntity {
         return entity;
     }
 
+    public String assetType() {
+        return assetType;
+    }
+
     public SchemaVersion toDomain() {
         return new SchemaVersion(number, SectionsJson.read(sections), publishedAt, effectiveFrom, CodesJson.read(requiredSubsystems).stream().map(SubsystemCode::new).collect(Collectors.toSet()));
     }

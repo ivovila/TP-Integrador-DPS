@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.Observation;
 import jakarta.persistence.Column;
@@ -31,6 +32,6 @@ public class ObservationEmbeddable {
     }
 
     Observation toDomain() {
-        return new Observation(text, new PersonColumns(observedById, observedByName).toDomain(), observedAt);
+        return new Observation(text, new Stamp(new PersonColumns(observedById, observedByName).toDomain(), observedAt));
     }
 }

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.Cancellation;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
@@ -114,8 +115,8 @@ public class CorrectiveActionEntity {
     CorrectiveActionSnapshot toSnapshot() {
         return new CorrectiveActionSnapshot(new CorrectiveActionId(number), description,
                 new PersonColumns(responsibleId, responsibleName).toDomain(), dueDate,
-                new PersonColumns(plannedById, plannedByName).toDomain(), plannedAt,
+                new Stamp(new PersonColumns(plannedById, plannedByName).toDomain(), plannedAt),
                 verifications.stream().map(VerificationEmbeddable::toDomain).toList(),
-                Optional.ofNullable(cancelledAt).map(at -> new Cancellation(new PersonColumns(cancelledById, cancelledByName).toDomain(), at)));
+                Optional.ofNullable(cancelledAt).map(at -> new Cancellation(new Stamp(new PersonColumns(cancelledById, cancelledByName).toDomain(), at))));
     }
 }

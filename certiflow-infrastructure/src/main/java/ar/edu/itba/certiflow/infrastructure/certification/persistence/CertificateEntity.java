@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
@@ -131,7 +132,7 @@ public class CertificateEntity {
                 new SchemaReference(new AssetType(schemaAssetType), schemaNumber),
                 CodesJson.read(requiredSubsystems).stream().map(SubsystemCode::new).collect(Collectors.toSet()),
                 new ValidityPeriod(validFrom, validUntil),
-                new PersonColumns(issuedById, issuedByName).toDomain(), issuedAt,
+                new Stamp(new PersonColumns(issuedById, issuedByName).toDomain(), issuedAt),
                 suspensions.stream().map(SuspensionEmbeddable::toDomain).toList(), lifecycle, DecisionJson.read(decision));
     }
 }

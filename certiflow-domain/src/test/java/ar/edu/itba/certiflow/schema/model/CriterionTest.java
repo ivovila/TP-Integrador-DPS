@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import java.util.Set;
 
 class CriterionTest {
 
@@ -66,7 +67,7 @@ class CriterionTest {
                 StandardSeverity.MAJOR, List.of());
 
         assertThrows(InvalidSchemaException.class, () -> new SchemaVersion(1,
-                List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode))), Instant.EPOCH));
+                List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode))), Instant.EPOCH, Instant.EPOCH, Set.of()));
     }
 
     @Test

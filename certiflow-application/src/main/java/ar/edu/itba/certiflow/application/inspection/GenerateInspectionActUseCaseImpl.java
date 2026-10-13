@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.inspection;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
@@ -43,8 +44,8 @@ public final class GenerateInspectionActUseCaseImpl implements GenerateInspectio
 
     private ActLine lineOf(CriterionResponse<?> response) {
         GivenAnswer<?> givenAnswer = response.given().orElseThrow();
-        return new ActLine(response.criterion().code(), response.criterion().text(), givenAnswer.value(), givenAnswer.answeredBy(),
-                givenAnswer.answeredAt(), response.attachments().size(),
+        return new ActLine(response.criterion().code(), response.criterion().text(), givenAnswer.value(), givenAnswer.answered(),
+                response.attachments().size(),
                 response.observations().stream().map(Observation::text).toList(), response.outcome());
     }
 }

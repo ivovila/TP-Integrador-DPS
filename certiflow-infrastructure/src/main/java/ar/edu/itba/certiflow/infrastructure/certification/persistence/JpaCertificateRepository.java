@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateSnapshot;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
@@ -32,11 +31,6 @@ public class JpaCertificateRepository implements CertificateRepository {
     @Override
     public Optional<Certificate> findByNumber(CertificateNumber number) {
         return certificates.findById(number.value()).map(this::restore);
-    }
-
-    @Override
-    public Optional<Certificate> findCurrentFor(AssetCode assetCode, LocalDate referenceDate) {
-        return findByAsset(assetCode).stream().filter(certificate -> certificate.isCurrentOn(referenceDate)).findFirst();
     }
 
     @Override

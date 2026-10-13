@@ -7,6 +7,7 @@ import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import java.util.Set;
 
 class SchemaVersionLogTest {
 
@@ -17,7 +18,7 @@ class SchemaVersionLogTest {
     void appendingNumbersTheNextVersionAndKeepsTheOriginalLog() {
         SchemaVersionLog original = SchemaVersionLog.startingWith(sections, Instant.EPOCH);
 
-        SchemaVersionLog appended = original.append(sections, Instant.EPOCH.plusSeconds(60));
+        SchemaVersionLog appended = original.append(sections, Instant.EPOCH.plusSeconds(60), Instant.EPOCH.plusSeconds(60), Set.of());
 
         assertEquals(1, original.versions().size());
         assertEquals(2, appended.latestPublished().number());
@@ -26,6 +27,6 @@ class SchemaVersionLogTest {
     @Test
     void logMustStartAtOneAndHaveNoGaps() {
         assertThrows(InvalidSchemaException.class, () -> new SchemaVersionLog(List.of()));
-        assertThrows(InvalidSchemaException.class, () -> new SchemaVersionLog(List.of(new SchemaVersion(2, sections, Instant.EPOCH))));
+        assertThrows(InvalidSchemaException.class, () -> new SchemaVersionLog(List.of(new SchemaVersion(2, sections, Instant.EPOCH, Instant.EPOCH, Set.of()))));
     }
 }

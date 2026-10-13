@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
@@ -73,12 +74,12 @@ final class EvaluationJson {
                 document.evidence().stream()
                         .map(evidence -> new AttachedEvidence(
                                 new Evidence(StandardEvidenceKind.valueOf(evidence.kind()), evidence.reference(), evidence.description()),
-                                new PersonColumns(evidence.attachedById(), evidence.attachedByName()).toDomain(), evidence.attachedAt()))
+                                new Stamp(new PersonColumns(evidence.attachedById(), evidence.attachedByName()).toDomain(), evidence.attachedAt())))
                         .toList(),
                 document.observations().stream()
                         .map(observation -> new Observation(observation.text(),
-                                new PersonColumns(observation.observedById(), observation.observedByName()).toDomain(),
-                                observation.observedAt()))
+                                new Stamp(new PersonColumns(observation.observedById(), observation.observedByName()).toDomain(),
+                                        observation.observedAt())))
                         .toList());
     }
 }

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
@@ -25,7 +26,7 @@ final class ResponseRebuilder {
                                                                  PersonColumns answeredBy, Instant answeredAt,
                                                                  List<AttachedEvidence> attachments, List<Observation> observations) {
         Optional<GivenAnswer<A>> given = answer.map(columns ->
-                new GivenAnswer<>(criterion.answerFrom(columns.toRaw()), answeredBy.toDomain(), answeredAt));
+                new GivenAnswer<>(criterion.answerFrom(columns.toRaw()), new Stamp(answeredBy.toDomain(), answeredAt)));
         return new CriterionResponse<>(criterion, given, attachments, observations);
     }
 }

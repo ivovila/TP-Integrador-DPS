@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.application.catalog;
 
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetService;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
@@ -30,8 +31,7 @@ public final class RegisterAssetUseCaseImpl implements RegisterAssetUseCase {
         ensureJurisdictionIsConfigured(command.jurisdictionCode());
         Asset asset = new Asset(command.code(), command.name(), command.type(), command.location(), command.responsible(),
                 command.characteristics(), command.jurisdictionCode(), command.subsystems());
-        Asset registeredAsset = assetService.register(asset, command.registeredBy(),
-                clock.instant());
+        Asset registeredAsset = assetService.register(asset, new Stamp(command.registeredBy(), clock.instant()));
         assetRepository.save(registeredAsset);
         return registeredAsset;
     }
