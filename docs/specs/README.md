@@ -69,4 +69,4 @@ descartadas y deuda de cada funcionalidad; README/CHANGES reflejan lo implementa
 |---|---|
 | [Frontend sobre puertos](2026-10-12-frontend.md) | puertos propios con los nombres de los casos de uso; acciones entregadas por el sistema |
 | [Frontend conectado a la API](2026-10-13-frontend-api.md) | adaptador HTTP detrás de los mismos puertos; se elimina el modo en memoria; tests rápidos y contra el backend real |
-
+| [Roles en el frontend](2026-10-13-frontend-roles.md) | una tabla de datos por rol; una acción se muestra si el sistema la permite y el rol puede; solo interfaz, sin control de acceso |
