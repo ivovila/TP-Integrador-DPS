@@ -16,8 +16,8 @@ export function ErrorBanner({ error }: { error: unknown }) {
       <strong>{error.message}</strong>
       {error.ineligibilities.length > 0 && (
         <ul>
-          {error.ineligibilities.map((ineligibility) => (
-            <li key={ineligibility.reason}>{ineligibility.detail}</li>
+          {error.ineligibilities.map((ineligibility, position) => (
+            <li key={position}>{ineligibility.detail}</li>
           ))}
         </ul>
       )}

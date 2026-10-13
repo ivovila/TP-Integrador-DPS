@@ -1,27 +1,26 @@
-import { useState, type FormEvent } from 'react';
+import { type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
-import { Badge } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
-import { Card, TextField } from '../shared/Page';
+import { Card } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
+import { DecisionDetails } from './DecisionDetails';
 
-function IssueCertificateForm({ inspectionId }: { inspectionId: string }) {
+function IssueCertificateForm({ inspectionId, subsystemCode }: { inspectionId: string; subsystemCode?: string }) {
   const certiflow = useCertiflow();
   const { actingPerson } = useSession();
   const navigate = useNavigate();
   const issuance = useCommand();
-  const [validUntil, setValidUntil] = useState('');
 
   function issue(event: FormEvent): void {
     event.preventDefault();
     let certificateNumber = '';
     issuance.run(
       async () => {
-        certificateNumber = await certiflow.certification.issueCertificate({ inspectionId, validUntil, issuedBy: actingPerson });
+        certificateNumber = await certiflow.certification.issueCertificate({ inspectionId, subsystemCode, issuedBy: actingPerson });
       },
       () => navigate(`/certificates/${certificateNumber}`),
     );
@@ -30,42 +29,60 @@ function IssueCertificateForm({ inspectionId }: { inspectionId: string }) {
   return (
     <form onSubmit={issue}>
       <ErrorBanner error={issuance.error} />
-      <div className="row">
-        <TextField label="Valid until" type="date" value={validUntil} onChange={setValidUntil} />
-        <button className="primary" disabled={issuance.running}>
-          Issue certificate
-        </button>
-      </div>
+      <button className="primary" disabled={issuance.running}>
+        {subsystemCode === undefined ? 'Issue certificate' : `Issue ${subsystemCode} certificate`}
+      </button>
     </form>
   );
 }
 
-export function CertificationEligibilityCard({ inspectionId, refreshKey }: { inspectionId: string; refreshKey: number }) {
+function ScopeDecision({ inspectionId, subsystemCode, refreshKey }: { inspectionId: string; subsystemCode?: string; refreshKey: number }) {
   const certiflow = useCertiflow();
-  const decision = useQuery(() => certiflow.certification.evaluateCertification(inspectionId), [inspectionId, refreshKey]);
+  const decision = useQuery(
+    () => certiflow.certification.evaluateCertification(inspectionId, subsystemCode),
+    [inspectionId, subsystemCode, refreshKey],
+  );
 
   return (
-    <Card title="Certification eligibility">
+    <div className="nested">
+      {subsystemCode !== undefined && <h3>Subsystem {subsystemCode}</h3>}
       <QueryView query={decision}>
         {(certificationDecision) => (
           <div className="stacked">
-            <div>
-              {certificationDecision.eligible ? (
-                <Badge tone="positive">eligible</Badge>
-              ) : (
-                <Badge tone="negative">not eligible</Badge>
-              )}
-            </div>
-            {certificationDecision.ineligibilities.length > 0 && (
-              <ul className="plain-list">
-                {certificationDecision.ineligibilities.map((ineligibility) => (
-                  <li key={ineligibility.reason}>{ineligibility.detail}</li>
-                ))}
-              </ul>
+            <DecisionDetails decision={certificationDecision} />
+            {certificationDecision.actions.includes('issueCertificate') && (
+              <IssueCertificateForm inspectionId={inspectionId} subsystemCode={subsystemCode} />
             )}
-            {certificationDecision.actions.includes('issueCertificate') && <IssueCertificateForm inspectionId={inspectionId} />}
           </div>
         )}
+      </QueryView>
+    </div>
+  );
+}
+
+/** Una decisión por subsistema si la versión de la inspección los tiene; si no, una sola por el activo entero. */
+export function CertificationEligibilityCard({ inspectionId, refreshKey }: { inspectionId: string; refreshKey: number }) {
+  const certiflow = useCertiflow();
+  const requiredSubsystems = useQuery(async () => {
+    const inspection = await certiflow.inspections.findInspection(inspectionId);
+    const asset = await certiflow.catalog.findAsset(inspection.assetCode);
+    const schema = await certiflow.schemas.findSchema(asset.type);
+    return schema.versions.find((version) => version.number === inspection.schemaVersion)!.requiredSubsystems;
+  }, [inspectionId]);
+
+  return (
+    <Card title="Certification eligibility">
+      <p className="muted">The asset's jurisdiction policy decides the outcome and the validity; the certifier cannot choose them.</p>
+      <QueryView query={requiredSubsystems}>
+        {(subsystemCodes) =>
+          subsystemCodes.length === 0 ? (
+            <ScopeDecision inspectionId={inspectionId} refreshKey={refreshKey} />
+          ) : (
+            subsystemCodes.map((subsystemCode) => (
+              <ScopeDecision key={subsystemCode} inspectionId={inspectionId} subsystemCode={subsystemCode} refreshKey={refreshKey} />
+            ))
+          )
+        }
       </QueryView>
     </Card>
   );

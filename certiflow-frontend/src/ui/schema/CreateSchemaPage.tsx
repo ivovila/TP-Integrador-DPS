@@ -8,7 +8,7 @@ import { Card, PageHeader, TextField } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
-import { SectionsEditor } from './SectionsEditor';
+import { parseSubsystemCodes, SectionsEditor } from './SectionsEditor';
 
 export function CreateSchemaPage() {
   const certiflow = useCertiflow();
@@ -19,11 +19,19 @@ export function CreateSchemaPage() {
   const [name, setName] = useState('');
   const [assetType, setAssetType] = useState('');
   const [sections, setSections] = useState<Section[]>([]);
+  const [requiredSubsystems, setRequiredSubsystems] = useState('');
 
   function create(event: FormEvent): void {
     event.preventDefault();
     creation.run(
-      () => certiflow.schemas.createInspectionSchema({ name, assetType, sections, createdBy: actingPerson }),
+      () =>
+        certiflow.schemas.createInspectionSchema({
+          name,
+          assetType,
+          sections,
+          requiredSubsystems: parseSubsystemCodes(requiredSubsystems),
+          createdBy: actingPerson,
+        }),
       () => navigate(`/schemas/${encodeURIComponent(assetType)}`),
     );
   }
@@ -39,9 +47,24 @@ export function CreateSchemaPage() {
               <div className="form-grid">
                 <TextField label="Schema name" value={name} onChange={setName} />
                 <TextField label="Asset type" value={assetType} onChange={setAssetType} placeholder="Fire extinguisher" />
+                <TextField
+                  label="Required subsystems"
+                  value={requiredSubsystems}
+                  onChange={setRequiredSubsystems}
+                  placeholder="ELECTRICAL, PRESSURE"
+                />
               </div>
+              <p className="muted">
+                With subsystems, every criterion must belong to one of them (through its section or on its own) and the asset is
+                certified per subsystem.
+              </p>
             </Card>
-            <SectionsEditor sections={sections} vocabulary={knownVocabulary} onChange={setSections} />
+            <SectionsEditor
+              sections={sections}
+              vocabulary={knownVocabulary}
+              subsystemCodes={parseSubsystemCodes(requiredSubsystems)}
+              onChange={setSections}
+            />
             <div>
               <button className="primary" disabled={creation.running}>
                 Create schema

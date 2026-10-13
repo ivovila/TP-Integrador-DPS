@@ -61,7 +61,10 @@ export function AssignInspectionPage() {
 
   return (
     <>
-      <PageHeader title="Assign inspection" subtitle="The inspection captures the schema version in force today" />
+      <PageHeader
+        title="Assign inspection"
+        subtitle="The inspection captures the schema version in force when it is assigned, not on the planned date"
+      />
       <Card>
         <form className="stacked" onSubmit={assign}>
           <ErrorBanner error={assignment.error} />
@@ -94,7 +97,7 @@ export function AssignInspectionPage() {
             </label>
             <label className="checkbox">
               <input type="radio" checked={!coversWholeSchema} onChange={() => setCoversWholeSchema(false)} />
-              Only some sections (a partial inspection cannot back a certificate)
+              Only some sections (it can only back certificates of the subsystems it fully covers)
             </label>
             {!coversWholeSchema &&
               (sectionTitles.data ?? []).map((title) => (

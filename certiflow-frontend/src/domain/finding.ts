@@ -37,7 +37,8 @@ export interface Finding {
   severity: Severity;
   responsible: Person;
   open: boolean;
-  blocksCertification: boolean;
+  /** Subsistema del criterio en la versión de origen; sin subsistema, el hallazgo afecta a todos. */
+  subsystemCode?: string;
   evidence: AttachedEvidence[];
   correctiveActions: CorrectiveAction[];
   actions: FindingAction[];
@@ -50,7 +51,7 @@ export interface FindingLine {
   severity: string;
   responsible: Person;
   open: boolean;
-  blocksCertification: boolean;
+  subsystemCode?: string;
   overdueActions: number;
 }
 
@@ -58,5 +59,4 @@ export interface FindingsSummary {
   assetCode: string;
   findings: FindingLine[];
   openFindings: number;
-  blockingFindings: number;
 }

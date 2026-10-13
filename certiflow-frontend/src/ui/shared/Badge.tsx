@@ -15,6 +15,9 @@ const toneByStatusWord: Record<string, Tone> = {
   RENEWED: 'neutral',
   REJECTED: 'negative',
   EXPIRED: 'negative',
+  CONDITIONAL: 'warning',
+  DEPENDENCY_INVALID: 'negative',
+  SCHEDULED: 'neutral',
 };
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
@@ -22,5 +25,5 @@ export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={toneByStatusWord[status] ?? 'neutral'}>{status.toLowerCase()}</Badge>;
+  return <Badge tone={toneByStatusWord[status] ?? 'neutral'}>{status.toLowerCase().replaceAll('_', ' ')}</Badge>;
 }

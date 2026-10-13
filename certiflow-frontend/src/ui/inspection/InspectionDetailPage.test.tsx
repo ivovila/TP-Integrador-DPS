@@ -24,7 +24,7 @@ function inspectionOffering(actions: InspectionAction[]): InspectionDetails {
         criterion: {
           code: 'SEAL',
           text: 'Safety seal intact',
-          severity: { name: 'MAJOR', label: 'Major', outcomeWhenUnmet: 'REJECTED', blocksCertification: true },
+          severity: { name: 'MAJOR', label: 'Major', outcomeWhenUnmet: 'REJECTED' },
           rule: { type: 'yes-no', expected: 'YES' },
           requiredEvidence: [],
         },

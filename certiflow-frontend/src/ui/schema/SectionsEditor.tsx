@@ -10,14 +10,54 @@ function removeAt<Item>(items: Item[], position: number): Item[] {
   return items.filter((_, index) => index !== position);
 }
 
+/** Lee la lista de subsistemas requeridos tal como se escribe en el formulario: códigos separados por coma. */
+export function parseSubsystemCodes(text: string): string[] {
+  return text
+    .split(',')
+    .map((code) => code.trim())
+    .filter((code) => code !== '');
+}
+
+function SubsystemSelect({
+  label,
+  value,
+  emptyLabel,
+  subsystemCodes,
+  onChange,
+}: {
+  label: string;
+  value: string | undefined;
+  emptyLabel: string;
+  subsystemCodes: string[];
+  onChange(subsystemCode: string | undefined): void;
+}) {
+  return (
+    <div className="field">
+      <label>
+        {label}
+        <select value={value ?? ''} onChange={(event) => onChange(event.target.value === '' ? undefined : event.target.value)}>
+          <option value="">{emptyLabel}</option>
+          {[...new Set([...subsystemCodes, ...(value === undefined ? [] : [value])])].map((code) => (
+            <option key={code} value={code}>
+              {code}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 function CriterionEditor({
   criterion,
   vocabulary,
+  subsystemCodes,
   onChange,
   onRemove,
 }: {
   criterion: Criterion;
   vocabulary: Vocabulary;
+  subsystemCodes: string[];
   onChange(criterion: Criterion): void;
   onRemove(): void;
 }) {
@@ -50,6 +90,15 @@ function CriterionEditor({
             </select>
           </label>
         </div>
+        {subsystemCodes.length > 0 && (
+          <SubsystemSelect
+            label="Criterion subsystem"
+            value={criterion.subsystemCode}
+            emptyLabel="Same as section"
+            subsystemCodes={subsystemCodes}
+            onChange={(subsystemCode) => onChange({ ...criterion, subsystemCode })}
+          />
+        )}
         <button type="button" className="quiet" onClick={onRemove}>
           Remove criterion
         </button>
@@ -124,10 +173,12 @@ function CriterionEditor({
 export function SectionsEditor({
   sections,
   vocabulary,
+  subsystemCodes,
   onChange,
 }: {
   sections: Section[];
   vocabulary: Vocabulary;
+  subsystemCodes: string[];
   onChange(sections: Section[]): void;
 }) {
   function emptyCriterion(): Criterion {
@@ -142,6 +193,15 @@ export function SectionsEditor({
           <section className="card" key={sectionPosition}>
             <div className="row">
               <TextField label="Section title" value={section.title} onChange={(title) => changeSection({ ...section, title })} />
+              {subsystemCodes.length > 0 && (
+                <SubsystemSelect
+                  label="Section subsystem"
+                  value={section.subsystemCode}
+                  emptyLabel="No subsystem"
+                  subsystemCodes={subsystemCodes}
+                  onChange={(subsystemCode) => changeSection({ ...section, subsystemCode })}
+                />
+              )}
               <button type="button" className="quiet" onClick={() => onChange(removeAt(sections, sectionPosition))}>
                 Remove section
               </button>
@@ -151,6 +211,7 @@ export function SectionsEditor({
                 key={criterionPosition}
                 criterion={criterion}
                 vocabulary={vocabulary}
+                subsystemCodes={subsystemCodes}
                 onChange={(changed) =>
                   changeSection({ ...section, criteria: replaceAt(section.criteria, criterionPosition, changed) })
                 }

@@ -1,5 +1,6 @@
-import type { Asset } from '../../domain/catalog';
+import type { Asset, AssetAction } from '../../domain/catalog';
 import type { CatalogPort } from '../../ports/CatalogPort';
+import { isKnownJurisdiction } from './policies';
 import type { InMemorySystem, StoredAsset } from './store';
 import { reject, requireText } from './support';
 
@@ -8,7 +9,12 @@ export function storedAssetWithCode(system: InMemorySystem, code: string): Store
 }
 
 function assetView(system: InMemorySystem, asset: StoredAsset): Asset {
-  return structuredClone({ ...asset, actions: system.schemas.has(asset.type) ? ['assignInspection' as const] : [] });
+  const inspectable = system.schemas.has(asset.type);
+  const actions: AssetAction[] = [
+    ...(inspectable ? ['assignInspection' as const] : []),
+    ...(inspectable && asset.subsystems.length > 0 ? ['issueGlobalCertificate' as const] : []),
+  ];
+  return structuredClone({ ...asset, actions });
 }
 
 export function createCatalogPort(system: InMemorySystem): CatalogPort {
@@ -26,6 +32,18 @@ export function createCatalogPort(system: InMemorySystem): CatalogPort {
       const characteristicNames = command.characteristics.map((characteristic) => characteristic.name);
       if (new Set(characteristicNames).size !== characteristicNames.length) {
         reject('DuplicateCharacteristicException', 'An asset cannot have two characteristics with the same name');
+      }
+      requireText(command.jurisdictionCode, 'A jurisdiction code is required');
+      if (!isKnownJurisdiction(command.jurisdictionCode)) {
+        reject('RequiredValueMissingException', `No certification policy configured for ${command.jurisdictionCode}`);
+      }
+      command.subsystems.forEach((subsystem) => {
+        requireText(subsystem.code, 'Subsystem code is required');
+        requireText(subsystem.name, 'Subsystem name is required');
+      });
+      const subsystemCodes = command.subsystems.map((subsystem) => subsystem.code);
+      if (new Set(subsystemCodes).size !== subsystemCodes.length) {
+        reject('RequiredValueMissingException', 'Subsystem codes must be unique within an asset');
       }
       if (system.assets.has(command.code)) {
         reject('AssetAlreadyRegisteredException', `Asset ${command.code} is already registered`);

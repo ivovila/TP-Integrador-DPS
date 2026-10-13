@@ -44,7 +44,7 @@ export function TextField({
   label: string;
   value: string;
   onChange(value: string): void;
-  type?: 'text' | 'date' | 'number';
+  type?: 'text' | 'date' | 'number' | 'datetime-local';
   placeholder?: string;
 }) {
   return (

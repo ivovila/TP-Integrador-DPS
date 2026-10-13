@@ -42,6 +42,7 @@ export function FindingListPage() {
                     <th>Asset</th>
                     <th>Criterion</th>
                     <th>Severity</th>
+                    <th>Subsystem</th>
                     <th>Responsible</th>
                     <th>Corrective actions</th>
                     <th>Status</th>
@@ -60,14 +61,14 @@ export function FindingListPage() {
                         <span className="criterion-code">{finding.criterion.code}</span> {finding.criterion.text}
                       </td>
                       <td>{finding.severity.label}</td>
+                      <td>{finding.subsystemCode ?? 'All'}</td>
                       <td>{finding.responsible.name}</td>
                       <td>
                         {finding.correctiveActions.length}{' '}
                         {finding.correctiveActions.some((action) => action.overdue) && <Badge tone="negative">overdue</Badge>}
                       </td>
                       <td>
-                        <StatusBadge status={finding.open ? 'OPEN' : 'CLOSED'} />{' '}
-                        {finding.blocksCertification && <Badge tone="negative">blocks certification</Badge>}
+                        <StatusBadge status={finding.open ? 'OPEN' : 'CLOSED'} />
                       </td>
                     </tr>
                   ))}

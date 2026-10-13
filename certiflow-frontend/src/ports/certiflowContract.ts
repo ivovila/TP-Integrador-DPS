@@ -17,7 +17,8 @@ const certifier: Person = { id: 'EMP-005', name: 'Carlos Vidal' };
 
 const extinguisherType = 'Fire extinguisher';
 const today: LocalDate = '2026-03-02';
-const nextYear: LocalDate = '2027-03-02';
+/** Lo que concede DEMO-STANDARD: 12 meses calendario contando el día de emisión. */
+const lastDayOfAYear: LocalDate = '2027-03-01';
 
 const yes: RawAnswer = { kind: 'yes-no', value: true };
 const no: RawAnswer = { kind: 'yes-no', value: false };
@@ -102,7 +103,7 @@ export function describeCertiflowContract(
       await expect(operation).rejects.toMatchObject({ name: expectedName });
     }
 
-    function registerExtinguisher(code = 'EXT-0042') {
+    function registerExtinguisher(code = 'EXT-0042', jurisdictionCode = 'DEMO-STANDARD') {
       return certiflow.catalog.registerAsset({
         code,
         name: 'Lobby extinguisher',
@@ -110,6 +111,8 @@ export function describeCertiflowContract(
         location: 'Lobby',
         responsible: assetResponsible,
         characteristics: [{ name: 'Agent', value: 'ABC powder' }],
+        jurisdictionCode,
+        subsystems: [],
         registeredBy: coordinator,
       });
     }
@@ -119,6 +122,7 @@ export function describeCertiflowContract(
         name: 'Extinguisher inspection',
         assetType: extinguisherType,
         sections: extinguisherSections(vocabulary),
+        requiredSubsystems: [],
         createdBy: coordinator,
       });
     }
@@ -190,8 +194,8 @@ export function describeCertiflowContract(
       });
     }
 
-    function issue(inspectionId: string, validUntil: LocalDate = nextYear) {
-      return certiflow.certification.issueCertificate({ inspectionId, validUntil, issuedBy: certifier });
+    function issue(inspectionId: string, subsystemCode?: string) {
+      return certiflow.certification.issueCertificate({ inspectionId, subsystemCode, issuedBy: certifier });
     }
 
     async function outcomeOf(inspectionId: string, criterionCode: string): Promise<Outcome> {
@@ -234,6 +238,8 @@ export function describeCertiflowContract(
             { name: 'Agent', value: 'ABC powder' },
             { name: 'Agent', value: 'CO2' },
           ],
+          jurisdictionCode: 'DEMO-STANDARD',
+          subsystems: [],
           registeredBy: coordinator,
         });
         await expectRejection(registration, 'DuplicateCharacteristicException');
@@ -248,6 +254,8 @@ export function describeCertiflowContract(
           location: 'Basement',
           responsible: assetResponsible,
           characteristics: [],
+          jurisdictionCode: 'DEMO-STANDARD',
+          subsystems: [],
           registeredBy: coordinator,
         });
         const extinguishers = await certiflow.catalog.listAssets({ type: extinguisherType });
@@ -272,11 +280,14 @@ export function describeCertiflowContract(
         const published = await certiflow.schemas.publishSchemaVersion({
           assetType: extinguisherType,
           sections: [sections[0]!],
+          requiredSubsystems: [],
           publishedBy: coordinator,
         });
         const schema = await certiflow.schemas.findSchema(extinguisherType);
         expect(published.number).toBe(2);
+        expect(published.effectiveFrom).toBe(published.publishedAt);
         expect(schema.currentVersion).toBe(2);
+        expect(schema.latestPublishedVersion).toBe(2);
         expect(schema.versions.map((version) => version.sections.length)).toEqual([2, 1]);
       });
 
@@ -285,6 +296,7 @@ export function describeCertiflowContract(
         await certiflow.schemas.publishSchemaVersion({
           assetType: extinguisherType,
           sections: extinguisherSections(vocabulary),
+          requiredSubsystems: [],
           publishedBy: coordinator,
         });
         const history = await certiflow.audit.auditHistory({ kind: 'schema', assetType: extinguisherType });
@@ -346,6 +358,7 @@ export function describeCertiflowContract(
           name: 'Extinguisher inspection',
           assetType: extinguisherType,
           sections: breakSections(extinguisherSections(vocabulary)),
+          requiredSubsystems: [],
           createdBy: coordinator,
         });
         await expectRejection(creation, expectedName);
@@ -358,6 +371,7 @@ export function describeCertiflowContract(
         await certiflow.schemas.publishSchemaVersion({
           assetType: extinguisherType,
           sections: [extinguisherSections(vocabulary)[0]!],
+          requiredSubsystems: [],
           publishedBy: coordinator,
         });
         const laterInspectionId = await assignInspection();
@@ -521,10 +535,9 @@ export function describeCertiflowContract(
             severity: { name: 'CRITICAL' },
             responsible: assetResponsible,
             open: true,
-            blocksCertification: true,
             evidence: [{ evidence: { reference: 'gauge.jpg' } }],
           },
-          { criterion: { code: 'SIGNAGE' }, severity: { name: 'MINOR' }, open: true, blocksCertification: false },
+          { criterion: { code: 'SIGNAGE' }, severity: { name: 'MINOR' }, open: true },
         ]);
       });
 
@@ -685,24 +698,23 @@ export function describeCertiflowContract(
     });
 
     describe('certification', () => {
-      test('an open inspection, a partial scope and blocking findings each make an inspection ineligible', async () => {
+      test('an open or partial inspection is rejected before the jurisdiction policy is consulted', async () => {
         await registerExtinguisher();
         await createExtinguisherSchema();
         await closedInspection({ SEAL: no });
         const partialInspectionId = await assignInspection('EXT-0042', ['Installation']);
         const decision = await certiflow.certification.evaluateCertification(partialInspectionId);
-        expect(decision.eligible).toBe(false);
+        expect(decision).toMatchObject({ eligible: false, outcome: 'REJECTED', policyCode: 'STANDARD' });
         expect(decision.ineligibilities.map((ineligibility) => ineligibility.reason)).toEqual([
           'INSPECTION_NOT_CLOSED',
           'PARTIAL_INSPECTION',
-          'BLOCKING_FINDINGS',
         ]);
       });
 
-      test('minor findings do not prevent certification', async () => {
+      test('minor findings do not prevent certification under the standard policy', async () => {
         const { inspectionId } = await assetWithClosedInspection({ SIGNAGE: no });
         const decision = await certiflow.certification.evaluateCertification(inspectionId);
-        expect(decision).toMatchObject({ eligible: true, ineligibilities: [] });
+        expect(decision).toMatchObject({ eligible: true, outcome: 'APPROVED', ineligibilities: [] });
       });
 
       test('an asset becomes certifiable again once its blocking findings are closed', async () => {
@@ -728,16 +740,19 @@ export function describeCertiflowContract(
         });
       });
 
-      test('a certificate is valid from the day it is issued and records who issued it', async () => {
+      test('a certificate is valid from the day it is issued for the term its policy grants, and records who issued it', async () => {
         const { inspectionId } = await assetWithClosedInspection();
         const number = await issue(inspectionId);
         const certificate = await certiflow.certification.findCertificate(number);
         const history = await certiflow.audit.auditHistory({ kind: 'certificate', number });
         expect(certificate).toMatchObject({
           assetCode: 'EXT-0042',
-          inspectionId,
+          scope: { kind: 'wholeAsset' },
+          basis: { kind: 'inspection', inspectionId },
           validFrom: today,
-          validUntil: nextYear,
+          validUntil: lastDayOfAYear,
+          modality: 'APPROVED',
+          decision: { policyCode: 'STANDARD', jurisdictionCode: 'DEMO-STANDARD' },
           issuedBy: certifier,
           status: 'ACTIVE',
         });
@@ -750,14 +765,9 @@ export function describeCertiflowContract(
         await expectRejection(issue(inspectionId), 'AssetAlreadyCertifiedException');
       });
 
-      test('a certificate cannot expire before it starts', async () => {
-        const { inspectionId } = await assetWithClosedInspection();
-        await expectRejection(issue(inspectionId, '2026-03-01'), 'InvalidValidityPeriodException');
-      });
-
       const expiryCases: [string, LocalDate, string][] = [
-        ['a certificate is active on its last day of validity', '2027-03-02', 'ACTIVE'],
-        ['a certificate is expired the day after its validity ends', '2027-03-03', 'EXPIRED'],
+        ['a certificate is active on its last day of validity', '2027-03-01', 'ACTIVE'],
+        ['a certificate is expired the day after its validity ends', '2027-03-02', 'EXPIRED'],
       ];
 
       test.each(expiryCases)('%s', async (_description, referenceDate, expectedStatus) => {
@@ -793,7 +803,7 @@ export function describeCertiflowContract(
         const { inspectionId } = await assetWithClosedInspection();
         const number = await issue(inspectionId);
         await suspend(number);
-        setToday('2027-03-03');
+        setToday('2027-03-02');
         expect((await certiflow.certification.findCertificate(number)).status).toBe('EXPIRED');
       });
 
@@ -805,24 +815,25 @@ export function describeCertiflowContract(
       });
 
       function renew(currentNumber: string, inspectionId: string) {
-        return certiflow.certification.renewCertificate({
-          currentNumber,
-          inspectionId,
-          validUntil: '2028-03-02',
-          renewedBy: certifier,
-        });
+        return certiflow.certification.renewCertificate({ currentNumber, inspectionId, renewedBy: certifier });
       }
 
-      test('renewing issues a new certificate and retires the previous one', async () => {
+      test('renewing issues a new certificate with a fresh term and retires the previous one', async () => {
         const { inspectionId } = await assetWithClosedInspection();
         const number = await issue(inspectionId);
+        setToday('2026-09-01');
         const { inspectionId: laterInspectionId } = await closedInspection();
         const renewedNumber = await renew(number, laterInspectionId);
         const previous = await certiflow.certification.findCertificate(number);
         const renewed = await certiflow.certification.findCertificate(renewedNumber);
         const previousHistory = await certiflow.audit.auditHistory({ kind: 'certificate', number });
         expect(previous.status).toBe('RENEWED');
-        expect(renewed).toMatchObject({ status: 'ACTIVE', inspectionId: laterInspectionId, validUntil: '2028-03-02' });
+        expect(renewed).toMatchObject({
+          status: 'ACTIVE',
+          basis: { kind: 'inspection', inspectionId: laterInspectionId },
+          validFrom: '2026-09-01',
+          validUntil: '2027-08-31',
+        });
         expect(previousHistory.map((entry) => entry.action)).toEqual(['ISSUED', 'RENEWED']);
       });
 
@@ -854,6 +865,385 @@ export function describeCertiflowContract(
         await issue(inspectionId);
         expect(await certiflow.certification.listCertificates({ assetCode: 'EXT-0042' })).toHaveLength(1);
         expect(await certiflow.certification.listCertificates({ assetCode: 'OTHER' })).toEqual([]);
+      });
+    });
+
+    describe('jurisdiction policies', () => {
+      const decisionsByJurisdiction: [string, Record<string, RawAnswer>, string, string][] = [
+        ['DEMO-STRICT', {}, 'APPROVED', '2027-03-01'],
+        ['DEMO-STANDARD', {}, 'APPROVED', '2027-03-01'],
+        ['DEMO-CONDITIONAL', {}, 'APPROVED', '2026-09-01'],
+        ['DEMO-STRICT', { SIGNAGE: no }, 'REJECTED', ''],
+        ['DEMO-STANDARD', { SIGNAGE: no }, 'APPROVED', '2027-03-01'],
+        ['DEMO-CONDITIONAL', { SIGNAGE: no }, 'CONDITIONAL', '2026-03-31'],
+        ['DEMO-STRICT', { SEAL: no }, 'REJECTED', ''],
+        ['DEMO-STANDARD', { SEAL: no }, 'REJECTED', ''],
+        ['DEMO-CONDITIONAL', { SEAL: no }, 'CONDITIONAL', '2026-03-31'],
+        ['DEMO-CONDITIONAL', { PRESSURE: measured('20') }, 'REJECTED', ''],
+      ];
+
+      test.each(decisionsByJurisdiction)(
+        'under %s the answers %o give a %s decision valid until %s',
+        async (jurisdictionCode, overrides, expectedOutcome, expectedValidUntil) => {
+          await registerExtinguisher('EXT-0042', jurisdictionCode);
+          await createExtinguisherSchema();
+          const { inspectionId } = await closedInspection(overrides);
+          const decision = await certiflow.certification.evaluateCertification(inspectionId);
+          expect(decision).toMatchObject({ outcome: expectedOutcome, jurisdictionCode, scope: { kind: 'wholeAsset' } });
+          expect(decision.validity?.validUntil ?? '').toBe(expectedValidUntil);
+        },
+      );
+
+      test('a conditional certificate lists every open finding as a condition due when it expires', async () => {
+        await registerExtinguisher('EXT-0042', 'DEMO-CONDITIONAL');
+        await createExtinguisherSchema();
+        const { inspectionId, findingIds } = await closedInspection({ SEAL: no });
+        const number = await issue(inspectionId);
+        const certificate = await certiflow.certification.findCertificate(number);
+        expect(certificate).toMatchObject({ modality: 'CONDITIONAL', status: 'ACTIVE', validUntil: '2026-03-31' });
+        expect(certificate.decision.conditions).toMatchObject([
+          { findingId: findingIds[0], criterionCode: 'SEAL', dueDate: '2026-03-31' },
+        ]);
+      });
+
+      test('a rejected decision names the policy that rejected it and why', async () => {
+        await registerExtinguisher('EXT-0042', 'DEMO-STRICT');
+        await createExtinguisherSchema();
+        const { inspectionId } = await closedInspection({ SIGNAGE: no });
+        await expect(issue(inspectionId)).rejects.toMatchObject({
+          name: 'NotEligibleForCertificationException',
+          ineligibilities: [{ reason: 'BLOCKING_FINDINGS' }],
+        });
+        expect(await certiflow.certification.evaluateCertification(inspectionId)).toMatchObject({
+          policyCode: 'STRICT',
+          actions: [],
+        });
+      });
+
+      test('an asset cannot be registered under a jurisdiction without a policy', async () => {
+        await expectRejection(registerExtinguisher('EXT-0042', 'ATLANTIS'), 'RequiredValueMissingException');
+      });
+
+      test('the vocabulary lists the jurisdictions that have a policy', async () => {
+        expect(vocabulary.jurisdictions.map((jurisdiction) => jurisdiction.code)).toEqual([
+          'DEMO-STRICT',
+          'DEMO-CONDITIONAL',
+          'DEMO-STANDARD',
+        ]);
+      });
+    });
+
+    describe('scheduled schema versions', () => {
+      function publishOnlyPhysicalCondition(effectiveFrom?: string) {
+        return certiflow.schemas.publishSchemaVersion({
+          assetType: extinguisherType,
+          sections: [extinguisherSections(vocabulary)[0]!],
+          requiredSubsystems: [],
+          effectiveFrom,
+          publishedBy: coordinator,
+        });
+      }
+
+      test('a version scheduled for later only applies to inspections assigned from that moment on', async () => {
+        const earlierInspectionId = await assetWithSchemaAndOpenInspection();
+        const scheduled = await publishOnlyPhysicalCondition('2026-03-10T00:00:00.000Z');
+        const beforeTheDateInspectionId = await assignInspection();
+        const beforeTheDate = await certiflow.schemas.findSchema(extinguisherType);
+        setToday('2026-03-10');
+        const fromTheDateInspectionId = await assignInspection();
+        const fromTheDate = await certiflow.schemas.findSchema(extinguisherType);
+
+        expect(scheduled).toMatchObject({ number: 2, effectiveFrom: '2026-03-10T00:00:00.000Z' });
+        expect(beforeTheDate).toMatchObject({ currentVersion: 1, latestPublishedVersion: 2 });
+        expect(fromTheDate).toMatchObject({ currentVersion: 2, latestPublishedVersion: 2 });
+        expect((await certiflow.inspections.findInspection(earlierInspectionId)).schemaVersion).toBe(1);
+        expect((await certiflow.inspections.findInspection(beforeTheDateInspectionId)).schemaVersion).toBe(1);
+        expect((await certiflow.inspections.findInspection(fromTheDateInspectionId)).schemaVersion).toBe(2);
+      });
+
+      test('the version in force at any instant can be consulted', async () => {
+        await createExtinguisherSchema();
+        await publishOnlyPhysicalCondition('2026-03-10T00:00:00.000Z');
+        const justBefore = await certiflow.schemas.effectiveVersion(extinguisherType, '2026-03-09T23:59:59.999Z');
+        const exactly = await certiflow.schemas.effectiveVersion(extinguisherType, '2026-03-10T00:00:00.000Z');
+        expect([justBefore.number, exactly.number]).toEqual([1, 2]);
+        await expectRejection(
+          certiflow.schemas.effectiveVersion(extinguisherType, '2020-01-01T00:00:00.000Z'),
+          'NoEffectiveSchemaVersionException',
+        );
+      });
+
+      test('a version cannot take effect before it is published', async () => {
+        await createExtinguisherSchema();
+        await expectRejection(publishOnlyPhysicalCondition('2026-03-01T00:00:00.000Z'), 'InvalidSchemaException');
+      });
+
+      test('scheduled versions take effect in publication order', async () => {
+        await createExtinguisherSchema();
+        await publishOnlyPhysicalCondition('2026-03-20T00:00:00.000Z');
+        await expectRejection(publishOnlyPhysicalCondition('2026-03-10T00:00:00.000Z'), 'SchemaEffectiveDateConflictException');
+        await expectRejection(publishOnlyPhysicalCondition(), 'SchemaEffectiveDateConflictException');
+        await publishOnlyPhysicalCondition('2026-04-01T00:00:00.000Z');
+        expect((await certiflow.schemas.findSchema(extinguisherType)).latestPublishedVersion).toBe(3);
+      });
+    });
+
+    describe('partial certificates by subsystem', () => {
+      const boilerType = 'Pressure vessel';
+      const boilerSubsystems = [
+        { code: 'ELECTRICAL', name: 'Electrical system' },
+        { code: 'PRESSURE', name: 'Pressure system' },
+      ];
+      const compliantBoilerAnswers: Record<string, RawAnswer> = {
+        RELIEF: measured('8.0'),
+        INSULATION: chosen('Good'),
+        GROUNDING: yes,
+        PILOT: yes,
+      };
+
+      function boilerSections(): Section[] {
+        const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
+        return [
+          {
+            title: 'Pressure',
+            subsystemCode: 'PRESSURE',
+            criteria: [
+              {
+                code: 'RELIEF',
+                text: 'Relief valve opening pressure',
+                severity: severityNamed('CRITICAL'),
+                rule: { type: 'numeric-range', unit: 'bar', minimum: '7.5', maximum: '8.5' },
+                requiredEvidence: [],
+              },
+              {
+                code: 'INSULATION',
+                text: 'Insulation condition',
+                severity: severityNamed('MINOR'),
+                rule: { type: 'option-in-list', acceptedOptions: ['Good'] },
+                requiredEvidence: [],
+              },
+            ],
+          },
+          {
+            title: 'Electrical',
+            subsystemCode: 'ELECTRICAL',
+            criteria: [
+              {
+                code: 'GROUNDING',
+                text: 'Burner grounding verified',
+                severity: severityNamed('MAJOR'),
+                rule: { type: 'yes-no', expected: 'YES' },
+                requiredEvidence: [],
+              },
+              {
+                code: 'PILOT',
+                text: 'Pressure pilot light works',
+                severity: severityNamed('MINOR'),
+                rule: { type: 'yes-no', expected: 'YES' },
+                requiredEvidence: [],
+                subsystemCode: 'PRESSURE',
+              },
+            ],
+          },
+        ];
+      }
+
+      function registerBoiler(code = 'BLR-0007', jurisdictionCode = 'DEMO-CONDITIONAL', subsystems = boilerSubsystems) {
+        return certiflow.catalog.registerAsset({
+          code,
+          name: 'Boiler',
+          type: boilerType,
+          location: 'Basement',
+          responsible: assetResponsible,
+          characteristics: [],
+          jurisdictionCode,
+          subsystems,
+          registeredBy: coordinator,
+        });
+      }
+
+      function createBoilerSchema(sections = boilerSections(), requiredSubsystems = ['ELECTRICAL', 'PRESSURE']) {
+        return certiflow.schemas.createInspectionSchema({
+          name: 'Boiler inspection',
+          assetType: boilerType,
+          sections,
+          requiredSubsystems,
+          createdBy: coordinator,
+        });
+      }
+
+      async function closedBoilerInspection(overrides: Record<string, RawAnswer> = {}, assetCode = 'BLR-0007', sectionTitles?: string[]) {
+        const inspectionId = await assignInspection(assetCode, sectionTitles);
+        const inspection = await certiflow.inspections.findInspection(inspectionId);
+        const answers = { ...compliantBoilerAnswers, ...overrides };
+        for (const response of inspection.responses) {
+          await answer(inspectionId, response.criterion.code, answers[response.criterion.code]!);
+        }
+        const findingIds = await close(inspectionId);
+        return { inspectionId, findingIds };
+      }
+
+      async function boilerWithClosedInspection(overrides: Record<string, RawAnswer> = {}, jurisdictionCode = 'DEMO-CONDITIONAL') {
+        await registerBoiler('BLR-0007', jurisdictionCode);
+        await createBoilerSchema();
+        return closedBoilerInspection(overrides);
+      }
+
+      async function certifyBothSubsystems(inspectionId: string) {
+        return {
+          electrical: await issue(inspectionId, 'ELECTRICAL'),
+          pressure: await issue(inspectionId, 'PRESSURE'),
+        };
+      }
+
+      function issueGlobal(partialCertificateNumbers: string[], assetCode = 'BLR-0007') {
+        return certiflow.certification.issueGlobalCertificate({
+          assetCode,
+          schemaVersion: 1,
+          partialCertificateNumbers,
+          issuedBy: certifier,
+        });
+      }
+
+      test('every criterion of a schema with subsystems resolves to exactly one of them', async () => {
+        const withoutSubsystem = boilerSections().map((section) => ({ ...section, subsystemCode: undefined }));
+        await expectRejection(createBoilerSchema(withoutSubsystem), 'InvalidSchemaException');
+        await expectRejection(createBoilerSchema(boilerSections(), ['ELECTRICAL', 'PRESSURE', 'FUEL']), 'InvalidSchemaException');
+      });
+
+      test('an asset that lacks a required subsystem cannot be inspected with that schema', async () => {
+        await registerBoiler('BLR-0007', 'DEMO-CONDITIONAL', [boilerSubsystems[0]!]);
+        await createBoilerSchema();
+        await expectRejection(assignInspection('BLR-0007'), 'InvalidSchemaException');
+      });
+
+      test('a finding belongs to the subsystem of its criterion, which overrides the one of its section', async () => {
+        const { findingIds } = await boilerWithClosedInspection({ PILOT: no, GROUNDING: no });
+        const findings = await Promise.all(findingIds.map((findingId) => certiflow.findings.findFinding(findingId)));
+        expect(findings.map((finding) => [finding.criterion.code, finding.subsystemCode])).toEqual([
+          ['GROUNDING', 'ELECTRICAL'],
+          ['PILOT', 'PRESSURE'],
+        ]);
+      });
+
+      test('a rejected subsystem does not prevent certifying another one', async () => {
+        const { inspectionId } = await boilerWithClosedInspection({ RELIEF: measured('9.5') });
+        const electrical = await certiflow.certification.evaluateCertification(inspectionId, 'ELECTRICAL');
+        const pressure = await certiflow.certification.evaluateCertification(inspectionId, 'PRESSURE');
+        expect(electrical).toMatchObject({ outcome: 'APPROVED', scope: { kind: 'subsystem', subsystemCode: 'ELECTRICAL' } });
+        expect(pressure).toMatchObject({ outcome: 'REJECTED', ineligibilities: [{ reason: 'BLOCKING_FINDINGS' }] });
+        const electricalNumber = await issue(inspectionId, 'ELECTRICAL');
+        await expectRejection(issue(inspectionId, 'PRESSURE'), 'NotEligibleForCertificationException');
+        await expect(issueGlobal([electricalNumber])).rejects.toMatchObject({
+          name: 'NotEligibleForCertificationException',
+          ineligibilities: [{ reason: 'MISSING_SUBSYSTEM', detail: 'Missing partial for PRESSURE' }],
+        });
+      });
+
+      test('an inspection of some sections certifies only the subsystems it fully covers', async () => {
+        await registerBoiler();
+        await createBoilerSchema();
+        const { inspectionId } = await closedBoilerInspection({}, 'BLR-0007', ['Electrical']);
+        expect(await certiflow.certification.evaluateCertification(inspectionId, 'ELECTRICAL')).toMatchObject({
+          outcome: 'APPROVED',
+        });
+        expect(await certiflow.certification.evaluateCertification(inspectionId, 'PRESSURE')).toMatchObject({
+          outcome: 'REJECTED',
+          ineligibilities: [{ reason: 'PARTIAL_INSPECTION' }],
+        });
+      });
+
+      test('an asset split into subsystems is certified whole only through its partial certificates', async () => {
+        const { inspectionId } = await boilerWithClosedInspection();
+        await expectRejection(certiflow.certification.evaluateCertification(inspectionId), 'CertificationConflictException');
+        await expectRejection(certiflow.certification.evaluateCertification(inspectionId, 'FUEL'), 'SubsystemNotFoundException');
+      });
+
+      test('each subsystem holds its own current certificate', async () => {
+        const { inspectionId } = await boilerWithClosedInspection();
+        const { electrical, pressure } = await certifyBothSubsystems(inspectionId);
+        await expectRejection(issue(inspectionId, 'ELECTRICAL'), 'AssetAlreadyCertifiedException');
+        expect((await certiflow.certification.listCertificates({ subsystemCode: 'PRESSURE' })).map((c) => c.number)).toEqual([
+          pressure,
+        ]);
+        expect(await certiflow.certification.findCertificate(electrical)).toMatchObject({
+          scope: { kind: 'subsystem', subsystemCode: 'ELECTRICAL' },
+          status: 'ACTIVE',
+        });
+      });
+
+      test('the global certificate lasts no longer than its partials and inherits their conditions', async () => {
+        const { inspectionId } = await boilerWithClosedInspection({ INSULATION: chosen('Damaged') });
+        const { electrical, pressure } = await certifyBothSubsystems(inspectionId);
+        const global = await certiflow.certification.findCertificate(await issueGlobal([electrical, pressure]));
+        expect(await certiflow.certification.findCertificate(electrical)).toMatchObject({ modality: 'APPROVED', validUntil: '2026-09-01' });
+        expect(await certiflow.certification.findCertificate(pressure)).toMatchObject({ modality: 'CONDITIONAL', validUntil: '2026-03-31' });
+        expect(global).toMatchObject({
+          scope: { kind: 'wholeAsset' },
+          basis: { kind: 'partialCertificates', partialCertificateNumbers: [electrical, pressure] },
+          modality: 'CONDITIONAL',
+          validFrom: today,
+          validUntil: '2026-03-31',
+          decision: { policyCode: 'ALL-REQUIRED-SUBSYSTEMS' },
+        });
+        expect(global.decision.conditions.map((condition) => condition.criterionCode)).toEqual(['INSULATION']);
+      });
+
+      test('a global certificate is not valid while one of its partials is suspended', async () => {
+        const { inspectionId } = await boilerWithClosedInspection();
+        const { electrical, pressure } = await certifyBothSubsystems(inspectionId);
+        const globalNumber = await issueGlobal([electrical, pressure]);
+        await certiflow.certification.suspendCertificate({ number: pressure, reason: 'Valve recall', suspendedBy: certifier });
+        expect(await certiflow.certification.findCertificate(globalNumber)).toMatchObject({
+          status: 'DEPENDENCY_INVALID',
+          actions: ['renewGlobalCertificate'],
+        });
+        expect((await certiflow.certification.generateCertificateDocument(globalNumber)).status).toBe('DEPENDENCY_INVALID');
+      });
+
+      test('a global certificate only accepts active partials of the same asset', async () => {
+        const { inspectionId } = await boilerWithClosedInspection();
+        const { electrical } = await certifyBothSubsystems(inspectionId);
+        await registerBoiler('BLR-0099');
+        const { inspectionId: otherInspectionId } = await closedBoilerInspection({}, 'BLR-0099');
+        const otherPressure = await issue(otherInspectionId, 'PRESSURE');
+        await expect(issueGlobal([electrical, otherPressure])).rejects.toMatchObject({
+          name: 'NotEligibleForCertificationException',
+          ineligibilities: [
+            { reason: 'INVALID_PARTIAL_CERTIFICATE', detail: `Invalid backing ${otherPressure}` },
+            { reason: 'MISSING_SUBSYSTEM' },
+          ],
+        });
+      });
+
+      test('renewing a partial keeps its subsystem, and the global is renewed from the new partials', async () => {
+        const { inspectionId } = await boilerWithClosedInspection();
+        const { electrical, pressure } = await certifyBothSubsystems(inspectionId);
+        const globalNumber = await issueGlobal([electrical, pressure]);
+        const { inspectionId: laterInspectionId } = await closedBoilerInspection();
+        const renewedElectrical = await certiflow.certification.renewCertificate({
+          currentNumber: electrical,
+          inspectionId: laterInspectionId,
+          renewedBy: certifier,
+        });
+        expect(await certiflow.certification.findCertificate(globalNumber)).toMatchObject({ status: 'DEPENDENCY_INVALID' });
+        const renewedGlobal = await certiflow.certification.renewGlobalCertificate({
+          currentNumber: globalNumber,
+          schemaVersion: 1,
+          partialCertificateNumbers: [renewedElectrical, pressure],
+          renewedBy: certifier,
+        });
+        expect(await certiflow.certification.findCertificate(renewedElectrical)).toMatchObject({
+          scope: { kind: 'subsystem', subsystemCode: 'ELECTRICAL' },
+        });
+        expect((await certiflow.certification.findCertificate(globalNumber)).status).toBe('RENEWED');
+        expect((await certiflow.certification.findCertificate(renewedGlobal)).status).toBe('ACTIVE');
+      });
+
+      test('an asset split into subsystems offers a global certificate', async () => {
+        await registerBoiler();
+        await createBoilerSchema();
+        expect((await certiflow.catalog.findAsset('BLR-0007')).actions).toEqual(['assignInspection', 'issueGlobalCertificate']);
       });
     });
 
@@ -916,7 +1306,6 @@ export function describeCertiflowContract(
         await certiflow.certification.renewCertificate({
           currentNumber: number,
           inspectionId: laterInspectionId,
-          validUntil: '2028-03-02',
           renewedBy: certifier,
         });
         const renewed = await certiflow.certification.findCertificate(number);
@@ -948,29 +1337,31 @@ export function describeCertiflowContract(
         await expectRejection(certiflow.inspections.generateInspectionAct(inspectionId), 'InspectionNotClosedException');
       });
 
-      test('the findings summary of an asset counts open, blocking and overdue items', async () => {
+      test('the findings summary of an asset counts open and overdue items', async () => {
         const { findingIds } = await assetWithClosedInspection({ SEAL: no, SIGNAGE: no });
         await planAction(findingIds[0]!, '2026-03-05');
         setToday('2026-03-10');
         const summary = await certiflow.findings.generateFindingsSummary('EXT-0042');
-        expect(summary).toMatchObject({ assetCode: 'EXT-0042', openFindings: 2, blockingFindings: 1 });
+        expect(summary).toMatchObject({ assetCode: 'EXT-0042', openFindings: 2 });
         expect(summary.findings).toMatchObject([
-          { criterionCode: 'SEAL', severity: 'Major', blocksCertification: true, overdueActions: 1 },
-          { criterionCode: 'SIGNAGE', severity: 'Minor', blocksCertification: false, overdueActions: 0 },
+          { criterionCode: 'SEAL', severity: 'Major', overdueActions: 1 },
+          { criterionCode: 'SIGNAGE', severity: 'Minor', overdueActions: 0 },
         ]);
       });
 
       test('the certificate document states the status on the day it is consulted', async () => {
         const { inspectionId } = await assetWithClosedInspection();
         const number = await issue(inspectionId);
-        setToday('2027-03-03');
+        setToday('2027-03-02');
         const document = await certiflow.certification.generateCertificateDocument(number);
         expect(document).toMatchObject({
           number,
           assetName: 'Lobby extinguisher',
           validFrom: today,
-          validUntil: nextYear,
-          statusDate: '2027-03-03',
+          validUntil: lastDayOfAYear,
+          modality: 'APPROVED',
+          decision: { policyCode: 'STANDARD' },
+          statusDate: '2027-03-02',
           status: 'EXPIRED',
         });
       });

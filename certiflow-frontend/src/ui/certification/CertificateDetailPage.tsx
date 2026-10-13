@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import type { Suspension } from '../../domain/certification';
+import type { Certificate, CertificateBasis, Suspension } from '../../domain/certification';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { AuditHistory } from '../shared/AuditHistory';
 import { StatusBadge } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
-import { formatDate, formatInstant, formatPerson } from '../shared/format';
+import { formatDate, formatInstant, formatPerson, formatScope } from '../shared/format';
 import { Card, Details, PageHeader, TextField } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
+import { DecisionDetails } from './DecisionDetails';
+import { GlobalCertificateForm } from './GlobalCertificateForm';
 
 export function SuspensionList({ suspensions }: { suspensions: Suspension[] }) {
   return (
@@ -62,7 +64,6 @@ function RenewalForm({ number, assetCode }: { number: string; assetCode: string 
   const renewal = useCommand();
   const closedInspections = useQuery(() => certiflow.inspections.listInspections({ assetCode, status: 'closed' }), [assetCode]);
   const [inspectionId, setInspectionId] = useState('');
-  const [validUntil, setValidUntil] = useState('');
 
   function renew(event: FormEvent): void {
     event.preventDefault();
@@ -72,7 +73,6 @@ function RenewalForm({ number, assetCode }: { number: string; assetCode: string 
         renewedNumber = await certiflow.certification.renewCertificate({
           currentNumber: number,
           inspectionId,
-          validUntil,
           renewedBy: actingPerson,
         });
       },
@@ -97,12 +97,57 @@ function RenewalForm({ number, assetCode }: { number: string; assetCode: string 
             </select>
           </label>
         </div>
-        <TextField label="Valid until" type="date" value={validUntil} onChange={setValidUntil} />
         <button className="primary" disabled={renewal.running || inspectionId === ''}>
           Renew certificate
         </button>
       </div>
     </form>
+  );
+}
+
+export function BasisDescription({ basis }: { basis: CertificateBasis }) {
+  return basis.kind === 'inspection' ? (
+    <>
+      based on inspection <Link to={`/inspections/${basis.inspectionId}`}>{basis.inspectionId}</Link>
+    </>
+  ) : (
+    <>
+      derived from{' '}
+      {basis.partialCertificateNumbers.map((partialNumber, position) => (
+        <span key={partialNumber}>
+          {position > 0 && ', '}
+          <Link to={`/certificates/${partialNumber}`}>{partialNumber}</Link>
+        </span>
+      ))}
+    </>
+  );
+}
+
+function GlobalRenewalForm({ certificate }: { certificate: Certificate }) {
+  const certiflow = useCertiflow();
+  const { actingPerson } = useSession();
+  const navigate = useNavigate();
+  const asset = useQuery(() => certiflow.catalog.findAsset(certificate.assetCode), [certificate.assetCode]);
+
+  return (
+    <QueryView query={asset}>
+      {(foundAsset) => (
+        <GlobalCertificateForm
+          assetCode={foundAsset.code}
+          assetType={foundAsset.type}
+          submitLabel="Renew global certificate"
+          submit={async (schemaVersion, partialCertificateNumbers) => {
+            const renewedNumber = await certiflow.certification.renewGlobalCertificate({
+              currentNumber: certificate.number,
+              schemaVersion,
+              partialCertificateNumbers,
+              renewedBy: actingPerson,
+            });
+            navigate(`/certificates/${renewedNumber}`);
+          }}
+        />
+      )}
+    </QueryView>
   );
 }
 
@@ -119,14 +164,14 @@ export function CertificateDetailPage() {
           <PageHeader
             title={
               <>
-                Certificate {foundCertificate.number} <StatusBadge status={foundCertificate.status} />
+                Certificate {foundCertificate.number} <StatusBadge status={foundCertificate.status} />{' '}
+                <StatusBadge status={foundCertificate.modality} />
               </>
             }
             subtitle={
               <>
-                Asset <Link to={`/assets/${encodeURIComponent(foundCertificate.assetCode)}`}>{foundCertificate.assetCode}</Link> ·
-                based on inspection{' '}
-                <Link to={`/inspections/${foundCertificate.inspectionId}`}>{foundCertificate.inspectionId}</Link>
+                Asset <Link to={`/assets/${encodeURIComponent(foundCertificate.assetCode)}`}>{foundCertificate.assetCode}</Link> ·{' '}
+                {formatScope(foundCertificate.scope)} · <BasisDescription basis={foundCertificate.basis} />
               </>
             }
           >
@@ -134,15 +179,26 @@ export function CertificateDetailPage() {
               Certificate document
             </Link>
           </PageHeader>
+          {foundCertificate.status === 'DEPENDENCY_INVALID' && (
+            <p className="warning-banner">
+              One of the partial certificates behind this global certificate is no longer active, so the global certificate is
+              not valid. Renew it from active partial certificates.
+            </p>
+          )}
           <Card>
             <Details
               entries={[
+                ['Scope', formatScope(foundCertificate.scope)],
+                ['Schema version', `v${foundCertificate.schemaVersion}`],
                 ['Valid from', formatDate(foundCertificate.validFrom)],
                 ['Valid until', formatDate(foundCertificate.validUntil)],
                 ['Issued by', formatPerson(foundCertificate.issuedBy)],
                 ['Issued at', formatInstant(foundCertificate.issuedAt)],
               ]}
             />
+          </Card>
+          <Card title="Decision">
+            <DecisionDetails decision={foundCertificate.decision} />
           </Card>
           {(foundCertificate.suspensions.length > 0 || foundCertificate.actions.includes('suspendCertificate')) && (
             <Card title="Suspension">
@@ -155,10 +211,19 @@ export function CertificateDetailPage() {
           {foundCertificate.actions.includes('renewCertificate') && (
             <Card title="Renewal">
               <p className="muted">
-                Renewing issues a new certificate and retires this one. It needs an eligible inspection closed after{' '}
-                {foundCertificate.inspectionId}.
+                Renewing issues a new certificate for the same scope and retires this one. It needs an eligible inspection closed
+                after the one this certificate is based on; the new validity comes from the jurisdiction policy.
               </p>
               <RenewalForm number={foundCertificate.number} assetCode={foundCertificate.assetCode} />
+            </Card>
+          )}
+          {foundCertificate.actions.includes('renewGlobalCertificate') && (
+            <Card title="Renewal">
+              <p className="muted">
+                A global certificate is renewed from active partial certificates, at least one of them backed by a later
+                inspection.
+              </p>
+              <GlobalRenewalForm certificate={foundCertificate} />
             </Card>
           )}
           <AuditHistory subject={{ kind: 'certificate', number: foundCertificate.number }} refreshKey={changeCount} />

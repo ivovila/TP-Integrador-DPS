@@ -8,11 +8,17 @@ export function describeRequiredEvidence(criterion: Criterion): string {
 }
 
 export function SectionsView({ sections }: { sections: Section[] }) {
+  const showsSubsystems = sections.some(
+    (section) => section.subsystemCode !== undefined || section.criteria.some((criterion) => criterion.subsystemCode !== undefined),
+  );
   return (
     <>
       {sections.map((section) => (
         <section className="card" key={section.title}>
-          <h2>{section.title}</h2>
+          <h2>
+            {section.title}
+            {section.subsystemCode !== undefined && <span className="muted"> · subsystem {section.subsystemCode}</span>}
+          </h2>
           <table className="data">
             <thead>
               <tr>
@@ -21,6 +27,7 @@ export function SectionsView({ sections }: { sections: Section[] }) {
                 <th>Approval rule</th>
                 <th>Severity</th>
                 <th>Required evidence</th>
+                {showsSubsystems && <th>Subsystem</th>}
               </tr>
             </thead>
             <tbody>
@@ -31,6 +38,7 @@ export function SectionsView({ sections }: { sections: Section[] }) {
                   <td>{describeRule(criterion.rule)}</td>
                   <td>{criterion.severity.label}</td>
                   <td>{describeRequiredEvidence(criterion)}</td>
+                  {showsSubsystems && <td>{criterion.subsystemCode ?? section.subsystemCode ?? 'None'}</td>}
                 </tr>
               ))}
             </tbody>

@@ -19,12 +19,20 @@ beforeEach(async () => {
   await seedDemoData(certiflow, system.demoControls, people);
 });
 
-test('the demo schema has eight criteria using the three rule types and a second version', async () => {
+test('the demo schema has eight criteria using the three rule types and a second version scheduled for later', async () => {
   const schema = await certiflow.schemas.findSchema('Fire extinguisher');
   const firstVersionCriteria = schema.versions[0]!.sections.flatMap((section) => section.criteria);
-  expect(schema.currentVersion).toBe(2);
+  expect(schema.currentVersion).toBe(1);
+  expect(schema.latestPublishedVersion).toBe(2);
+  expect(schema.versions[1]!.effectiveFrom).toBe('2026-11-01T00:00:00.000Z');
   expect(firstVersionCriteria).toHaveLength(8);
   expect(new Set(firstVersionCriteria.map((criterion) => criterion.rule.type)).size).toBe(3);
+});
+
+test('the demo pressure vessel schema splits its criteria into two subsystems', async () => {
+  const schema = await certiflow.schemas.findSchema('Pressure vessel');
+  expect(schema.versions[0]!.requiredSubsystems).toEqual(['ELECTRICAL', 'PRESSURE']);
+  expect(schema.versions[0]!.sections.map((section) => section.subsystemCode)).toEqual(['PRESSURE', 'ELECTRICAL']);
 });
 
 test('the demo has an open inspection that keeps the previous schema version', async () => {
@@ -43,12 +51,31 @@ test('the demo has findings of every severity, one of them closed and one with a
   expect(summary.findings.map((line) => line.overdueActions)).toEqual([0, 1, 0]);
 });
 
-test('the demo has an active certificate and a suspended one', async () => {
+test('the demo has whole-asset, partial and global certificates under different jurisdictions', async () => {
   const certificates = await certiflow.certification.listCertificates({});
-  expect(certificates.map((certificate) => [certificate.assetCode, certificate.status])).toEqual([
-    ['EXT-0043', 'ACTIVE'],
-    ['BLR-0007', 'SUSPENDED'],
+  const describe = (certificate: (typeof certificates)[number]) => [
+    certificate.assetCode,
+    certificate.scope.kind === 'subsystem' ? certificate.scope.subsystemCode : certificate.basis.kind,
+    certificate.modality,
+    certificate.status,
+  ];
+  expect(certificates.map(describe)).toEqual([
+    ['EXT-0043', 'inspection', 'APPROVED', 'ACTIVE'],
+    ['BLR-0007', 'ELECTRICAL', 'APPROVED', 'ACTIVE'],
+    ['BLR-0007', 'PRESSURE', 'APPROVED', 'SUSPENDED'],
+    ['BLR-0007', 'partialCertificates', 'APPROVED', 'DEPENDENCY_INVALID'],
+    ['BLR-0012', 'ELECTRICAL', 'APPROVED', 'ACTIVE'],
+    ['BLR-0012', 'PRESSURE', 'CONDITIONAL', 'ACTIVE'],
+    ['BLR-0012', 'partialCertificates', 'CONDITIONAL', 'ACTIVE'],
   ]);
+});
+
+test('a conditional global certificate lasts no longer than its shortest partial', async () => {
+  const [, , , , electrical, pressure, global] = await certiflow.certification.listCertificates({});
+  expect(electrical!.validUntil).toBe('2027-04-06');
+  expect(pressure!.validUntil).toBe('2026-11-05');
+  expect(global).toMatchObject({ validFrom: '2026-10-07', validUntil: '2026-11-05' });
+  expect(global!.decision.conditions.map((condition) => condition.criterionCode)).toEqual(['INSULATION']);
 });
 
 test('seeding leaves the clock on the real date', async () => {

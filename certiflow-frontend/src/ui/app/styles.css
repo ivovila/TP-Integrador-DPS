@@ -316,6 +316,15 @@ button:disabled {
   padding-left: 1.2rem;
 }
 
+.warning-banner {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  padding: 0.6rem 0.85rem;
+  margin: 0 0 1rem;
+}
+
 .error-banner .error-name {
   display: block;
   font-size: 0.75rem;

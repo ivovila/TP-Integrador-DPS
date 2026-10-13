@@ -30,6 +30,8 @@ export function SchemaDetailPage() {
                 <tr>
                   <th>Version</th>
                   <th>Published</th>
+                  <th>Effective from</th>
+                  <th>Subsystems</th>
                   <th>Sections</th>
                   <th>Criteria</th>
                 </tr>
@@ -40,15 +42,21 @@ export function SchemaDetailPage() {
                     <td>
                       <Link to={`${schemaPath}/versions/${version.number}`}>Version {version.number}</Link>{' '}
                       {version.number === foundSchema.currentVersion && <Badge tone="positive">in force</Badge>}
+                      {version.number > foundSchema.currentVersion && <Badge tone="neutral">scheduled</Badge>}
                     </td>
                     <td>{formatInstant(version.publishedAt)}</td>
+                    <td>{formatInstant(version.effectiveFrom)}</td>
+                    <td>{version.requiredSubsystems.length === 0 ? 'None' : version.requiredSubsystems.join(', ')}</td>
                     <td>{version.sections.length}</td>
                     <td>{version.sections.flatMap((section) => section.criteria).length}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <p className="muted">Inspections keep the version that was in force when they were assigned.</p>
+            <p className="muted">
+              Each version is in force from its effective date until the next one takes effect. Inspections keep the version that
+              was in force when they were assigned.
+            </p>
           </Card>
           <AuditHistory subject={{ kind: 'schema', assetType }} />
         </>

@@ -12,9 +12,9 @@ import type { StoredResponse } from './store';
 import { reject, requireText } from './support';
 
 export const standardSeverities: Severity[] = [
-  { name: 'MINOR', label: 'Minor', outcomeWhenUnmet: 'OBSERVED', blocksCertification: false },
-  { name: 'MAJOR', label: 'Major', outcomeWhenUnmet: 'REJECTED', blocksCertification: true },
-  { name: 'CRITICAL', label: 'Critical', outcomeWhenUnmet: 'REJECTED', blocksCertification: true },
+  { name: 'MINOR', label: 'Minor', outcomeWhenUnmet: 'OBSERVED' },
+  { name: 'MAJOR', label: 'Major', outcomeWhenUnmet: 'REJECTED' },
+  { name: 'CRITICAL', label: 'Critical', outcomeWhenUnmet: 'REJECTED' },
 ];
 
 export const standardEvidenceKinds: EvidenceKind[] = [
@@ -116,9 +116,41 @@ function validateCriterion(criterion: Criterion): void {
   }
 }
 
-export function validateSections(sections: Section[]): void {
+/** El criterio declara su subsistema o hereda el de la sección. */
+export function subsystemOfCriterion(section: Section, criterion: Criterion): string | undefined {
+  return criterion.subsystemCode ?? section.subsystemCode;
+}
+
+function validateSubsystemAssociations(sections: Section[], requiredSubsystems: string[]): void {
+  if (new Set(requiredSubsystems).size !== requiredSubsystems.length || requiredSubsystems.some((code) => code.trim() === '')) {
+    reject('InvalidSchemaException', 'Required subsystems must be distinct codes');
+  }
+  const associated = new Set<string>();
+  sections.forEach((section) =>
+    section.criteria.forEach((criterion) => {
+      const subsystemCode = subsystemOfCriterion(section, criterion);
+      if (requiredSubsystems.length > 0 && subsystemCode === undefined) {
+        reject('InvalidSchemaException', 'Every criterion must have a subsystem');
+      }
+      if (subsystemCode !== undefined) {
+        associated.add(subsystemCode);
+      }
+    }),
+  );
+  const matchesRequired =
+    associated.size === requiredSubsystems.length && requiredSubsystems.every((code) => associated.has(code));
+  if (!matchesRequired) {
+    reject('InvalidSchemaException', 'Required subsystems must match the criterion associations');
+  }
+}
+
+export function validateSections(sections: Section[], requiredSubsystems: string[] = []): void {
   if (sections.length === 0) {
     reject('InvalidSchemaException', 'A schema version needs at least one section');
+  }
+  const sectionTitles = sections.map((section) => section.title);
+  if (new Set(sectionTitles).size !== sectionTitles.length) {
+    reject('InvalidSchemaException', 'Section titles must be unique');
   }
   sections.forEach((section) => {
     if (section.title.trim() === '') {
@@ -133,4 +165,5 @@ export function validateSections(sections: Section[]): void {
   if (new Set(criterionCodes).size !== criterionCodes.length) {
     reject('InvalidSchemaException', 'Criterion codes must be unique within a schema version');
   }
+  validateSubsystemAssociations(sections, requiredSubsystems);
 }

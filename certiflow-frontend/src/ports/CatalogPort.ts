@@ -1,4 +1,4 @@
-import type { Asset, Characteristic } from '../domain/catalog';
+import type { Asset, Characteristic, Subsystem } from '../domain/catalog';
 import type { Person } from '../domain/shared';
 
 export interface RegisterAssetCommand {
@@ -8,6 +8,8 @@ export interface RegisterAssetCommand {
   location: string;
   responsible: Person;
   characteristics: Characteristic[];
+  jurisdictionCode: string;
+  subsystems: Subsystem[];
   registeredBy: Person;
 }
 

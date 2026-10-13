@@ -1,10 +1,15 @@
 import type { Person } from './shared';
 
-export type AssetAction = 'assignInspection';
+export type AssetAction = 'assignInspection' | 'issueGlobalCertificate';
 
 export interface Characteristic {
   name: string;
   value: string;
+}
+
+export interface Subsystem {
+  code: string;
+  name: string;
 }
 
 export interface Asset {
@@ -14,5 +19,7 @@ export interface Asset {
   location: string;
   responsible: Person;
   characteristics: Characteristic[];
+  jurisdictionCode: string;
+  subsystems: Subsystem[];
   actions: AssetAction[];
 }

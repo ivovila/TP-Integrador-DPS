@@ -4,8 +4,8 @@ import type { Instant, Person } from '../../domain/shared';
 import type { InspectionPort } from '../../ports/InspectionPort';
 import { storedAssetWithCode } from './catalog';
 import { findingsOfAsset, isOpenFinding, raiseFinding } from './finding';
-import { ensureAnswerFitsRule, outcomeOf, raisesFinding } from './rules';
-import { currentVersionOf, storedSchemaFor } from './schema';
+import { ensureAnswerFitsRule, outcomeOf, raisesFinding, subsystemOfCriterion } from './rules';
+import { storedSchemaFor, versionAt } from './schema';
 import type { InMemorySystem, StoredInspection, StoredResponse } from './store';
 import { isSamePerson, reject, requireText } from './support';
 
@@ -26,6 +26,21 @@ export function storedInspectionWithId(system: InMemorySystem, inspectionId: str
   return (
     system.inspections.get(inspectionId) ?? reject('InspectionNotFoundException', `Inspection ${inspectionId} does not exist`)
   );
+}
+
+/** Cubre el subsistema si todos los criterios que la versión le asigna están en el alcance de la inspección. */
+export function coversSubsystem(inspection: StoredInspection, subsystemCode: string): boolean {
+  const inScope = inspection.responses.map((response) => response.criterion.code);
+  return inspection.schemaVersion.sections.every((section) =>
+    section.criteria
+      .filter((criterion) => subsystemOfCriterion(section, criterion) === subsystemCode)
+      .every((criterion) => inScope.includes(criterion.code)),
+  );
+}
+
+export function subsystemOfResponse(inspection: StoredInspection, response: StoredResponse): string | undefined {
+  const section = inspection.schemaVersion.sections.find((candidate) => candidate.title === response.sectionTitle)!;
+  return subsystemOfCriterion(section, response.criterion);
 }
 
 function criteriaOf(version: SchemaVersion): Criterion[] {
@@ -112,7 +127,12 @@ export function createInspectionPort(system: InMemorySystem): InspectionPort {
   return {
     async assignInspection(command) {
       const asset = storedAssetWithCode(system, command.assetCode);
-      const version = currentVersionOf(storedSchemaFor(system, asset.type));
+      const assignedAt = system.clock.now();
+      const version = versionAt(storedSchemaFor(system, asset.type), assignedAt);
+      const assetSubsystemCodes = asset.subsystems.map((subsystem) => subsystem.code);
+      if (!version.requiredSubsystems.every((code) => assetSubsystemCodes.includes(code))) {
+        reject('InvalidSchemaException', 'Asset lacks required subsystems');
+      }
       requireText(command.inspector.id, 'An inspection needs an inspector');
       requireText(command.plannedDate, 'An inspection needs a planned date');
       const scopedSectionTitles = command.scope.kind === 'sections' ? command.scope.titles : undefined;
@@ -159,7 +179,7 @@ export function createInspectionPort(system: InMemorySystem): InspectionPort {
         { kind: 'inspection', id: inspection.id },
         'ASSIGNED',
         command.assignedBy,
-        system.clock.now(),
+        assignedAt,
         `Schema version ${version.number}`,
       );
       return inspection.id;

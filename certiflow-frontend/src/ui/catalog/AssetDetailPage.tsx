@@ -1,14 +1,18 @@
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
+import { useSession } from '../app/SessionContext';
+import { GlobalCertificateForm } from '../certification/GlobalCertificateForm';
 import { AuditHistory } from '../shared/AuditHistory';
 import { StatusBadge } from '../shared/Badge';
-import { formatDate, formatPerson } from '../shared/format';
+import { formatDate, formatPerson, formatScope } from '../shared/format';
 import { Card, Details, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 
 export function AssetDetailPage() {
   const certiflow = useCertiflow();
+  const { actingPerson } = useSession();
+  const navigate = useNavigate();
   const code = useParams().code!;
   const asset = useQuery(() => certiflow.catalog.findAsset(code), [code]);
   const inspections = useQuery(() => certiflow.inspections.listInspections({ assetCode: code }), [code]);
@@ -34,6 +38,13 @@ export function AssetDetailPage() {
                 ['Type', foundAsset.type],
                 ['Location', foundAsset.location],
                 ['Responsible', formatPerson(foundAsset.responsible)],
+                ['Jurisdiction', foundAsset.jurisdictionCode],
+                [
+                  'Subsystems',
+                  foundAsset.subsystems.length === 0
+                    ? 'None: certified as a whole'
+                    : foundAsset.subsystems.map((subsystem) => `${subsystem.code} · ${subsystem.name}`).join(', '),
+                ],
                 ...foundAsset.characteristics.map(
                   (characteristic): [string, string] => [characteristic.name, characteristic.value],
                 ),
@@ -89,8 +100,10 @@ export function AssetDetailPage() {
                     <thead>
                       <tr>
                         <th>Number</th>
+                        <th>Scope</th>
                         <th>Valid from</th>
                         <th>Valid until</th>
+                        <th>Modality</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -100,8 +113,15 @@ export function AssetDetailPage() {
                           <td>
                             <Link to={`/certificates/${certificate.number}`}>{certificate.number}</Link>
                           </td>
+                          <td>
+                            {formatScope(certificate.scope)}
+                            {certificate.basis.kind === 'partialCertificates' && <span className="muted"> · global</span>}
+                          </td>
                           <td>{formatDate(certificate.validFrom)}</td>
                           <td>{formatDate(certificate.validUntil)}</td>
+                          <td>
+                            <StatusBadge status={certificate.modality} />
+                          </td>
                           <td>
                             <StatusBadge status={certificate.status} />
                           </td>
@@ -113,6 +133,28 @@ export function AssetDetailPage() {
               }
             </QueryView>
           </Card>
+          {foundAsset.actions.includes('issueGlobalCertificate') && (
+            <Card title="Global certificate">
+              <p className="muted">
+                The global certificate is derived from one active partial certificate per required subsystem. It lasts until the
+                earliest of them expires and stops being valid as soon as one of them does.
+              </p>
+              <GlobalCertificateForm
+                assetCode={foundAsset.code}
+                assetType={foundAsset.type}
+                submitLabel="Issue global certificate"
+                submit={async (schemaVersion, partialCertificateNumbers) => {
+                  const number = await certiflow.certification.issueGlobalCertificate({
+                    assetCode: foundAsset.code,
+                    schemaVersion,
+                    partialCertificateNumbers,
+                    issuedBy: actingPerson,
+                  });
+                  navigate(`/certificates/${number}`);
+                }}
+              />
+            </Card>
+          )}
           <AuditHistory subject={{ kind: 'asset', code }} />
         </>
       )}

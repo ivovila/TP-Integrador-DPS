@@ -26,7 +26,8 @@ export function SchemaVersionPage() {
               subtitle={
                 <>
                   <Link to={`/schemas/${encodeURIComponent(foundSchema.assetType)}`}>{foundSchema.assetType}</Link> · published{' '}
-                  {formatInstant(version.publishedAt)}
+                  {formatInstant(version.publishedAt)} · effective from {formatInstant(version.effectiveFrom)}
+                  {version.requiredSubsystems.length > 0 && ` · subsystems ${version.requiredSubsystems.join(', ')}`}
                 </>
               }
             />

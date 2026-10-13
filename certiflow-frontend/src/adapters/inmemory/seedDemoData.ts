@@ -1,3 +1,4 @@
+import type { Subsystem } from '../../domain/catalog';
 import type { Criterion, RawAnswer, Section, Vocabulary } from '../../domain/schema';
 import type { LocalDate, Person } from '../../domain/shared';
 import type { Certiflow } from '../../ports/Certiflow';
@@ -123,11 +124,17 @@ function secondExtinguisherVersion(vocabulary: Vocabulary): Section[] {
   ];
 }
 
+const pressureVesselSubsystems: Subsystem[] = [
+  { code: 'ELECTRICAL', name: 'Electrical system' },
+  { code: 'PRESSURE', name: 'Pressure system' },
+];
+
 function pressureVesselSections(vocabulary: Vocabulary): Section[] {
   const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
   return [
     {
       title: 'Pressure system',
+      subsystemCode: 'PRESSURE',
       criteria: [
         {
           code: 'RELIEF-VALVE',
@@ -152,6 +159,26 @@ function pressureVesselSections(vocabulary: Vocabulary): Section[] {
         },
       ],
     },
+    {
+      title: 'Electrical system',
+      subsystemCode: 'ELECTRICAL',
+      criteria: [
+        {
+          code: 'GROUNDING',
+          text: 'Burner grounding verified',
+          severity: severityNamed('MAJOR'),
+          rule: { type: 'yes-no', expected: 'YES' },
+          requiredEvidence: [],
+        },
+        {
+          code: 'CONTROL-PANEL',
+          text: 'Control panel status',
+          severity: severityNamed('MINOR'),
+          rule: { type: 'option-in-list', acceptedOptions: ['Working'] },
+          requiredEvidence: [],
+        },
+      ],
+    },
   ];
 }
 
@@ -170,6 +197,8 @@ const compliantPressureVesselAnswers: Record<string, RawAnswer> = {
   'RELIEF-VALVE': measured('8.0'),
   LEAKS: yes,
   INSULATION: chosen('Acceptable'),
+  GROUNDING: yes,
+  'CONTROL-PANEL': chosen('Working'),
 };
 
 export async function seedDemoData(certiflow: Certiflow, demoControls: DemoControls, people: DemoPeople): Promise<void> {
@@ -223,6 +252,8 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
       { name: 'Agent', value: 'ABC powder' },
       { name: 'Capacity', value: '6 kg' },
     ],
+    jurisdictionCode: 'DEMO-STRICT',
+    subsystems: [],
     registeredBy: people.coordinator,
   });
   await certiflow.catalog.registerAsset({
@@ -232,6 +263,8 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
     location: 'Main building · Server room',
     responsible: people.assetResponsible,
     characteristics: [{ name: 'Agent', value: 'CO2' }],
+    jurisdictionCode: 'DEMO-STANDARD',
+    subsystems: [],
     registeredBy: people.coordinator,
   });
   await certiflow.catalog.registerAsset({
@@ -244,6 +277,19 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
       { name: 'Manufacturer', value: 'Calderas del Sur' },
       { name: 'Design pressure', value: '10 bar' },
     ],
+    jurisdictionCode: 'DEMO-STRICT',
+    subsystems: pressureVesselSubsystems,
+    registeredBy: people.coordinator,
+  });
+  await certiflow.catalog.registerAsset({
+    code: 'BLR-0012',
+    name: 'Boiler C',
+    type: pressureVesselType,
+    location: 'Plant 3 · Boiler room',
+    responsible: people.assetResponsible,
+    characteristics: [{ name: 'Design pressure', value: '8 bar' }],
+    jurisdictionCode: 'DEMO-CONDITIONAL',
+    subsystems: pressureVesselSubsystems,
     registeredBy: people.coordinator,
   });
   await certiflow.catalog.registerAsset({
@@ -253,18 +299,22 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
     location: 'Plant 1 · First floor',
     responsible: people.assetResponsible,
     characteristics: [],
+    jurisdictionCode: 'DEMO-STRICT',
+    subsystems: [],
     registeredBy: people.coordinator,
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Portable extinguisher inspection',
     assetType: extinguisherType,
     sections: extinguisherSections(vocabulary),
+    requiredSubsystems: [],
     createdBy: people.coordinator,
   });
   await certiflow.schemas.createInspectionSchema({
     name: 'Pressure vessel inspection',
     assetType: pressureVesselType,
     sections: pressureVesselSections(vocabulary),
+    requiredSubsystems: pressureVesselSubsystems.map((subsystem) => subsystem.code),
     createdBy: people.coordinator,
   });
 
@@ -297,17 +347,30 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
   const serverRoomInspection = await inspectAndClose('EXT-0043', compliantExtinguisherAnswers);
   await certiflow.certification.issueCertificate({
     inspectionId: serverRoomInspection.inspectionId,
-    validUntil: daysFrom(realToday, 320),
     issuedBy: people.certifier,
   });
 
+  async function certifyEverySubsystem(assetCode: string, inspectionId: string): Promise<Record<string, string>> {
+    const partialNumbers: Record<string, string> = {};
+    for (const subsystem of pressureVesselSubsystems) {
+      partialNumbers[subsystem.code] = await certiflow.certification.issueCertificate({
+        inspectionId,
+        subsystemCode: subsystem.code,
+        issuedBy: people.certifier,
+      });
+    }
+    await certiflow.certification.issueGlobalCertificate({
+      assetCode,
+      schemaVersion: 1,
+      partialCertificateNumbers: Object.values(partialNumbers),
+      issuedBy: people.certifier,
+    });
+    return partialNumbers;
+  }
+
   demoControls.setToday(daysFrom(realToday, -38));
   const boilerInspection = await inspectAndClose('BLR-0007', compliantPressureVesselAnswers);
-  const boilerCertificateNumber = await certiflow.certification.issueCertificate({
-    inspectionId: boilerInspection.inspectionId,
-    validUntil: daysFrom(realToday, 200),
-    issuedBy: people.certifier,
-  });
+  const boilerPartialNumbers = await certifyEverySubsystem('BLR-0007', boilerInspection.inspectionId);
 
   demoControls.setToday(daysFrom(realToday, -32));
   await certiflow.findings.verifyCorrectiveAction({
@@ -320,7 +383,7 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
 
   demoControls.setToday(daysFrom(realToday, -20));
   await certiflow.certification.suspendCertificate({
-    number: boilerCertificateNumber,
+    number: boilerPartialNumbers['PRESSURE']!,
     reason: 'Manufacturer recall of the relief valve',
     suspendedBy: people.certifier,
   });
@@ -359,8 +422,17 @@ export async function seedDemoData(certiflow: Certiflow, demoControls: DemoContr
   await certiflow.schemas.publishSchemaVersion({
     assetType: extinguisherType,
     sections: secondExtinguisherVersion(vocabulary),
+    requiredSubsystems: [],
+    effectiveFrom: `${daysFrom(realToday, 20)}T00:00:00.000Z`,
     publishedBy: people.coordinator,
   });
+
+  demoControls.setToday(daysFrom(realToday, -5));
+  const conditionalBoilerInspection = await inspectAndClose('BLR-0012', {
+    ...compliantPressureVesselAnswers,
+    INSULATION: chosen('Damaged'),
+  });
+  await certifyEverySubsystem('BLR-0012', conditionalBoilerInspection.inspectionId);
 
   demoControls.setToday(realToday);
 }

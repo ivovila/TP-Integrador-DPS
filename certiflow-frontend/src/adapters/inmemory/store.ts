@@ -1,5 +1,5 @@
-import type { Characteristic } from '../../domain/catalog';
-import type { Suspension } from '../../domain/certification';
+import type { Characteristic, Subsystem } from '../../domain/catalog';
+import type { CertificationDecision, CertificationScope, Suspension } from '../../domain/certification';
 import type { Verification } from '../../domain/finding';
 import type { AttachedEvidence, GivenAnswer, InspectionAssignment, Observation, Revision } from '../../domain/inspection';
 import type { Criterion, SchemaVersion } from '../../domain/schema';
@@ -14,6 +14,8 @@ export interface StoredAsset {
   location: string;
   responsible: Person;
   characteristics: Characteristic[];
+  jurisdictionCode: string;
+  subsystems: Subsystem[];
 }
 
 export interface StoredSchema {
@@ -61,6 +63,7 @@ export interface StoredFinding {
   inspectionId: string;
   assetCode: string;
   criterion: Criterion;
+  subsystemCode?: string;
   evidence: AttachedEvidence[];
   responsible: Person;
   correctiveActions: StoredCorrectiveAction[];
@@ -68,13 +71,20 @@ export interface StoredFinding {
 
 export type CertificateLifecycle = 'ISSUED' | 'SUSPENDED' | 'RENEWED';
 
+export type StoredCertificateBasis =
+  | { kind: 'inspection'; inspectionId: string; inspectionClosedAt: Instant }
+  | { kind: 'partialCertificates'; partialCertificateNumbers: string[]; globalPolicy: string; latestInspectionClosedAt: Instant };
+
 export interface StoredCertificate {
   number: string;
   assetCode: string;
-  inspectionId: string;
-  inspectionClosedAt: Instant;
+  scope: CertificationScope;
+  basis: StoredCertificateBasis;
+  schemaVersion: number;
+  requiredSubsystems: string[];
   validFrom: LocalDate;
   validUntil: LocalDate;
+  decision: CertificationDecision;
   issuedBy: Person;
   issuedAt: Instant;
   suspensions: Suspension[];

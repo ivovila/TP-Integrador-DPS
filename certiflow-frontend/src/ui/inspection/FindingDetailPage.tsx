@@ -127,8 +127,7 @@ export function FindingDetailPage() {
           <PageHeader
             title={
               <>
-                Finding {foundFinding.id} <StatusBadge status={foundFinding.open ? 'OPEN' : 'CLOSED'} />{' '}
-                {foundFinding.blocksCertification && <Badge tone="negative">blocks certification</Badge>}
+                Finding {foundFinding.id} <StatusBadge status={foundFinding.open ? 'OPEN' : 'CLOSED'} />
               </>
             }
             subtitle={
@@ -144,6 +143,7 @@ export function FindingDetailPage() {
                 ['Criterion', `${foundFinding.criterion.code} · ${foundFinding.criterion.text}`],
                 ['Approval rule', describeRule(foundFinding.criterion.rule)],
                 ['Severity', foundFinding.severity.label],
+                ['Subsystem', foundFinding.subsystemCode ?? 'None: affects every subsystem of the asset'],
                 ['Responsible', formatPerson(foundFinding.responsible)],
               ]}
             />

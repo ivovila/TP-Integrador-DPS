@@ -6,7 +6,6 @@ export interface Severity {
   name: string;
   label: string;
   outcomeWhenUnmet: Outcome;
-  blocksCertification: boolean;
 }
 
 export interface EvidenceKind {
@@ -14,9 +13,16 @@ export interface EvidenceKind {
   label: string;
 }
 
+export interface Jurisdiction {
+  code: string;
+  policyCode: string;
+  description: string;
+}
+
 export interface Vocabulary {
   severities: Severity[];
   evidenceKinds: EvidenceKind[];
+  jurisdictions: Jurisdiction[];
 }
 
 export type YesNoAnswer = 'YES' | 'NO';
@@ -57,16 +63,22 @@ export interface Criterion {
   severity: Severity;
   rule: ApprovalRule;
   requiredEvidence: EvidenceRequirement[];
+  /** Subsistema propio; si falta, el criterio hereda el de su sección. */
+  subsystemCode?: string;
 }
 
 export interface Section {
   title: string;
   criteria: Criterion[];
+  subsystemCode?: string;
 }
 
 export interface SchemaVersion {
   number: number;
   publishedAt: Instant;
+  /** Desde cuándo rige; igual a publishedAt si se publicó con vigencia inmediata. */
+  effectiveFrom: Instant;
+  requiredSubsystems: string[];
   sections: Section[];
 }
 
@@ -75,7 +87,10 @@ export type SchemaAction = 'publishSchemaVersion';
 export interface InspectionSchema {
   name: string;
   assetType: string;
+  /** La versión vigente ahora: la que captura una inspección asignada en este momento. */
   currentVersion: number;
+  /** La última publicada, que puede estar programada para más adelante. */
+  latestPublishedVersion: number;
   versions: SchemaVersion[];
   actions: SchemaAction[];
 }

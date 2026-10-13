@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
-import { Badge, StatusBadge } from '../shared/Badge';
+import { StatusBadge } from '../shared/Badge';
 import { Card, Details, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
@@ -22,9 +22,9 @@ export function FindingsSummaryPage() {
               entries={[
                 ['Findings', findingsSummary.findings.length],
                 ['Open', findingsSummary.openFindings],
-                ['Blocking certification', findingsSummary.blockingFindings],
               ]}
             />
+            <p className="muted">Whether an open finding blocks certification depends on the jurisdiction policy of the asset.</p>
           </Card>
           <Card>
             {findingsSummary.findings.length === 0 ? (
@@ -36,6 +36,7 @@ export function FindingsSummaryPage() {
                     <th>Finding</th>
                     <th>Criterion</th>
                     <th>Severity</th>
+                    <th>Subsystem</th>
                     <th>Responsible</th>
                     <th>Status</th>
                     <th>Overdue actions</th>
@@ -51,10 +52,10 @@ export function FindingsSummaryPage() {
                         <span className="criterion-code">{line.criterionCode}</span> {line.description}
                       </td>
                       <td>{line.severity}</td>
+                      <td>{line.subsystemCode ?? 'All'}</td>
                       <td>{line.responsible.name}</td>
                       <td>
-                        <StatusBadge status={line.open ? 'OPEN' : 'CLOSED'} />{' '}
-                        {line.blocksCertification && <Badge tone="negative">blocks certification</Badge>}
+                        <StatusBadge status={line.open ? 'OPEN' : 'CLOSED'} />
                       </td>
                       <td>{line.overdueActions}</td>
                     </tr>

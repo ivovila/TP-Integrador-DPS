@@ -2,6 +2,7 @@ import type { CorrectiveAction, CorrectiveActionState, Finding, FindingLine, Ver
 import type { Instant, Person } from '../../domain/shared';
 import type { FindingPort } from '../../ports/FindingPort';
 import { storedAssetWithCode } from './catalog';
+import { subsystemOfResponse } from './inspection';
 import { outcomeOf } from './rules';
 import type { InMemorySystem, StoredCorrectiveAction, StoredFinding, StoredInspection, StoredResponse } from './store';
 import { isSamePerson, reject, requireText } from './support';
@@ -25,10 +26,6 @@ export function isOpenFinding(finding: StoredFinding): boolean {
   return !finding.correctiveActions.some((action) => stateOf(action) === 'CLOSED');
 }
 
-export function blocksCertification(finding: StoredFinding): boolean {
-  return isOpenFinding(finding) && finding.criterion.severity.blocksCertification;
-}
-
 export function findingsOfAsset(system: InMemorySystem, assetCode: string): StoredFinding[] {
   return [...system.findings.values()].filter((finding) => finding.assetCode === assetCode);
 }
@@ -45,6 +42,7 @@ export function raiseFinding(
     inspectionId: inspection.id,
     assetCode: inspection.assetCode,
     criterion: structuredClone(nonConformity.criterion),
+    subsystemCode: subsystemOfResponse(inspection, nonConformity),
     evidence: structuredClone(nonConformity.attachments),
     responsible: { ...inspection.assetResponsible },
     correctiveActions: [],
@@ -81,7 +79,6 @@ function findingView(system: InMemorySystem, finding: StoredFinding): Finding {
     ...finding,
     severity: finding.criterion.severity,
     open,
-    blocksCertification: blocksCertification(finding),
     correctiveActions: finding.correctiveActions.map((action) => correctiveActionView(system, action)),
     actions: open ? ['planCorrectiveAction' as const] : [],
   });
@@ -187,14 +184,13 @@ export function createFindingPort(system: InMemorySystem): FindingPort {
         severity: finding.criterion.severity.label,
         responsible: { ...finding.responsible },
         open: isOpenFinding(finding),
-        blocksCertification: blocksCertification(finding),
+        subsystemCode: finding.subsystemCode,
         overdueActions: finding.correctiveActions.filter((action) => isOpenAction(action) && today > action.dueDate).length,
       }));
       return {
         assetCode,
         findings,
         openFindings: findings.filter((line) => line.open).length,
-        blockingFindings: findings.filter((line) => line.blocksCertification).length,
       };
     },
   };
