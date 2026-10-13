@@ -101,6 +101,15 @@ class AuthenticationApiTest extends ApiTest {
     }
 
     @Test
+    void aTokenThatExpiredSecondsAgoIsUnauthorized() throws Exception {
+        Instant now = Instant.now();
+        String token = signed(jwtEncoder, now.minusSeconds(3600), now.minusSeconds(5));
+
+        mvc.perform(get("/api/v1/assets").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void aTokenSignedWithAnotherKeyIsUnauthorized() throws Exception {
         JwtEncoder anotherKey = NimbusJwtEncoder.withSecretKey(
                 new SecretKeySpec("another-key-that-is-at-least-32-bytes".getBytes(StandardCharsets.UTF_8), "HmacSHA256")).build();

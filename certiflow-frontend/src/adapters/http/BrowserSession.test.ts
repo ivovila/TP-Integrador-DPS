@@ -76,7 +76,7 @@ test('a rejected token signs the person out and tells who is listening', async (
   const listener = vi.fn();
   session.onSignedOut(listener);
 
-  session.rejected();
+  session.rejected({ Authorization: `Bearer ${inesToken}` });
 
   expect(listener).toHaveBeenCalledOnce();
   expect(session.current()).toBeUndefined();
@@ -86,4 +86,29 @@ test('an expired token is not a session', () => {
   window.sessionStorage.setItem('certiflow.token', tokenFor({ sub: 'EMP-002', name: 'Ines Duarte', role: 'INSPECTOR', exp: 1 }));
 
   expect(new BrowserSession('', answering()).current()).toBeUndefined();
+});
+
+test('a late rejection of an older token does not sign out the current session', async () => {
+  const session = new BrowserSession('', answering({ headers: { Authorization: `Bearer ${inesToken}` } }));
+  await session.logIn('EMP-002', 'certiflow');
+  const listener = vi.fn();
+  session.onSignedOut(listener);
+
+  session.rejected({ Authorization: 'Bearer an-older-token' });
+
+  expect(listener).not.toHaveBeenCalled();
+  expect(session.current()?.person.id).toBe('EMP-002');
+});
+
+test('logging in trusts the token the server just issued even when the browser clock is ahead', async () => {
+  const issuedForAnHourButAlreadyPastLocally = tokenFor({ sub: 'EMP-002', name: 'Ines Duarte', role: 'INSPECTOR', exp: 1 });
+  const session = new BrowserSession(
+    '',
+    answering({ headers: { Authorization: `Bearer ${issuedForAnHourButAlreadyPastLocally}`, 'Token-Expires': '2100-01-01T00:00:00Z' } }),
+  );
+
+  const signedIn = await session.logIn('EMP-002', 'certiflow');
+
+  expect(signedIn.person.id).toBe('EMP-002');
+  expect(signedIn.expiresAt).toBe('2100-01-01T00:00:00.000Z');
 });

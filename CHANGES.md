@@ -626,3 +626,8 @@ Siguiendo [docs/specs/2026-10-13-login.md](docs/specs/2026-10-13-login.md) y su
   por escritura y por rol), `DemoUsersSeederTest`; `BrowserSession.test.ts`, `PersonLogins.test.ts`,
   `LoginPage.test.tsx` y las pruebas de `HalClient` y `navigation` actualizadas.
 - `DESIGN.md`: nueva D25; D21 y D24 actualizadas; limitaciones de autenticación reemplazadas.
+- Revisión final: un token vencido o revocado se rechaza sin los 60 s de tolerancia de reloj; un 401 tardío de un
+  token viejo no cierra la sesión nueva; el login confía en el vencimiento que informa el servidor; después de un
+  logout, quien ingresa empieza en su sección; el aviso de rol ya no menciona "Acting as"; un test exige
+  `@AllowedRole` en toda escritura; el job `e2e` espera al backend con credenciales; `captureApiResponses.sh`
+  ingresa con Basic y escribe con el rol correcto.

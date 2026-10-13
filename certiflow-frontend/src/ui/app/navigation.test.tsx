@@ -89,6 +89,13 @@ test.each(formsThatNeedARole)('opening %s as %s says which role it needs instead
   expect(within(screen.getByRole('main')).queryByRole('button')).toBeNull();
 });
 
+test('the role notice tells the person to log in as someone with that role', async () => {
+  openAs('inspector', '/assets/new');
+  const notice = await screen.findByText(/Only the .* can do this/);
+  expect(notice.textContent).toContain('Log out and log in as the Administrator to continue.');
+  expect(notice.textContent).not.toContain('Acting as');
+});
+
 test('the header shows who is logged in and there is no way to act as someone else', async () => {
   openAs('verifier', '/findings');
   await screen.findByRole('heading', { level: 1, name: 'Findings' });
@@ -101,6 +108,16 @@ test('logging out returns to the login', async () => {
   await screen.findByRole('heading', { level: 1, name: 'Inspections' });
   fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Log in to CertiFlow' })).toBeDefined();
+});
+
+test('whoever logs in after a logout starts on their own home, not on the previous page', async () => {
+  openAs('administrator', '/assets/new');
+  await screen.findByRole('heading', { level: 1 });
+  fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+  fireEvent.change(await screen.findByLabelText('Person id'), { target: { value: 'EMP-002' } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'certiflow' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Inspections' })).toBeDefined();
 });
 
 test('a token the server stops accepting returns to the login', async () => {

@@ -17,8 +17,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ar.edu.itba.certiflow.web.support.ApiTest;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -27,8 +30,27 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 class RoleAccessApiTest extends ApiTest {
+
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    private RequestMappingHandlerMapping handlerMapping;
+
+    @Test
+    void everyWriteDeclaresTheRoleAllowedToDoIt() {
+        List<String> unprotectedWrites = handlerMapping.getHandlerMethods().entrySet().stream()
+                .filter(entry -> entry.getKey().getMethodsCondition().getMethods().stream()
+                        .anyMatch(method -> method != RequestMethod.GET && method != RequestMethod.HEAD && method != RequestMethod.OPTIONS))
+                .filter(entry -> entry.getValue().getBeanType() != TokenController.class)
+                .filter(entry -> !entry.getValue().hasMethodAnnotation(AllowedRole.class))
+                .map(entry -> entry.getKey().toString())
+                .toList();
+
+        assertEquals(List.of(), unprotectedWrites);
+    }
 
     static Stream<Arguments> writes() {
         return Stream.of(

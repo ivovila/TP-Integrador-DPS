@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 import type { Person } from '../../domain/shared';
 import type { SignedIn } from '../../ports/AuthenticationPort';
 import { useAuthentication } from './CertiflowContext';
@@ -18,6 +19,7 @@ const SessionContext = createContext<Session | undefined>(undefined);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const authentication = useAuthentication();
   const [signedIn, setSignedIn] = useState<SignedIn | undefined>(() => authentication.current());
+  const navigate = useNavigate();
 
   useEffect(() => authentication.onSignedOut(() => setSignedIn(undefined)), [authentication]);
 
@@ -33,6 +35,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     logOut: async () => {
       await authentication.logOut();
       setSignedIn(undefined);
+      navigate('/', { replace: true });
     },
   };
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;

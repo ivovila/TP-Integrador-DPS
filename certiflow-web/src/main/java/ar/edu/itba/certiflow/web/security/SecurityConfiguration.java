@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.infrastructure.security.SpringDataRevokedTokenRepos
 import ar.edu.itba.certiflow.infrastructure.security.SpringDataUserAccountRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,7 +23,7 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -65,7 +66,8 @@ public class SecurityConfiguration {
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtKey, SpringDataRevokedTokenRepository revokedTokens) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtKey).macAlgorithm(MacAlgorithm.HS256).build();
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), new NotRevokedValidator(revokedTokens)));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(Duration.ZERO),
+                new NotRevokedValidator(revokedTokens)));
         return decoder;
     }
 

@@ -98,7 +98,7 @@ export class HalClient {
     }
     this.credentials.received(response, actingPerson);
     if (response.status === 401) {
-      this.credentials.rejected();
+      this.credentials.rejected(credentialHeaders);
     }
     if (!response.ok) {
       throw await rejectionOf(response);

@@ -3,7 +3,7 @@ import type { Person } from '../../domain/shared';
 export interface CredentialSource {
   headersFor(actingPerson: Person | undefined): Promise<Record<string, string>>;
   received(response: Response, actingPerson: Person | undefined): void;
-  rejected(): void;
+  rejected(sentHeaders: Record<string, string>): void;
 }
 
 export const browserRequestHeader = { 'X-Requested-With': 'XMLHttpRequest' };

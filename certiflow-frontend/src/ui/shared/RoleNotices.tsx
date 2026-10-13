@@ -27,7 +27,7 @@ export function RequiresRoleFor({ action, children }: { action: RoleAction; chil
       <h2>This needs another role</h2>
       <p className="role-notice">
         Only the {roles[roleThatMayDo[action]].label} can do this. You are acting as {actingPerson.name}, {roles[role].label}.
-        Choose another person in "Acting as" to continue.
+        Log out and log in as the {roles[roleThatMayDo[action]].label} to continue.
       </p>
     </section>
   );

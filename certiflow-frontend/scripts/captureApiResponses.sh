@@ -1,15 +1,17 @@
 #!/bin/bash
 # Regenera src/adapters/http/__fixtures__ con respuestas reales del backend.
-# Requiere el backend levantado sobre una base vacía. Uso: scripts/captureApiResponses.sh [URL base]
+# Requiere el backend levantado sobre una base vacía con el perfil demo-users. Uso: scripts/captureApiResponses.sh [URL base]
 set -u
 BASE=${1:-http://localhost:8080}
+PASSWORD=certiflow
+READER=EMP-001
 OUT=$(cd "$(dirname "$0")/.." && pwd)/src/adapters/http/__fixtures__
 mkdir -p "$OUT"
 
 call() {
   local name=$1 method=$2 path=$3 person_id=$4 person_name=$5 body=${6:-}
   local args=(-s -X "$method" -w '\n%{http_code}' -H 'Accept: application/hal+json, application/problem+json')
-  [ -n "$person_id" ] && args+=(-H "X-Person-Id: $person_id" -H "X-Person-Name: $person_name")
+  args+=(-u "${person_id:-$READER}:$PASSWORD")
   [ -n "$body" ] && args+=(-H 'Content-Type: application/json' -d "$body")
   local response; response=$(curl "${args[@]}" "$BASE$path")
   local code=${response##*$'\n'}
@@ -19,20 +21,20 @@ call() {
 }
 field() { python3 -c "import json; print(json.load(open('$OUT/$1.json'))$2)"; }
 
-COORDINATOR=(EMP-001 "Paula Rios"); INSPECTOR=(EMP-002 "Ines Duarte"); VERIFIER=(EMP-004 "Vera Soto"); CERTIFIER=(EMP-005 "Carlos Vidal")
+ADMINISTRATOR=(EMP-006 "Ana Torres"); COORDINATOR=(EMP-001 "Paula Rios"); ASSET_RESPONSIBLE=(EMP-003 "Raul Mendez"); INSPECTOR=(EMP-002 "Ines Duarte"); VERIFIER=(EMP-004 "Vera Soto"); CERTIFIER=(EMP-005 "Carlos Vidal")
 RESPONSIBLE='{"id":"EMP-003","name":"Raul Mendez"}'
 
 call root GET /api/v1 "" ""
 call vocabulary GET /api/v1/vocabulary "" ""
 call schema-list-empty GET /api/v1/schemas "" ""
 
-call asset-with-subsystems POST /api/v1/assets "${COORDINATOR[@]}" '{"code":"CAP-0001","name":"Capture plant","type":"Capture plant","location":"Plant 9","jurisdictionCode":"DEMO-CONDITIONAL","responsible":'"$RESPONSIBLE"',"characteristics":[{"name":"Area","value":"120 m2"}],"subsystems":[{"code":"ELECTRICAL","name":"Electrical installation"},{"code":"PRESSURE","name":"Pressure system"}]}'
-call asset-without-subsystems POST /api/v1/assets "${COORDINATOR[@]}" '{"code":"CAP-0010","name":"Capture tank","type":"Capture tank","location":"Yard","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[]}'
+call asset-with-subsystems POST /api/v1/assets "${ADMINISTRATOR[@]}" '{"code":"CAP-0001","name":"Capture plant","type":"Capture plant","location":"Plant 9","jurisdictionCode":"DEMO-CONDITIONAL","responsible":'"$RESPONSIBLE"',"characteristics":[{"name":"Area","value":"120 m2"}],"subsystems":[{"code":"ELECTRICAL","name":"Electrical installation"},{"code":"PRESSURE","name":"Pressure system"}]}'
+call asset-without-subsystems POST /api/v1/assets "${ADMINISTRATOR[@]}" '{"code":"CAP-0010","name":"Capture tank","type":"Capture tank","location":"Yard","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[]}'
 call asset-list-first-page GET '/api/v1/assets?page=0&size=1' "" ""
 call asset-list-last-page GET '/api/v1/assets?page=1&size=1' "" ""
 
-call schema-created POST /api/v1/schemas "${COORDINATOR[@]}" '{"name":"Capture plant inspection","assetType":"Capture plant","requiredSubsystems":["ELECTRICAL","PRESSURE"],"sections":[{"title":"Electrical","subsystemCode":"ELECTRICAL","criteria":[{"code":"EARTH","text":"Earthing resistance","severity":"MAJOR","rule":{"type":"numeric-range","unit":"ohm","minimum":0.00,"maximum":5.00},"requiredEvidence":[{"kind":"PHOTO","minimum":1}]},{"code":"PANEL","text":"Panel labelled","severity":"MINOR","rule":{"type":"yes-no","expected":"YES"},"requiredEvidence":[]}]},{"title":"Pressure","criteria":[{"code":"VALVE","text":"Relief valve state","severity":"CRITICAL","rule":{"type":"option-in-list","options":["Good","Acceptable"]},"requiredEvidence":[],"subsystemCode":"PRESSURE"}]}]}'
-call schema-tank-created POST /api/v1/schemas "${COORDINATOR[@]}" '{"name":"Capture tank inspection","assetType":"Capture tank","sections":[{"title":"Tank","criteria":[{"code":"LEAKS","text":"No visible leaks","severity":"MAJOR","rule":{"type":"yes-no","expected":"YES"},"requiredEvidence":[]},{"code":"PAINT","text":"Paint condition","severity":"MINOR","rule":{"type":"option-in-list","options":["Good"]},"requiredEvidence":[]}]}]}'
+call schema-created POST /api/v1/schemas "${ADMINISTRATOR[@]}" '{"name":"Capture plant inspection","assetType":"Capture plant","requiredSubsystems":["ELECTRICAL","PRESSURE"],"sections":[{"title":"Electrical","subsystemCode":"ELECTRICAL","criteria":[{"code":"EARTH","text":"Earthing resistance","severity":"MAJOR","rule":{"type":"numeric-range","unit":"ohm","minimum":0.00,"maximum":5.00},"requiredEvidence":[{"kind":"PHOTO","minimum":1}]},{"code":"PANEL","text":"Panel labelled","severity":"MINOR","rule":{"type":"yes-no","expected":"YES"},"requiredEvidence":[]}]},{"title":"Pressure","criteria":[{"code":"VALVE","text":"Relief valve state","severity":"CRITICAL","rule":{"type":"option-in-list","options":["Good","Acceptable"]},"requiredEvidence":[],"subsystemCode":"PRESSURE"}]}]}'
+call schema-tank-created POST /api/v1/schemas "${ADMINISTRATOR[@]}" '{"name":"Capture tank inspection","assetType":"Capture tank","sections":[{"title":"Tank","criteria":[{"code":"LEAKS","text":"No visible leaks","severity":"MAJOR","rule":{"type":"yes-no","expected":"YES"},"requiredEvidence":[]},{"code":"PAINT","text":"Paint condition","severity":"MINOR","rule":{"type":"option-in-list","options":["Good"]},"requiredEvidence":[]}]}]}'
 call schema-list GET /api/v1/schemas "" ""
 call schema GET '/api/v1/schemas/Capture%20plant' "" ""
 call schema-versions GET '/api/v1/schemas/Capture%20plant/versions' "" ""
@@ -65,8 +67,8 @@ call findings-summary GET /api/v1/assets/CAP-0001/findings-summary "" ""
 call eligibility-whole-asset-rejected GET /api/v1/inspections/$INSPECTION/certification-eligibility "" ""
 call eligibility-conditional GET "/api/v1/inspections/$INSPECTION/certification-eligibility?subsystem=ELECTRICAL" "" ""
 call eligibility-approved GET "/api/v1/inspections/$INSPECTION/certification-eligibility?subsystem=PRESSURE" "" ""
-call action-planned POST /api/v1/findings/$FINDING/corrective-actions "${COORDINATOR[@]}" '{"description":"Label the panel","responsible":'"$RESPONSIBLE"',"dueDate":"2030-12-01"}'
-call action-second-planned POST /api/v1/findings/$FINDING/corrective-actions "${COORDINATOR[@]}" '{"description":"Replace the panel","responsible":'"$RESPONSIBLE"',"dueDate":"2030-12-15"}'
+call action-planned POST /api/v1/findings/$FINDING/corrective-actions "${ASSET_RESPONSIBLE[@]}" '{"description":"Label the panel","responsible":'"$RESPONSIBLE"',"dueDate":"2030-12-01"}'
+call action-second-planned POST /api/v1/findings/$FINDING/corrective-actions "${ASSET_RESPONSIBLE[@]}" '{"description":"Replace the panel","responsible":'"$RESPONSIBLE"',"dueDate":"2030-12-15"}'
 call verification-rejected POST /api/v1/findings/$FINDING/corrective-actions/1/verifications "${VERIFIER[@]}" '{"result":"REJECTED","notes":"Still missing"}'
 call finding-open GET /api/v1/findings/$FINDING "" ""
 
@@ -86,7 +88,7 @@ call certificate-global-dependency-invalid GET /api/v1/certificates/$GLOBAL "" "
 call verification-accepted POST /api/v1/findings/$FINDING/corrective-actions/1/verifications "${VERIFIER[@]}" '{"result":"ACCEPTED","notes":"Labels in place"}'
 call finding-closed GET /api/v1/findings/$FINDING "" ""
 
-call version-published-future POST '/api/v1/schemas/Capture%20plant/versions' "${COORDINATOR[@]}" '{"effectiveFrom":"2031-01-01T00:00:00-03:00","requiredSubsystems":["ELECTRICAL","PRESSURE"],"sections":[{"title":"Electrical","subsystemCode":"ELECTRICAL","criteria":[{"code":"EARTH","text":"Earthing resistance","severity":"MAJOR","rule":{"type":"numeric-range","unit":"ohm","minimum":0.00,"maximum":4.00},"requiredEvidence":[]}]},{"title":"Pressure","subsystemCode":"PRESSURE","criteria":[{"code":"VALVE","text":"Relief valve state","severity":"CRITICAL","rule":{"type":"option-in-list","options":["Good"]},"requiredEvidence":[]}]}]}'
+call version-published-future POST '/api/v1/schemas/Capture%20plant/versions' "${ADMINISTRATOR[@]}" '{"effectiveFrom":"2031-01-01T00:00:00-03:00","requiredSubsystems":["ELECTRICAL","PRESSURE"],"sections":[{"title":"Electrical","subsystemCode":"ELECTRICAL","criteria":[{"code":"EARTH","text":"Earthing resistance","severity":"MAJOR","rule":{"type":"numeric-range","unit":"ohm","minimum":0.00,"maximum":4.00},"requiredEvidence":[]}]},{"title":"Pressure","subsystemCode":"PRESSURE","criteria":[{"code":"VALVE","text":"Relief valve state","severity":"CRITICAL","rule":{"type":"option-in-list","options":["Good"]},"requiredEvidence":[]}]}]}'
 call schema-with-scheduled-version GET '/api/v1/schemas/Capture%20plant' "" ""
 call effective-version GET '/api/v1/schemas/Capture%20plant/effective-version?at=2031-06-01T00:00:00Z' "" ""
 call error-no-effective-version GET '/api/v1/schemas/Capture%20plant/effective-version?at=2000-01-01T00:00:00Z' "" ""
@@ -102,6 +104,6 @@ call error-not-eligible POST /api/v1/certificates "${CERTIFIER[@]}" "{\"inspecti
 call findings-list-empty GET '/api/v1/findings?asset=NO-FINDINGS' "" ""
 
 call error-asset-not-found GET /api/v1/assets/NOPE "" ""
-call error-asset-already-registered POST /api/v1/assets "${COORDINATOR[@]}" '{"code":"CAP-0001","name":"n","type":"t","location":"l","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[]}'
-call error-unknown-field POST /api/v1/assets "${COORDINATOR[@]}" '{"code":"CAP-0002","name":"n","type":"t","location":"l","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[],"extra":1}'
+call error-asset-already-registered POST /api/v1/assets "${ADMINISTRATOR[@]}" '{"code":"CAP-0001","name":"n","type":"t","location":"l","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[]}'
+call error-unknown-field POST /api/v1/assets "${ADMINISTRATOR[@]}" '{"code":"CAP-0002","name":"n","type":"t","location":"l","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[],"extra":1}'
 call error-missing-person POST /api/v1/assets "" "" '{"code":"CAP-0003","name":"n","type":"t","location":"l","jurisdictionCode":"DEMO-STRICT","responsible":'"$RESPONSIBLE"',"characteristics":[],"subsystems":[]}'

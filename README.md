@@ -88,7 +88,7 @@ y en [DESIGN.md](DESIGN.md) (D21).
 `certiflow-frontend/` tiene la interfaz web (React + TypeScript + Vite). Trabaja contra la API: se corre en dos
 procesos, y el servidor de desarrollo del frontend reenvía `/api` al backend. Requiere Node 24 o superior.
 
-Con el backend levantado (`mvn -pl certiflow-web spring-boot:run`):
+Con el backend levantado con usuarios (`mvn -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo`):
 
 ```bash
 cd certiflow-frontend && npm install && npm run dev

@@ -23,16 +23,16 @@ function payloadOf(token: string): TokenPayload | undefined {
   }
 }
 
-function signedInWith(token: string): SignedIn | undefined {
+function signedInWith(payload: TokenPayload, expiresAt: Date): SignedIn {
+  return { person: { id: payload.sub, name: payload.name }, role: payload.role, expiresAt: expiresAt.toISOString() };
+}
+
+function unexpiredSessionOf(token: string): SignedIn | undefined {
   const payload = payloadOf(token);
   if (payload === undefined || payload.exp * 1000 <= Date.now()) {
     return undefined;
   }
-  return {
-    person: { id: payload.sub, name: payload.name },
-    role: payload.role,
-    expiresAt: new Date(payload.exp * 1000).toISOString(),
-  };
+  return signedInWith(payload, new Date(payload.exp * 1000));
 }
 
 export class BrowserSession implements CredentialSource, AuthenticationPort {
@@ -45,7 +45,7 @@ export class BrowserSession implements CredentialSource, AuthenticationPort {
 
   current(): SignedIn | undefined {
     const token = this.storedToken();
-    return token === undefined ? undefined : signedInWith(token);
+    return token === undefined ? undefined : unexpiredSessionOf(token);
   }
 
   async logIn(personId: string, password: string): Promise<SignedIn> {
@@ -62,12 +62,13 @@ export class BrowserSession implements CredentialSource, AuthenticationPort {
       throw new RejectedRequestError(401, 'Unauthorized', 'Wrong person id or password');
     }
     const token = bearerTokenOf(response);
-    const signedIn = token === undefined ? undefined : signedInWith(token);
-    if (!response.ok || token === undefined || signedIn === undefined) {
+    const payload = token === undefined ? undefined : payloadOf(token);
+    if (!response.ok || token === undefined || payload === undefined) {
       throw new RejectedRequestError(response.status, 'LoginFailed', `The server answered ${response.status} without a valid token`);
     }
     window.sessionStorage.setItem(storageKey, token);
-    return signedIn;
+    const announcedExpiry = response.headers.get('Token-Expires');
+    return signedInWith(payload, announcedExpiry === null ? new Date(payload.exp * 1000) : new Date(announcedExpiry));
   }
 
   async logOut(): Promise<void> {
@@ -93,8 +94,11 @@ export class BrowserSession implements CredentialSource, AuthenticationPort {
 
   received(): void {}
 
-  rejected(): void {
-    this.signOut();
+  rejected(sentHeaders: Record<string, string>): void {
+    const token = this.storedToken();
+    if (token !== undefined && sentHeaders.Authorization === `Bearer ${token}`) {
+      this.signOut();
+    }
   }
 
   private signOut(): void {
