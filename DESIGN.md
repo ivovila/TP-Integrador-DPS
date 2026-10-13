@@ -10,7 +10,7 @@ que tiene.
 mvn clean verify   # compila y prueba los cuatro módulos: dominio, aplicación, repositorios sobre H2 y API
 ```
 
-La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del build de Maven, y trabaja contra la API; ver D22 y D23.
+La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del build de Maven, y trabaja contra la API; ver D22, D23 y D24.
 
 ---
 
@@ -397,6 +397,23 @@ determinista y los tests usan un reloj controlable.
   - *Limpiar la base entre tests de contrato:* exigiría un endpoint de borrado en el backend solo para tests.
 - **Costo:** el frontend no corre sin el backend. El adaptador depende de los nombres de campo del dominio que la API serializa directo. Leer una inspección son tres pedidos más la versión del esquema. Los casos que mueven la fecha (acción vencida, certificado expirado, versión que entra en vigencia) no se pueden probar desde el frontend, porque el reloj del servidor no se controla: los cubren los tests del backend.
 
+### D24. Roles en la interfaz
+
+- **Principio:** SRP y OCP en la presentación: una sola tabla de datos decide qué hace cada rol; las pantallas no nombran roles.
+- **Dónde:** `certiflow-frontend/src/ui/app`: `roles.ts` (roles, secciones del menú y `roleThatMayDo`, el rol de cada acción), `roster.ts` (cada persona de ejemplo con su rol), `SessionContext` (persona, rol y `permitted(actions)`), `ActingPersonPicker`, `Layout` y `routes.tsx`; `ui/shared/RoleNotices.tsx`.
+- **Por qué:**
+  - La interfaz le mostraba todas las acciones a cualquiera, como si una persona hiciera el proceso entero. Ahora hay seis roles (administradora, coordinadora de inspecciones, inspector, responsable del activo, verificador y oficial de certificación) y cada uno ve en el menú las secciones donde trabaja.
+  - **Una acción se muestra si el sistema la permite y el rol puede.** `resource.actions` sigue significando "lo que el sistema permite en este estado" (D22, D23); la pantalla le aplica `permitted(...)`. Son dos preguntas distintas con dos dueños distintos: el estado lo decide el backend, el rol lo decide la interfaz.
+  - **`roleThatMayDo` es un `Record` de acción a rol.** Como el compilador exige una entrada por acción, no puede quedar una acción sin rol ni con dos. Mover una acción de un rol a otro, o agregar un rol, es editar esa tabla.
+  - **El rol viene con la persona.** Elegir a alguien en "Acting as" define su rol; al escribir otra persona se elige el suyo. Las reglas de independencia del dominio (S19, verificador distinto del responsable) se siguen cumpliendo solas, porque cada paso lo hace otra persona.
+  - Lo que no está en el menú de un rol se sigue alcanzando por los links entre registros y se ve completo, sin acciones, con un aviso de a qué rol pertenecen. Entrar por URL a un formulario de otro rol muestra qué rol hace falta.
+- **Alternativas descartadas:**
+  - *Que el backend rechace por rol:* sin login, el rol sería otro header que cualquiera puede escribir; cambia el backend sin dar seguridad.
+  - *Elegir el rol aparte de la persona:* permite combinaciones sin sentido, como una inspectora que también verifica.
+  - *Mostrar a cada persona solo sus registros:* exige definir quién ve todo y filtros que la API no ofrece.
+  - *Preguntar por el rol en cada pantalla (`if (role === 'inspector')`):* reparte la tabla por toda la interfaz.
+- **Costo:** es separación de la interfaz, no control de acceso (ver §6). Quien registra un activo ya no puede asignarle una inspección sin cambiar de persona, que es justamente lo buscado pero hace más largo un recorrido de demostración.
+
 ---
 
 ## 4. Patrones que se decidió no aplicar
@@ -516,6 +533,7 @@ Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 - **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
 - **Severidades y tipos de evidencia estándar.** La persistencia y la API resuelven severidades y tipos de evidencia por nombre contra `StandardSeverity` y `StandardEvidenceKind`. Una escala propia (D2) funciona en el dominio, pero para guardarla o recibirla por la API hay que registrarla en `SectionsJson`, `EvaluationJson` y `SchemaPayloads`.
 - **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
+- **Los roles no son un control de acceso.** Los roles de D24 solo deciden qué muestra la interfaz. La API no tiene login ni conoce los roles: acepta cualquier operación de cualquier persona que llegue en los headers.
 - **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
 - **La API serializa tipos del dominio.** Certificados y decisiones de elegibilidad viajan como los records del dominio (`jurisdictionCode: {value}`, alcance y base sin discriminador). Contradice lo que D21 dice de los DTOs propios y ata al adaptador del frontend a esos nombres.
 - **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.

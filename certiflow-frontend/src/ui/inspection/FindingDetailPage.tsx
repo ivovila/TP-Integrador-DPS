@@ -10,6 +10,7 @@ import { formatDate, formatInstant, formatPerson } from '../shared/format';
 import { Card, Details, EmptyState, PageHeader, TextField } from '../shared/Page';
 import { nobody, PersonPicker } from '../shared/PersonPicker';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { describeRule } from '../shared/ruleKinds';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
@@ -39,7 +40,7 @@ function PlanCorrectiveActionForm({ findingId, onPlanned }: { findingId: string;
       <ErrorBanner error={planning.error} />
       <div className="form-grid">
         <TextField label="What will be done" value={description} onChange={setDescription} />
-        <PersonPicker label="Responsible" person={responsible} onChange={setResponsible} />
+        <PersonPicker label="Responsible" person={responsible} onChange={setResponsible} role="assetResponsible" />
         <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
       </div>
       <div>
@@ -84,6 +85,7 @@ function VerificationForm({ findingId, actionId, onVerified }: { findingId: stri
 }
 
 function CorrectiveActionCard({ findingId, action, onVerified }: { findingId: string; action: CorrectiveAction; onVerified(): void }) {
+  const { permitted } = useSession();
   return (
     <div className="nested">
       <div className="criterion-heading">
@@ -106,7 +108,7 @@ function CorrectiveActionCard({ findingId, action, onVerified }: { findingId: st
           </li>
         ))}
       </ul>
-      {action.actions.includes('verifyCorrectiveAction') && (
+      {permitted(action.actions).includes('verifyCorrectiveAction') && (
         <VerificationForm findingId={findingId} actionId={action.id} onVerified={onVerified} />
       )}
     </div>
@@ -115,6 +117,7 @@ function CorrectiveActionCard({ findingId, action, onVerified }: { findingId: st
 
 export function FindingDetailPage() {
   const certiflow = useCertiflow();
+  const { permitted } = useSession();
   const findingId = useParams().id!;
   const [changeCount, setChangeCount] = useState(0);
   const finding = useQuery(() => certiflow.findings.findFinding(findingId), [findingId, changeCount]);
@@ -166,11 +169,15 @@ export function FindingDetailPage() {
             )}
           </Card>
           <Card title="Corrective actions">
+            <ReadOnlyNotice
+              offeredActions={[...foundFinding.actions, ...foundFinding.correctiveActions.flatMap((action) => action.actions)]}
+              record="finding"
+            />
             {foundFinding.correctiveActions.length === 0 && <EmptyState>No corrective actions planned yet.</EmptyState>}
             {foundFinding.correctiveActions.map((action) => (
               <CorrectiveActionCard key={action.id} findingId={foundFinding.id} action={action} onVerified={recordChange} />
             ))}
-            {foundFinding.actions.includes('planCorrectiveAction') && (
+            {permitted(foundFinding.actions).includes('planCorrectiveAction') && (
               <PlanCorrectiveActionForm findingId={foundFinding.id} onPlanned={recordChange} />
             )}
           </Card>

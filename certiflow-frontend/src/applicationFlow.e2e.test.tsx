@@ -123,6 +123,7 @@ async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: stri
 test('an inspection is executed, closed, corrected and certified through the screens', async () => {
   const { inspectionId } = await extinguisherWithAnAssignedInspection();
   open(`/inspections/${inspectionId}`);
+  await fill(page, 'Acting as', demoPeople.inspector.id);
 
   const pressure = await criterionCard('PRESSURE');
   await fill(pressure, 'Measurement (bar)', '12');
@@ -151,16 +152,15 @@ test('an inspection is executed, closed, corrected and certified through the scr
   const findingId = findingLink.textContent!;
   fireEvent.click(findingLink);
   await screen.findByText(new RegExp(`Finding ${findingId}`));
+  expect(screen.queryByRole('button', { name: 'Plan corrective action' })).toBeNull();
+  await fill(page, 'Acting as', demoPeople.assetResponsible.id);
   await fill(page, 'What will be done', 'Fit a new safety seal');
   await fill(page, 'Responsible', demoPeople.assetResponsible.id);
   await fill(page, 'Due date', daysFromToday(20));
   await press(page, 'Plan corrective action');
   await screen.findByText(/Action 1 · Fit a new safety seal/);
 
-  await fill(page, 'Acting as', demoPeople.assetResponsible.id);
-  await press(page, 'Accept');
-  expect((await screen.findByRole('alert')).textContent).toContain('VerifierMustDifferFromResponsibleException');
-
+  expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
   await fill(page, 'Acting as', demoPeople.verifier.id);
   await press(page, 'Accept');
   await screen.findByText(/Verification accepted/);
@@ -202,6 +202,7 @@ test('a closed inspection is rectified through the screens and gains a revision'
   });
   await certiflow.inspections.closeInspection({ inspectionId, closedBy: demoPeople.inspector });
   open(`/inspections/${inspectionId}`);
+  await fill(page, 'Acting as', demoPeople.inspector.id);
 
   const rectification = await cardTitled('Rectify an answer');
   await fill(rectification, 'Criterion', 'SEAL');
@@ -290,6 +291,7 @@ async function boilerWithAClosedInspection(): Promise<{ assetCode: string; inspe
 test('partial certificates are issued per subsystem and a global certificate is derived from them', async () => {
   const { assetCode, inspectionId } = await boilerWithAClosedInspection();
   open(`/inspections/${inspectionId}`);
+  await fill(page, 'Acting as', demoPeople.certifier.id);
 
   await screen.findByText('Subsystem ELECTRICAL');
   expect(await screen.findByText('conditional')).toBeDefined();
@@ -321,6 +323,7 @@ test('a schema is created and a new version published with a future effective da
   const assetType = unique('Laboratory');
   const nextYear = new Date().getUTCFullYear() + 1;
   open('/schemas/new');
+  await fill(page, 'Acting as', demoPeople.administrator.id);
 
   await screen.findByText('Add section');
   await fill(page, 'Schema name', 'Laboratory inspection');
@@ -361,6 +364,7 @@ test('an asset is registered and an inspection assigned through the forms', asyn
   const { assetType } = await extinguisherWithAnAssignedInspection();
   const assetCode = unique('WHS');
   open('/assets/new');
+  await fill(page, 'Acting as', demoPeople.administrator.id);
 
   await fill(page, 'Code', assetCode);
   await fill(page, 'Name', 'Warehouse extinguisher');
@@ -372,9 +376,13 @@ test('an asset is registered and an inspection assigned through the forms', asyn
 
   await screen.findByText(`Asset ${assetCode}`);
   expect(screen.getByText('DEMO-STRICT')).toBeDefined();
+  expect(screen.queryByRole('link', { name: 'Assign inspection' })).toBeNull();
+  await fill(page, 'Acting as', demoPeople.coordinator.id);
   await press(page, 'Assign inspection');
   await screen.findByText('Whole schema');
-  await fill(page, 'Inspector', demoPeople.coordinator.id);
+  await fill(page, 'Inspector', '__someone-else__');
+  await fill(page, 'Inspector id', demoPeople.coordinator.id);
+  await fill(page, 'Inspector name', demoPeople.coordinator.name);
   await fill(page, 'Planned date', daysFromToday(3));
   await press(page, 'Assign inspection');
   expect((await screen.findByRole('alert')).textContent).toContain('AssignerCannotInspectException');

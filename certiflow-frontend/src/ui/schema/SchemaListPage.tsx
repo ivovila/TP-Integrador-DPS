@@ -1,19 +1,23 @@
 import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
+import { useSession } from '../app/SessionContext';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 
 export function SchemaListPage() {
   const certiflow = useCertiflow();
+  const { mayDo } = useSession();
   const schemas = useQuery(() => certiflow.schemas.listSchemas(), []);
 
   return (
     <>
       <PageHeader title="Inspection schemas" subtitle="One versioned template per asset type">
-        <Link className="button primary" to="/schemas/new">
-          Create schema
-        </Link>
+        {mayDo('createInspectionSchema') && (
+          <Link className="button primary" to="/schemas/new">
+            Create schema
+          </Link>
+        )}
       </PageHeader>
       <Card>
         <QueryView query={schemas}>

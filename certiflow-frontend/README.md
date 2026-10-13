@@ -68,7 +68,7 @@ src
 │       ├── Http*Port.ts        un puerto por contexto
 │       └── __fixtures__/       respuestas reales de la API
 ├── ui/
-│   ├── app/           layout, rutas, sesión (persona que actúa), lista de personas de ejemplo
+│   ├── app/           layout, rutas, sesión (persona y rol), tabla de roles, lista de personas de ejemplo
 │   ├── shared/        piezas comunes y el registro de tipos de regla (ruleKinds.tsx)
 │   └── catalog/ schema/ inspection/ certification/   pantallas por bounded context
 ├── composition.ts     raíz de composición: único archivo que conoce el adaptador
@@ -78,6 +78,23 @@ scripts/               datos de demostración y captura de respuestas
 
 Reglas de dependencia: `ui` importa `ports` y `domain`, nunca `adapters`. `adapters` importa `ports` y `domain`,
 nunca `ui`.
+
+## Roles
+
+La persona elegida en "Acting as" define el rol. Cada rol ve en el menú sus secciones y encuentra solo las
+acciones que le corresponden; el resto se puede abrir por los links entre registros, en solo lectura.
+
+| Rol (persona de ejemplo) | Menú | Puede |
+|---|---|---|
+| Administrator (Ana Torres) | Assets, Schemas | Registrar activos, crear esquemas, publicar versiones |
+| Inspection coordinator (Paula Rios) | Inspections, Assets | Asignar inspecciones |
+| Inspector (Ines Duarte) | Inspections | Responder, adjuntar evidencia, observar, cerrar, rectificar |
+| Asset responsible (Raul Mendez) | Findings, Assets | Planificar acciones correctivas |
+| Verifier (Vera Soto) | Findings | Aceptar o rechazar acciones correctivas |
+| Certification officer (Carlos Vidal) | Certificates, Inspections, Assets | Emitir, suspender y renovar certificados, incluidos los globales |
+
+Una acción aparece si el sistema la permite en ese estado (lo dice la API) y el rol puede hacerla (lo dice
+`src/ui/app/roles.ts`). Es una separación de la interfaz: la API no tiene login y no restringe por rol.
 
 ## Cómo habla con la API
 
@@ -102,3 +119,4 @@ nunca `ui`.
 | Una transición nueva de un recurso | Un valor en su unión de acciones (`domain/`), su `rel` en `adapters/http/actions.ts`, el método en el puerto y el botón en la pantalla, condicionado a `actions.includes(...)`. |
 | Un dato nuevo de un recurso | El campo en su tipo de `domain/`, en `adapters/http/wire.ts` y en su función de mapeo, y la fila en la pantalla. |
 | Una jurisdicción nueva | Nada en el frontend: el alta de activos la toma de `GET /api/v1/vocabulary`. |
+| Un rol nuevo, o una acción que pasa a otro rol | `ui/app/roles.ts` (y una persona con ese rol en `ui/app/roster.ts`). Ninguna pantalla nombra un rol. |

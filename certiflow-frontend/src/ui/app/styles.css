@@ -302,6 +302,22 @@ button:disabled {
   cursor: default;
 }
 
+.role-notice {
+  background: var(--neutral-soft);
+  color: var(--ink-soft);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.session .inline-fields select {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
 .error-banner {
   background: var(--negative-soft);
   color: var(--negative);

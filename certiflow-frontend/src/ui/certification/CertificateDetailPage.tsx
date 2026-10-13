@@ -9,6 +9,7 @@ import { ErrorBanner } from '../shared/ErrorBanner';
 import { formatDate, formatInstant, formatPerson, formatScope } from '../shared/format';
 import { Card, Details, PageHeader, TextField } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
 import { DecisionDetails } from './DecisionDetails';
@@ -153,6 +154,7 @@ function GlobalRenewalForm({ certificate }: { certificate: Certificate }) {
 
 export function CertificateDetailPage() {
   const certiflow = useCertiflow();
+  const { permitted } = useSession();
   const number = useParams().number!;
   const [changeCount, setChangeCount] = useState(0);
   const certificate = useQuery(() => certiflow.certification.findCertificate(number), [number, changeCount]);
@@ -200,15 +202,16 @@ export function CertificateDetailPage() {
           <Card title="Decision">
             <DecisionDetails decision={foundCertificate.decision} />
           </Card>
-          {(foundCertificate.suspensions.length > 0 || foundCertificate.actions.includes('suspendCertificate')) && (
+          <ReadOnlyNotice offeredActions={foundCertificate.actions} record="certificate" />
+          {(foundCertificate.suspensions.length > 0 || permitted(foundCertificate.actions).includes('suspendCertificate')) && (
             <Card title="Suspension">
               <SuspensionList suspensions={foundCertificate.suspensions} />
-              {foundCertificate.actions.includes('suspendCertificate') && (
+              {permitted(foundCertificate.actions).includes('suspendCertificate') && (
                 <SuspensionForm number={foundCertificate.number} onSuspended={() => setChangeCount((count) => count + 1)} />
               )}
             </Card>
           )}
-          {foundCertificate.actions.includes('renewCertificate') && (
+          {permitted(foundCertificate.actions).includes('renewCertificate') && (
             <Card title="Renewal">
               <p className="muted">
                 Renewing issues a new certificate for the same scope and retires this one. It needs an eligible inspection closed
@@ -217,7 +220,7 @@ export function CertificateDetailPage() {
               <RenewalForm number={foundCertificate.number} assetCode={foundCertificate.assetCode} />
             </Card>
           )}
-          {foundCertificate.actions.includes('renewGlobalCertificate') && (
+          {permitted(foundCertificate.actions).includes('renewGlobalCertificate') && (
             <Card title="Renewal">
               <p className="muted">
                 A global certificate is renewed from active partial certificates, at least one of them backed by a later

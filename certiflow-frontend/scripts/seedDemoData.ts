@@ -5,7 +5,7 @@ import { demoPeople } from '../src/ui/app/roster';
 
 const apiUrl = process.env.CERTIFLOW_API_URL ?? 'http://localhost:8080';
 const certiflow = createHttpCertiflow(apiUrl);
-const { coordinator, inspector, assetResponsible, verifier, certifier } = demoPeople;
+const { administrator, coordinator, inspector, assetResponsible, verifier, certifier } = demoPeople;
 
 const extinguisherType = 'Fire extinguisher';
 const pressureVesselType = 'Pressure vessel';
@@ -236,7 +236,7 @@ async function registerAsset(code: string, name: string, type: string, location:
           { code: 'PRESSURE', name: 'Pressure system' },
         ]
       : [],
-    registeredBy: coordinator,
+    registeredBy: administrator,
   });
   said(`asset ${code} · ${name} (${jurisdictionCode})`);
 }
@@ -293,14 +293,14 @@ await certiflow.schemas.createInspectionSchema({
   assetType: extinguisherType,
   sections: extinguisherSections(vocabulary),
   requiredSubsystems: [],
-  createdBy: coordinator,
+  createdBy: administrator,
 });
 await certiflow.schemas.createInspectionSchema({
   name: 'Pressure vessel inspection',
   assetType: pressureVesselType,
   sections: pressureVesselSections(vocabulary),
   requiredSubsystems: ['ELECTRICAL', 'PRESSURE'],
-  createdBy: coordinator,
+  createdBy: administrator,
 });
 said('schemas for fire extinguishers (8 criteria) and pressure vessels (2 subsystems)');
 
@@ -311,7 +311,7 @@ const strictActionId = await certiflow.findings.planCorrectiveAction({
   description: 'Fit a new safety seal and pin',
   responsible: assetResponsible,
   dueDate: daysFromToday(15),
-  plannedBy: coordinator,
+  plannedBy: assetResponsible,
 });
 await certiflow.findings.verifyCorrectiveAction({
   findingId: strictInspection.findingIds[0]!,
@@ -335,7 +335,7 @@ const hoseActionId = await certiflow.findings.planCorrectiveAction({
   description: 'Replace the discharge hose',
   responsible: assetResponsible,
   dueDate: daysFromToday(10),
-  plannedBy: coordinator,
+  plannedBy: assetResponsible,
 });
 await certiflow.findings.verifyCorrectiveAction({
   findingId: warehouseInspection.findingIds[0]!,
@@ -375,7 +375,7 @@ const scheduledVersion = await certiflow.schemas.publishSchemaVersion({
   sections: nextExtinguisherVersion(vocabulary),
   requiredSubsystems: [],
   effectiveFrom: `${daysFromToday(30)}T03:00:00.000Z`,
-  publishedBy: coordinator,
+  publishedBy: administrator,
 });
 said(`open inspection ${openInspectionId} keeps version 1; version ${scheduledVersion.number} takes effect in 30 days`);
 

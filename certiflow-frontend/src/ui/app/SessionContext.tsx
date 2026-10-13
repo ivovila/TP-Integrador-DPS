@@ -1,39 +1,54 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import type { Person } from '../../domain/shared';
-import { roster } from './roster';
+import { everyRole, roleMayDo, type Role, type SystemAction } from './roles';
+import { roster, type RosterMember } from './roster';
 
 interface Session {
   actingPerson: Person;
-  actAs(person: Person): void;
+  role: Role;
+  actAs(person: Person, role: Role): void;
+  mayDo(action: SystemAction): boolean;
+  permitted<Action extends SystemAction>(offeredActions: Action[]): Action[];
 }
 
-const storageKey = 'certiflow.actingPerson';
+const storageKey = 'certiflow.actingAs';
 const SessionContext = createContext<Session | undefined>(undefined);
 
-function rememberedPerson(): Person {
+function rememberedMember(): RosterMember {
   try {
-    const remembered = window.localStorage.getItem(storageKey);
-    return remembered === null ? roster[0]!.person : (JSON.parse(remembered) as Person);
+    const remembered = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as Partial<RosterMember> | null;
+    const isComplete =
+      remembered !== null &&
+      typeof remembered.person?.id === 'string' &&
+      typeof remembered.person.name === 'string' &&
+      everyRole.some((role) => role === remembered.role);
+    return isComplete ? (remembered as RosterMember) : roster[0]!;
   } catch {
-    return roster[0]!.person;
+    return roster[0]!;
   }
 }
 
-function remember(person: Person): void {
+function remember(member: RosterMember): void {
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(person));
+    window.localStorage.setItem(storageKey, JSON.stringify(member));
   } catch {
     return;
   }
 }
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const [actingPerson, setActingPerson] = useState<Person>(rememberedPerson);
-  const actAs = (person: Person) => {
-    setActingPerson(person);
-    remember(person);
+export function SessionProvider({ children, startingAs }: { children: ReactNode; startingAs?: RosterMember }) {
+  const [actingMember, setActingMember] = useState<RosterMember>(() => startingAs ?? rememberedMember());
+  const session: Session = {
+    actingPerson: actingMember.person,
+    role: actingMember.role,
+    actAs(person, role) {
+      setActingMember({ person, role });
+      remember({ person, role });
+    },
+    mayDo: (action) => roleMayDo(actingMember.role, action),
+    permitted: (offeredActions) => offeredActions.filter((action) => roleMayDo(actingMember.role, action)),
   };
-  return <SessionContext.Provider value={{ actingPerson, actAs }}>{children}</SessionContext.Provider>;
+  return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): Session {

@@ -580,3 +580,26 @@ Siguiendo [docs/specs/2026-10-13-frontend-api.md](docs/specs/2026-10-13-frontend
 - CI: job `e2e` con PostgreSQL y el backend levantado.
 - `DESIGN.md`: D22 actualizada, nueva D23 y limitaciones que se ven desde la interfaz.
 
+
+## 2026-10-13 · Roles en el frontend
+
+Siguiendo [docs/specs/2026-10-13-frontend-roles.md](docs/specs/2026-10-13-frontend-roles.md) y su
+[plan](docs/plans/2026-10-13-frontend-roles.md). Solo cambia `certiflow-frontend/src/ui`; ni el backend ni los
+puertos, el dominio o el adaptador del frontend se tocaron.
+
+- Seis roles en `ui/app/roles.ts`: Administrator, Inspection coordinator, Inspector, Asset responsible, Verifier y
+  Certification officer. `roleThatMayDo` asigna cada acción a un único rol.
+- La persona elegida en "Acting as" define el rol; se agrega una administradora (`EMP-006`) a la lista de ejemplo y
+  "Someone else…" pide también el rol.
+- El menú muestra las secciones del rol y la aplicación abre en la primera.
+- Las pantallas aplican `permitted(resource.actions)`: una acción se muestra si el sistema la permite y el rol
+  puede. Aviso de solo lectura cuando las acciones de un registro son de otro rol; aviso de rol necesario al
+  entrar por URL a un formulario de alta.
+- Los selectores "Inspector" y "Responsible" de los formularios ofrecen solo personas de ese rol.
+- `npm run seed`: activos y esquemas los registra la administradora y las acciones correctivas las planifica el
+  responsable del activo.
+- Tests: `roles.test.ts` (tabla de permisos y secciones), `navigation.test.tsx` (menú, inicio, altas, formularios
+  protegidos, cambio de persona), `InspectionDetailPage.test.tsx` (acciones por rol) y los cinco flujos de
+  `applicationFlow.e2e.test.tsx`, que ahora eligen la persona del rol antes de cada paso.
+- `DESIGN.md`: nueva D24 y la limitación "los roles no son un control de acceso".
+

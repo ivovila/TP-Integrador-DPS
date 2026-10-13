@@ -84,7 +84,7 @@ export function AssignInspectionPage() {
                     </select>
                   </label>
                 </div>
-                <PersonPicker label="Inspector" person={inspector} onChange={setInspector} />
+                <PersonPicker label="Inspector" person={inspector} onChange={setInspector} role="inspector" />
                 <TextField label="Planned date" type="date" value={plannedDate} onChange={setPlannedDate} />
               </div>
             )}

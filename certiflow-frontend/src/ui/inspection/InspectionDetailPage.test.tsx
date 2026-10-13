@@ -5,6 +5,7 @@ import { afterEach, expect, test } from 'vitest';
 import type { InspectionAction, InspectionDetails } from '../../domain/inspection';
 import type { Certiflow } from '../../ports/Certiflow';
 import { ApplicationProvider } from '../app/CertiflowContext';
+import { roster, type RosterMember } from '../app/roster';
 import { SessionProvider } from '../app/SessionContext';
 import { InspectionDetailPage } from './InspectionDetailPage';
 
@@ -60,10 +61,12 @@ function certiflowReturning(inspection: InspectionDetails): Certiflow {
   } as unknown as Certiflow;
 }
 
-async function showInspectionOffering(actions: InspectionAction[]): Promise<void> {
+const memberWithRole = (role: RosterMember['role']) => roster.find((member) => member.role === role)!;
+
+async function showInspectionOffering(actions: InspectionAction[], actingMember = memberWithRole('inspector')): Promise<void> {
   render(
     <ApplicationProvider application={{ certiflow: certiflowReturning(inspectionOffering(actions)) }}>
-      <SessionProvider>
+      <SessionProvider startingAs={actingMember}>
         <MemoryRouter initialEntries={['/inspections/INS-1']}>
           <Routes>
             <Route path="inspections/:id" element={<InspectionDetailPage />} />
@@ -89,3 +92,25 @@ test.each(offeredActions)('%s', async (_description, actions, expectedLabels) =>
   const shownLabels = buttonLabels.filter((label) => screen.queryByText(label) !== null);
   expect(shownLabels).toEqual(expectedLabels);
 });
+
+const everyActionOfAnOpenInspection: InspectionAction[] = ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection'];
+
+const rolesThatOnlyRead: RosterMember['role'][] = ['administrator', 'inspectionCoordinator', 'assetResponsible', 'verifier', 'certificationOfficer'];
+
+test.each(rolesThatOnlyRead)('the %s reads an open inspection but is offered none of its actions', async (role) => {
+  await showInspectionOffering(everyActionOfAnOpenInspection, memberWithRole(role));
+  expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual([]);
+  expect(screen.getByText(/you can read this inspection but not change it/).textContent).toContain('Its actions belong to the Inspector');
+});
+
+test('the inspector is offered the actions of an open inspection and sees no read-only notice', async () => {
+  await showInspectionOffering(everyActionOfAnOpenInspection);
+  expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Close inspection', 'Record answer']);
+  expect(screen.queryByText(/you can read this inspection but not change it/)).toBeNull();
+});
+
+test('every role can open the inspection act', async () => {
+  await showInspectionOffering(['rectifyInspection', 'generateInspectionAct'], memberWithRole('verifier'));
+  expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Inspection act']);
+});
+

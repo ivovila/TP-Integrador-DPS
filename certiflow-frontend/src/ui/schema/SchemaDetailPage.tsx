@@ -1,14 +1,17 @@
 import { Link, useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
+import { useSession } from '../app/SessionContext';
 import { AuditHistory } from '../shared/AuditHistory';
 import { Badge } from '../shared/Badge';
 import { formatInstant } from '../shared/format';
 import { Card, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useQuery } from '../shared/useQuery';
 
 export function SchemaDetailPage() {
   const certiflow = useCertiflow();
+  const { permitted } = useSession();
   const assetType = useParams().assetType!;
   const schema = useQuery(() => certiflow.schemas.findSchema(assetType), [assetType]);
   const schemaPath = `/schemas/${encodeURIComponent(assetType)}`;
@@ -18,12 +21,13 @@ export function SchemaDetailPage() {
       {(foundSchema) => (
         <>
           <PageHeader title={foundSchema.name} subtitle={`Inspection schema for ${foundSchema.assetType}`}>
-            {foundSchema.actions.includes('publishSchemaVersion') && (
+            {permitted(foundSchema.actions).includes('publishSchemaVersion') && (
               <Link className="button primary" to={`${schemaPath}/versions/new`}>
                 Publish new version
               </Link>
             )}
           </PageHeader>
+          <ReadOnlyNotice offeredActions={foundSchema.actions} record="schema" />
           <Card title="Versions">
             <table className="data">
               <thead>

@@ -7,11 +7,12 @@ import { StatusBadge } from '../shared/Badge';
 import { formatDate, formatPerson, formatScope } from '../shared/format';
 import { Card, Details, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
+import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useQuery } from '../shared/useQuery';
 
 export function AssetDetailPage() {
   const certiflow = useCertiflow();
-  const { actingPerson } = useSession();
+  const { actingPerson, permitted } = useSession();
   const navigate = useNavigate();
   const code = useParams().code!;
   const asset = useQuery(() => certiflow.catalog.findAsset(code), [code]);
@@ -26,12 +27,13 @@ export function AssetDetailPage() {
             <Link className="button" to={`/assets/${encodeURIComponent(code)}/findings-summary`}>
               Findings summary
             </Link>
-            {foundAsset.actions.includes('assignInspection') && (
+            {permitted(foundAsset.actions).includes('assignInspection') && (
               <Link className="button primary" to={`/inspections/new?asset=${encodeURIComponent(code)}`}>
                 Assign inspection
               </Link>
             )}
           </PageHeader>
+          <ReadOnlyNotice offeredActions={foundAsset.actions} record="asset" />
           <Card>
             <Details
               entries={[
@@ -133,7 +135,7 @@ export function AssetDetailPage() {
               }
             </QueryView>
           </Card>
-          {foundAsset.actions.includes('issueGlobalCertificate') && (
+          {permitted(foundAsset.actions).includes('issueGlobalCertificate') && (
             <Card title="Global certificate">
               <p className="muted">
                 The global certificate is derived from one active partial certificate per required subsystem. It lasts until the

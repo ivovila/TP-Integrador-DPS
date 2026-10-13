@@ -62,7 +62,7 @@ export function RegisterAssetPage() {
             <TextField label="Name" value={name} onChange={setName} />
             <TextField label="Type" value={type} onChange={setType} placeholder="Fire extinguisher" />
             <TextField label="Location" value={location} onChange={setLocation} />
-            <PersonPicker label="Responsible" person={responsible} onChange={setResponsible} />
+            <PersonPicker label="Responsible" person={responsible} onChange={setResponsible} role="assetResponsible" />
             <div className="field">
               <label>
                 Jurisdiction

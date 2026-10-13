@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
+import { useSession } from '../app/SessionContext';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 
 export function AssetListPage() {
   const certiflow = useCertiflow();
+  const { mayDo } = useSession();
   const [typeFilter, setTypeFilter] = useState('');
   const knownTypes = useQuery(
     async () => [...new Set((await certiflow.catalog.listAssets({})).map((asset) => asset.type))].sort(),
@@ -28,9 +30,11 @@ export function AssetListPage() {
             </select>
           </label>
         </div>
-        <Link className="button primary" to="/assets/new">
-          Register asset
-        </Link>
+        {mayDo('registerAsset') && (
+          <Link className="button primary" to="/assets/new">
+            Register asset
+          </Link>
+        )}
       </PageHeader>
       <Card>
         <QueryView query={assets}>
