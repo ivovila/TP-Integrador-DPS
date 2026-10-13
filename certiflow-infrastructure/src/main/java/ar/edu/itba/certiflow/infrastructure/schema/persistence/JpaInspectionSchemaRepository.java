@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
@@ -38,7 +39,7 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
     }
 
     public SchemaVersionEntity versionEntityFor(SchemaVersion version) {
-        return versions.findByNumber(version.number()).stream()
+        return versions.findByNumberAndPublishedAt(version.number(), Instants.asStored(version.publishedAt())).stream()
                 .filter(entity -> entity.toDomain().equals(version))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Schema version " + version.number() + " was never saved"));

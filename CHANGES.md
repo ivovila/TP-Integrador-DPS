@@ -464,3 +464,16 @@ Cambios hechos para la Entrega 2, siguiendo
   El 201 lleva su `Location` y su representación; antes apuntaba al recurso padre.
 - Tests: `InspectionApiTest.evidenceAndObservationsAreResourcesOfTheirOwn`, `CertificateApiTest.aSuspensionIsAResourceOfItsOwn`,
   `FindingApiTest.aVerificationIsAResourceOfItsOwn`.
+
+## E2.22. Ajustes de persistencia
+- Los títulos de las secciones del alcance se guardan como un arreglo JSON; antes se unían con un salto de línea y un
+  título que lo contuviera se partía en dos al recargar.
+- Los instantes que viajan en el JSON de una revisión se redondean a microsegundos, igual que las columnas, así que la
+  respuesta sellada y la vigente coinciden después de recargar (`Instants.asStored`).
+- La fila de la versión del esquema se busca por número y fecha de publicación, en lugar de recorrer las versiones con
+  ese número de todos los tipos de activo.
+- Guardar una respuesta o una rectificación no reescribe las evidencias, observaciones ni revisiones existentes; dos
+  tests lo fijan con las estadísticas de Hibernate.
+- Tests: `JpaInspectionRepositoryTest.aSectionTitleWithALineBreakSurvivesTheScope`,
+  `aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed`, `recordingOneAnswerDoesNotRewriteTheEvidenceAndObservations`,
+  `rectifyingDoesNotRewriteTheRevisionsAlreadySealed`.

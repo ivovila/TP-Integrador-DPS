@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
@@ -49,7 +50,7 @@ final class EvaluationJson {
         return new ResponseDocument(response.criterion().code(),
                 answer.map(AnswerColumns::type).orElse(null), answer.map(AnswerColumns::value).orElse(null),
                 by.map(PersonColumns::id).orElse(null), by.map(PersonColumns::name).orElse(null),
-                response.given().map(given -> given.answeredAt()).orElse(null),
+                response.given().map(given -> Instants.asStored(given.answeredAt())).orElse(null),
                 response.attachments().stream().map(EvaluationJson::document).toList(),
                 response.observations().stream().map(EvaluationJson::document).toList());
     }
@@ -57,12 +58,12 @@ final class EvaluationJson {
     private static EvidenceDocument document(AttachedEvidence attached) {
         PersonColumns by = PersonColumns.of(attached.attachedBy());
         return new EvidenceDocument(((StandardEvidenceKind) attached.evidence().kind()).name(), attached.evidence().reference(),
-                attached.evidence().description(), by.id(), by.name(), attached.attachedAt());
+                attached.evidence().description(), by.id(), by.name(), Instants.asStored(attached.attachedAt()));
     }
 
     private static ObservationDocument document(Observation observation) {
         PersonColumns by = PersonColumns.of(observation.observedBy());
-        return new ObservationDocument(observation.text(), by.id(), by.name(), observation.observedAt());
+        return new ObservationDocument(observation.text(), by.id(), by.name(), Instants.asStored(observation.observedAt()));
     }
 
     private static CriterionResponse<?> response(ResponseDocument document, SchemaVersion version) {

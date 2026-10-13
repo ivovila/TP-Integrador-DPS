@@ -1,5 +1,15 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
+import org.hibernate.stat.Statistics;
+import org.hibernate.SessionFactory;
+import java.util.Set;
+import java.util.List;
+import java.time.LocalDate;
+import ar.edu.itba.certiflow.inspection.model.SectionsScope;
+import ar.edu.itba.certiflow.inspection.model.InspectionAssignment;
+import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.schema.model.Section;
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,5 +90,67 @@ class JpaInspectionRepositoryTest {
         DomainSamples.close(inspection);
 
         assertEquals(inspection.snapshot(), reloaded(inspection).snapshot());
+    }
+
+    @Test
+    void aSectionTitleWithALineBreakSurvivesTheScope() {
+        InspectionSchema lined = new InspectionSchema("Lined", new AssetType("Lined boiler"),
+                List.of(new Section("Signage\nand lights", DomainSamples.sections().get(1).criteria())), DomainSamples.T0);
+        schemas.save(lined);
+        Inspection inspection = DomainSamples.inspectionService().assign(new InspectionId("I-lined"), DomainSamples.ASSET,
+                new InspectionAssignment(DomainSamples.INSPECTOR, LocalDate.of(2026, 3, 13), new SectionsScope(Set.of("Signage\nand lights"))),
+                lined.currentVersion(), DomainSamples.PLANNER, DomainSamples.T0);
+
+        assertEquals(inspection.snapshot(), reloaded(inspection).snapshot());
+    }
+
+    @Test
+    void aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed() {
+        Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
+        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer.YesNo(true), DomainSamples.INSPECTOR,
+                DomainSamples.T0.plusNanos(123_456_789));
+        DomainSamples.close(inspection);
+
+        Inspection restored = reloaded(inspection);
+
+        assertEquals(restored.evaluate().responses().get(1).given().orElseThrow().answeredAt(),
+                restored.originalRevision().evaluation().responses().get(1).given().orElseThrow().answeredAt());
+    }
+
+    @Test
+    void recordingOneAnswerDoesNotRewriteTheEvidenceAndObservations() {
+        Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
+        repository.save(inspection);
+        entityManager.flush();
+        entityManager.clear();
+        Inspection loaded = repository.findById(inspection.id()).orElseThrow();
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer.YesNo(false), DomainSamples.INSPECTOR,
+                DomainSamples.T0.plusSeconds(900));
+        repository.save(loaded);
+        entityManager.flush();
+
+        assertEquals(0, statistics.getCollectionRecreateCount() + statistics.getCollectionRemoveCount());
+    }
+
+    @Test
+    void rectifyingDoesNotRewriteTheRevisionsAlreadySealed() {
+        Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
+        DomainSamples.close(inspection);
+        repository.save(inspection);
+        entityManager.flush();
+        entityManager.clear();
+        Inspection loaded = repository.findById(inspection.id()).orElseThrow();
+        Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        DomainSamples.inspectionService().rectify(loaded, "EXT-03", new RawAnswer.Option("REFLECTIVE"), "Typo", DomainSamples.PLANNER,
+                DomainSamples.T0.plusSeconds(1200));
+        repository.save(loaded);
+        entityManager.flush();
+
+        assertEquals(0, statistics.getCollectionRecreateCount() + statistics.getCollectionRemoveCount());
     }
 }

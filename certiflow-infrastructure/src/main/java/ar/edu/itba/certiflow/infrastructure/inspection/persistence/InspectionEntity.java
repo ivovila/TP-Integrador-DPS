@@ -30,10 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 @Entity
 @Table(name = "inspection")
 public class InspectionEntity {
+
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @Id
     private String id;
@@ -82,7 +86,7 @@ public class InspectionEntity {
         inspectorName = inspector.name();
         plannedDate = snapshot.assignment().plannedDate();
         scopeSections = snapshot.assignment().scope() instanceof SectionsScope(Set<String> titles)
-                ? String.join("\n", new TreeSet<>(titles)) : null;
+                ? MAPPER.writeValueAsString(new TreeSet<>(titles)) : null;
         List<CriterionResponse<?>> current = snapshot.responses();
         for (int index = 0; index < current.size(); index++) {
             if (index < responses.size()) {
@@ -97,7 +101,9 @@ public class InspectionEntity {
 
     InspectionSnapshot toSnapshot() {
         SchemaVersion version = schemaVersion.toDomain();
-        InspectionScope scope = scopeSections == null ? new FullScope() : new SectionsScope(Set.of(scopeSections.split("\n")));
+        InspectionScope scope = scopeSections == null ? new FullScope()
+                : new SectionsScope(Set.copyOf(MAPPER.readValue(scopeSections, new TypeReference<List<String>>() {
+                })));
         return new InspectionSnapshot(new InspectionId(id), new AssetCode(assetCode),
                 new PersonColumns(assetResponsibleId, assetResponsibleName).toDomain(),
                 new InspectionAssignment(new PersonColumns(inspectorId, inspectorName).toDomain(), plannedDate, scope),
