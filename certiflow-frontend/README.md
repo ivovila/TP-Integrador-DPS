@@ -65,6 +65,8 @@ nunca `ui`.
    - la persona del comando (`answeredBy`, `closedBy`…) va a los headers `X-Person-Id` y `X-Person-Name`;
    - `actions` de cada recurso se arma con los `_links` de HAL (tabla `rel` → acción dentro del adaptador);
    - un `application/problem+json` se convierte en `DomainError` usando su `title` como `name`.
+   - `ui/shared/format.ts` muestra los instantes con `timeZone: 'UTC'` porque el reloj en memoria guarda la hora local
+     marcada como UTC; con instantes reales de la API hay que quitar esa opción para ver la hora local.
 2. Cambiar `src/composition.ts` para que construya ese adaptador (sin `demoControls`, y el control de fecha
    desaparece solo).
 3. Correr la suite de contrato contra el adaptador nuevo, igual que `inMemoryCertiflow.test.ts`.
