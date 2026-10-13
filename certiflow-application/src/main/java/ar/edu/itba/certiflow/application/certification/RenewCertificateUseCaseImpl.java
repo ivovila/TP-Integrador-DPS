@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.DecidedCertification;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
@@ -33,7 +34,7 @@ public final class RenewCertificateUseCaseImpl implements RenewCertificateUseCas
         CertificationScope scope = command.requestedScope().resolveAgainst(currentCertificate.scope());
         DecidedCertification decided = certificateIssuance.decide(command.inspectionId(), scope);
         certificateService.ensureRenewableWith(currentCertificate, decided.result());
-        certificateIssuance.ensureScopeAvailableToReplace(currentCertificate.number(), decided.assetCode(), decided.scope(), decided.validFrom());
+        certificateIssuance.ensureScopeAvailableToReplace(currentCertificate, decided.scope(), decided.validFrom());
         Certificate renewedCertificate = certificateService.renew(currentCertificate, certificateNumbering.next(),
                 decided.decision(), decided.result(), new Stamp(command.renewedBy(), decided.decidedAt()));
         certificateRepository.save(currentCertificate);

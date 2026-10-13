@@ -1,19 +1,18 @@
 package ar.edu.itba.certiflow.application.certification;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.certification.model.AssetCertificates;
 import ar.edu.itba.certiflow.certification.model.Certificate;
-import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.DecidedCertification;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
-import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.LocalDate;
-import java.util.function.Predicate;
 
 /**
  * Lo que comparten consultar, emitir y renovar una certificación: traducir la inspección al alcance pedido
@@ -48,28 +47,16 @@ public final class CertificateIssuanceService {
         return new DecidedCertification(result, grantedDecision);
     }
 
-    /**
-     * Un certificado suspendido dentro de su vigencia también ocupa su alcance: no se evade una suspensión
-     * emitiendo otro.
-     */
-    public void ensureScopeAvailable(AssetCode assetCode, CertificationScope scope, LocalDate on) {
-        ensureNoOtherOccupant(assetCode, scope, on, occupant -> true);
+    public void ensureScopeAvailable(AssetCode assetCode, CertificationScope scope, LocalDate date) {
+        certificatesOf(assetCode).ensureScopeAvailable(scope, date);
     }
 
-    /** Al renovar, el certificado que se reemplaza no cuenta como ocupante de su propio alcance. */
-    public void ensureScopeAvailableToReplace(CertificateNumber beingReplaced, AssetCode assetCode, CertificationScope scope,
-                                              LocalDate on) {
-        ensureNoOtherOccupant(assetCode, scope, on, occupant -> !occupant.number().equals(beingReplaced));
+    public void ensureScopeAvailableToReplace(Certificate replacedCertificate, CertificationScope scope, LocalDate date) {
+        certificatesOf(replacedCertificate.assetCode()).ensureScopeAvailableToReplace(replacedCertificate, scope, date);
     }
 
-    private void ensureNoOtherOccupant(AssetCode assetCode, CertificationScope scope, LocalDate on, Predicate<Certificate> counts) {
-        certificateRepository.findByAsset(assetCode).stream()
-                .filter(certificate -> certificate.isCurrentFor(scope, on))
-                .filter(counts)
-                .findFirst()
-                .ifPresent(current -> {
-                    throw new AssetAlreadyCertifiedException(assetCode, current.number());
-                });
+    private AssetCertificates certificatesOf(AssetCode assetCode) {
+        return new AssetCertificates(assetCode, certificateRepository.findByAsset(assetCode));
     }
 
     private InspectionResult resultFor(InspectionId inspectionId, CertificationScope scope) {

@@ -39,7 +39,7 @@ public final class Inspection implements InspectionView {
     private final InspectionAssignment assignment;
     private final SchemaVersion schemaVersion;
     private final Map<Criterion<?>, CriterionResponse<?>> responses = new LinkedHashMap<>();
-    private Revisions revisions = Revisions.none();
+    private Revisions revisions = new Revisions();
     private final AuditTrail auditTrail = new AuditTrail();
 
     Inspection(InspectionId id, Asset asset, InspectionAssignment assignment, SchemaVersion schemaVersion, Stamp assigned) {

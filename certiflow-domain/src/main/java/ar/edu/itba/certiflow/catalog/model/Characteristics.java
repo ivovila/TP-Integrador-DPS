@@ -19,8 +19,8 @@ public record Characteristics(List<Characteristic> entries) {
         }
     }
 
-    public static Characteristics none() {
-        return new Characteristics(List.of());
+    public Characteristics() {
+        this(List.of());
     }
 
     public Optional<String> valueOf(String name) {

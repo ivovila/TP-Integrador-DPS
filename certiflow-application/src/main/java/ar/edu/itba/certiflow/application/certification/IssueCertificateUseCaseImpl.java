@@ -1,13 +1,14 @@
 package ar.edu.itba.certiflow.application.certification;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.DecidedCertification;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateUseCase;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 
 public final class IssueCertificateUseCaseImpl implements IssueCertificateUseCase {
 

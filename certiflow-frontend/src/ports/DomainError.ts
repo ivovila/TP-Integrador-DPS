@@ -5,6 +5,7 @@ export const domainErrorNames = [
   'AssetNotFoundException',
   'DuplicateCharacteristicException',
   'DuplicateSubsystemCodeException',
+  'UnknownJurisdictionException',
   'AssetAlreadyCertifiedException',
   'CertificateAlreadyRenewedException',
   'CertificateNotActiveException',

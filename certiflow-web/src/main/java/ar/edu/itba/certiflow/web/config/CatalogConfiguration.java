@@ -6,10 +6,10 @@ import ar.edu.itba.certiflow.application.catalog.RegisterAssetUseCaseImpl;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetService;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
+import ar.edu.itba.certiflow.catalog.repository.KnownJurisdictions;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
-import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.CertificationTransactionLocks;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.JpaAuditLog;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEntryRepository;
@@ -36,14 +36,15 @@ public class CatalogConfiguration {
     }
 
     @Bean
-    AssetService assetService(AuditLog<AssetCode> assetLog, AssetRepository assetRepository) {
-        return new AssetService(assetLog, assetRepository);
+    AssetService assetService(AuditLog<AssetCode> assetLog, AssetRepository assetRepository,
+                              KnownJurisdictions knownJurisdictions) {
+        return new AssetService(assetLog, assetRepository, knownJurisdictions);
     }
 
     @Bean
     RegisterAssetUseCase registerAsset(TransactionTemplate tx, AssetRepository assetRepository, AssetService assetService,
-                                       Clock clock, CertificationPolicyResolver policies) {
-        return TransactionalUseCases.wrap(RegisterAssetUseCase.class, new RegisterAssetUseCaseImpl(assetRepository, assetService, policies, clock), tx, locks);
+                                       Clock clock) {
+        return TransactionalUseCases.wrap(RegisterAssetUseCase.class, new RegisterAssetUseCaseImpl(assetRepository, assetService, clock), tx, locks);
     }
 
     @Bean

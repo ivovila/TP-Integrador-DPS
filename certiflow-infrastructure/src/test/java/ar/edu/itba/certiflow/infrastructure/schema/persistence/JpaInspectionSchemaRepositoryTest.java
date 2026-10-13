@@ -44,7 +44,7 @@ class JpaInspectionSchemaRepositoryTest {
     @Test
     void everyVersionIsReadBackEqualToWhatWasPublished() {
         AssetType extinguisher = new AssetType("Fire extinguisher");
-        InspectionSchema schema = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"))
+        InspectionSchema schema = DomainSamples.schemaWith("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"))
                 .withNewVersion(DomainSamples.sections().subList(0, 1), Instant.parse("2026-03-05T00:00:00Z"), Instant.parse("2026-03-05T00:00:00Z"), Set.of());
 
         repository.save(schema);
@@ -57,7 +57,7 @@ class JpaInspectionSchemaRepositoryTest {
     @Test
     void savingAgainAppendsTheNewVersionWithoutTouchingThePreviousOnes() {
         AssetType extinguisher = new AssetType("Fire extinguisher");
-        InspectionSchema first = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"));
+        InspectionSchema first = DomainSamples.schemaWith("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"));
         repository.save(first);
         entityManager.flush();
         Object firstVersionId = rowIdOf(storedSchemaVersions.entityOf(extinguisher, 1));
@@ -77,8 +77,8 @@ class JpaInspectionSchemaRepositoryTest {
     @Test
     void schemasAreListedByPageOrderedByAssetType() {
         Instant createdAt = Instant.parse("2026-03-01T00:00:00Z");
-        repository.save(new InspectionSchema("Extinguisher", new AssetType("Fire extinguisher"), DomainSamples.sections(), createdAt));
-        repository.save(new InspectionSchema("Boiler", new AssetType("Boiler"), DomainSamples.sections(), createdAt));
+        repository.save(DomainSamples.schemaWith("Extinguisher", new AssetType("Fire extinguisher"), DomainSamples.sections(), createdAt));
+        repository.save(DomainSamples.schemaWith("Boiler", new AssetType("Boiler"), DomainSamples.sections(), createdAt));
         entityManager.flush();
         entityManager.clear();
         Page<InspectionSchema> first = repository.findPage(new PageRequest(0, 1));

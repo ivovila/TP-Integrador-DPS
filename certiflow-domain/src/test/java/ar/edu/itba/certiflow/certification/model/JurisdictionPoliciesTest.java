@@ -21,8 +21,23 @@ class JurisdictionPoliciesTest {
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
     }
 
+    private SeverityCertificationPolicy strictPolicy() {
+        return new SeverityCertificationPolicy("STRICT",
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(12));
+    }
+
+    private SeverityCertificationPolicy conditionalPolicy() {
+        return new SeverityCertificationPolicy("CONDITIONAL",
+                Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(6));
+    }
+
     private CertificationDecision evaluate(boolean strict, InspectionResult result) {
-        var policy = strict ? SeverityCertificationPolicy.strict() : SeverityCertificationPolicy.conditional();
+        var policy = strict ? strictPolicy() : conditionalPolicy();
         return policy.evaluate(
                 new CertificationAssessmentContext(result, new JurisdictionCode(strict ? "DEMO-STRICT" : "DEMO-CONDITIONAL"), now, LocalDate.of(2026, 1, 31)));
     }

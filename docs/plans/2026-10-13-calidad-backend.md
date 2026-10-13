@@ -94,12 +94,12 @@
 
 ### Task 7: Reglas de negocio y estáticos del dominio (spec §5.7)
 
-- [ ] `CertificationEligibility` y `AssetCertificates` en el dominio; los servicios de aplicación delegan.
-- [ ] `Requirement` y `Requirements`; políticas de ejemplo construidas en `CertificationConfiguration`.
-- [ ] `SchemaSections`; constructores en lugar de `none()` y `startingWith(…)`.
-- [ ] `Clock` con la precisión guardada y truncado de los instantes del cliente en el request; se va `StoredInstant`.
-- [ ] Puerto de `catalog` para jurisdicciones conocidas; `RegisterAssetUseCaseImpl` deja de importar `certification`.
-- [ ] Verificación: cero estáticos en dominio y aplicación.
+- [x] `CertificationEligibility` y `AssetCertificates` en el dominio; los servicios de aplicación delegan.
+- [x] `Requirement` y `Requirements`; políticas de ejemplo construidas en `CertificationConfiguration`.
+- [x] `SchemaSections(List<Section> all)`, con los subsistemas requeridos derivados de los criterios y `ensureRequires` para lo que declara quien publica; constructores en lugar de `none()` y `startingWith(…)`.
+- [x] `Clock` con la precisión guardada y truncado de los instantes del cliente en el request; se va `StoredInstant`.
+- [x] Puerto de `catalog` para jurisdicciones conocidas; `RegisterAssetUseCaseImpl` deja de importar `certification`.
+- [x] Verificación: cero estáticos en dominio y aplicación.
 
 ### Task 8: Bloqueo por activo y bitácora (spec §5.8)
 

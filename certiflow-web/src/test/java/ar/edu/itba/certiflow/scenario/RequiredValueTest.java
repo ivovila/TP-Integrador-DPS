@@ -26,7 +26,7 @@ class RequiredValueTest extends ScenarioTest {
 
     @Test
     void assetWithoutNameIsADomainError() {
-        assertThrows(RequiredValueMissingException.class, () -> new Asset(new AssetCode("EXT-0043"), " ", CertiflowFixture.EXTINGUISHER, new Location("Warehouse"), fixture.assetResponsible, Characteristics.none(), new JurisdictionCode("DEMO-STANDARD"), List.of()));
+        assertThrows(RequiredValueMissingException.class, () -> new Asset(new AssetCode("EXT-0043"), " ", CertiflowFixture.EXTINGUISHER, new Location("Warehouse"), fixture.assetResponsible, new Characteristics(), new JurisdictionCode("DEMO-STANDARD"), List.of()));
     }
 
     @Test

@@ -17,8 +17,8 @@ public record Revisions(List<Revision> revisions) {
         revisions = List.copyOf(revisions);
     }
 
-    public static Revisions none() {
-        return new Revisions(List.of());
+    public Revisions() {
+        this(List.of());
     }
 
     /** Sella una revisión nueva con el número siguiente. La inspección queda cerrada con la primera. */

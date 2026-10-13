@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
@@ -103,15 +104,6 @@ public final class Certificate {
         }
     }
 
-    Certificate renew(CertificateNumber newNumber, GrantedDecision newDecision, InspectionResult newBasis,
-                             Stamp renewed) {
-        ensureRenewableWith(newBasis);
-        Certificate renewedCertificate = new Certificate(newNumber, newBasis, newDecision, renewed);
-        lifecycle = CertificateLifecycle.RENEWED;
-        auditTrail.record(CertificateAudit.RENEWED, renewed, "Renewed by " + newNumber.value());
-        return renewedCertificate;
-    }
-
     List<AuditEntry> pullAuditEntries() {
         return auditTrail.pull();
     }
@@ -131,6 +123,14 @@ public final class Certificate {
 
     public boolean certifies(AssetCode candidate) {
         return assetCode.equals(candidate);
+    }
+
+    public boolean isIssuedFor(SchemaReference candidate) {
+        return schemaReference.equals(candidate);
+    }
+
+    public boolean wasDecidedUnder(JurisdictionCode candidate) {
+        return decision.jurisdictionCode().equals(candidate);
     }
 
     public GrantedDecision decision() {

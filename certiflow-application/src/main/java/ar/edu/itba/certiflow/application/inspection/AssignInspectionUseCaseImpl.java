@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.application.inspection;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
@@ -13,7 +12,7 @@ import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionUseCase;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
-import ar.edu.itba.certiflow.shared.model.StoredInstant;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Clock;
 import java.time.Instant;
 
@@ -40,7 +39,7 @@ public final class AssignInspectionUseCaseImpl implements AssignInspectionUseCas
                 .orElseThrow(() -> new AssetNotFoundException(command.assetCode()));
         InspectionSchema schema = inspectionSchemaRepository.findByAssetType(asset.type())
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type()));
-        Instant startedAt = StoredInstant.normalize(clock.instant());
+        Instant startedAt = clock.instant();
         Inspection inspection = inspectionService.assign(inspectionRepository.nextId(), asset, command.assignment(),
                 schema.versionAt(startedAt), new Stamp(command.assignedBy(), startedAt));
         inspectionRepository.save(inspection);

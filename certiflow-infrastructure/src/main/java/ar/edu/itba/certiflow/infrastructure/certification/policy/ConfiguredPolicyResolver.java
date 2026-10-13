@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.certification.policy;
 
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
+import ar.edu.itba.certiflow.catalog.repository.KnownJurisdictions;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.JurisdictionPolicy;
@@ -12,7 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /** Registro inmutable por proceso: la composición es el único lugar que asocia jurisdicción con política. */
-public final class ConfiguredPolicyResolver implements CertificationPolicyResolver, RegisteredJurisdictions {
+public final class ConfiguredPolicyResolver implements CertificationPolicyResolver, RegisteredJurisdictions,
+        KnownJurisdictions {
 
     private final Map<JurisdictionCode, CertificationPolicy> policies;
 
@@ -26,6 +28,12 @@ public final class ConfiguredPolicyResolver implements CertificationPolicyResolv
     @Override
     public Optional<CertificationPolicy> find(JurisdictionCode jurisdictionCode) {
         return Optional.ofNullable(policies.get(jurisdictionCode));
+    }
+
+    /** Un activo de una jurisdicción sin política no podría certificarse nunca: por eso el catálogo lo pregunta. */
+    @Override
+    public boolean isKnown(JurisdictionCode jurisdictionCode) {
+        return policies.containsKey(jurisdictionCode);
     }
 
     @Override

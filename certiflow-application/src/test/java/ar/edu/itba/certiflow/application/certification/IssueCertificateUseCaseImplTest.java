@@ -16,6 +16,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.ClosedAt;
+import ar.edu.itba.certiflow.certification.model.DecidedCertification;
 import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;

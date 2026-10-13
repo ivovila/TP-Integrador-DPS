@@ -8,6 +8,11 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.certification.model.ConditionalTreatment;
+import ar.edu.itba.certiflow.certification.model.DaysTerm;
+import ar.edu.itba.certiflow.certification.model.MonthsTerm;
+import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.StandardFindingTreatment;
 import ar.edu.itba.certiflow.inspection.model.ActionPlan;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingFactory;
@@ -29,6 +34,9 @@ import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
+import ar.edu.itba.certiflow.schema.model.SchemaSections;
+import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.model.SchemaVersionLog;
 import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
@@ -43,6 +51,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,7 +64,7 @@ public final class DomainSamples {
     public static final Person RESPONSIBLE = new Person(new PersonId("EMP-003"), "Raul Responsible");
     public static final Person TECHNICIAN = new Person(new PersonId("EMP-004"), "Marta Maintenance");
     public static final Person VERIFIER = new Person(new PersonId("EMP-005"), "Victor Verifier");
-    public static final Asset ASSET = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Lobby"), RESPONSIBLE, Characteristics.none(), new JurisdictionCode("DEMO-STANDARD"), List.of());
+    public static final Asset ASSET = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Lobby"), RESPONSIBLE, new Characteristics(), new JurisdictionCode("DEMO-STANDARD"), List.of());
 
     private static final AtomicInteger IDS = new AtomicInteger();
 
@@ -63,7 +72,34 @@ public final class DomainSamples {
     }
 
     public static InspectionSchema schema() {
-        return new InspectionSchema("Extinguisher", EXTINGUISHER, sections(), T0);
+        return schemaWith("Extinguisher", EXTINGUISHER, sections(), T0);
+    }
+
+    public static InspectionSchema schemaWith(String name, AssetType assetType, List<Section> sections, Instant publishedAt) {
+        return new InspectionSchema(name, assetType, new SchemaVersionLog(
+                List.of(new SchemaVersion(1, new SchemaSections(sections), publishedAt, publishedAt))));
+    }
+
+    public static SeverityCertificationPolicy strictPolicy() {
+        return new SeverityCertificationPolicy("STRICT",
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(12));
+    }
+
+    public static SeverityCertificationPolicy standardPolicy() {
+        return new SeverityCertificationPolicy("STANDARD",
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(12));
+    }
+
+    public static SeverityCertificationPolicy conditionalPolicy() {
+        return new SeverityCertificationPolicy("CONDITIONAL",
+                Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(6));
     }
 
     public static List<Section> sections() {

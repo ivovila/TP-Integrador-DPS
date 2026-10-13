@@ -17,6 +17,7 @@ import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Stream;
 import org.springframework.context.annotation.Bean;
@@ -33,9 +34,10 @@ public class SharedConfiguration {
         this.locks = locks;
     }
 
+    /** Los instantes se guardan con microsegundos: el reloj ya los entrega con esa precisión, truncando. */
     @Bean
     Clock clock() {
-        return Clock.systemUTC();
+        return Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000));
     }
 
     /** El único lugar que nombra los enums de acciones: la persistencia las busca por su código. */

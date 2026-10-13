@@ -32,7 +32,8 @@ public final class CertificateService {
 
     public Certificate renew(Certificate currentCertificate, CertificateNumber newNumber, GrantedDecision newDecision,
                              InspectionResult newBasis, Stamp renewed) {
-        Certificate renewedCertificate = currentCertificate.renew(newNumber, newDecision, newBasis, renewed);
+        Certificate renewedCertificate = certificateFactory.create(newNumber, newBasis, newDecision, renewed);
+        currentCertificate.renewedBy(renewedCertificate, renewed);
         recorded(currentCertificate);
         recorded(renewedCertificate);
         return renewedCertificate;

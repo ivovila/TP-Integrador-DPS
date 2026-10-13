@@ -10,11 +10,10 @@ import ar.edu.itba.certiflow.application.support.Samples;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetService;
 import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredException;
+import ar.edu.itba.certiflow.catalog.model.exceptions.UnknownJurisdictionException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
+import ar.edu.itba.certiflow.catalog.repository.KnownJurisdictions;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
-import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
-import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
-import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -32,23 +31,23 @@ class RegisterAssetUseCaseImplTest {
     @Mock
     private AssetRepository assetRepository;
 
-    private RegisterAssetUseCaseImpl registerAsset(CertificationPolicyResolver policies) {
-        return new RegisterAssetUseCaseImpl(assetRepository, new AssetService(Samples.auditLog(), assetRepository), policies,
-                Samples.CLOCK);
+    private RegisterAssetUseCaseImpl registerAsset(KnownJurisdictions knownJurisdictions) {
+        return new RegisterAssetUseCaseImpl(assetRepository,
+                new AssetService(Samples.auditLog(), assetRepository, knownJurisdictions), Samples.CLOCK);
     }
 
     @Test
     void aNewAssetIsSaved() {
         when(assetRepository.findByCode(ASSET.code())).thenReturn(Optional.empty());
 
-        registerAsset(code -> Optional.of(SeverityCertificationPolicy.standard())).execute(COMMAND);
+        registerAsset(jurisdictionCode -> true).execute(COMMAND);
 
         verify(assetRepository).save(any());
     }
 
     @Test
     void anAssetUnderAJurisdictionWithoutPolicyIsRejectedAndNotSaved() {
-        assertThrows(RequiredValueMissingException.class, () -> registerAsset(code -> Optional.empty()).execute(COMMAND));
+        assertThrows(UnknownJurisdictionException.class, () -> registerAsset(jurisdictionCode -> false).execute(COMMAND));
         verify(assetRepository, never()).save(any());
     }
 
@@ -57,7 +56,7 @@ class RegisterAssetUseCaseImplTest {
         when(assetRepository.findByCode(ASSET.code())).thenReturn(Optional.of(ASSET));
 
         assertThrows(AssetAlreadyRegisteredException.class,
-                () -> registerAsset(code -> Optional.of(SeverityCertificationPolicy.standard())).execute(COMMAND));
+                () -> registerAsset(jurisdictionCode -> true).execute(COMMAND));
         verify(assetRepository, never()).save(any());
     }
 }

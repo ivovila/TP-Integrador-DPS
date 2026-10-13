@@ -50,6 +50,6 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
     }
 
     private InspectionSchema restore(InspectionSchemaEntity entity) {
-        return entity.toDomain(sectionsDocuments, codeDocuments);
+        return entity.toDomain(sectionsDocuments);
     }
 }

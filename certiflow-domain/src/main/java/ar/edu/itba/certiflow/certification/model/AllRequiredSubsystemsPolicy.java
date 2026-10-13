@@ -17,41 +17,43 @@ import java.util.stream.Collectors;
  */
 public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPolicy {
 
-    private static final IneligibilityReason INVALID = StandardIneligibilityReason.INVALID_PARTIAL_CERTIFICATE;
-
-    private static final List<Requirement<Set<SubsystemCode>>> SCHEMA_REQUIREMENTS = List.of(
-            Requirement.that(codes -> !codes.isEmpty(), StandardIneligibilityReason.MISSING_SUBSYSTEM,
-                    codes -> "Schema has no required subsystems"));
+    private final IneligibilityReason invalidPartialCertificate = StandardIneligibilityReason.INVALID_PARTIAL_CERTIFICATE;
+    private final Requirements<Set<SubsystemCode>> schemaRequirements = new Requirements<>(List.of(
+            new Requirement<>(requiredSubsystems -> !requiredSubsystems.isEmpty(),
+                    StandardIneligibilityReason.MISSING_SUBSYSTEM,
+                    requiredSubsystems -> "Schema has no required subsystems")));
 
     @Override
-    public String code() { return "ALL-REQUIRED-SUBSYSTEMS"; }
+    public String code() {
+        return "ALL-REQUIRED-SUBSYSTEMS";
+    }
 
     @Override
     public CertificationDecision evaluate(GlobalAssessmentContext context) {
-        List<Requirement<Certificate>> backing = backingRequirements(context);
-        List<Ineligibility> reasons = new ArrayList<>(Requirement.unmetBy(SCHEMA_REQUIREMENTS, context.requiredSubsystems()));
-        context.partials().forEach(partial -> reasons.addAll(Requirement.unmetBy(backing, partial)));
-        List<Certificate> valid = context.partials().stream()
-                .filter(partial -> Requirement.unmetBy(backing, partial).isEmpty())
-                .toList();
-        reasons.addAll(duplicatedSubsystems(valid));
-        reasons.addAll(missingSubsystems(context.requiredSubsystems(), valid));
-        return reasons.isEmpty() ? granted(valid, context) : rejected(reasons, context);
+        Requirements<Certificate> backingRequirements = backingRequirements(context);
+        List<Ineligibility> reasons = new ArrayList<>(schemaRequirements.unmetBy(context.requiredSubsystems()));
+        context.partials().forEach(partial -> reasons.addAll(backingRequirements.unmetBy(partial)));
+        List<Certificate> validPartials = context.partials().stream().filter(backingRequirements::areMetBy).toList();
+        reasons.addAll(duplicatedSubsystems(validPartials));
+        reasons.addAll(missingSubsystems(context.requiredSubsystems(), validPartials));
+        return reasons.isEmpty() ? granted(validPartials, context) : rejected(reasons, context);
     }
 
     /** Lo que tiene que cumplir cada parcial para respaldar el global de este activo, versión y jurisdicción. */
-    private static List<Requirement<Certificate>> backingRequirements(GlobalAssessmentContext context) {
-        return List.of(
-                Requirement.that(partial -> partial.assetCode().equals(context.assetCode()), INVALID,
+    private Requirements<Certificate> backingRequirements(GlobalAssessmentContext context) {
+        return new Requirements<>(List.of(
+                new Requirement<>(partial -> partial.certifies(context.assetCode()), invalidPartialCertificate,
                         partial -> partial.number().value() + " belongs to another asset"),
-                Requirement.that(partial -> partial.schemaReference().equals(context.schemaReference()), INVALID,
+                new Requirement<>(partial -> partial.isIssuedFor(context.schemaReference()), invalidPartialCertificate,
                         partial -> partial.number().value() + " was issued for another schema version"),
-                Requirement.that(partial -> partial.certifiesOneOf(context.requiredSubsystems()),
-                        INVALID, partial -> partial.number().value() + " does not certify a required subsystem"),
-                Requirement.that(partial -> partial.decision().jurisdictionCode().equals(context.jurisdictionCode()), INVALID,
+                new Requirement<>(partial -> partial.certifiesOneOf(context.requiredSubsystems()),
+                        invalidPartialCertificate,
+                        partial -> partial.number().value() + " does not certify a required subsystem"),
+                new Requirement<>(partial -> partial.wasDecidedUnder(context.jurisdictionCode()),
+                        invalidPartialCertificate,
                         partial -> partial.number().value() + " was decided under another jurisdiction"),
-                Requirement.that(partial -> partial.statusOn(context.issuanceDate(), context.partials()).isActive(),
-                        INVALID, partial -> partial.number().value() + " is not active"));
+                new Requirement<>(partial -> partial.statusOn(context.issuanceDate(), context.partials()).isActive(),
+                        invalidPartialCertificate, partial -> partial.number().value() + " is not active")));
     }
 
     private CertificationDecision rejected(List<Ineligibility> reasons, GlobalAssessmentContext context) {
@@ -59,34 +61,40 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                 new WholeAssetScope());
     }
 
-    private static List<Ineligibility> duplicatedSubsystems(List<Certificate> valid) {
-        return subsystemsOf(valid).entrySet().stream()
-                .filter(entry -> entry.getValue() > 1)
-                .map(entry -> new Ineligibility(INVALID, "Subsystem " + entry.getKey().value() + " is backed more than once"))
+    private List<Ineligibility> duplicatedSubsystems(List<Certificate> validPartials) {
+        return timesEachSubsystemIsBackedBy(validPartials).entrySet().stream()
+                .filter(timesBacked -> timesBacked.getValue() > 1)
+                .map(timesBacked -> new Ineligibility(invalidPartialCertificate,
+                        "Subsystem " + timesBacked.getKey().value() + " is backed more than once"))
                 .toList();
     }
 
-    private static List<Ineligibility> missingSubsystems(Set<SubsystemCode> required, List<Certificate> valid) {
-        Set<SubsystemCode> covered = subsystemsOf(valid).keySet();
-        return required.stream().sorted(Comparator.comparing(SubsystemCode::value))
-                .filter(code -> !covered.contains(code))
-                .map(code -> new Ineligibility(StandardIneligibilityReason.MISSING_SUBSYSTEM, "Missing partial for " + code.value()))
+    private List<Ineligibility> missingSubsystems(Set<SubsystemCode> requiredSubsystems, List<Certificate> validPartials) {
+        Set<SubsystemCode> backedSubsystems = timesEachSubsystemIsBackedBy(validPartials).keySet();
+        return requiredSubsystems.stream()
+                .sorted(Comparator.comparing(SubsystemCode::value))
+                .filter(subsystemCode -> !backedSubsystems.contains(subsystemCode))
+                .map(subsystemCode -> new Ineligibility(StandardIneligibilityReason.MISSING_SUBSYSTEM,
+                        "Missing partial for " + subsystemCode.value()))
                 .toList();
     }
 
-    private static Map<SubsystemCode, Long> subsystemsOf(List<Certificate> partials) {
-        return partials.stream().flatMap(partial -> partial.certifiedSubsystems().stream())
+    private Map<SubsystemCode, Long> timesEachSubsystemIsBackedBy(List<Certificate> partials) {
+        return partials.stream()
+                .flatMap(partial -> partial.certifiedSubsystems().stream())
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 
     /** Rige desde hoy hasta el menor vencimiento de sus parciales y hereda sus condiciones, sin extenderlas. */
     private CertificationDecision granted(List<Certificate> partials, GlobalAssessmentContext context) {
-        LocalDate until = Collections.min(partials.stream().map(partial -> partial.validity().validUntil()).toList());
-        List<CertificationCondition> conditions = partials.stream().flatMap(partial -> partial.decision().conditions().stream())
-                .map(condition -> new CertificationCondition(condition.findingId(), condition.criterionCode(), condition.description(),
-                        Collections.min(List.of(condition.dueDate(), until))))
-                .distinct().toList();
-        return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), until), code(),
+        LocalDate validUntil = Collections.min(partials.stream().map(partial -> partial.validity().validUntil()).toList());
+        List<CertificationCondition> conditions = partials.stream()
+                .flatMap(partial -> partial.decision().conditions().stream())
+                .map(condition -> new CertificationCondition(condition.findingId(), condition.criterionCode(),
+                        condition.description(), Collections.min(List.of(condition.dueDate(), validUntil))))
+                .distinct()
+                .toList();
+        return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), validUntil), code(),
                 context.jurisdictionCode(), context.evaluatedAt(), new WholeAssetScope());
     }
 }

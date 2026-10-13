@@ -20,10 +20,15 @@ import ar.edu.itba.certiflow.certification.model.AllRequiredSubsystemsPolicy;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificationEligibility;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
+import ar.edu.itba.certiflow.certification.model.ConditionalTreatment;
+import ar.edu.itba.certiflow.certification.model.DaysTerm;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
+import ar.edu.itba.certiflow.certification.model.MonthsTerm;
 import ar.edu.itba.certiflow.certification.model.RegisteredJurisdictions;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.StandardFindingTreatment;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
@@ -42,6 +47,7 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.JpaAuditLog;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEntryRepository;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
+import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
@@ -72,18 +78,52 @@ public class CertificationConfiguration {
         return new CertificateService(new CertificateFactory(), certificateLog);
     }
 
+    /** El único lugar que asocia una jurisdicción con su política, y por eso también donde se arman las de ejemplo. */
     @Bean
     ConfiguredPolicyResolver certificationPolicies() {
         return new ConfiguredPolicyResolver(Map.of(
-                new JurisdictionCode("DEMO-STRICT"), SeverityCertificationPolicy.strict(),
-                new JurisdictionCode("DEMO-CONDITIONAL"), SeverityCertificationPolicy.conditional(),
-                new JurisdictionCode("DEMO-STANDARD"), SeverityCertificationPolicy.standard()));
+                new JurisdictionCode("DEMO-STRICT"), strictPolicy(),
+                new JurisdictionCode("DEMO-CONDITIONAL"), conditionalPolicy(),
+                new JurisdictionCode("DEMO-STANDARD"), standardPolicy()));
+    }
+
+    /** Cualquier hallazgo abierto rechaza; aprueba por 12 meses. */
+    private SeverityCertificationPolicy strictPolicy() {
+        return new SeverityCertificationPolicy("STRICT",
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(12));
+    }
+
+    /** MAJOR y CRITICAL rechazan, MINOR se tolera; aprueba por 12 meses. */
+    private SeverityCertificationPolicy standardPolicy() {
+        return new SeverityCertificationPolicy("STANDARD",
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED,
+                        StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(12));
+    }
+
+    /** CRITICAL rechaza; MINOR o MAJOR dan un certificado condicional por 30 días; sin hallazgos aprueba por 6 meses. */
+    private SeverityCertificationPolicy conditionalPolicy() {
+        return new SeverityCertificationPolicy("CONDITIONAL",
+                Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(6));
     }
 
     @Bean
-    CertificationAssessmentService certificationAssessment(AssetRepository assets,
-            CertificationPolicyResolver policies, Clock clock) {
-        return new CertificationAssessmentService(assets, policies, clock);
+    CertificationEligibility certificationEligibility(CertificationPolicyResolver certificationPolicies) {
+        return new CertificationEligibility(certificationPolicies);
+    }
+
+    @Bean
+    CertificationAssessmentService certificationAssessment(AssetRepository assetRepository,
+                                                           CertificationEligibility certificationEligibility,
+                                                           Clock clock) {
+        return new CertificationAssessmentService(assetRepository, certificationEligibility, clock);
     }
 
     @Bean

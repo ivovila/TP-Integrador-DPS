@@ -18,7 +18,7 @@ public record SectionsScope(Set<String> sectionTitles) implements InspectionScop
     @Override
     public List<Criterion<?>> criteriaIn(SchemaVersion schemaVersion) {
         sectionTitles.forEach(schemaVersion::section);
-        return schemaVersion.sections().stream()
+        return schemaVersion.sections().all().stream()
                 .filter(section -> sectionTitles.contains(section.title()))
                 .flatMap(section -> section.criteria().stream())
                 .toList();

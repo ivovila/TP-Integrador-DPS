@@ -3,10 +3,10 @@ package ar.edu.itba.certiflow.schema.model;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 
 public record InspectionSchema(String name, AssetType assetType, SchemaVersionLog versionLog) {
 
@@ -14,10 +14,6 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
         if (name.isBlank()) {
             throw new InvalidSchemaException("An inspection schema needs a name");
         }
-    }
-
-    public InspectionSchema(String name, AssetType assetType, List<Section> sections, Instant publishedAt) {
-        this(name, assetType, SchemaVersionLog.startingWith(sections, publishedAt));
     }
 
     public InspectionSchema withNewVersion(List<Section> sections, Instant publishedAt, Instant effectiveFrom,

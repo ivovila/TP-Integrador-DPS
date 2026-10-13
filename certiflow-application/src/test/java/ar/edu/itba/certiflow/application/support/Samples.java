@@ -24,6 +24,9 @@ import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
 import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
+import ar.edu.itba.certiflow.schema.model.SchemaSections;
+import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.model.SchemaVersionLog;
 import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
@@ -52,7 +55,7 @@ public final class Samples {
     public static final Person INSPECTOR = new Person(new PersonId("EMP-002"), "Ines Inspector");
     public static final Person RESPONSIBLE = new Person(new PersonId("EMP-003"), "Raul Responsible");
     public static final Asset ASSET = new Asset(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Lobby"),
-            RESPONSIBLE, Characteristics.none(), new JurisdictionCode("DEMO-STANDARD"), List.of());
+            RESPONSIBLE, new Characteristics(), new JurisdictionCode("DEMO-STANDARD"), List.of());
 
     private Samples() {
     }
@@ -70,7 +73,9 @@ public final class Samples {
     }
 
     public static InspectionSchema schema() {
-        return new InspectionSchema("Extinguisher", EXTINGUISHER, sections(), NOW.minusSeconds(3600));
+        Instant publishedAt = NOW.minusSeconds(3600);
+        return new InspectionSchema("Extinguisher", EXTINGUISHER, new SchemaVersionLog(
+                List.of(new SchemaVersion(1, new SchemaSections(sections()), publishedAt, publishedAt))));
     }
 
     @SuppressWarnings("unchecked")

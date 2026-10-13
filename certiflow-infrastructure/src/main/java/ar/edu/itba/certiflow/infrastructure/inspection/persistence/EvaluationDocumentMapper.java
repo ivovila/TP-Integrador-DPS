@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
@@ -55,7 +54,7 @@ public class EvaluationDocumentMapper {
     private ResponseDocument responseDocumentOf(CriterionResponse<?> response) {
         StoredAnswering answering = response.answering().describedBy(new StoredAnsweringDescriber<>());
         return new ResponseDocument(response.criterion().code(), answering.answerType(), answering.answerValue(),
-                answering.answeredById(), answering.answeredByName(), Instants.asStored(answering.answeredAt()),
+                answering.answeredById(), answering.answeredByName(), answering.answeredAt(),
                 response.attachments().stream().map(this::evidenceDocumentOf).toList(),
                 response.observations().stream().map(this::observationDocumentOf).toList());
     }
@@ -64,13 +63,13 @@ public class EvaluationDocumentMapper {
         PersonColumns attachedBy = new PersonColumns(attached.attachedBy());
         return new EvidenceDocument(attached.evidence().kind().code(), attached.evidence().reference(),
                 attached.evidence().description(), attachedBy.id(), attachedBy.name(),
-                Instants.asStored(attached.attachedAt()));
+                attached.attachedAt());
     }
 
     private ObservationDocument observationDocumentOf(Observation observation) {
         PersonColumns observedBy = new PersonColumns(observation.observedBy());
         return new ObservationDocument(observation.text(), observedBy.id(), observedBy.name(),
-                Instants.asStored(observation.observedAt()));
+                observation.observedAt());
     }
 
     private CriterionResponse<?> responseOf(ResponseDocument document, SchemaVersion version) {

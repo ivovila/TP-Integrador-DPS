@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
+import ar.edu.itba.certiflow.schema.model.SchemaSections;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,15 +39,15 @@ public class SchemaVersionEntity {
         this.publishedAt = version.publishedAt();
         this.effectiveFrom = version.effectiveFrom();
         this.requiredSubsystems = codeDocuments.writeSubsystemCodes(version.requiredSubsystems());
-        this.sections = sectionsDocuments.write(version.sections());
+        this.sections = sectionsDocuments.write(version.sections().all());
     }
 
     public String assetType() {
         return assetType;
     }
 
-    SchemaVersion toDomain(SectionsDocumentMapper sectionsDocuments, CodesDocumentMapper codeDocuments) {
-        return new SchemaVersion(number, sectionsDocuments.read(sections), publishedAt, effectiveFrom,
-                codeDocuments.readSubsystemCodes(requiredSubsystems));
+    SchemaVersion toDomain(SectionsDocumentMapper sectionsDocuments) {
+        return new SchemaVersion(number, new SchemaSections(sectionsDocuments.read(sections)), publishedAt,
+                effectiveFrom);
     }
 }

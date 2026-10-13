@@ -189,7 +189,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private void register(String code, String name, AssetType type, String jurisdiction, List<Subsystem> subsystems) {
         registerAsset.execute(new RegisterAssetCommand(new AssetCode(code), name, type, new Location("Main plant"),
-                assetResponsible, Characteristics.none(), coordinator, new JurisdictionCode(jurisdiction), subsystems));
+                assetResponsible, new Characteristics(), coordinator, new JurisdictionCode(jurisdiction), subsystems));
     }
 
     private InspectionId inspectAndClose(String assetCode, Map<String, YesNoAnswer> answers) {

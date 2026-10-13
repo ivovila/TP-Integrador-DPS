@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ar.edu.itba.certiflow.catalog.model.*;
 import ar.edu.itba.certiflow.certification.model.*;
+import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
 import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.exceptions.JurisdictionPolicyNotFoundException;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.DecisionDocumentMapper;
@@ -41,8 +42,8 @@ class ConfiguredPolicyResolverTest {
 
     @Test void registeredJurisdictionsAreListedWithThePolicyThatDecidesForThem() {
         var resolver = new ConfiguredPolicyResolver(Map.of(
-                new JurisdictionCode("SOUTH"), SeverityCertificationPolicy.strict(),
-                new JurisdictionCode("NORTH"), SeverityCertificationPolicy.conditional()));
+                new JurisdictionCode("SOUTH"), DomainSamples.strictPolicy(),
+                new JurisdictionCode("NORTH"), DomainSamples.conditionalPolicy()));
         assertEquals(List.of(
                 new JurisdictionPolicy(new JurisdictionCode("NORTH"), "CONDITIONAL"),
                 new JurisdictionPolicy(new JurisdictionCode("SOUTH"), "STRICT")), resolver.all());

@@ -19,7 +19,7 @@ class RevisionsTest {
 
     @Test
     void revisionsAreNumberedFromOneInTheOrderTheyWereSealed() {
-        Revisions revisions = Revisions.none()
+        Revisions revisions = new Revisions()
                 .sealedWith("Inspection closed", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH))
                 .sealedWith("Gauge reading transcribed incorrectly", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
@@ -30,7 +30,7 @@ class RevisionsTest {
 
     @Test
     void sealingARevisionLeavesThePreviousOnesUntouched() {
-        Revisions closure = Revisions.none().sealedWith("Inspection closed", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
+        Revisions closure = new Revisions().sealedWith("Inspection closed", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
         Revisions rectified = closure.sealedWith("Corrected", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
@@ -41,7 +41,7 @@ class RevisionsTest {
 
     @Test
     void anInspectionWithoutRevisionsHasNoOriginalOne() {
-        Revisions revisions = Revisions.none();
+        Revisions revisions = new Revisions();
 
         assertTrue(revisions.isEmpty());
         assertThrows(InspectionNotClosedException.class, revisions::original);

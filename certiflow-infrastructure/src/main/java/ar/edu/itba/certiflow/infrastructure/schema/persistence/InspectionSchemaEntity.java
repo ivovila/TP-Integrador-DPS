@@ -48,10 +48,10 @@ public class InspectionSchemaEntity {
                         new SchemaVersionEntity(assetType, version, sectionsDocuments, codeDocuments)));
     }
 
-    InspectionSchema toDomain(SectionsDocumentMapper sectionsDocuments, CodesDocumentMapper codeDocuments) {
+    InspectionSchema toDomain(SectionsDocumentMapper sectionsDocuments) {
         return new InspectionSchema(name, new AssetType(assetType),
                 new SchemaVersionLog(versions.stream()
-                        .map(version -> version.toDomain(sectionsDocuments, codeDocuments))
+                        .map(version -> version.toDomain(sectionsDocuments))
                         .toList()));
     }
 }

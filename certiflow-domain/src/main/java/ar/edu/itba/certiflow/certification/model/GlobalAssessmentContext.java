@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -16,5 +17,16 @@ public record GlobalAssessmentContext(AssetCode assetCode, SchemaReference schem
     public GlobalAssessmentContext {
         requiredSubsystems = Set.copyOf(requiredSubsystems);
         partials = List.copyOf(partials);
+    }
+
+    /** La base de inspección del global es la más reciente de sus respaldos: es lo que una renovación debe superar. */
+    public Instant latestInspectionClosedAt() {
+        return Collections.max(partials.stream().map(Certificate::latestInspectionClosedAt).toList());
+    }
+
+    public DecidedGlobalCertification decidedWith(GrantedDecision decision, String globalPolicyCode) {
+        return new DecidedGlobalCertification(assetCode, schemaReference, requiredSubsystems,
+                partials.stream().map(Certificate::number).toList(), globalPolicyCode, latestInspectionClosedAt(),
+                decision);
     }
 }

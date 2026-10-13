@@ -97,7 +97,7 @@ class JpaInspectionRepositoryTest {
 
     @Test
     void aSectionTitleWithALineBreakSurvivesTheScope() {
-        InspectionSchema lined = new InspectionSchema("Lined", new AssetType("Lined boiler"),
+        InspectionSchema lined = DomainSamples.schemaWith("Lined", new AssetType("Lined boiler"),
                 List.of(new Section("Signage\nand lights", DomainSamples.sections().get(1).criteria())), DomainSamples.T0);
         schemas.save(lined);
         Asset sample = DomainSamples.ASSET;
@@ -110,14 +110,17 @@ class JpaInspectionRepositoryTest {
         assertEquals(inspection.snapshot(), reloaded(inspection).snapshot());
     }
 
+    /** El reloj del sistema entrega microsegundos, que es lo que guardan tanto la columna como el documento. */
     @Test
     void aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed() {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
-        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_789)));
+        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer("true"), new Stamp(DomainSamples.INSPECTOR, DomainSamples.T0.plusNanos(123_456_000)));
         DomainSamples.close(inspection);
 
         Inspection restored = reloaded(inspection);
 
+        assertEquals(DomainSamples.T0.plusNanos(123_456_000),
+                restored.evaluate().responses().get(1).given().orElseThrow().answeredAt());
         assertEquals(restored.evaluate().responses().get(1).given().orElseThrow().answeredAt(),
                 restored.originalRevision().evaluation().responses().get(1).given().orElseThrow().answeredAt());
     }

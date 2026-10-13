@@ -38,7 +38,7 @@ public final class RenewGlobalCertificateUseCaseImpl implements RenewGlobalCerti
         DecidedGlobalCertification decided = globalCertification.decide(command.assetCode(), command.schemaVersion(),
                 command.partialCertificateNumbers());
         certificateService.ensureGlobalRenewable(currentCertificate, decided);
-        certificateIssuance.ensureScopeAvailableToReplace(currentCertificate.number(), decided.assetCode(), decided.scope(), decided.validFrom());
+        certificateIssuance.ensureScopeAvailableToReplace(currentCertificate, decided.scope(), decided.validFrom());
         Certificate renewedCertificate = certificateService.issueGlobal(certificateNumbering.next(), decided, command.issuedBy());
         certificateService.markRenewed(currentCertificate, renewedCertificate, new Stamp(command.issuedBy(), decided.decidedAt()));
         certificateRepository.save(currentCertificate);

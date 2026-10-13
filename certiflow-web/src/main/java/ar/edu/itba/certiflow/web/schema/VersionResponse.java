@@ -23,6 +23,6 @@ public class VersionResponse extends RepresentationModel<VersionResponse> {
         this.publishedAt = version.publishedAt();
         this.effectiveFrom = version.effectiveFrom();
         this.requiredSubsystems = version.requiredSubsystems().stream().map(code -> code.value()).collect(Collectors.toSet());
-        this.sections = SchemaPayloads.fromSections(version.sections());
+        this.sections = SchemaPayloads.fromSections(version.sections().all());
     }
 }

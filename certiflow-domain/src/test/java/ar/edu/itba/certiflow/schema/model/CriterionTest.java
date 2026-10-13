@@ -4,12 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
-import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import java.util.Set;
 
 class CriterionTest {
 
@@ -66,8 +64,8 @@ class CriterionTest {
         Criterion<YesNoAnswer> criterionWithSameCode = new Criterion<>("C-1", "Another text", new YesNoRule(YesNoAnswer.NO),
                 StandardSeverity.MAJOR, List.of());
 
-        assertThrows(InvalidSchemaException.class, () -> new SchemaVersion(1,
-                List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode))), Instant.EPOCH, Instant.EPOCH, Set.of()));
+        assertThrows(InvalidSchemaException.class,
+                () -> new SchemaSections(List.of(new Section("General", List.of(firstCriterion, criterionWithSameCode)))));
     }
 
     @Test

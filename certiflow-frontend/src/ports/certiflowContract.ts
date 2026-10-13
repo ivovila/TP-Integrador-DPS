@@ -926,7 +926,7 @@ export function describeCertiflowContract(
       });
 
       test('an asset cannot be registered under a jurisdiction without a policy', async () => {
-        await expectRejection(registerExtinguisher(extinguisherCode, 'ATLANTIS'), 'RequiredValueMissingException');
+        await expectRejection(registerExtinguisher(extinguisherCode, 'ATLANTIS'), 'UnknownJurisdictionException');
       });
 
       test('the vocabulary lists the jurisdictions that have a policy', async () => {

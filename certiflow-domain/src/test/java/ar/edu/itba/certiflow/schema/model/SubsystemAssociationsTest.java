@@ -18,17 +18,23 @@ class SubsystemAssociationsTest {
     private Criterion<YesNoAnswer> criterion(String code, SubsystemCode subsystem) {
         return new Criterion<>(code, "Check", new YesNoRule(YesNoAnswer.YES), StandardSeverity.MAJOR, List.of(), new InSubsystem(subsystem));
     }
+    private SchemaVersion versionWith(Section section) {
+        return new SchemaVersion(1, new SchemaSections(List.of(section)), Instant.EPOCH, Instant.EPOCH);
+    }
     @Test void criterionOverridesSectionAndOthersInherit() {
         var section = new Section("Checks", List.of(criterion("A"), criterion("B", p)), new InSubsystem(e));
-        var version = new SchemaVersion(1, List.of(section), Instant.EPOCH, Instant.EPOCH, Set.of(e, p));
+        var version = versionWith(section);
+        version.ensureRequires(Set.of(e, p));
+        assertEquals(Set.of(e, p), version.requiredSubsystems());
         assertEquals(new InSubsystem(e), version.associationOf(version.criterion("A")));
         assertEquals(new InSubsystem(p), version.associationOf(version.criterion("B")));
         assertEquals(List.of("A"), version.criteriaFor(e).stream().map(Criterion::code).toList());
     }
     @Test void unassignedCriteriaAndEmptyRequiredSubsystemsAreRejected() {
         var section = new Section("Checks", List.of(criterion("A")));
-        assertThrows(InvalidSchemaException.class, () -> new SchemaVersion(1, List.of(section), Instant.EPOCH, Instant.EPOCH, Set.of(e)));
+        assertThrows(InvalidSchemaException.class, () -> versionWith(section).ensureRequires(Set.of(e)));
         var assigned = new Section("Checks", List.of(criterion("A", e)));
-        assertThrows(InvalidSchemaException.class, () -> new SchemaVersion(1, List.of(assigned), Instant.EPOCH, Instant.EPOCH, Set.of(e, p)));
+        assertThrows(InvalidSchemaException.class, () -> versionWith(assigned).ensureRequires(Set.of(e, p)));
+        versionWith(section).ensureRequires(Set.of());
     }
 }

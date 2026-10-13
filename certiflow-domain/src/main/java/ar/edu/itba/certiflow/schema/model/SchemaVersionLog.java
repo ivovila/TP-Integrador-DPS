@@ -13,7 +13,8 @@ import java.util.stream.Stream;
 public record SchemaVersionLog(List<SchemaVersion> versions) {
 
     public SchemaVersionLog {
-        versions = List.copyOf(versions);
+        List<SchemaVersion> orderedVersions = List.copyOf(versions);
+        versions = orderedVersions;
         if (versions.isEmpty()) {
             throw new InvalidSchemaException("A schema needs at least one version");
         }
@@ -22,18 +23,17 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
                 throw new SchemaEffectiveDateConflictException();
             }
         }
-        if (!isNumberedConsecutively(versions)) {
+        if (IntStream.range(0, orderedVersions.size())
+                .anyMatch(index -> orderedVersions.get(index).number() != index + 1)) {
             throw new InvalidSchemaException("Schema versions must be numbered consecutively from 1");
         }
     }
 
-    public static SchemaVersionLog startingWith(List<Section> sections, Instant publishedAt) {
-        return new SchemaVersionLog(List.of(new SchemaVersion(1, sections, publishedAt, publishedAt, Set.of())));
-    }
-
     public SchemaVersionLog append(List<Section> sections, Instant publishedAt, Instant effectiveFrom,
             Set<SubsystemCode> requiredSubsystems) {
-        SchemaVersion nextVersion = new SchemaVersion(versions.size() + 1, sections, publishedAt, effectiveFrom, requiredSubsystems);
+        SchemaVersion nextVersion = new SchemaVersion(versions.size() + 1, new SchemaSections(sections), publishedAt,
+                effectiveFrom);
+        nextVersion.ensureRequires(requiredSubsystems);
         return new SchemaVersionLog(Stream.concat(versions.stream(), Stream.of(nextVersion)).toList());
     }
 
@@ -45,9 +45,5 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
 
     public SchemaVersion latestPublished() {
         return versions.getLast();
-    }
-
-    private static boolean isNumberedConsecutively(List<SchemaVersion> versions) {
-        return IntStream.range(0, versions.size()).allMatch(index -> versions.get(index).number() == index + 1);
     }
 }

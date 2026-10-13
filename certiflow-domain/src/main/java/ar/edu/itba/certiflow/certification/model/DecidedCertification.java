@@ -1,8 +1,8 @@
-package ar.edu.itba.certiflow.application.certification;
+package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import java.time.Instant;
 import java.time.LocalDate;

@@ -58,7 +58,7 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
                 .toList();
     }
 
-    private static List<SubsystemResult> resultsBySubsystem(Inspection inspection, SchemaVersion version,
+    private List<SubsystemResult> resultsBySubsystem(Inspection inspection, SchemaVersion version,
                                                             List<OpenNonConformity> open) {
         return version.requiredSubsystems().stream().sorted(Comparator.comparing(SubsystemCode::value))
                 .map(code -> new SubsystemResult(code, inspection.covers(code),
