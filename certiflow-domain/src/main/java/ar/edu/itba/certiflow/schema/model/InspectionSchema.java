@@ -21,8 +21,8 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
         return new InspectionSchema(name, assetType, versionLog.append(sections, publishedAt, effectiveFrom, requiredSubsystems));
     }
 
-    public SchemaVersion versionAt(Instant at) {
-        return versionLog.versionAt(at);
+    public SchemaVersion versionAt(Instant instant) {
+        return versionLog.versionAt(instant);
     }
 
     public SchemaVersion version(int number) {
@@ -37,9 +37,5 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
 
     public List<SchemaVersion> versions() {
         return versionLog.versions();
-    }
-
-    public boolean appliesTo(AssetType type) {
-        return assetType.equals(type);
     }
 }

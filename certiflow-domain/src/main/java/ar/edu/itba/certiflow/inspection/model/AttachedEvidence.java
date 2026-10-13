@@ -8,10 +8,10 @@ import java.time.Instant;
 public record AttachedEvidence(Evidence evidence, Stamp attached) {
 
     public Person attachedBy() {
-        return attached.by();
+        return attached.author();
     }
 
     public Instant attachedAt() {
-        return attached.at();
+        return attached.instant();
     }
 }

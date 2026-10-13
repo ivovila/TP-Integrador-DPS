@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
-import ar.edu.itba.certiflow.certification.model.exceptions.InspectionOfAnotherAssetException;
+import ar.edu.itba.certiflow.certification.model.exceptions.ReplacementForAnotherAssetException;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotAGlobalCertificateException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalRequiresLaterInspectionException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
@@ -94,7 +94,7 @@ public final class Certificate {
             throw new CertificateAlreadyRenewedException(number);
         }
         if (!assetCode.equals(replacementAsset)) {
-            throw new InspectionOfAnotherAssetException(assetCode);
+            throw new ReplacementForAnotherAssetException(assetCode);
         }
         if (!scope().equals(replacementScope)) {
             throw new RenewalScopeMismatchException();
@@ -145,12 +145,21 @@ public final class Certificate {
         return assetCode;
     }
 
-    public CertificateBasis basis() { return basis; }
+    public CertificateBasis basis() {
+        return basis;
+    }
+
     public CertificationScope scope() {
         return decision.scope();
     }
-    public SchemaReference schemaReference() { return schemaReference; }
-    public Set<SubsystemCode> requiredSubsystems() { return requiredSubsystems; }
+
+    public SchemaReference schemaReference() {
+        return schemaReference;
+    }
+
+    public Set<SubsystemCode> requiredSubsystems() {
+        return requiredSubsystems;
+    }
 
     public Instant latestInspectionClosedAt() {
         return basis.latestInspectionClosedAt();
@@ -197,11 +206,11 @@ public final class Certificate {
     }
 
     public Person issuedBy() {
-        return issued.by();
+        return issued.author();
     }
 
     public Instant issuedAt() {
-        return issued.at();
+        return issued.instant();
     }
 
     public List<Suspension> suspensions() {

@@ -32,7 +32,8 @@ public final class PlanCorrectiveActionUseCaseImpl implements PlanCorrectiveActi
                 .orElseThrow(() -> new FindingNotFoundException(command.findingId()));
         Instant plannedAt = clock.instant();
         CorrectiveAction plannedAction = findingService.planAction(finding,
-                new ActionPlan(command.description(), command.responsible(), command.dueDate()), new Stamp(command.plannedBy(), plannedAt), LocalDate.ofInstant(plannedAt, clock.getZone()));
+                new ActionPlan(command.description(), command.responsible(), command.dueDate()),
+                new Stamp(command.plannedBy(), plannedAt), LocalDate.ofInstant(plannedAt, clock.getZone()));
         findingRepository.save(finding);
         return plannedAction.id();
     }

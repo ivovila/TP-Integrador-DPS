@@ -19,10 +19,10 @@ public record CertificateSnapshot(CertificateNumber number, AssetCode assetCode,
     }
 
     public Person issuedBy() {
-        return issued.by();
+        return issued.author();
     }
 
     public Instant issuedAt() {
-        return issued.at();
+        return issued.instant();
     }
 }

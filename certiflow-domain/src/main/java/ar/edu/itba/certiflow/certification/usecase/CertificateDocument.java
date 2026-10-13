@@ -16,17 +16,18 @@ import java.util.List;
 
 public record CertificateDocument(CertificateNumber number, AssetCode assetCode, String assetName,
                                   ValidityPeriod validity, LocalDate statusDate, CertificateStatus status,
-                                  Stamp issued, List<Suspension> suspensions, CertificationDecision decision, CertificationScope scope, CertificateBasis basis) {
+                                  Stamp issued, List<Suspension> suspensions, CertificationDecision decision,
+                                  CertificationScope scope, CertificateBasis basis) {
 
     public CertificateDocument {
         suspensions = List.copyOf(suspensions);
     }
 
     public Person issuedBy() {
-        return issued.by();
+        return issued.author();
     }
 
     public Instant issuedAt() {
-        return issued.at();
+        return issued.instant();
     }
 }

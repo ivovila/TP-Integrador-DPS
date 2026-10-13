@@ -38,14 +38,14 @@ public final class FindingService {
 
     public CorrectiveAction planAction(Finding finding, ActionPlan plan, Stamp planned, LocalDate plannedOn) {
         CorrectiveAction action = finding.planAction(plan, planned, plannedOn);
-        recorded(finding);
+        recordAuditEntriesOf(finding);
         return action;
     }
 
     public Verification verifyAction(Finding finding, CorrectiveActionId actionId, VerificationResult verificationResult,
                                      String verificationNotes, Stamp verified) {
         Verification verification = finding.verifyAction(actionId, verificationResult, verificationNotes, verified);
-        recorded(finding);
+        recordAuditEntriesOf(finding);
         return verification;
     }
 
@@ -53,11 +53,11 @@ public final class FindingService {
         List<Finding> raisedFindings = nonConformities.stream()
                 .map(nonConformity -> findingFactory.create(nextId.get(), source, nonConformity))
                 .toList();
-        raisedFindings.forEach(this::recorded);
+        raisedFindings.forEach(this::recordAuditEntriesOf);
         return raisedFindings;
     }
 
-    private void recorded(Finding finding) {
+    private void recordAuditEntriesOf(Finding finding) {
         findingLog.recordAll(finding.id(), finding.pullAuditEntries());
     }
 }

@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.shared.model.NotFoundException;
 
 public class CertificateNotFoundException extends NotFoundException {
 
-    public CertificateNotFoundException(CertificateNumber id) {
-        super("Certificate " + id.value() + " does not exist");
+    public CertificateNotFoundException(CertificateNumber certificateNumber) {
+        super("Certificate " + certificateNumber.value() + " does not exist");
     }
 }

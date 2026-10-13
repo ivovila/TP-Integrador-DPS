@@ -26,7 +26,7 @@ public final class InspectionService {
     public Inspection assign(InspectionId inspectionId, Asset asset, InspectionAssignment assignment,
                              SchemaVersion schemaVersion, Stamp assigned) {
         Inspection inspection = inspectionFactory.create(inspectionId, asset, assignment, schemaVersion, assigned);
-        return recorded(inspection);
+        return recordAuditEntriesOf(inspection);
     }
 
     public void recordAnswer(Inspection inspection, String criterionCode, RawAnswer answer, Stamp answered) {
@@ -35,17 +35,17 @@ public final class InspectionService {
 
     public void attachEvidence(Inspection inspection, String criterionCode, Evidence evidence, Stamp attached) {
         inspection.attachEvidence(inspection.schemaVersion().criterion(criterionCode), evidence, attached);
-        recorded(inspection);
+        recordAuditEntriesOf(inspection);
     }
 
     public void addObservation(Inspection inspection, String criterionCode, String observationText, Stamp observed) {
         inspection.addObservation(inspection.schemaVersion().criterion(criterionCode), observationText, observed);
-        recorded(inspection);
+        recordAuditEntriesOf(inspection);
     }
 
     public InspectionClosed close(Inspection inspection, Stamp closed) {
         InspectionClosed closure = inspection.close(closed);
-        recorded(inspection);
+        recordAuditEntriesOf(inspection);
         return closure;
     }
 
@@ -56,17 +56,17 @@ public final class InspectionService {
 
     private <A extends Answer> void recordTyped(Inspection inspection, Criterion<A> criterion, RawAnswer answer, Stamp answered) {
         inspection.recordAnswer(criterion, criterion.answerFrom(answer), answered);
-        recorded(inspection);
+        recordAuditEntriesOf(inspection);
     }
 
     private <A extends Answer> InspectionRectified rectifyTyped(Inspection inspection, Criterion<A> criterion, RawAnswer answer,
                                                                 String reason, Stamp rectified) {
         InspectionRectified rectification = inspection.rectify(criterion, criterion.answerFrom(answer), reason, rectified);
-        recorded(inspection);
+        recordAuditEntriesOf(inspection);
         return rectification;
     }
 
-    private Inspection recorded(Inspection inspection) {
+    private Inspection recordAuditEntriesOf(Inspection inspection) {
         inspectionLog.recordAll(inspection.id(), inspection.pullAuditEntries());
         return inspection;
     }

@@ -29,6 +29,12 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
         }
     }
 
+    /** El registro de un esquema nuevo: su primera versión rige desde que se publica. */
+    public SchemaVersionLog(List<Section> sections, Instant publishedAt, Set<SubsystemCode> requiredSubsystems) {
+        this(List.of(new SchemaVersion(1, new SchemaSections(sections), publishedAt, publishedAt)));
+        latestPublished().ensureRequires(requiredSubsystems);
+    }
+
     public SchemaVersionLog append(List<Section> sections, Instant publishedAt, Instant effectiveFrom,
             Set<SubsystemCode> requiredSubsystems) {
         SchemaVersion nextVersion = new SchemaVersion(versions.size() + 1, new SchemaSections(sections), publishedAt,
@@ -37,10 +43,10 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
         return new SchemaVersionLog(Stream.concat(versions.stream(), Stream.of(nextVersion)).toList());
     }
 
-    public SchemaVersion versionAt(Instant at) {
-        return versions.stream().filter(version -> !version.effectiveFrom().isAfter(at))
+    public SchemaVersion versionAt(Instant instant) {
+        return versions.stream().filter(version -> !version.effectiveFrom().isAfter(instant))
                 .reduce((previous, next) -> next)
-                .orElseThrow(() -> new NoEffectiveSchemaVersionException(at));
+                .orElseThrow(() -> new NoEffectiveSchemaVersionException(instant));
     }
 
     public SchemaVersion latestPublished() {

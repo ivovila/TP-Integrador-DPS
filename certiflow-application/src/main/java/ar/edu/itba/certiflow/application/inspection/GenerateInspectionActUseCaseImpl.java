@@ -21,7 +21,8 @@ public final class GenerateInspectionActUseCaseImpl implements GenerateInspectio
     private final AssetRepository assetRepository;
     private final AuditLog<InspectionId> inspectionLog;
 
-    public GenerateInspectionActUseCaseImpl(InspectionRepository inspectionRepository, AssetRepository assetRepository, AuditLog<InspectionId> inspectionLog) {
+    public GenerateInspectionActUseCaseImpl(InspectionRepository inspectionRepository, AssetRepository assetRepository,
+                                            AuditLog<InspectionId> inspectionLog) {
         this.inspectionRepository = inspectionRepository;
         this.assetRepository = assetRepository;
         this.inspectionLog = inspectionLog;

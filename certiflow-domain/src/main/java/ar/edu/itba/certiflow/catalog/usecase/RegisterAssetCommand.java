@@ -9,5 +9,7 @@ import ar.edu.itba.certiflow.catalog.model.Subsystem;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.util.List;
 
-public record RegisterAssetCommand(AssetCode code, String name, AssetType type, Location location, Person responsible, Characteristics characteristics, Person registeredBy, JurisdictionCode jurisdictionCode, List<Subsystem> subsystems) {
+public record RegisterAssetCommand(AssetCode code, String name, AssetType type, Location location, Person responsible,
+                                   Characteristics characteristics, Person registeredBy,
+                                   JurisdictionCode jurisdictionCode, List<Subsystem> subsystems) {
 }

@@ -31,8 +31,7 @@ public final class GenerateFindingsSummaryUseCaseImpl implements GenerateFinding
         LocalDate today = LocalDate.now(clock);
         List<Finding> findingsOfAsset = findingRepository.findByAsset(assetCode);
         List<FindingLine> findingLines = findingsOfAsset.stream().map(finding -> lineOf(finding, today)).toList();
-        return new FindingsSummary(asset.code(), findingLines,
-                findingsOfAsset.stream().filter(Finding::isOpen).count());
+        return new FindingsSummary(asset.code(), findingLines);
     }
 
     private FindingLine lineOf(Finding finding, LocalDate today) {

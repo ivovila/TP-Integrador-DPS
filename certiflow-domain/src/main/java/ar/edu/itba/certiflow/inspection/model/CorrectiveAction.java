@@ -1,10 +1,8 @@
 package ar.edu.itba.certiflow.inspection.model;
 
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionAlreadyClosedException;
-import ar.edu.itba.certiflow.inspection.model.exceptions.DueDateInThePastException;
 import ar.edu.itba.certiflow.inspection.model.exceptions.VerifierMustDifferFromResponsibleException;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,46 +12,35 @@ import java.util.List;
 public final class CorrectiveAction {
 
     private final CorrectiveActionId id;
-    private final String description;
-    private final Person responsible;
-    private final LocalDate dueDate;
+    private final ActionPlan plan;
     private final Stamp planned;
     private final List<Verification> verifications = new ArrayList<>();
     private CancellationState cancellation = new NotCancelled();
 
-    CorrectiveAction(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate, Stamp planned,
-                     LocalDate plannedOn) {
+    CorrectiveAction(CorrectiveActionId id, ActionPlan plan, Stamp planned, LocalDate plannedOn) {
+        plan.ensureDueOnOrAfter(plannedOn);
         this.id = id;
-        this.description = description;
-        this.responsible = responsible;
-        this.dueDate = dueDate;
+        this.plan = plan;
         this.planned = planned;
-        if (description.isBlank()) {
-            throw new RequiredValueMissingException("A corrective action must describe what will be done");
-        }
-        if (dueDate.isBefore(plannedOn)) {
-            throw new DueDateInThePastException(dueDate, plannedOn);
-        }
     }
 
     CorrectiveAction(CorrectiveActionSnapshot snapshot) {
         this.id = snapshot.id();
-        this.description = snapshot.description();
-        this.responsible = snapshot.responsible();
-        this.dueDate = snapshot.dueDate();
+        this.plan = new ActionPlan(snapshot.description(), snapshot.responsible(), snapshot.dueDate());
         this.planned = snapshot.planned();
         this.verifications.addAll(snapshot.verifications());
         this.cancellation = snapshot.cancellation();
     }
 
     CorrectiveActionSnapshot snapshot() {
-        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, planned, verifications(), cancellation);
+        return new CorrectiveActionSnapshot(id, plan.description(), plan.responsible(), plan.dueDate(), planned,
+                verifications(), cancellation);
     }
 
     Verification verify(VerificationResult verificationResult, String verificationNotes, Stamp verified) {
         ensureOpen();
-        if (verified.by().equals(responsible)) {
-            throw new VerifierMustDifferFromResponsibleException(verified.by());
+        if (verified.author().equals(plan.responsible())) {
+            throw new VerifierMustDifferFromResponsibleException(verified.author());
         }
         Verification verification = new Verification(verificationResult, verificationNotes, verified);
         verifications.add(verification);
@@ -78,7 +65,7 @@ public final class CorrectiveAction {
     }
 
     public boolean isOverdueOn(LocalDate referenceDate) {
-        return isOpen() && referenceDate.isAfter(dueDate);
+        return isOpen() && referenceDate.isAfter(plan.dueDate());
     }
 
     boolean isIdentifiedBy(CorrectiveActionId candidate) {
@@ -90,23 +77,23 @@ public final class CorrectiveAction {
     }
 
     public String description() {
-        return description;
+        return plan.description();
     }
 
     public Person responsible() {
-        return responsible;
+        return plan.responsible();
     }
 
     public LocalDate dueDate() {
-        return dueDate;
+        return plan.dueDate();
     }
 
     public Person plannedBy() {
-        return planned.by();
+        return planned.author();
     }
 
     public Instant plannedAt() {
-        return planned.at();
+        return planned.instant();
     }
 
     public List<Verification> verifications() {

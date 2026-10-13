@@ -15,10 +15,10 @@ public record CorrectiveActionSnapshot(CorrectiveActionId id, String description
     }
 
     public Person plannedBy() {
-        return planned.by();
+        return planned.author();
     }
 
     public Instant plannedAt() {
-        return planned.at();
+        return planned.instant();
     }
 }

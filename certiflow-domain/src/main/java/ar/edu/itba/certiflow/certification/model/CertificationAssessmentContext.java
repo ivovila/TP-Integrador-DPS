@@ -5,4 +5,5 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record CertificationAssessmentContext(InspectionResult result, JurisdictionCode jurisdictionCode,
-        Instant evaluatedAt, LocalDate issuanceDate) { }
+                                             Instant evaluatedAt, LocalDate issuanceDate) {
+}

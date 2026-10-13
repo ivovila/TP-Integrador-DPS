@@ -853,7 +853,7 @@ export function describeCertiflowContract(
         const number = await issue(inspectionId);
         await registerExtinguisher(unique('EXT-0099'));
         const { inspectionId: otherAssetInspectionId } = await closedInspection({}, unique('EXT-0099'));
-        await expectRejection(renew(number, otherAssetInspectionId), 'InspectionOfAnotherAssetException');
+        await expectRejection(renew(number, otherAssetInspectionId), 'ReplacementForAnotherAssetException');
       });
 
       test('a certificate can only be renewed once', async () => {

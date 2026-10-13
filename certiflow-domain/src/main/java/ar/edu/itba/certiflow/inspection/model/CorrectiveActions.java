@@ -26,8 +26,8 @@ final class CorrectiveActions {
     }
 
     CorrectiveAction plan(ActionPlan plan, Stamp planned, LocalDate plannedOn) {
-        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), plan.description(),
-                plan.responsible(), plan.dueDate(), planned, plannedOn);
+        CorrectiveAction plannedAction = new CorrectiveAction(new CorrectiveActionId(actions.size() + 1), plan, planned,
+                plannedOn);
         actions.add(plannedAction);
         return plannedAction;
     }

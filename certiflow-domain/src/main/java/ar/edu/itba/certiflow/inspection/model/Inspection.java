@@ -47,7 +47,7 @@ public final class Inspection implements InspectionView {
                 .containsAll(schemaVersion.requiredSubsystems())) {
             throw new AssetLacksRequiredSubsystemsException(asset.code());
         }
-        Person assignedBy = assigned.by();
+        Person assignedBy = assigned.author();
         Person inspector = assignment.inspector();
         if (assignedBy.equals(inspector)) {
             throw new AssignerCannotInspectException(inspector);

@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `31f86f2` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `68376ae` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 288 | 5872 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| application | 42 | 1556 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| domain | 288 | 5889 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| application | 42 | 1558 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | infrastructure | 62 | 2466 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 22 | 0 | 0 | 0 | 0 |
 | web | 90 | 4114 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
-| **total** | 482 | 14008 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
+| **total** | 482 | 14027 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -311,7 +311,7 @@ Ninguna.
 
 ## 15. Líneas de más de 150 caracteres
 
-29 líneas en 17 archivos. Tareas del plan: 13.
+23 líneas en 11 archivos. Tareas del plan: 13.
 
 | Módulo | Archivo | Cantidad |
 |---|---|---|
@@ -320,12 +320,6 @@ Ninguna.
 | web | `web/schema/SchemaPayloads.java` | 3 |
 | web | `web/config/CertificationConfiguration.java` | 2 |
 | web | `web/config/SchemaConfiguration.java` | 2 |
-| application | `application/inspection/GenerateInspectionActUseCaseImpl.java` | 1 |
-| application | `application/inspection/PlanCorrectiveActionUseCaseImpl.java` | 1 |
-| domain | `catalog/usecase/RegisterAssetCommand.java` | 1 |
-| domain | `certification/usecase/CertificateDocument.java` | 1 |
-| domain | `inspection/usecase/VerifyCorrectiveActionCommand.java` | 1 |
-| domain | `schema/usecase/CreateInspectionSchemaCommand.java` | 1 |
 | web | `web/catalog/AssetController.java` | 1 |
 | web | `web/catalog/AssetRequest.java` | 1 |
 | web | `web/certification/CertificateController.java` | 1 |

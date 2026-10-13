@@ -5,10 +5,10 @@ import java.time.Instant;
 public record AuditEntry(AuditAction action, Stamp performed, String detail) {
 
     public Person performedBy() {
-        return performed.by();
+        return performed.author();
     }
 
     public Instant occurredAt() {
-        return performed.at();
+        return performed.instant();
     }
 }

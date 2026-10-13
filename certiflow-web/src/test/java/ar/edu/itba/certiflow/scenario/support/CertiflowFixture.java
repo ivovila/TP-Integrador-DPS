@@ -40,6 +40,7 @@ import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
+import ar.edu.itba.certiflow.inspection.model.Evaluation;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FullScope;
@@ -80,6 +81,7 @@ import ar.edu.itba.certiflow.schema.model.NumericAnswer;
 import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionAnswer;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
+import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.RawAnswer;
 import ar.edu.itba.certiflow.schema.model.Section;
@@ -234,6 +236,14 @@ public final class CertiflowFixture {
 
     public Inspection inspection(InspectionId id) {
         return inspectionRepository.findById(id).orElseThrow();
+    }
+
+    public Outcome outcomeIn(Evaluation evaluation, Criterion<?> criterion) {
+        return evaluation.responses().stream()
+                .filter(response -> response.isFor(criterion))
+                .findFirst()
+                .orElseThrow()
+                .outcome();
     }
 
     public Finding finding(FindingId id) {

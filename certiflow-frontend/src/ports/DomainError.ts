@@ -11,7 +11,7 @@ export const domainErrorNames = [
   'CertificateNotActiveException',
   'CertificateNotFoundException',
   'InspectionNotClosedForCertificationException',
-  'InspectionOfAnotherAssetException',
+  'ReplacementForAnotherAssetException',
   'JurisdictionPolicyNotFoundException',
   'NotAGlobalCertificateException',
   'NotEligibleForCertificationException',

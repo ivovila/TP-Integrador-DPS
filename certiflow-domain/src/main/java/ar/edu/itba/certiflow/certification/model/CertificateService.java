@@ -21,7 +21,7 @@ public final class CertificateService {
 
     public Certificate issue(CertificateNumber number, InspectionResult basedOn, GrantedDecision decision, Stamp issued) {
         Certificate certificate = certificateFactory.create(number, basedOn, decision, issued);
-        recorded(certificate);
+        recordAuditEntriesOf(certificate);
         return certificate;
     }
 
@@ -34,14 +34,14 @@ public final class CertificateService {
                              InspectionResult newBasis, Stamp renewed) {
         Certificate renewedCertificate = certificateFactory.create(newNumber, newBasis, newDecision, renewed);
         currentCertificate.renewedBy(renewedCertificate, renewed);
-        recorded(currentCertificate);
-        recorded(renewedCertificate);
+        recordAuditEntriesOf(currentCertificate);
+        recordAuditEntriesOf(renewedCertificate);
         return renewedCertificate;
     }
 
     public void suspend(Certificate certificate, String reason, Stamp suspended, LocalDate suspendedOn) {
         certificate.suspend(reason, suspended, suspendedOn);
-        recorded(certificate);
+        recordAuditEntriesOf(certificate);
     }
 
     public void ensureGlobalRenewable(Certificate currentCertificate, DecidedGlobalCertification replacement) {
@@ -50,16 +50,16 @@ public final class CertificateService {
 
     public Certificate issueGlobal(CertificateNumber number, DecidedGlobalCertification decided, Person issuedBy) {
         Certificate certificate = certificateFactory.createGlobal(number, decided, issuedBy);
-        recorded(certificate);
+        recordAuditEntriesOf(certificate);
         return certificate;
     }
 
     public void markRenewed(Certificate current, Certificate replacement, Stamp renewed) {
         current.renewedBy(replacement, renewed);
-        recorded(current);
+        recordAuditEntriesOf(current);
     }
 
-    private void recorded(Certificate certificate) {
+    private void recordAuditEntriesOf(Certificate certificate) {
         certificateLog.recordAll(certificate.number(), certificate.pullAuditEntries());
     }
 }

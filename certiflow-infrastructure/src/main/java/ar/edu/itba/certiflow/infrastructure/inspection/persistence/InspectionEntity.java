@@ -62,7 +62,7 @@ public class InspectionEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "revision", joinColumns = @JoinColumn(name = "inspection_id"))
     @OrderBy("number")
-    private List<RevisionEntity> revisions = new ArrayList<>();
+    private List<RevisionEmbeddable> revisions = new ArrayList<>();
 
     protected InspectionEntity() {
     }
@@ -93,7 +93,7 @@ public class InspectionEntity {
                 .forEach(addedResponse -> responses.add(new CriterionResponseEntity(addedResponse)));
         revisions.clear();
         snapshot.revisions().asList()
-                .forEach(revision -> revisions.add(new RevisionEntity(revision, evaluationDocuments)));
+                .forEach(revision -> revisions.add(new RevisionEmbeddable(revision, evaluationDocuments)));
     }
 
     InspectionSnapshot toSnapshot(StoredSchemaVersions schemaVersions, CodesDocumentMapper codeDocuments,

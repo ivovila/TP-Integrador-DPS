@@ -31,10 +31,6 @@ public record Revisions(List<Revision> revisions) {
         return revisions.isEmpty();
     }
 
-    public int size() {
-        return revisions.size();
-    }
-
     /** Lo que se firmó al cerrar: no cambia por más rectificaciones que haya. */
     public Revision original() {
         ensureSealed();

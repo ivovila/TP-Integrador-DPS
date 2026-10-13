@@ -3,7 +3,6 @@ package ar.edu.itba.certiflow.catalog.model;
 import ar.edu.itba.certiflow.catalog.model.exceptions.DuplicateCharacteristicException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public record Characteristics(List<Characteristic> entries) {
 
@@ -21,12 +20,5 @@ public record Characteristics(List<Characteristic> entries) {
 
     public Characteristics() {
         this(List.of());
-    }
-
-    public Optional<String> valueOf(String name) {
-        return entries.stream()
-                .filter(characteristic -> characteristic.name().equals(name))
-                .map(Characteristic::value)
-                .findFirst();
     }
 }

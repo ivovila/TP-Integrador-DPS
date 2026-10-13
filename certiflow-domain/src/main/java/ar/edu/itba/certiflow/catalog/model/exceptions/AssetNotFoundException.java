@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.shared.model.NotFoundException;
 
 public class AssetNotFoundException extends NotFoundException {
 
-    public AssetNotFoundException(AssetCode id) {
-        super("Asset " + id.value() + " does not exist");
+    public AssetNotFoundException(AssetCode assetCode) {
+        super("Asset " + assetCode.value() + " does not exist");
     }
 }

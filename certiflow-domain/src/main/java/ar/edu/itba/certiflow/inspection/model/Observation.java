@@ -14,10 +14,10 @@ public record Observation(String text, Stamp observed) {
     }
 
     public Person observedBy() {
-        return observed.by();
+        return observed.author();
     }
 
     public Instant observedAt() {
-        return observed.at();
+        return observed.instant();
     }
 }

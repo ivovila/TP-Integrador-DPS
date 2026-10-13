@@ -27,10 +27,10 @@ class RectificationTest extends ScenarioTest {
 
         fixture.rectify(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), REASON, fixture.certifier);
 
-        assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.APPROVED, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
         Revision originalRevision = fixture.inspection(inspection).originalRevision();
         assertEquals(1, originalRevision.number());
-        assertEquals(Outcome.REJECTED, originalRevision.evaluation().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.REJECTED, fixture.outcomeIn(originalRevision.evaluation(), fixture.pressureCriterion));
         assertEquals(fixture.inspector, originalRevision.sealedBy());
 
         Revision rectifiedRevision = fixture.inspection(inspection).revisions().last();
@@ -38,7 +38,7 @@ class RectificationTest extends ScenarioTest {
         assertEquals(REASON, rectifiedRevision.reason());
         assertEquals(fixture.certifier, rectifiedRevision.sealedBy());
         assertEquals(fixture.clock.instant(), rectifiedRevision.sealedAt());
-        assertEquals(Outcome.APPROVED, rectifiedRevision.evaluation().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.APPROVED, fixture.outcomeIn(rectifiedRevision.evaluation(), fixture.pressureCriterion));
 
         AuditEntry rectificationEntry = fixture.inspectionLog.historyOf(inspection).getLast();
         assertEquals(InspectionAudit.RECTIFIED, rectificationEntry.action());
@@ -62,8 +62,8 @@ class RectificationTest extends ScenarioTest {
         assertThrows(RectificationReasonRequiredException.class,
                 () -> fixture.rectify(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.00"), " ", fixture.certifier));
 
-        assertEquals(Outcome.REJECTED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
-        assertEquals(1, fixture.inspection(inspection).revisions().size());
+        assertEquals(Outcome.REJECTED, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
+        assertEquals(1, fixture.inspection(inspection).revisions().asList().size());
     }
 
     @Test

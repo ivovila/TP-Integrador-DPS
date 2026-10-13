@@ -19,18 +19,19 @@ public final class InspectionSchemaService {
 
     public InspectionSchema create(String name, AssetType assetType, List<Section> sections, Stamp created,
             Set<SubsystemCode> requiredSubsystems) {
-        SchemaVersion firstVersion = new SchemaVersion(1, new SchemaSections(sections), created.at(), created.at());
-        firstVersion.ensureRequires(requiredSubsystems);
-        InspectionSchema schema = new InspectionSchema(name, assetType, new SchemaVersionLog(List.of(firstVersion)));
+        InspectionSchema schema = new InspectionSchema(name, assetType,
+                new SchemaVersionLog(sections, created.instant(), requiredSubsystems));
         auditLog.record(assetType, new AuditEntry(SchemaAudit.CREATED, created, name + ", version 1"));
         return schema;
     }
 
-    public InspectionSchema addVersion(InspectionSchema schema, List<Section> sections, Stamp added,
-            Instant effectiveFrom, Set<SubsystemCode> requiredSubsystems) {
-        InspectionSchema updatedSchema = schema.withNewVersion(sections, added.at(), effectiveFrom, requiredSubsystems);
-        auditLog.record(schema.assetType(), new AuditEntry(SchemaAudit.VERSION_ADDED, added,
-                "Version " + updatedSchema.latestPublishedVersion().number() + ", publishedAt " + added.at() + ", effectiveFrom " + effectiveFrom));
+    public InspectionSchema publishVersion(InspectionSchema schema, List<Section> sections, Stamp published,
+                                           Instant effectiveFrom, Set<SubsystemCode> requiredSubsystems) {
+        InspectionSchema updatedSchema = schema.withNewVersion(sections, published.instant(), effectiveFrom,
+                requiredSubsystems);
+        auditLog.record(schema.assetType(), new AuditEntry(SchemaAudit.VERSION_ADDED, published,
+                "Version " + updatedSchema.latestPublishedVersion().number() + ", publishedAt " + published.instant()
+                        + ", effectiveFrom " + effectiveFrom));
         return updatedSchema;
     }
 }

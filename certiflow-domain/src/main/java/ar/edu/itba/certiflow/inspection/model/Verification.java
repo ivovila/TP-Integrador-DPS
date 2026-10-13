@@ -18,10 +18,10 @@ public record Verification(VerificationResult result, String notes, Stamp verifi
     }
 
     public Person verifier() {
-        return verified.by();
+        return verified.author();
     }
 
     public Instant verifiedAt() {
-        return verified.at();
+        return verified.instant();
     }
 }

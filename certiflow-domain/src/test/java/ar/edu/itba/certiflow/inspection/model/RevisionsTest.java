@@ -34,8 +34,8 @@ class RevisionsTest {
 
         Revisions rectified = closure.sealedWith("Corrected", EMPTY_EVALUATION, new Stamp(INSPECTOR, Instant.EPOCH));
 
-        assertEquals(1, closure.size());
-        assertEquals(2, rectified.size());
+        assertEquals(1, closure.asList().size());
+        assertEquals(2, rectified.asList().size());
         assertEquals(closure.original(), rectified.original());
     }
 

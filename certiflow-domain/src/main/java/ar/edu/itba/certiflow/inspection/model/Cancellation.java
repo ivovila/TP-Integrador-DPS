@@ -17,10 +17,10 @@ public record Cancellation(Stamp cancelled) implements CancellationState {
     }
 
     public Person cancelledBy() {
-        return cancelled.by();
+        return cancelled.author();
     }
 
     public Instant cancelledAt() {
-        return cancelled.at();
+        return cancelled.instant();
     }
 }

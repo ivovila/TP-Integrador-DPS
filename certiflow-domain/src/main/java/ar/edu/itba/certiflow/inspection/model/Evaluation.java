@@ -1,23 +1,13 @@
 package ar.edu.itba.certiflow.inspection.model;
 
-import ar.edu.itba.certiflow.schema.model.Outcome;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionIncompleteException;
-import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaException;
+import ar.edu.itba.certiflow.schema.model.Outcome;
 import java.util.List;
 
 public record Evaluation(List<CriterionResponse<?>> responses) {
 
     public Evaluation {
         responses = List.copyOf(responses);
-    }
-
-    public Outcome outcomeOf(Criterion<?> criterion) {
-        return responses.stream()
-                .filter(response -> response.isFor(criterion))
-                .map(CriterionResponse::outcome)
-                .findFirst()
-                .orElseThrow(() -> new CriterionNotInSchemaException(criterion));
     }
 
     public List<CriterionResponse<?>> pending() {

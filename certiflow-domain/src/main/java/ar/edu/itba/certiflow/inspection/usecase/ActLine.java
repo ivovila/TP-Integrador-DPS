@@ -15,10 +15,10 @@ public record ActLine(String criterionCode, String criterionText, Answer answer,
     }
 
     public Person answeredBy() {
-        return answered.by();
+        return answered.author();
     }
 
     public Instant answeredAt() {
-        return answered.at();
+        return answered.instant();
     }
 }

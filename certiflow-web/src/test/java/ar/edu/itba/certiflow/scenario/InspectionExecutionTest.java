@@ -47,12 +47,12 @@ class InspectionExecutionTest extends ScenarioTest {
         fixture.answer(inspection, fixture.sealIntactCriterion, YesNoAnswer.YES, fixture.inspector);
         fixture.answer(inspection, fixture.signageCriterion, new OptionAnswer("VISIBLE"), fixture.inspector);
 
-        assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.PENDING, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
         assertThrows(InspectionIncompleteException.class, () -> fixture.close(inspection, fixture.inspector));
 
         fixture.attach(inspection, fixture.pressureCriterion, fixture.gaugePhoto(), fixture.inspector);
 
-        assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.APPROVED, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
     }
 
     @Test
@@ -71,11 +71,11 @@ class InspectionExecutionTest extends ScenarioTest {
     void correctingAnAnswerBeforeClosingChangesTheEvaluationAndIsAudited() {
         InspectionId inspection = fixture.assignedInspection();
         fixture.answerAll(inspection, "5.00", YesNoAnswer.YES, "VISIBLE");
-        assertEquals(Outcome.REJECTED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.REJECTED, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
 
         fixture.answer(inspection, fixture.pressureCriterion, fixture.numericAnswer("7.10"), fixture.inspector);
 
-        assertEquals(Outcome.APPROVED, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.APPROVED, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
         List<AuditEntry> pressureEntries = fixture.inspectionLog.historyOf(inspection).stream()
                 .filter(entry -> entry.action() == InspectionAudit.ANSWER_RECORDED)
                 .filter(entry -> entry.detail().startsWith("EXT-01"))
@@ -148,6 +148,6 @@ class InspectionExecutionTest extends ScenarioTest {
         assertThrows(AnswerTypeMismatchException.class, () -> fixture.recordAnswer.execute(
                 new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer("true"), fixture.inspector)));
 
-        assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
+        assertEquals(Outcome.PENDING, fixture.outcomeIn(fixture.inspection(inspection).evaluate(), fixture.pressureCriterion));
     }
 }

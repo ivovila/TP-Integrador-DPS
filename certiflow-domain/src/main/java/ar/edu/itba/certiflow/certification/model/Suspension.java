@@ -14,10 +14,10 @@ public record Suspension(String reason, Stamp suspended) {
     }
 
     public Person suspendedBy() {
-        return suspended.by();
+        return suspended.author();
     }
 
     public Instant suspendedAt() {
-        return suspended.at();
+        return suspended.instant();
     }
 }

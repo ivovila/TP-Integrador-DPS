@@ -23,10 +23,10 @@ public record GivenAnswer<A extends Answer>(A value, Stamp answered) implements 
     }
 
     public Person answeredBy() {
-        return answered.by();
+        return answered.author();
     }
 
     public Instant answeredAt() {
-        return answered.at();
+        return answered.instant();
     }
 }

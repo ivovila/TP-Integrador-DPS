@@ -7,10 +7,10 @@ import java.time.Instant;
 public record Revision(int number, String reason, Evaluation evaluation, Stamp sealed) {
 
     public Person sealedBy() {
-        return sealed.by();
+        return sealed.author();
     }
 
     public Instant sealedAt() {
-        return sealed.at();
+        return sealed.instant();
     }
 }

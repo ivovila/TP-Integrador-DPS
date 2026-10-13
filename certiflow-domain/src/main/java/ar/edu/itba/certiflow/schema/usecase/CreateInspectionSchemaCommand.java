@@ -7,7 +7,9 @@ import ar.edu.itba.certiflow.shared.model.Person;
 import java.util.List;
 import java.util.Set;
 
-public record CreateInspectionSchemaCommand(String name, AssetType assetType, List<Section> sections, Person createdBy, Set<SubsystemCode> requiredSubsystems) {
+public record CreateInspectionSchemaCommand(String name, AssetType assetType, List<Section> sections, Person createdBy,
+                                            Set<SubsystemCode> requiredSubsystems) {
+
     public CreateInspectionSchemaCommand(String name, AssetType assetType, List<Section> sections, Person createdBy) {
         this(name, assetType, sections, createdBy, Set.of());
     }

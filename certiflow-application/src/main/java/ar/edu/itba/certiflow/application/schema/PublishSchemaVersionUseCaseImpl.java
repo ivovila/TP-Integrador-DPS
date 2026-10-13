@@ -29,8 +29,9 @@ public final class PublishSchemaVersionUseCaseImpl implements PublishSchemaVersi
         InspectionSchema schema = inspectionSchemaRepository.findForUpdate(command.assetType())
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(command.assetType()));
         Instant publishedAt = clock.instant();
-        InspectionSchema updatedSchema = inspectionSchemaService.addVersion(schema, command.sections(), new Stamp(command.publishedBy(), publishedAt),
-                command.requestedEffectiveDate().resolveAt(publishedAt), command.requiredSubsystems());
+        InspectionSchema updatedSchema = inspectionSchemaService.publishVersion(schema, command.sections(),
+                new Stamp(command.publishedBy(), publishedAt), command.requestedEffectiveDate().resolveAt(publishedAt),
+                command.requiredSubsystems());
         inspectionSchemaRepository.save(updatedSchema);
         return updatedSchema.latestPublishedVersion();
     }

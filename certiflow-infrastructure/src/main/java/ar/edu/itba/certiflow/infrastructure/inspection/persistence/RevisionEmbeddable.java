@@ -9,7 +9,7 @@ import jakarta.persistence.Embeddable;
 import java.time.Instant;
 
 @Embeddable
-public class RevisionEntity {
+public class RevisionEmbeddable {
 
     private int number;
     private String reason;
@@ -21,10 +21,10 @@ public class RevisionEntity {
     private Instant sealedAt;
     private String evaluation;
 
-    protected RevisionEntity() {
+    protected RevisionEmbeddable() {
     }
 
-    RevisionEntity(Revision revision, EvaluationDocumentMapper evaluationDocuments) {
+    RevisionEmbeddable(Revision revision, EvaluationDocumentMapper evaluationDocuments) {
         PersonColumns sealedBy = new PersonColumns(revision.sealedBy());
         this.number = revision.number();
         this.reason = revision.reason();

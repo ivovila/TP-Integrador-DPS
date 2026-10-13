@@ -17,9 +17,9 @@ public final class FindEffectiveSchemaVersionUseCaseImpl implements FindEffectiv
     }
 
     @Override
-    public SchemaVersion execute(AssetType assetType, Instant at) {
+    public SchemaVersion execute(AssetType assetType, Instant resolvedAt) {
         InspectionSchema schema = inspectionSchemaRepository.findByAssetType(assetType)
                 .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(assetType));
-        return schema.versionAt(at);
+        return schema.versionAt(resolvedAt);
     }
 }
