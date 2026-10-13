@@ -15,7 +15,7 @@ public final class DecisionJson {
     record ReasonDocument(String reason, String detail) { }
 
     record Document(CertificationOutcome outcome, List<ReasonDocument> ineligibilities,
-            List<CertificationCondition> conditions, Optional<ValidityPeriod> validity,
+            List<CertificationCondition> conditions, ValidityPeriod validity,
             String policyCode, JurisdictionCode jurisdictionCode,
             Instant evaluatedAt, String subsystemCode) { }
 
@@ -24,7 +24,7 @@ public final class DecisionJson {
                 ? subsystem.code().value() : null;
         return MAPPER.writeValueAsString(new Document(value.outcome(), value.ineligibilities().stream()
                 .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail())).toList(),
-                value.conditions(), value.validity(), value.policyCode(),
+                value.conditions(), value.validityPeriod(), value.policyCode(),
                 value.jurisdictionCode(), value.evaluatedAt(), code));
     }
 

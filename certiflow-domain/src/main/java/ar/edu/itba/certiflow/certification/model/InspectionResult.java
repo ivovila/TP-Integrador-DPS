@@ -7,8 +7,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, Optional<Instant> closedAt,
+public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, Instant closingInstant,
                                boolean coversWholeSchema, List<OpenNonConformity> openNonConformities, SchemaReference schemaReference, List<SubsystemResult> subsystems, CertificationScope scope) {
+
+    /** Cuándo se cerró la inspección, si ya se cerró. */
+    public Optional<Instant> closedAt() {
+        return Optional.ofNullable(closingInstant);
+    }
+
 
     public InspectionResult {
         openNonConformities = List.copyOf(openNonConformities);
@@ -26,7 +32,7 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
         var code = ((CertificationScope.SubsystemScope) requested).code();
         var subsystem = subsystems.stream().filter(item -> item.code().equals(code)).findFirst()
                 .orElseThrow(() -> new SubsystemNotFoundException(code));
-        return new InspectionResult(inspectionId, assetCode, closedAt, subsystem.covered(), subsystem.openNonConformities(),
+        return new InspectionResult(inspectionId, assetCode, closingInstant, subsystem.covered(), subsystem.openNonConformities(),
                 schemaReference, subsystems, requested);
     }
 
@@ -35,11 +41,11 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
     }
 
     public boolean isClosed() {
-        return closedAt.isPresent();
+        return closedAt().isPresent();
     }
 
     public InspectionReference reference() {
-        return new InspectionReference(inspectionId, closedAt.orElseThrow(InspectionNotClosedException::new));
+        return new InspectionReference(inspectionId, closedAt().orElseThrow(InspectionNotClosedException::new));
     }
 
 }

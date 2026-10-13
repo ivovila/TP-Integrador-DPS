@@ -64,10 +64,11 @@ public class InspectionController {
     }
 
     @GetMapping
-    public PagedModel<InspectionResponse> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> status,
+    public PagedModel<InspectionResponse> list(@RequestParam(required = false) String asset,
+                                               @RequestParam(required = false) String status,
                                                @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        Optional<Boolean> closed = status.map(InspectionController::closedFor);
-        List<InspectionResponse> inspections = asset.map(code -> listInspections.execute(new AssetCode(code))).orElseGet(listInspections::execute).stream()
+        Optional<Boolean> closed = Optional.ofNullable(status).map(InspectionController::closedFor);
+        List<InspectionResponse> inspections = Optional.ofNullable(asset).map(code -> listInspections.execute(new AssetCode(code))).orElseGet(listInspections::execute).stream()
                 .filter(inspection -> closed.map(wanted -> inspection.isClosed() == wanted).orElse(true))
                 .map(this::resource)
                 .toList();

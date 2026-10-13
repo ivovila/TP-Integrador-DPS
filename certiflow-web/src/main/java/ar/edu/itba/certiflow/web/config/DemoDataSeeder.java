@@ -173,10 +173,10 @@ public class DemoDataSeeder implements ApplicationRunner {
                 new Section("Pressure system", List.of(
                         yesNo("RELIEF-VALVE", "Relief valve opens at its set pressure", StandardSeverity.CRITICAL),
                         yesNo("INSULATION", "Insulation in good condition", StandardSeverity.MINOR)),
-                        Optional.of(PRESSURE)),
+                        PRESSURE),
                 new Section("Electrical system", List.of(
                         yesNo("GROUNDING", "Burner grounding verified", StandardSeverity.MAJOR)),
-                        Optional.of(ELECTRICAL)));
+                        ELECTRICAL));
     }
 
     private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {

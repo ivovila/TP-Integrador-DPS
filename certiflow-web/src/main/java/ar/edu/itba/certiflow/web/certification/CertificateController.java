@@ -99,13 +99,15 @@ public class CertificateController {
     }
 
     @GetMapping
-    public PagedModel<CertificateResource> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> subsystem, @RequestParam(defaultValue = "0") int page,
+    public PagedModel<CertificateResource> list(@RequestParam(required = false) String asset,
+                                                @RequestParam(required = false) String subsystem, @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
-        List<CertificateView> certificates = asset.map(code -> listCertificates.execute(new AssetCode(code)))
+        List<CertificateView> certificates = Optional.ofNullable(asset).map(code -> listCertificates.execute(new AssetCode(code)))
                 .orElseGet(listCertificates::execute);
         return PageLinks.page(certificates.stream()
-                        .filter(view -> subsystem.isEmpty() || view.certificate().scope()
-                                .equals(new CertificationScope.SubsystemScope(new SubsystemCode(subsystem.orElseThrow()))))
+                        .filter(view -> Optional.ofNullable(subsystem)
+                                .map(code -> view.certificate().scope().equals(new CertificationScope.SubsystemScope(new SubsystemCode(code))))
+                                .orElse(true))
                         .map(this::resource).toList(), page, size,
                 "/api/v1/certificates", Stream.of(Uris.query("asset", asset).orElse(""), Uris.query("subsystem", subsystem).orElse("")).filter(value -> !value.isEmpty()).collect(Collectors.joining("&")));
     }

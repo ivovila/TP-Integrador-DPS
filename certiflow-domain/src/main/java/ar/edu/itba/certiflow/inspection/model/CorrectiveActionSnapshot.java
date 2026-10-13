@@ -9,7 +9,13 @@ import java.util.Optional;
 
 public record CorrectiveActionSnapshot(CorrectiveActionId id, String description, Person responsible, LocalDate dueDate,
                                        Stamp planned, List<Verification> verifications,
-                                       Optional<Cancellation> cancellation) {
+                                       Cancellation recordedCancellation) {
+
+    /** La cancelación de la acción, si se canceló. */
+    public Optional<Cancellation> cancellation() {
+        return Optional.ofNullable(recordedCancellation);
+    }
+
 
     public CorrectiveActionSnapshot {
         verifications = List.copyOf(verifications);

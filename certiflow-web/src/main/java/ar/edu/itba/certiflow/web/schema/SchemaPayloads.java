@@ -54,7 +54,7 @@ public final class SchemaPayloads {
 
     public static List<Section> toSections(List<SectionPayload> sections) {
         return sections.stream()
-                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), Optional.ofNullable(section.subsystemCode()).map(SubsystemCode::new)))
+                .map(section -> new Section(section.title(), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), Optional.ofNullable(section.subsystemCode()).map(SubsystemCode::new).orElse(null)))
                 .toList();
     }
 
@@ -81,7 +81,7 @@ public final class SchemaPayloads {
     private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Severity severity,
                                                             List<EvidenceRequirement> evidence) {
         return new Criterion<>(payload.code(), payload.text(), rule, severity, evidence,
-                Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
+                Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new).orElse(null));
     }
 
     private static ApprovalRule<?> rule(RulePayload rule) {

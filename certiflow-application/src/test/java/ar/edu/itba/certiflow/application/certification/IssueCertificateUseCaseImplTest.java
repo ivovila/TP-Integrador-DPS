@@ -62,7 +62,7 @@ class IssueCertificateUseCaseImplTest {
     void aRejectedDecisionConsumesNoNumberAndSavesNothing() {
         CertificationDecision rejected = new CertificationDecision(CertificationOutcome.REJECTED,
                 List.of(new Ineligibility(StandardIneligibilityReason.BLOCKING_FINDINGS, "Open finding")), List.of(),
-                Optional.empty(), "STANDARD", new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
+                null, "STANDARD", new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenThrow(new NotEligibleForCertificationException(rejected));
 
         assertThrows(NotEligibleForCertificationException.class, () -> issueCertificate.execute(COMMAND));
@@ -73,10 +73,10 @@ class IssueCertificateUseCaseImplTest {
     @Test
     void anOccupiedScopeConsumesNoNumberAndSavesNothing() {
         LocalDate today = LocalDate.of(2026, 3, 10);
-        InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), Optional.of(Samples.NOW), true, List.of(),
+        InspectionResult result = new InspectionResult(INSPECTION, Samples.ASSET.code(), Samples.NOW, true, List.of(),
                 new SchemaReference(Samples.EXTINGUISHER, 1), List.of(), WHOLE);
         CertificationDecision approved = new CertificationDecision(CertificationOutcome.APPROVED, List.of(), List.of(),
-                Optional.of(new ValidityPeriod(today, today.plusYears(1).minusDays(1))), "STANDARD",
+                new ValidityPeriod(today, today.plusYears(1).minusDays(1)), "STANDARD",
                 Samples.ASSET.jurisdictionCode(), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenReturn(new DecidedCertification(result, approved));
         doThrow(new AssetAlreadyCertifiedException(Samples.ASSET.code(), new CertificateNumber("CERT-00001")))

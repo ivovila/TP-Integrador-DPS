@@ -10,9 +10,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Optional<GivenAnswer<A>> given,
+public record CriterionResponse<A extends Answer>(Criterion<A> criterion, GivenAnswer<A> givenAnswer,
                                                   List<AttachedEvidence> attachments,
                                                   List<Observation> observations) {
+
+    /** La respuesta dada, si ya se respondió. */
+    public Optional<GivenAnswer<A>> given() {
+        return Optional.ofNullable(givenAnswer);
+    }
+
 
     public CriterionResponse {
         attachments = List.copyOf(attachments);
@@ -20,11 +26,11 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
     }
 
     public CriterionResponse(Criterion<A> criterion) {
-        this(criterion, Optional.empty(), List.of(), List.of());
+        this(criterion, null, List.of(), List.of());
     }
 
     public <B extends Answer> CriterionResponse<B> answeredWith(Criterion<B> answeredCriterion, B answer, Stamp answered) {
-        return new CriterionResponse<>(answeredCriterion, Optional.of(new GivenAnswer<>(answer, answered)), attachments,
+        return new CriterionResponse<>(answeredCriterion, new GivenAnswer<>(answer, answered), attachments,
                 observations);
     }
 
@@ -32,18 +38,18 @@ public record CriterionResponse<A extends Answer>(Criterion<A> criterion, Option
         if (evidence().stream().anyMatch(evidence::isSameFileAs)) {
             throw new DuplicateEvidenceException(criterion.code(), evidence.reference());
         }
-        return new CriterionResponse<>(criterion, given,
+        return new CriterionResponse<>(criterion, givenAnswer,
                 Stream.concat(attachments.stream(), Stream.of(new AttachedEvidence(evidence, attached))).toList(),
                 observations);
     }
 
     public CriterionResponse<A> withObservation(Observation addedObservation) {
-        return new CriterionResponse<>(criterion, given, attachments,
+        return new CriterionResponse<>(criterion, givenAnswer, attachments,
                 Stream.concat(observations.stream(), Stream.of(addedObservation)).toList());
     }
 
     private Optional<A> answer() {
-        return given.map(GivenAnswer::value);
+        return given().map(GivenAnswer::value);
     }
 
     private List<Evidence> evidence() {

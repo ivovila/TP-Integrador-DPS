@@ -44,11 +44,11 @@ public final class CorrectiveAction {
         this.dueDate = snapshot.dueDate();
         this.planned = snapshot.planned();
         this.verifications.addAll(snapshot.verifications());
-        this.cancellation = snapshot.cancellation().orElse(null);
+        this.cancellation = snapshot.recordedCancellation();
     }
 
     CorrectiveActionSnapshot snapshot() {
-        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, planned, verifications(), cancellation());
+        return new CorrectiveActionSnapshot(id, description, responsible, dueDate, planned, verifications(), cancellation);
     }
 
     Verification verify(VerificationResult verificationResult, String verificationNotes, Stamp verified) {

@@ -43,7 +43,7 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
                 .orElseThrow(() -> new AssetNotFoundException(inspection.assetCode()));
         List<OpenNonConformity> open = openNonConformitiesOf(asset);
         SchemaVersion version = inspection.schemaVersion();
-        return new InspectionResult(inspection.id(), asset.code(), closingInstantOf(inspection),
+        return new InspectionResult(inspection.id(), asset.code(), inspection.isClosed() ? inspection.originalRevision().sealedAt() : null,
                 inspection.coversWholeSchema(), open, new SchemaReference(asset.type(), version.number()),
                 resultsBySubsystem(inspection, version, open), new CertificationScope.WholeAsset());
     }
@@ -52,12 +52,8 @@ public final class InspectionResultTranslatorImpl implements InspectionResultTra
     private List<OpenNonConformity> openNonConformitiesOf(Asset asset) {
         return findingRepository.findByAsset(asset.code()).stream().filter(Finding::isOpen)
                 .map(finding -> new OpenNonConformity(finding.criterion().code(), finding.severity(),
-                        finding.id().value(), finding.subsystemCode()))
+                        finding.id().value(), finding.subsystemCode().orElse(null)))
                 .toList();
-    }
-
-    private static Optional<Instant> closingInstantOf(Inspection inspection) {
-        return inspection.isClosed() ? Optional.of(inspection.originalRevision().sealedAt()) : Optional.empty();
     }
 
     private static List<SubsystemResult> resultsBySubsystem(Inspection inspection, SchemaVersion version,

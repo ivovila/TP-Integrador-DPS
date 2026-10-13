@@ -81,6 +81,6 @@ public class FindingEntity {
         return new FindingSnapshot(new FindingId(id), new InspectionId(inspectionId), new AssetCode(assetCode),
                 SectionsJson.readCriterion(criterion), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
-                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(), Optional.ofNullable(subsystemCode).map(SubsystemCode::new));
+                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(), Optional.ofNullable(subsystemCode).map(SubsystemCode::new).orElse(null));
     }
 }

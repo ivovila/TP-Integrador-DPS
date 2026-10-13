@@ -18,8 +18,9 @@ public final class Uris {
                 .collect(Collectors.joining("/"));
     }
 
-    public static Optional<String> query(String name, Optional<String> value) {
-        return value.map(present -> name + "=" + UriUtils.encodeQueryParam(present, StandardCharsets.UTF_8));
+    /** El parámetro listo para una URL; un parámetro que no vino en el pedido no aparece. */
+    public static Optional<String> query(String name, String value) {
+        return Optional.ofNullable(value).map(present -> name + "=" + UriUtils.encodeQueryParam(present, StandardCharsets.UTF_8));
     }
 
     public static String etag(String... parts) {

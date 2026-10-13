@@ -60,7 +60,7 @@ class InspectionResultTranslatorImplTest {
 
         InspectionResult result = translator.translate(inspection.id());
 
-        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR, "F-open", Optional.empty())),
+        assertEquals(List.of(new OpenNonConformity("EXT-01", StandardSeverity.MAJOR, "F-open", null)),
                 result.openNonConformities());
         assertEquals(Samples.NOW, result.closedAt().orElseThrow());
     }

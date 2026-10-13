@@ -5,10 +5,16 @@ import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.util.List;
 import java.util.Optional;
 
-public record Section(String title, List<Criterion<?>> criteria, Optional<SubsystemCode> subsystemCode) {
+public record Section(String title, List<Criterion<?>> criteria, SubsystemCode subsystem) {
+
+    /** El subsistema al que pertenece, si tiene uno. */
+    public Optional<SubsystemCode> subsystemCode() {
+        return Optional.ofNullable(subsystem);
+    }
+
 
     public Section(String title, List<Criterion<?>> criteria) {
-        this(title, criteria, Optional.empty());
+        this(title, criteria, null);
     }
 
     public Section {

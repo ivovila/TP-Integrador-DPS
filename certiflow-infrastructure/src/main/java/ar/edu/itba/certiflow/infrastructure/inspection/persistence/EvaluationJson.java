@@ -69,7 +69,7 @@ final class EvaluationJson {
 
     private static CriterionResponse<?> response(ResponseDocument document, SchemaVersion version) {
         return ResponseRebuilder.rebuild(version.criterion(document.criterionCode()),
-                Optional.ofNullable(document.answerType()).map(type -> new AnswerColumns(type, document.answerValue())),
+                document.answerType(), document.answerValue(),
                 new PersonColumns(document.answeredById(), document.answeredByName()), document.answeredAt(),
                 document.evidence().stream()
                         .map(evidence -> new AttachedEvidence(

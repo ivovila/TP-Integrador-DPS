@@ -76,7 +76,7 @@ public final class SectionsJson {
         List<SectionDocument> documents = MAPPER.readValue(json, new TypeReference<List<SectionDocument>>() {
         });
         return documents.stream()
-                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new)))
+                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new).orElse(null)))
                 .toList();
     }
 
@@ -114,7 +114,7 @@ public final class SectionsJson {
     private static <A extends Answer> Criterion<A> criterion(CriterionDocument document, ApprovalRule<A> rule, Severity severity,
                                                              List<EvidenceRequirement> evidence) {
         return new Criterion<>(document.code(), document.text(), rule, severity, evidence,
-                Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new));
+                Optional.ofNullable(document.subsystemCode()).map(SubsystemCode::new).orElse(null));
     }
 
     private static EvidenceKind evidenceKind(String name) {

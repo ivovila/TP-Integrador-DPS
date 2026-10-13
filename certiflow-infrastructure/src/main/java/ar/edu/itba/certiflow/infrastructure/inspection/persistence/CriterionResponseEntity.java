@@ -80,7 +80,7 @@ public class CriterionResponseEntity {
 
     CriterionResponse<?> toDomain(SchemaVersion version) {
         return ResponseRebuilder.rebuild(version.criterion(criterionCode),
-                Optional.ofNullable(answerType).map(type -> new AnswerColumns(type, answerValue)),
+                answerType, answerValue,
                 new PersonColumns(answeredById, answeredByName), answeredAt,
                 evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 observations.stream().map(ObservationEmbeddable::toDomain).toList());

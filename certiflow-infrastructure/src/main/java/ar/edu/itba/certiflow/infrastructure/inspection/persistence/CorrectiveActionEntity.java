@@ -117,6 +117,6 @@ public class CorrectiveActionEntity {
                 new PersonColumns(responsibleId, responsibleName).toDomain(), dueDate,
                 new Stamp(new PersonColumns(plannedById, plannedByName).toDomain(), plannedAt),
                 verifications.stream().map(VerificationEmbeddable::toDomain).toList(),
-                Optional.ofNullable(cancelledAt).map(at -> new Cancellation(new Stamp(new PersonColumns(cancelledById, cancelledByName).toDomain(), at))));
+                Optional.ofNullable(cancelledAt).map(at -> new Cancellation(new Stamp(new PersonColumns(cancelledById, cancelledByName).toDomain(), at))).orElse(null));
     }
 }

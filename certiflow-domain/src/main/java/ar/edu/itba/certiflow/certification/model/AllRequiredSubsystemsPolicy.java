@@ -56,7 +56,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
     }
 
     private CertificationDecision rejected(List<Ineligibility> reasons, GlobalAssessmentContext context) {
-        return new CertificationDecision(CertificationOutcome.REJECTED, reasons, List.of(), Optional.empty(), code(),
+        return new CertificationDecision(CertificationOutcome.REJECTED, reasons, List.of(), null, code(),
                 context.jurisdictionCode(), context.evaluatedAt(), new CertificationScope.WholeAsset());
     }
 

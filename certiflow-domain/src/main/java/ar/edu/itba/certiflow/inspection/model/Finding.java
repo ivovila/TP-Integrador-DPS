@@ -20,7 +20,7 @@ public final class Finding {
     private final InspectionId inspectionId;
     private final AssetCode assetCode;
     private final Criterion<?> criterion;
-    private final Optional<SubsystemCode> subsystemCode;
+    private final SubsystemCode subsystem; // falta si el criterio no pertenece a un subsistema
     private final List<AttachedEvidence> evidence;
     private final Person responsible;
     private final CorrectiveActions actions;
@@ -28,7 +28,7 @@ public final class Finding {
 
     Finding(FindingId id, RaisesFindings source, CriterionResponse<?> nonConformity) {
         this.id = id;
-        this.subsystemCode = source.schemaVersion().subsystemOf(nonConformity.criterion().code());
+        this.subsystem = source.schemaVersion().subsystemOf(nonConformity.criterion().code()).orElse(null);
         this.inspectionId = source.inspectionId();
         this.assetCode = source.assetCode();
         this.responsible = source.assetResponsible();
@@ -43,7 +43,7 @@ public final class Finding {
 
     Finding(FindingSnapshot snapshot) {
         this.id = snapshot.id();
-        this.subsystemCode = snapshot.subsystemCode();
+        this.subsystem = snapshot.subsystem();
         this.inspectionId = snapshot.inspectionId();
         this.assetCode = snapshot.assetCode();
         this.criterion = snapshot.criterion();
@@ -53,7 +53,7 @@ public final class Finding {
     }
 
     public FindingSnapshot snapshot() {
-        return new FindingSnapshot(id, inspectionId, assetCode, criterion, evidence, responsible, actions.snapshot(), subsystemCode);
+        return new FindingSnapshot(id, inspectionId, assetCode, criterion, evidence, responsible, actions.snapshot(), subsystem);
     }
 
     CorrectiveAction planAction(ActionPlan plan, Stamp planned, LocalDate plannedOn) {
@@ -89,7 +89,7 @@ public final class Finding {
         return isOpen() && inspectionId.equals(sourceInspection) && nonConformity.isFor(criterion);
     }
 
-    public Optional<SubsystemCode> subsystemCode() { return subsystemCode; }
+    public Optional<SubsystemCode> subsystemCode() { return Optional.ofNullable(subsystem); }
 
     public FindingId id() {
         return id;
