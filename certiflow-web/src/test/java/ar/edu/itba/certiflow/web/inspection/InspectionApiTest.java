@@ -109,6 +109,24 @@ class InspectionApiTest extends ApiTest {
     }
 
     @Test
+    void assigningTheInspectionToWhoeverAssignsItIs400() throws Exception {
+        postAs("EMP-001", "/api/v1/inspections", """
+                {"assetCode":"EXT-0042","inspector":{"id":"EMP-001","name":"Ana"},"plannedDate":"2026-12-01","sections":null}""")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("AssignerCannotInspectException"));
+    }
+
+    @Test
+    void aRectificationWithoutAReasonIs400() throws Exception {
+        answerAll("7.00");
+        postAs("EMP-002", inspection + "/closure", "{}");
+
+        postAs("EMP-001", inspection + "/rectifications", "{\"criterionCode\":\"EXT-03\",\"value\":\"REFLECTIVE\",\"reason\":\" \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("RectificationReasonRequiredException"));
+    }
+
+    @Test
     void rectifyingCreatesTheNextRevisionAndTheActIsAvailable() throws Exception {
         answerAll("7.00");
         postAs("EMP-002", inspection + "/closure", "{}");

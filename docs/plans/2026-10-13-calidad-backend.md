@@ -85,11 +85,12 @@
 
 ### Task 6: Excepciones (spec §5.6)
 
-- [ ] Tres categorías bajo `DomainException`; cada excepción extiende la suya.
-- [ ] `ApiExceptionHandler` con un método por categoría. Test de API por categoría, comparando los estados con los de hoy.
-- [ ] Excepciones propias en lugar de `Illegal*`, de `orElseThrow()` sin argumento y de los textos libres.
-- [ ] Primer commit: las 25 excepciones que hoy responden 409 por descarte van a la categoría que responde 409. Ningún estado HTTP cambia.
-- [ ] Segundo commit: reclasificación. 404 cuando un identificador del request no nombra nada; 400 cuando un valor está mal por sí mismo; 409 cuando el estado de un agregado que existe impide la operación. La tabla completa va en el mensaje del commit, y el frontend se adapta si depende del estado.
+- [x] Tres categorías bajo `DomainException`; cada excepción extiende la suya.
+- [x] `ApiExceptionHandler` con un método por categoría. Los tests de API que ya fijaban estados siguen pasando sin cambios en el primer commit.
+- [x] Excepciones propias en lugar de `Illegal*`, de `orElseThrow()` sin argumento y de los textos libres.
+- [x] Primer commit: las excepciones que respondían 409 por descarte van a la categoría que responde 409. Ningún estado HTTP cambia.
+- [x] Segundo commit: reclasificación. 404 cuando un identificador del request no nombra nada; 400 cuando un valor está mal por sí mismo; 409 cuando el estado de un agregado que existe impide la operación. Pasan de 409 a 400: `AssignerCannotInspectException`, `DueDateInThePastException`, `InvalidValidityPeriodException`, `RectificationReasonRequiredException` y `VerificationNotesRequiredException`. Ninguna pasa a 404. El frontend no lee el estado de un error de dominio (solo su título), así que no cambia.
+- [ ] Diferido al plan del módulo web: las excepciones de dominio que el módulo web lanza para decir 400 o 404 (`RequestFields`, `SchemaPayloads`, `RawAnswers`, las búsquedas dentro de agregados en dos controladores). El test que impide extender `DomainException` directamente se escribe con ArchUnit en la Task 14.
 
 ### Task 7: Reglas de negocio y estáticos del dominio (spec §5.7)
 

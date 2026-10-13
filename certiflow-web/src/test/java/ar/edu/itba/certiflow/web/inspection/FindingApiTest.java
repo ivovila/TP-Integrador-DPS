@@ -42,9 +42,9 @@ class FindingApiTest extends ApiTest {
     }
 
     @Test
-    void aDueDateInThePastIs409() throws Exception {
+    void aDueDateInThePastIs400() throws Exception {
         postAs("EMP-001", finding + "/corrective-actions", action("EMP-004", LocalDate.now().minusDays(5)))
-                .andExpect(status().isConflict())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("DueDateInThePastException"));
     }
 
@@ -60,12 +60,12 @@ class FindingApiTest extends ApiTest {
     }
 
     @Test
-    void aRejectedVerificationWithoutNotesIs409() throws Exception {
+    void aRejectedVerificationWithoutNotesIs400() throws Exception {
         String location = postAs("EMP-001", finding + "/corrective-actions", action("EMP-004", LocalDate.now().plusDays(5)))
                 .andReturn().getResponse().getHeader("Location");
 
         postAs("EMP-005", Flows.path(location) + "/verifications", "{\"result\":\"REJECTED\",\"notes\":\"\"}")
-                .andExpect(status().isConflict())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("VerificationNotesRequiredException"));
     }
 
