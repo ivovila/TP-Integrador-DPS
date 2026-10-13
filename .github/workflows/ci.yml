@@ -78,7 +78,7 @@ jobs:
       - run: mvn -B -q -DskipTests install
       - name: Start the backend
         run: |
-          nohup mvn -B -q -pl certiflow-web spring-boot:run > backend.log 2>&1 &
+          nohup mvn -B -q -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo-users > backend.log 2>&1 &
           for attempt in $(seq 1 90); do
             if curl -sf http://localhost:8080/api/v1 > /dev/null; then
               exit 0
