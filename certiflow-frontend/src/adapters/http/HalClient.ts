@@ -80,7 +80,7 @@ export class HalClient {
   }
 
   private async request<Body>(method: string, path: string, actingPerson: Person | undefined, body: unknown): Promise<Body> {
-    const credentialHeaders = await this.credentials.headersFor(actingPerson);
+    const credentialHeaders = await this.credentials.headersFor(actingPerson, pathOf(path));
     const serializedBody = body instanceof SerializedJson ? body.text : body === undefined ? undefined : JSON.stringify(body);
     let response: Response;
     try {
@@ -96,7 +96,7 @@ export class HalClient {
     } catch {
       throw new RejectedRequestError(0, 'ServerUnreachable', 'The server could not be reached. Check that the backend is running.');
     }
-    this.credentials.received(response, actingPerson);
+    this.credentials.received(response, actingPerson, pathOf(path));
     if (response.status === 401) {
       this.credentials.rejected(credentialHeaders);
     }

@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { GlobalCertificateForm } from '../certification/GlobalCertificateForm';
@@ -9,28 +9,27 @@ import { Card, Details, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function AssetDetailPage() {
   const certiflow = useCertiflow();
-  const { actingPerson, permitted } = useSession();
+  const { actingPerson, permitted, mayOpen } = useSession();
   const navigate = useNavigate();
   const code = useParams().code!;
   const asset = useQuery(() => certiflow.catalog.findAsset(code), [code]);
-  const inspections = useQuery(() => certiflow.inspections.listInspections({ assetCode: code }), [code]);
-  const certificates = useQuery(() => certiflow.certification.listCertificates({ assetCode: code }), [code]);
 
   return (
     <QueryView query={asset}>
       {(foundAsset) => (
         <>
           <PageHeader title={foundAsset.name} subtitle={`Asset ${foundAsset.code}`}>
-            <Link className="button" to={`/assets/${encodeURIComponent(code)}/findings-summary`}>
+            <SectionLink className="button" to={`/assets/${encodeURIComponent(code)}/findings-summary`}>
               Findings summary
-            </Link>
+            </SectionLink>
             {permitted(foundAsset.actions).includes('assignInspection') && (
-              <Link className="button primary" to={`/inspections/new?asset=${encodeURIComponent(code)}`}>
+              <SectionLink className="button primary" to={`/inspections/new?asset=${encodeURIComponent(code)}`}>
                 Assign inspection
-              </Link>
+              </SectionLink>
             )}
           </PageHeader>
           <ReadOnlyNotice offeredActions={foundAsset.actions} record="asset" />
@@ -56,85 +55,8 @@ export function AssetDetailPage() {
               <p className="muted">This asset type has no inspection schema yet, so it cannot be inspected.</p>
             )}
           </Card>
-          <Card title="Inspections">
-            <QueryView query={inspections}>
-              {(assetInspections) =>
-                assetInspections.length === 0 ? (
-                  <EmptyState>No inspections assigned.</EmptyState>
-                ) : (
-                  <table className="data">
-                    <thead>
-                      <tr>
-                        <th>Inspection</th>
-                        <th>Planned</th>
-                        <th>Inspector</th>
-                        <th>Schema version</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assetInspections.map((inspection) => (
-                        <tr key={inspection.id}>
-                          <td>
-                            <Link to={`/inspections/${inspection.id}`}>{inspection.id}</Link>
-                          </td>
-                          <td>{formatDate(inspection.assignment.plannedDate)}</td>
-                          <td>{inspection.assignment.inspector.name}</td>
-                          <td>v{inspection.schemaVersion}</td>
-                          <td>
-                            <StatusBadge status={inspection.closed ? 'CLOSED' : 'OPEN'} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </QueryView>
-          </Card>
-          <Card title="Certificates">
-            <QueryView query={certificates}>
-              {(assetCertificates) =>
-                assetCertificates.length === 0 ? (
-                  <EmptyState>No certificates issued.</EmptyState>
-                ) : (
-                  <table className="data">
-                    <thead>
-                      <tr>
-                        <th>Number</th>
-                        <th>Scope</th>
-                        <th>Valid from</th>
-                        <th>Valid until</th>
-                        <th>Modality</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assetCertificates.map((certificate) => (
-                        <tr key={certificate.number}>
-                          <td>
-                            <Link to={`/certificates/${certificate.number}`}>{certificate.number}</Link>
-                          </td>
-                          <td>
-                            {formatScope(certificate.scope)}
-                            {certificate.basis.kind === 'partialCertificates' && <span className="muted"> · global</span>}
-                          </td>
-                          <td>{formatDate(certificate.validFrom)}</td>
-                          <td>{formatDate(certificate.validUntil)}</td>
-                          <td>
-                            <StatusBadge status={certificate.modality} />
-                          </td>
-                          <td>
-                            <StatusBadge status={certificate.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </QueryView>
-          </Card>
+          {mayOpen('inspections') && <AssetInspections code={code} />}
+          {mayOpen('certificates') && <AssetCertificates code={code} />}
           {permitted(foundAsset.actions).includes('issueGlobalCertificate') && (
             <Card title="Global certificate">
               <p className="muted">
@@ -161,5 +83,98 @@ export function AssetDetailPage() {
         </>
       )}
     </QueryView>
+  );
+}
+
+function AssetInspections({ code }: { code: string }) {
+  const certiflow = useCertiflow();
+  const inspections = useQuery(() => certiflow.inspections.listInspections({ assetCode: code }), [code]);
+  return (
+    <Card title="Inspections">
+      <QueryView query={inspections}>
+        {(assetInspections) =>
+          assetInspections.length === 0 ? (
+            <EmptyState>No inspections assigned.</EmptyState>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Inspection</th>
+                  <th>Planned</th>
+                  <th>Inspector</th>
+                  <th>Schema version</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assetInspections.map((inspection) => (
+                  <tr key={inspection.id}>
+                    <td>
+                      <SectionLink to={`/inspections/${inspection.id}`}>{inspection.id}</SectionLink>
+                    </td>
+                    <td>{formatDate(inspection.assignment.plannedDate)}</td>
+                    <td>{inspection.assignment.inspector.name}</td>
+                    <td>v{inspection.schemaVersion}</td>
+                    <td>
+                      <StatusBadge status={inspection.closed ? 'CLOSED' : 'OPEN'} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        }
+      </QueryView>
+    </Card>
+  );
+}
+
+function AssetCertificates({ code }: { code: string }) {
+  const certiflow = useCertiflow();
+  const certificates = useQuery(() => certiflow.certification.listCertificates({ assetCode: code }), [code]);
+  return (
+    <Card title="Certificates">
+      <QueryView query={certificates}>
+        {(assetCertificates) =>
+          assetCertificates.length === 0 ? (
+            <EmptyState>No certificates issued.</EmptyState>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Number</th>
+                  <th>Scope</th>
+                  <th>Valid from</th>
+                  <th>Valid until</th>
+                  <th>Modality</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assetCertificates.map((certificate) => (
+                  <tr key={certificate.number}>
+                    <td>
+                      <SectionLink to={`/certificates/${certificate.number}`}>{certificate.number}</SectionLink>
+                    </td>
+                    <td>
+                      {formatScope(certificate.scope)}
+                      {certificate.basis.kind === 'partialCertificates' && <span className="muted"> · global</span>}
+                    </td>
+                    <td>{formatDate(certificate.validFrom)}</td>
+                    <td>{formatDate(certificate.validUntil)}</td>
+                    <td>
+                      <StatusBadge status={certificate.modality} />
+                    </td>
+                    <td>
+                      <StatusBadge status={certificate.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        }
+      </QueryView>
+    </Card>
   );
 }

@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { AuditHistory } from '../shared/AuditHistory';
@@ -8,6 +8,7 @@ import { Card, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function SchemaDetailPage() {
   const certiflow = useCertiflow();
@@ -22,9 +23,9 @@ export function SchemaDetailPage() {
         <>
           <PageHeader title={foundSchema.name} subtitle={`Inspection schema for ${foundSchema.assetType}`}>
             {permitted(foundSchema.actions).includes('publishSchemaVersion') && (
-              <Link className="button primary" to={`${schemaPath}/versions/new`}>
+              <SectionLink className="button primary" to={`${schemaPath}/versions/new`}>
                 Publish new version
-              </Link>
+              </SectionLink>
             )}
           </PageHeader>
           <ReadOnlyNotice offeredActions={foundSchema.actions} record="schema" />
@@ -44,7 +45,7 @@ export function SchemaDetailPage() {
                 {foundSchema.versions.map((version) => (
                   <tr key={version.number}>
                     <td>
-                      <Link to={`${schemaPath}/versions/${version.number}`}>Version {version.number}</Link>{' '}
+                      <SectionLink to={`${schemaPath}/versions/${version.number}`}>Version {version.number}</SectionLink>{' '}
                       {version.number === foundSchema.currentVersion && <Badge tone="positive">in force</Badge>}
                       {version.number > foundSchema.currentVersion && <Badge tone="neutral">scheduled</Badge>}
                     </td>

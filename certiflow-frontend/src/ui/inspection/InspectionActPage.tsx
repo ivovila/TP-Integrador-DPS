@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { AuditEntriesTable } from '../shared/AuditHistory';
 import { StatusBadge } from '../shared/Badge';
@@ -8,6 +8,7 @@ import { QueryView } from '../shared/QueryView';
 import { formatAnswer } from '../shared/ruleKinds';
 import { useQuery } from '../shared/useQuery';
 import { describeScope } from './InspectionListPage';
+import { SectionLink } from '../shared/SectionLink';
 
 export function InspectionActPage() {
   const certiflow = useCertiflow();
@@ -16,7 +17,7 @@ export function InspectionActPage() {
 
   return (
     <>
-      <PageHeader title="Inspection act" subtitle={<Link to={`/inspections/${inspectionId}`}>Inspection {inspectionId}</Link>}>
+      <PageHeader title="Inspection act" subtitle={<SectionLink to={`/inspections/${inspectionId}`}>Inspection {inspectionId}</SectionLink>}>
         <button onClick={() => window.print()}>Print</button>
       </PageHeader>
       <QueryView query={act}>

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function AssetListPage() {
   const certiflow = useCertiflow();
@@ -31,9 +31,9 @@ export function AssetListPage() {
           </label>
         </div>
         {mayDo('registerAsset') && (
-          <Link className="button primary" to="/assets/new">
+          <SectionLink className="button primary" to="/assets/new">
             Register asset
-          </Link>
+          </SectionLink>
         )}
       </PageHeader>
       <Card>
@@ -56,7 +56,7 @@ export function AssetListPage() {
                   {listedAssets.map((asset) => (
                     <tr key={asset.code}>
                       <td>
-                        <Link to={`/assets/${encodeURIComponent(asset.code)}`}>{asset.code}</Link>
+                        <SectionLink to={`/assets/${encodeURIComponent(asset.code)}`}>{asset.code}</SectionLink>
                       </td>
                       <td>{asset.name}</td>
                       <td>{asset.type}</td>

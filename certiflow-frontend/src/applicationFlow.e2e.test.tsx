@@ -4,11 +4,11 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { BrowserSession } from './adapters/http/BrowserSession';
 import { createHttpCertiflow } from './adapters/http/createHttpCertiflow';
-import { PersonLogins } from './adapters/http/PersonLogins';
+import { demoLogins, demoPassword } from './demoLogins';
 import type { Person } from './domain/shared';
 import type { Certiflow } from './ports/Certiflow';
 import { ApplicationProvider } from './ui/app/CertiflowContext';
-import { demoPeople } from './ui/app/roster';
+import { demoPeople, demoUsernames } from './ui/app/roster';
 import { ApplicationRoutes } from './ui/app/routes';
 import { SessionProvider } from './ui/app/SessionContext';
 
@@ -16,7 +16,7 @@ configure({ asyncUtilTimeout: 10000 });
 
 const certiflow: Certiflow = createHttpCertiflow(
   process.env.CERTIFLOW_API_URL!,
-  new PersonLogins('certiflow', demoPeople.coordinator),
+  demoLogins(),
 );
 const browserSession = new BrowserSession(process.env.CERTIFLOW_API_URL!);
 const screens = { certiflow: createHttpCertiflow(process.env.CERTIFLOW_API_URL!, browserSession), authentication: browserSession };
@@ -67,14 +67,19 @@ async function logInAs(person: Person): Promise<void> {
   if (logout !== null) {
     fireEvent.click(logout);
   }
-  await fill(page, 'Person id', person.id);
-  await fill(page, 'Password', 'certiflow');
+  await fill(page, 'Username', demoUsernames[person.id]!);
+  await fill(page, 'Password', demoPassword);
   await press(page, 'Log in');
   await page.findByRole('button', { name: 'Logout' });
 }
 
 async function cardTitled(title: string) {
   return within((await screen.findByText(title)).closest('.card') as HTMLElement);
+}
+
+async function openFromMenu(section: string, record: string): Promise<void> {
+  fireEvent.click(within(await screen.findByRole('navigation')).getByRole('link', { name: section }));
+  fireEvent.click(await page.findByRole('link', { name: record }));
 }
 
 async function criterionCard(code: string) {
@@ -167,12 +172,11 @@ test('an inspection is executed, closed, corrected and certified through the scr
   expect(await screen.findByText('Open finding SEAL severity Major')).toBeDefined();
   expect(screen.getByText('STANDARD · jurisdiction DEMO-STANDARD')).toBeDefined();
 
-  const findingLink = await raisedFindings.findByRole('link');
-  const findingId = findingLink.textContent!;
-  fireEvent.click(findingLink);
-  await screen.findByText(new RegExp(`Finding ${findingId}`));
-  expect(screen.queryByRole('button', { name: 'Plan corrective action' })).toBeNull();
+  const findingId = (await raisedFindings.findByRole('listitem')).textContent!;
+  expect(raisedFindings.queryByRole('link')).toBeNull();
   await logInAs(demoPeople.assetResponsible);
+  await openFromMenu('Findings', findingId);
+  await screen.findByText(new RegExp(`Finding ${findingId}`));
   await fill(page, 'What will be done', 'Fit a new safety seal');
   await fill(page, 'Responsible', demoPeople.assetResponsible.id);
   await fill(page, 'Due date', daysFromToday(20));
@@ -181,13 +185,14 @@ test('an inspection is executed, closed, corrected and certified through the scr
 
   expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
   await logInAs(demoPeople.verifier);
+  await openFromMenu('Findings', findingId);
   await press(page, 'Accept');
   await screen.findByText(/Verification accepted/);
   await waitFor(() => expect(screen.queryByText('Plan corrective action')).toBeNull());
   expect(screen.queryByText('Accept')).toBeNull();
 
   await logInAs(demoPeople.certifier);
-  await press(page, inspectionId);
+  await openFromMenu('Inspections', inspectionId);
   await press(page, 'Issue certificate');
   const certificateNumber = await certificateNumberShown();
   expect(screen.getByText('active')).toBeDefined();
@@ -397,6 +402,7 @@ test('an asset is registered and an inspection assigned through the forms', asyn
   expect(screen.getByText('DEMO-STRICT')).toBeDefined();
   expect(screen.queryByRole('link', { name: 'Assign inspection' })).toBeNull();
   await logInAs(demoPeople.coordinator);
+  await openFromMenu('Assets', assetCode);
   await press(page, 'Assign inspection');
   await screen.findByText('Whole schema');
   await fill(page, 'Inspector', '__someone-else__');

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import type { CorrectiveAction, VerificationResult } from '../../domain/finding';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
@@ -14,6 +14,7 @@ import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { describeRule } from '../shared/ruleKinds';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 function PlanCorrectiveActionForm({ findingId, onPlanned }: { findingId: string; onPlanned(): void }) {
   const certiflow = useCertiflow();
@@ -135,8 +136,8 @@ export function FindingDetailPage() {
             }
             subtitle={
               <>
-                Raised by inspection <Link to={`/inspections/${foundFinding.inspectionId}`}>{foundFinding.inspectionId}</Link> on asset{' '}
-                <Link to={`/assets/${encodeURIComponent(foundFinding.assetCode)}`}>{foundFinding.assetCode}</Link>
+                Raised by inspection <SectionLink to={`/inspections/${foundFinding.inspectionId}`}>{foundFinding.inspectionId}</SectionLink> on asset{' '}
+                <SectionLink to={`/assets/${encodeURIComponent(foundFinding.assetCode)}`}>{foundFinding.assetCode}</SectionLink>
               </>
             }
           />

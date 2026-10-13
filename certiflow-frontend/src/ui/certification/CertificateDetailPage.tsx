@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import type { Certificate, CertificateBasis, Suspension } from '../../domain/certification';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
@@ -14,6 +14,7 @@ import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
 import { DecisionDetails } from './DecisionDetails';
 import { GlobalCertificateForm } from './GlobalCertificateForm';
+import { SectionLink } from '../shared/SectionLink';
 
 export function SuspensionList({ suspensions }: { suspensions: Suspension[] }) {
   return (
@@ -109,7 +110,7 @@ function RenewalForm({ number, assetCode }: { number: string; assetCode: string 
 export function BasisDescription({ basis }: { basis: CertificateBasis }) {
   return basis.kind === 'inspection' ? (
     <>
-      based on inspection <Link to={`/inspections/${basis.inspectionId}`}>{basis.inspectionId}</Link>
+      based on inspection <SectionLink to={`/inspections/${basis.inspectionId}`}>{basis.inspectionId}</SectionLink>
     </>
   ) : (
     <>
@@ -117,7 +118,7 @@ export function BasisDescription({ basis }: { basis: CertificateBasis }) {
       {basis.partialCertificateNumbers.map((partialNumber, position) => (
         <span key={partialNumber}>
           {position > 0 && ', '}
-          <Link to={`/certificates/${partialNumber}`}>{partialNumber}</Link>
+          <SectionLink to={`/certificates/${partialNumber}`}>{partialNumber}</SectionLink>
         </span>
       ))}
     </>
@@ -172,14 +173,14 @@ export function CertificateDetailPage() {
             }
             subtitle={
               <>
-                Asset <Link to={`/assets/${encodeURIComponent(foundCertificate.assetCode)}`}>{foundCertificate.assetCode}</Link> ·{' '}
+                Asset <SectionLink to={`/assets/${encodeURIComponent(foundCertificate.assetCode)}`}>{foundCertificate.assetCode}</SectionLink> ·{' '}
                 {formatScope(foundCertificate.scope)} · <BasisDescription basis={foundCertificate.basis} />
               </>
             }
           >
-            <Link className="button" to={`/certificates/${foundCertificate.number}/document`}>
+            <SectionLink className="button" to={`/certificates/${foundCertificate.number}/document`}>
               Certificate document
-            </Link>
+            </SectionLink>
           </PageHeader>
           {foundCertificate.status === 'DEPENDENCY_INVALID' && (
             <p className="warning-banner">

@@ -48,18 +48,18 @@ export class BrowserSession implements CredentialSource, AuthenticationPort {
     return token === undefined ? undefined : unexpiredSessionOf(token);
   }
 
-  async logIn(personId: string, password: string): Promise<SignedIn> {
+  async logIn(username: string, password: string): Promise<SignedIn> {
     let response: Response;
     try {
       response = await this.fetchFunction(`${this.baseUrl}/api/v1`, {
         method: 'GET',
-        headers: { Accept: 'application/hal+json', Authorization: basicCredentials(personId, password), ...browserRequestHeader },
+        headers: { Accept: 'application/hal+json', Authorization: basicCredentials(username, password), ...browserRequestHeader },
       });
     } catch {
       throw new RejectedRequestError(0, 'ServerUnreachable', 'The server could not be reached. Check that the backend is running.');
     }
     if (response.status === 401) {
-      throw new RejectedRequestError(401, 'Unauthorized', 'Wrong person id or password');
+      throw new RejectedRequestError(401, 'Unauthorized', 'Wrong username or password');
     }
     const token = bearerTokenOf(response);
     const payload = token === undefined ? undefined : payloadOf(token);
@@ -87,7 +87,7 @@ export class BrowserSession implements CredentialSource, AuthenticationPort {
     return () => this.listeners.delete(listener);
   }
 
-  async headersFor(_actingPerson: Person | undefined): Promise<Record<string, string>> {
+  async headersFor(_actingPerson: Person | undefined, _path: string): Promise<Record<string, string>> {
     const token = this.storedToken();
     return token === undefined ? { ...browserRequestHeader } : { Authorization: `Bearer ${token}`, ...browserRequestHeader };
   }

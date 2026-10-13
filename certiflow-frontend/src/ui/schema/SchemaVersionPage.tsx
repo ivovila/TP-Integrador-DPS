@@ -1,10 +1,11 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { formatInstant } from '../shared/format';
 import { EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 import { SectionsView } from './SectionsView';
+import { SectionLink } from '../shared/SectionLink';
 
 export function SchemaVersionPage() {
   const certiflow = useCertiflow();
@@ -25,7 +26,7 @@ export function SchemaVersionPage() {
               title={`${foundSchema.name} · version ${version.number}`}
               subtitle={
                 <>
-                  <Link to={`/schemas/${encodeURIComponent(foundSchema.assetType)}`}>{foundSchema.assetType}</Link> · published{' '}
+                  <SectionLink to={`/schemas/${encodeURIComponent(foundSchema.assetType)}`}>{foundSchema.assetType}</SectionLink> · published{' '}
                   {formatInstant(version.publishedAt)} · effective from {formatInstant(version.effectiveFrom)}
                   {version.requiredSubsystems.length > 0 && ` · subsystems ${version.requiredSubsystems.join(', ')}`}
                 </>

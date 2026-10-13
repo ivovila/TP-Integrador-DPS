@@ -1,8 +1,8 @@
-import { Link } from 'react-router';
 import type { CertificationDecision } from '../../domain/certification';
 import { StatusBadge } from '../shared/Badge';
 import { formatDate, formatInstant } from '../shared/format';
 import { Details } from '../shared/Page';
+import { SectionLink } from '../shared/SectionLink';
 
 /** Resultado, motivos, condiciones y vigencia que fijó la política de la jurisdicción. */
 export function DecisionDetails({ decision }: { decision: CertificationDecision }) {
@@ -34,7 +34,7 @@ export function DecisionDetails({ decision }: { decision: CertificationDecision 
           <ul className="plain-list">
             {decision.conditions.map((condition) => (
               <li key={condition.findingId}>
-                <Link to={`/findings/${condition.findingId}`}>{condition.findingId}</Link> ·{' '}
+                <SectionLink to={`/findings/${condition.findingId}`}>{condition.findingId}</SectionLink> ·{' '}
                 <span className="criterion-code">{condition.criterionCode}</span> {condition.description}{' '}
                 <span className="muted">by {formatDate(condition.dueDate)}</span>
               </li>

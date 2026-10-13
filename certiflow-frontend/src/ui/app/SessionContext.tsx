@@ -4,12 +4,13 @@ import type { Person } from '../../domain/shared';
 import type { SignedIn } from '../../ports/AuthenticationPort';
 import { useAuthentication } from './CertiflowContext';
 import { LoginPage } from './LoginPage';
-import { roleMayDo, roleOf, type Role, type SystemAction } from './roles';
+import { roleMayDo, roleMayOpen, roleOf, type Role, type Section, type SystemAction } from './roles';
 
 interface Session {
   actingPerson: Person;
   role: Role;
   mayDo(action: SystemAction): boolean;
+  mayOpen(section: Section): boolean;
   permitted<Action extends SystemAction>(offeredActions: Action[]): Action[];
   logOut(): Promise<void>;
 }
@@ -31,6 +32,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     actingPerson: signedIn.person,
     role,
     mayDo: (action) => roleMayDo(role, action),
+    mayOpen: (section) => roleMayOpen(role, section),
     permitted: (offeredActions) => offeredActions.filter((action) => roleMayDo(role, action)),
     logOut: async () => {
       await authentication.logOut();

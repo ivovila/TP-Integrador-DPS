@@ -15,6 +15,15 @@ export const demoPeople = {
   certifier: { id: 'EMP-005', name: 'Carlos Vidal' },
 } satisfies Record<string, Person>;
 
+export const demoUsernames: Record<string, string> = {
+  [demoPeople.administrator.id]: 'ana.torres',
+  [demoPeople.coordinator.id]: 'paula.rios',
+  [demoPeople.inspector.id]: 'ines.duarte',
+  [demoPeople.assetResponsible.id]: 'raul.mendez',
+  [demoPeople.verifier.id]: 'vera.soto',
+  [demoPeople.certifier.id]: 'carlos.vidal',
+};
+
 export const roster: RosterMember[] = [
   { person: demoPeople.administrator, role: 'administrator' },
   { person: demoPeople.coordinator, role: 'inspectionCoordinator' },

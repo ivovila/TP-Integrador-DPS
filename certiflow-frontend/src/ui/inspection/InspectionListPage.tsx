@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import type { InspectionScope } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
@@ -8,6 +7,7 @@ import { formatDate } from '../shared/format';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 type StatusFilter = '' | 'open' | 'closed';
 
@@ -57,9 +57,9 @@ export function InspectionListPage() {
           </label>
         </div>
         {mayDo('assignInspection') && (
-          <Link className="button primary" to="/inspections/new">
+          <SectionLink className="button primary" to="/inspections/new">
             Assign inspection
-          </Link>
+          </SectionLink>
         )}
       </PageHeader>
       <Card>
@@ -84,10 +84,10 @@ export function InspectionListPage() {
                   {listedInspections.map((inspection) => (
                     <tr key={inspection.id}>
                       <td>
-                        <Link to={`/inspections/${inspection.id}`}>{inspection.id}</Link>
+                        <SectionLink to={`/inspections/${inspection.id}`}>{inspection.id}</SectionLink>
                       </td>
                       <td>
-                        <Link to={`/assets/${encodeURIComponent(inspection.assetCode)}`}>{inspection.assetCode}</Link>
+                        <SectionLink to={`/assets/${encodeURIComponent(inspection.assetCode)}`}>{inspection.assetCode}</SectionLink>
                       </td>
                       <td>{formatDate(inspection.assignment.plannedDate)}</td>
                       <td>{inspection.assignment.inspector.name}</td>

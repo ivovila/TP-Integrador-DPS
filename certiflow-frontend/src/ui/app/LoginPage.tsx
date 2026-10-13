@@ -5,7 +5,7 @@ import { useAuthentication } from './CertiflowContext';
 
 export function LoginPage({ onSignedIn }: { onSignedIn(signedIn: SignedIn): void }) {
   const authentication = useAuthentication();
-  const [personId, setPersonId] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [failure, setFailure] = useState<unknown>(undefined);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -15,7 +15,7 @@ export function LoginPage({ onSignedIn }: { onSignedIn(signedIn: SignedIn): void
     setLoggingIn(true);
     setFailure(undefined);
     try {
-      onSignedIn(await authentication.logIn(personId.trim(), password));
+      onSignedIn(await authentication.logIn(username.trim(), password));
     } catch (error) {
       setFailure(error);
       setLoggingIn(false);
@@ -28,8 +28,8 @@ export function LoginPage({ onSignedIn }: { onSignedIn(signedIn: SignedIn): void
       <form onSubmit={logIn}>
         <div className="field">
           <label>
-            Person id
-            <input value={personId} autoComplete="username" placeholder="EMP-002" onChange={(event) => setPersonId(event.target.value)} />
+            Username
+            <input value={username} autoComplete="username" placeholder="ines.duarte" onChange={(event) => setUsername(event.target.value)} />
           </label>
         </div>
         <div className="field">
@@ -39,7 +39,7 @@ export function LoginPage({ onSignedIn }: { onSignedIn(signedIn: SignedIn): void
           </label>
         </div>
         <ErrorBanner error={failure} />
-        <button type="submit" disabled={loggingIn || personId.trim() === '' || password === ''}>
+        <button type="submit" disabled={loggingIn || username.trim() === '' || password === ''}>
           Log in
         </button>
       </form>

@@ -31,8 +31,8 @@ function openSignedOut(path: string): void {
   );
 }
 
-function logIn(personId: string, password: string): void {
-  fireEvent.change(screen.getByLabelText('Person id'), { target: { value: personId } });
+function logIn(username: string, password: string): void {
+  fireEvent.change(screen.getByLabelText('Username'), { target: { value: username } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
   fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
 }
@@ -45,14 +45,20 @@ test('without a session any page asks to log in', async () => {
 
 test('the right credentials open the first section of the role', async () => {
   openSignedOut('/');
-  logIn('EMP-002', demoPassword);
+  logIn('ines.duarte', demoPassword);
   expect(await screen.findByRole('heading', { level: 1, name: 'Inspections' })).toBeDefined();
   expect(screen.getByText('Ines Duarte · Inspector')).toBeDefined();
 });
 
+test('the person id is not a username', async () => {
+  openSignedOut('/');
+  logIn('EMP-002', demoPassword);
+  expect((await screen.findByRole('alert')).textContent).toContain('Wrong username or password');
+});
+
 test('wrong credentials say so and stay on the login', async () => {
   openSignedOut('/');
-  logIn('EMP-002', 'wrong');
-  expect((await screen.findByRole('alert')).textContent).toContain('Wrong person id or password');
+  logIn('ines.duarte', 'wrong');
+  expect((await screen.findByRole('alert')).textContent).toContain('Wrong username or password');
   expect(screen.getByRole('heading', { level: 1, name: 'Log in to CertiFlow' })).toBeDefined();
 });

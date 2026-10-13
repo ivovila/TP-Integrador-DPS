@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import type { CriterionResponse } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
@@ -16,6 +16,7 @@ import { useQuery } from '../shared/useQuery';
 import { CriterionResponseCard } from './CriterionResponseCard';
 import { describeScope } from './InspectionListPage';
 import { RectificationForm } from './RectificationForm';
+import { SectionLink } from '../shared/SectionLink';
 
 function groupBySection(responses: CriterionResponse[]): [string, CriterionResponse[]][] {
   const sectionTitles = [...new Set(responses.map((response) => response.sectionTitle))];
@@ -34,7 +35,7 @@ function RaisedFindings({ findingIds }: { findingIds: string[] | undefined }) {
         <ul className="plain-list">
           {findingIds.map((findingId) => (
             <li key={findingId}>
-              <Link to={`/findings/${findingId}`}>{findingId}</Link>
+              <SectionLink to={`/findings/${findingId}`}>{findingId}</SectionLink>
             </li>
           ))}
         </ul>
@@ -88,15 +89,15 @@ export function InspectionDetailPage() {
               }
               subtitle={
                 <>
-                  Asset <Link to={`/assets/${encodeURIComponent(foundInspection.assetCode)}`}>{foundInspection.assetCode}</Link>
+                  Asset <SectionLink to={`/assets/${encodeURIComponent(foundInspection.assetCode)}`}>{foundInspection.assetCode}</SectionLink>
                   {asset.data !== undefined && ` · ${asset.data.name}`}
                 </>
               }
             >
               {permittedActions.includes('generateInspectionAct') && (
-                <Link className="button" to={`/inspections/${foundInspection.id}/act`}>
+                <SectionLink className="button" to={`/inspections/${foundInspection.id}/act`}>
                   Inspection act
-                </Link>
+                </SectionLink>
               )}
               {permittedActions.includes('closeInspection') && (
                 <button className="primary" onClick={close} disabled={closure.running}>
@@ -116,9 +117,9 @@ export function InspectionDetailPage() {
                     assetType === undefined ? (
                       `v${foundInspection.schemaVersion}`
                     ) : (
-                      <Link to={`/schemas/${encodeURIComponent(assetType)}/versions/${foundInspection.schemaVersion}`}>
+                      <SectionLink to={`/schemas/${encodeURIComponent(assetType)}/versions/${foundInspection.schemaVersion}`}>
                         {assetType} · v{foundInspection.schemaVersion}
-                      </Link>
+                      </SectionLink>
                     ),
                   ],
                   ['Scope', describeScope(foundInspection.assignment.scope)],

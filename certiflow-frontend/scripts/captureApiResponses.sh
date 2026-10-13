@@ -4,14 +4,21 @@
 set -u
 BASE=${1:-http://localhost:8080}
 PASSWORD=certiflow
-READER=EMP-001
 OUT=$(cd "$(dirname "$0")/.." && pwd)/src/adapters/http/__fixtures__
 mkdir -p "$OUT"
 
+reader_for() {
+  case "$1" in
+    *findings*) echo raul.mendez ;;
+    /api/v1/certificates*) echo carlos.vidal ;;
+    *) echo paula.rios ;;
+  esac
+}
+
 call() {
-  local name=$1 method=$2 path=$3 person_id=$4 person_name=$5 body=${6:-}
+  local name=$1 method=$2 path=$3 username=$4 person_name=$5 body=${6:-}
   local args=(-s -X "$method" -w '\n%{http_code}' -H 'Accept: application/hal+json, application/problem+json')
-  args+=(-u "${person_id:-$READER}:$PASSWORD")
+  args+=(-u "${username:-$(reader_for "$path")}:$PASSWORD")
   [ -n "$body" ] && args+=(-H 'Content-Type: application/json' -d "$body")
   local response; response=$(curl "${args[@]}" "$BASE$path")
   local code=${response##*$'\n'}
@@ -21,7 +28,7 @@ call() {
 }
 field() { python3 -c "import json; print(json.load(open('$OUT/$1.json'))$2)"; }
 
-ADMINISTRATOR=(EMP-006 "Ana Torres"); COORDINATOR=(EMP-001 "Paula Rios"); ASSET_RESPONSIBLE=(EMP-003 "Raul Mendez"); INSPECTOR=(EMP-002 "Ines Duarte"); VERIFIER=(EMP-004 "Vera Soto"); CERTIFIER=(EMP-005 "Carlos Vidal")
+ADMINISTRATOR=(ana.torres "Ana Torres"); COORDINATOR=(paula.rios "Paula Rios"); ASSET_RESPONSIBLE=(raul.mendez "Raul Mendez"); INSPECTOR=(ines.duarte "Ines Duarte"); VERIFIER=(vera.soto "Vera Soto"); CERTIFIER=(carlos.vidal "Carlos Vidal")
 RESPONSIBLE='{"id":"EMP-003","name":"Raul Mendez"}'
 
 call root GET /api/v1 "" ""

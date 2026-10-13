@@ -1,8 +1,8 @@
 import type { Person } from '../../domain/shared';
 
 export interface CredentialSource {
-  headersFor(actingPerson: Person | undefined): Promise<Record<string, string>>;
-  received(response: Response, actingPerson: Person | undefined): void;
+  headersFor(actingPerson: Person | undefined, path: string): Promise<Record<string, string>>;
+  received(response: Response, actingPerson: Person | undefined, path: string): void;
   rejected(sentHeaders: Record<string, string>): void;
 }
 

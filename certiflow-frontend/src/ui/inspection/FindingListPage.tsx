@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { Badge, StatusBadge } from '../shared/Badge';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function FindingListPage() {
   const certiflow = useCertiflow();
@@ -52,10 +52,10 @@ export function FindingListPage() {
                   {listedFindings.map((finding) => (
                     <tr key={finding.id}>
                       <td>
-                        <Link to={`/findings/${finding.id}`}>{finding.id}</Link>
+                        <SectionLink to={`/findings/${finding.id}`}>{finding.id}</SectionLink>
                       </td>
                       <td>
-                        <Link to={`/assets/${encodeURIComponent(finding.assetCode)}`}>{finding.assetCode}</Link>
+                        <SectionLink to={`/assets/${encodeURIComponent(finding.assetCode)}`}>{finding.assetCode}</SectionLink>
                       </td>
                       <td>
                         <span className="criterion-code">{finding.criterion.code}</span> {finding.criterion.text}

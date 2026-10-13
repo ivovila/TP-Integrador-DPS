@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { StatusBadge } from '../shared/Badge';
 import { formatDate, formatInstant, formatPerson, formatScope } from '../shared/format';
@@ -7,6 +7,7 @@ import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 import { BasisDescription, SuspensionList } from './CertificateDetailPage';
 import { DecisionDetails } from './DecisionDetails';
+import { SectionLink } from '../shared/SectionLink';
 
 export function CertificateDocumentPage() {
   const certiflow = useCertiflow();
@@ -15,7 +16,7 @@ export function CertificateDocumentPage() {
 
   return (
     <>
-      <PageHeader title="Certificate" subtitle={<Link to={`/certificates/${number}`}>Certificate {number}</Link>}>
+      <PageHeader title="Certificate" subtitle={<SectionLink to={`/certificates/${number}`}>Certificate {number}</SectionLink>}>
         <button onClick={() => window.print()}>Print</button>
       </PageHeader>
       <QueryView query={certificateDocument}>

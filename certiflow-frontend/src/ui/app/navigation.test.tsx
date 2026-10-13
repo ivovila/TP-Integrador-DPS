@@ -70,17 +70,30 @@ test.each(creationButtonByRole)('as %s, on %s, "%s" is offered: %s', async (role
   expect(screen.queryByRole('link', { name: buttonLabel }) !== null).toBe(expectedOffered);
 });
 
-test('a section outside the menu can still be opened and read', async () => {
-  openAs('verifier', '/schemas');
-  expect(await screen.findByRole('heading', { level: 1, name: 'Inspection schemas' })).toBeDefined();
-  expect(menu()).toEqual(['Findings']);
+const sectionsOutsideTheMenu: [Role, string][] = [
+  ['verifier', '/schemas'],
+  ['verifier', '/inspections/INS-1'],
+  ['inspector', '/findings'],
+  ['administrator', '/certificates/CERT-00001'],
+  ['inspectionCoordinator', '/schemas/new'],
+  ['verifier', '/schemas/Boiler/versions/new'],
+];
+
+test.each(sectionsOutsideTheMenu)('the %s cannot open %s', async (role, path) => {
+  openAs(role, path);
+  expect(await screen.findByRole('heading', { level: 1, name: 'Not available for your role' })).toBeDefined();
+});
+
+test('the findings summary of an asset belongs to the findings section', async () => {
+  openAs('administrator', '/assets/A-1/findings-summary');
+  expect(await screen.findByRole('heading', { level: 1, name: 'Not available for your role' })).toBeDefined();
 });
 
 const formsThatNeedARole: [string, Role, string][] = [
-  ['/assets/new', 'inspector', 'Only the Administrator can do this'],
-  ['/schemas/new', 'inspectionCoordinator', 'Only the Administrator can do this'],
-  ['/schemas/Boiler/versions/new', 'verifier', 'Only the Administrator can do this'],
-  ['/inspections/new', 'administrator', 'Only the Inspection coordinator can do this'],
+  ['/assets/new', 'inspectionCoordinator', 'Only the Administrator can do this'],
+  ['/assets/new', 'certificationOfficer', 'Only the Administrator can do this'],
+  ['/inspections/new', 'inspector', 'Only the Inspection coordinator can do this'],
+  ['/inspections/new', 'certificationOfficer', 'Only the Inspection coordinator can do this'],
 ];
 
 test.each(formsThatNeedARole)('opening %s as %s says which role it needs instead of showing the form', async (path, role, expectedNotice) => {
@@ -90,7 +103,7 @@ test.each(formsThatNeedARole)('opening %s as %s says which role it needs instead
 });
 
 test('the role notice tells the person to log in as someone with that role', async () => {
-  openAs('inspector', '/assets/new');
+  openAs('inspectionCoordinator', '/assets/new');
   const notice = await screen.findByText(/Only the .* can do this/);
   expect(notice.textContent).toContain('Log out and log in as the Administrator to continue.');
   expect(notice.textContent).not.toContain('Acting as');
@@ -114,7 +127,7 @@ test('whoever logs in after a logout starts on their own home, not on the previo
   openAs('administrator', '/assets/new');
   await screen.findByRole('heading', { level: 1 });
   fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
-  fireEvent.change(await screen.findByLabelText('Person id'), { target: { value: 'EMP-002' } });
+  fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'ines.duarte' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'certiflow' } });
   fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Inspections' })).toBeDefined();

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { StatusBadge } from '../shared/Badge';
 import { formatDate, formatScope } from '../shared/format';
@@ -7,6 +6,7 @@ import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
 import { BasisDescription } from './CertificateDetailPage';
+import { SectionLink } from '../shared/SectionLink';
 
 export function CertificateListPage() {
   const certiflow = useCertiflow();
@@ -79,10 +79,10 @@ export function CertificateListPage() {
                   {listedCertificates.map((certificate) => (
                     <tr key={certificate.number}>
                       <td>
-                        <Link to={`/certificates/${certificate.number}`}>{certificate.number}</Link>
+                        <SectionLink to={`/certificates/${certificate.number}`}>{certificate.number}</SectionLink>
                       </td>
                       <td>
-                        <Link to={`/assets/${encodeURIComponent(certificate.assetCode)}`}>{certificate.assetCode}</Link>
+                        <SectionLink to={`/assets/${encodeURIComponent(certificate.assetCode)}`}>{certificate.assetCode}</SectionLink>
                       </td>
                       <td>{formatScope(certificate.scope)}</td>
                       <td>

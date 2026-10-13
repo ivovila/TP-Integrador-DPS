@@ -6,19 +6,20 @@ export class PersonLogins implements CredentialSource {
 
   constructor(
     private readonly password: string,
-    private readonly reader: Person,
+    private readonly usernameOf: (person: Person) => string,
+    private readonly readerFor: (path: string) => Person,
   ) {}
 
-  async headersFor(actingPerson: Person | undefined): Promise<Record<string, string>> {
-    const person = actingPerson ?? this.reader;
+  async headersFor(actingPerson: Person | undefined, path: string): Promise<Record<string, string>> {
+    const person = actingPerson ?? this.readerFor(path);
     const token = this.tokensByPersonId.get(person.id);
-    return { Authorization: token === undefined ? basicCredentials(person.id, this.password) : `Bearer ${token}` };
+    return { Authorization: token === undefined ? basicCredentials(this.usernameOf(person), this.password) : `Bearer ${token}` };
   }
 
-  received(response: Response, actingPerson: Person | undefined): void {
+  received(response: Response, actingPerson: Person | undefined, path: string): void {
     const token = bearerTokenOf(response);
     if (token !== undefined) {
-      this.tokensByPersonId.set((actingPerson ?? this.reader).id, token);
+      this.tokensByPersonId.set((actingPerson ?? this.readerFor(path)).id, token);
     }
   }
 

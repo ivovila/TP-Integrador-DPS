@@ -1,7 +1,7 @@
 import type { AuthenticationPort, SignedIn } from '../../ports/AuthenticationPort';
 import { RejectedRequestError } from '../../ports/RejectedRequestError';
 import { staffRoleOf, type Role } from './roles';
-import { roster } from './roster';
+import { demoUsernames, roster } from './roster';
 
 export const demoPassword = 'certiflow';
 
@@ -23,10 +23,10 @@ export function fakeAuthentication(startingAs?: SignedIn): FakeAuthentication {
   };
   return {
     current: () => signedIn,
-    async logIn(personId, password) {
-      const member = roster.find((candidate) => candidate.person.id === personId);
+    async logIn(username, password) {
+      const member = roster.find((candidate) => demoUsernames[candidate.person.id] === username);
       if (member === undefined || password !== demoPassword) {
-        throw new RejectedRequestError(401, 'Unauthorized', 'Wrong person id or password');
+        throw new RejectedRequestError(401, 'Unauthorized', 'Wrong username or password');
       }
       signedIn = signedInAs(member.role);
       return signedIn;

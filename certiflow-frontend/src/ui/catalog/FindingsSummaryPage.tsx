@@ -1,9 +1,10 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { StatusBadge } from '../shared/Badge';
 import { Card, Details, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function FindingsSummaryPage() {
   const certiflow = useCertiflow();
@@ -14,7 +15,7 @@ export function FindingsSummaryPage() {
     <QueryView query={summary}>
       {(findingsSummary) => (
         <>
-          <PageHeader title="Findings summary" subtitle={<Link to={`/assets/${encodeURIComponent(code)}`}>Asset {code}</Link>}>
+          <PageHeader title="Findings summary" subtitle={<SectionLink to={`/assets/${encodeURIComponent(code)}`}>Asset {code}</SectionLink>}>
             <button onClick={() => window.print()}>Print</button>
           </PageHeader>
           <Card>
@@ -46,7 +47,7 @@ export function FindingsSummaryPage() {
                   {findingsSummary.findings.map((line) => (
                     <tr key={line.findingId}>
                       <td>
-                        <Link to={`/findings/${line.findingId}`}>{line.findingId}</Link>
+                        <SectionLink to={`/findings/${line.findingId}`}>{line.findingId}</SectionLink>
                       </td>
                       <td>
                         <span className="criterion-code">{line.criterionCode}</span> {line.description}

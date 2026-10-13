@@ -1,9 +1,9 @@
-import { Link } from 'react-router';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
+import { SectionLink } from '../shared/SectionLink';
 
 export function SchemaListPage() {
   const certiflow = useCertiflow();
@@ -14,9 +14,9 @@ export function SchemaListPage() {
     <>
       <PageHeader title="Inspection schemas" subtitle="One versioned template per asset type">
         {mayDo('createInspectionSchema') && (
-          <Link className="button primary" to="/schemas/new">
+          <SectionLink className="button primary" to="/schemas/new">
             Create schema
-          </Link>
+          </SectionLink>
         )}
       </PageHeader>
       <Card>
@@ -38,7 +38,7 @@ export function SchemaListPage() {
                   {listedSchemas.map((schema) => (
                     <tr key={schema.assetType}>
                       <td>
-                        <Link to={`/schemas/${encodeURIComponent(schema.assetType)}`}>{schema.assetType}</Link>
+                        <SectionLink to={`/schemas/${encodeURIComponent(schema.assetType)}`}>{schema.assetType}</SectionLink>
                       </td>
                       <td>{schema.name}</td>
                       <td>v{schema.currentVersion}</td>

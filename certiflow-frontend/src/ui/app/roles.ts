@@ -101,6 +101,18 @@ export function actionsReservedToARole(actions: SystemAction[]): RoleAction[] {
   return actions.filter(isRoleAction);
 }
 
+export function sectionOfPath(path: string): Section | undefined {
+  if (path.includes('/findings-summary')) {
+    return 'findings';
+  }
+  const firstSegment = path.split(/[/?#]/)[1];
+  return (Object.keys(sections) as Section[]).find((section) => section === firstSegment);
+}
+
+export function roleMayOpen(role: Role, section: Section): boolean {
+  return roles[role].sections.includes(section);
+}
+
 export function homeOf(role: Role): string {
   return sections[roles[role].sections[0]!].path;
 }

@@ -96,7 +96,7 @@ test.each(offeredActions)('%s', async (_description, actions, expectedLabels) =>
 
 const everyActionOfAnOpenInspection: InspectionAction[] = ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection'];
 
-const rolesThatOnlyRead: Role[] = ['administrator', 'inspectionCoordinator', 'assetResponsible', 'verifier', 'certificationOfficer'];
+const rolesThatOnlyRead: Role[] = ['inspectionCoordinator', 'certificationOfficer'];
 
 test.each(rolesThatOnlyRead)('the %s reads an open inspection but is offered none of its actions', async (role) => {
   await showInspectionOffering(everyActionOfAnOpenInspection, role);
@@ -110,8 +110,8 @@ test('the inspector is offered the actions of an open inspection and sees no rea
   expect(screen.queryByText(/you can read this inspection but not change it/)).toBeNull();
 });
 
-test('every role can open the inspection act', async () => {
-  await showInspectionOffering(['rectifyInspection', 'generateInspectionAct'], 'verifier');
+test('every role that reads inspections can open the inspection act', async () => {
+  await showInspectionOffering(['rectifyInspection', 'generateInspectionAct'], 'certificationOfficer');
   expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Inspection act']);
 });
 

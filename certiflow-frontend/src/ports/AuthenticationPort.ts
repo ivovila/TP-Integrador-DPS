@@ -16,7 +16,7 @@ export interface SignedIn {
 
 export interface AuthenticationPort {
   current(): SignedIn | undefined;
-  logIn(personId: string, password: string): Promise<SignedIn>;
+  logIn(username: string, password: string): Promise<SignedIn>;
   logOut(): Promise<void>;
   onSignedOut(listener: () => void): () => void;
 }
