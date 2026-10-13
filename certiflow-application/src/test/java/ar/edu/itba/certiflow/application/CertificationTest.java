@@ -10,7 +10,6 @@ import ar.edu.itba.certiflow.certification.model.CertificateAudit;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
-import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
 import ar.edu.itba.certiflow.certification.model.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
@@ -30,6 +29,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 
 class CertificationTest {
 
@@ -42,7 +42,7 @@ class CertificationTest {
         InspectionId inspection = fixture.assignedInspection();
         fixture.majorFindingOf(inspection);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issue(inspection, fixture.certifier));
     }
 
@@ -54,7 +54,7 @@ class CertificationTest {
 
         assertEquals(1, raisedFindings.size());
         assertTrue(fixture.finding(raisedFindings.getFirst()).isOpen());
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issue(inspection, fixture.certifier));
     }
 
@@ -66,7 +66,7 @@ class CertificationTest {
 
         fixture.rectify(inspection, fixture.pressureCriterion, fixture.numericAnswer("4.00"), "Gauge reading was transcribed incorrectly: 5.00 instead of 4.00", fixture.certifier);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS,
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.BLOCKING_FINDINGS,
                 () -> fixture.issue(inspection, fixture.certifier));
     }
 
@@ -89,7 +89,7 @@ class CertificationTest {
         CertificateNumber certificate = fixture.issue(inspection, fixture.certifier);
 
         assertTrue(fixture.finding(findings.getFirst()).isOpen());
-        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock), List.of()));
     }
 
     @Test
@@ -113,7 +113,7 @@ class CertificationTest {
     void inspectionStillInProgressCannotBackACertificate() {
         InspectionId inspectionInProgress = fixture.assignedInspection();
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.INSPECTION_NOT_CLOSED,
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.INSPECTION_NOT_CLOSED,
                 () -> fixture.issue(inspectionInProgress, fixture.certifier));
     }
 
@@ -142,7 +142,7 @@ class CertificationTest {
 
         fixture.clock.moveTo(VALID_UNTIL.plusDays(daysAfterValidUntil));
 
-        assertEquals(expected, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(expected, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock), List.of()));
         assertEquals(expected, fixture.generateCertificateDocument.execute(certificate).status());
     }
 
@@ -162,7 +162,7 @@ class CertificationTest {
 
         fixture.suspend(certificate, "Extinguisher discharged during a drill", fixture.certifier);
 
-        assertEquals(CertificateStatus.SUSPENDED, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(CertificateStatus.SUSPENDED, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock), List.of()));
         assertEquals("Extinguisher discharged during a drill", fixture.certificate(certificate).suspensions().getFirst().reason());
         assertEquals(CertificateAudit.SUSPENDED, fixture.certificateLog.historyOf(certificate).getLast().action());
         assertThrows(CertificateNotActiveException.class,
@@ -178,8 +178,8 @@ class CertificationTest {
         CertificateNumber renewedCertificate = fixture.renew(originalCertificate, reinspection, fixture.certifier);
 
         LocalDate currentDate = LocalDate.now(fixture.clock);
-        assertEquals(CertificateStatus.RENEWED, fixture.certificate(originalCertificate).statusOn(currentDate));
-        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(renewedCertificate).statusOn(currentDate));
+        assertEquals(CertificateStatus.RENEWED, fixture.certificate(originalCertificate).statusOn(currentDate, List.of()));
+        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(renewedCertificate).statusOn(currentDate, List.of()));
         assertEquals(reinspection, fixture.certificate(renewedCertificate).basedOn().id());
         assertEquals(renewedCertificate, fixture.certificateRepository.findCurrentFor(fixture.extinguisher.code(), currentDate).orElseThrow().number());
         assertEquals(CertificateAudit.RENEWED, fixture.certificateLog.historyOf(originalCertificate).getLast().action());
@@ -195,7 +195,7 @@ class CertificationTest {
         assertThrows(CertificateNotActiveException.class,
                 () -> fixture.suspend(certificate, "Discharged", fixture.certifier));
         assertTrue(fixture.certificate(certificate).suspensions().isEmpty());
-        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock), List.of()));
     }
 
     @Test
@@ -207,7 +207,7 @@ class CertificationTest {
 
         assertThrows(RenewalRequiresLaterInspectionException.class, () -> fixture.renew(certificate, certifiedInspection, fixture.certifier));
         assertThrows(RenewalRequiresLaterInspectionException.class, () -> fixture.renew(certificate, earlierInspection, fixture.certifier));
-        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock)));
+        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(certificate).statusOn(LocalDate.now(fixture.clock), List.of()));
     }
 
     @Test
@@ -248,9 +248,9 @@ class CertificationTest {
     void aSuspendedCertificateIsExpiredOnceItsValidityIsOver() {
         CertificateNumber certificate = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
         fixture.suspend(certificate, "Discharged after a fire", fixture.certifier);
-        assertEquals(CertificateStatus.SUSPENDED, fixture.certificate(certificate).statusOn(CertiflowFixture.TODAY));
+        assertEquals(CertificateStatus.SUSPENDED, fixture.certificate(certificate).statusOn(CertiflowFixture.TODAY, List.of()));
 
-        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(VALID_UNTIL.plusDays(1)));
+        assertEquals(CertificateStatus.EXPIRED, fixture.certificate(certificate).statusOn(VALID_UNTIL.plusDays(1), List.of()));
     }
 
     @Test
@@ -259,7 +259,7 @@ class CertificationTest {
         InspectionId failedReinspection = fixture.assignedInspection();
         fixture.majorFindingOf(failedReinspection);
 
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.renew(originalCertificate, failedReinspection, fixture.certifier));
-        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(originalCertificate).statusOn(LocalDate.now(fixture.clock)));
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.BLOCKING_FINDINGS, () -> fixture.renew(originalCertificate, failedReinspection, fixture.certifier));
+        assertEquals(CertificateStatus.ACTIVE, fixture.certificate(originalCertificate).statusOn(LocalDate.now(fixture.clock), List.of()));
     }
 }

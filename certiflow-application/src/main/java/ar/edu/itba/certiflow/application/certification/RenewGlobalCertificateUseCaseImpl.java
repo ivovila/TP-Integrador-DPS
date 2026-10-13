@@ -51,11 +51,11 @@ public final class RenewGlobalCertificateUseCaseImpl implements RenewGlobalCerti
         return renewedCertificate.number();
     }
 
-    private static void ensureRenewable(Certificate currentCertificate, DecidedGlobalCertification decided) {
+    private void ensureRenewable(Certificate currentCertificate, DecidedGlobalCertification decided) {
         if (!(currentCertificate.basis() instanceof CertificateBasis.PartialCertificatesBasis)
                 || !currentCertificate.certifies(decided.assetCode())
                 || !decided.latestInspectionClosedAt().isAfter(currentCertificate.latestInspectionClosedAt())
-                || currentCertificate.statusOn(decided.validFrom()) == CertificateStatus.RENEWED) {
+                || currentCertificate.statusOn(decided.validFrom(), certificateRepository.findByAsset(decided.assetCode())) == CertificateStatus.RENEWED) {
             throw new CertificationConflictException("Global renewal requires matching asset and later inspection basis");
         }
     }

@@ -3,7 +3,8 @@ package ar.edu.itba.certiflow.application.schema;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
-import java.util.List;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 public final class ListSchemasUseCaseImpl implements ListSchemasUseCase {
 
@@ -14,7 +15,7 @@ public final class ListSchemasUseCaseImpl implements ListSchemasUseCase {
     }
 
     @Override
-    public List<InspectionSchema> execute() {
-        return inspectionSchemaRepository.findAll();
+    public Page<InspectionSchema> execute(PageRequest request) {
+        return inspectionSchemaRepository.findPage(request);
     }
 }

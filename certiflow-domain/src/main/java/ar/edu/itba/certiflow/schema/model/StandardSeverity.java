@@ -16,6 +16,11 @@ public enum StandardSeverity implements Severity {
     }
 
     @Override
+    public String code() {
+        return name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

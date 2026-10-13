@@ -5,7 +5,6 @@ import ar.edu.itba.certiflow.inspection.model.InspectionView;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
 import java.util.List;
-import java.util.Optional;
 
 public final class ListInspectionsUseCaseImpl implements ListInspectionsUseCase {
 
@@ -16,7 +15,12 @@ public final class ListInspectionsUseCaseImpl implements ListInspectionsUseCase 
     }
 
     @Override
-    public List<InspectionView> execute(Optional<AssetCode> asset) {
-        return List.copyOf(asset.map(inspectionRepository::findByAsset).orElseGet(inspectionRepository::findAll));
+    public List<InspectionView> execute() {
+        return List.copyOf(inspectionRepository.findAll());
+    }
+
+    @Override
+    public List<InspectionView> execute(AssetCode asset) {
+        return List.copyOf(inspectionRepository.findByAsset(asset));
     }
 }

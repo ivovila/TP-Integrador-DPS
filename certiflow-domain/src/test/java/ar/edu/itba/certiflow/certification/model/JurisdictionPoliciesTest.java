@@ -53,6 +53,7 @@ class JurisdictionPoliciesTest {
 
     private enum CustomSeverity implements ar.edu.itba.certiflow.schema.model.Severity {
         ADVISORY;
+        @Override public String code() { return name(); }
         @Override public String label() { return "Advisory"; }
         @Override public ar.edu.itba.certiflow.schema.model.Outcome outcomeWhenUnmet() {
             return ar.edu.itba.certiflow.schema.model.Outcome.OBSERVED;
@@ -82,7 +83,7 @@ class JurisdictionPoliciesTest {
     void unconfiguredSeverityCannotBeCertifiedByOmission() {
         var decision = evaluate(false, result(true, true, CustomSeverity.ADVISORY));
         assertEquals(CertificationOutcome.REJECTED, decision.outcome());
-        assertTrue(decision.isBlockedBy(IneligibilityReason.UNSUPPORTED_SEVERITY));
+        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.UNSUPPORTED_SEVERITY));
     }
 
 }

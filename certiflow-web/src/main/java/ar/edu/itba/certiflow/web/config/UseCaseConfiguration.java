@@ -144,8 +144,8 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    AssetService assetService(AuditLog<AssetCode> assetLog) {
-        return new AssetService(assetLog);
+    AssetService assetService(AuditLog<AssetCode> assetLog, AssetRepository assetRepository) {
+        return new AssetService(assetLog, assetRepository);
     }
 
     @Bean
@@ -393,13 +393,13 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    ListCertificatesUseCase listCertificates(TransactionTemplate tx, CertificateRepository certificateRepository) {
-        return TransactionalUseCases.wrap(ListCertificatesUseCase.class, new ListCertificatesUseCaseImpl(certificateRepository), tx, locks);
+    ListCertificatesUseCase listCertificates(TransactionTemplate tx, CertificateRepository certificateRepository, Clock clock) {
+        return TransactionalUseCases.wrap(ListCertificatesUseCase.class, new ListCertificatesUseCaseImpl(certificateRepository, clock), tx, locks);
     }
 
     @Bean
-    FindCertificateUseCase findCertificate(TransactionTemplate tx, CertificateRepository certificateRepository) {
-        return TransactionalUseCases.wrap(FindCertificateUseCase.class, new FindCertificateUseCaseImpl(certificateRepository), tx, locks);
+    FindCertificateUseCase findCertificate(TransactionTemplate tx, CertificateRepository certificateRepository, Clock clock) {
+        return TransactionalUseCases.wrap(FindCertificateUseCase.class, new FindCertificateUseCaseImpl(certificateRepository, clock), tx, locks);
     }
 
     @Bean

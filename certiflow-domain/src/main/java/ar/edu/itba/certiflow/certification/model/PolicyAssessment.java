@@ -7,7 +7,7 @@ import java.util.List;
  * Lo que una política va juntando mientras recorre los hallazgos. El resultado lo decide su estado, que solo
  * empeora: aprobado → condicional → rechazado.
  */
-final class PolicyAssessment {
+public final class PolicyAssessment {
 
     private final CertificationAssessmentContext context;
     private final String policyCode;
@@ -25,12 +25,12 @@ final class PolicyAssessment {
         this.conditionalTerm = conditionalTerm;
     }
 
-    void block(IneligibilityReason reason, OpenNonConformity finding) {
+    public void block(IneligibilityReason reason, OpenNonConformity finding) {
         reasons.add(new Ineligibility(reason, "Open finding " + finding.criterionCode() + " severity " + finding.severity().label()));
         state = State.REJECTED;
     }
 
-    void requireCondition(OpenNonConformity finding) {
+    public void requireCondition(OpenNonConformity finding) {
         conditioned.add(finding);
         state = state.withCondition();
     }

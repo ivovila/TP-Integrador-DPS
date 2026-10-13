@@ -107,7 +107,7 @@ public class InspectionController {
     public PagedModel<InspectionResponse> list(@RequestParam Optional<String> asset, @RequestParam Optional<String> status,
                                                @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         Optional<Boolean> closed = status.map(InspectionController::closedFor);
-        List<InspectionResponse> inspections = listInspections.execute(asset.map(AssetCode::new)).stream()
+        List<InspectionResponse> inspections = asset.map(code -> listInspections.execute(new AssetCode(code))).orElseGet(listInspections::execute).stream()
                 .filter(inspection -> closed.map(wanted -> inspection.isClosed() == wanted).orElse(true))
                 .map(this::resource)
                 .toList();

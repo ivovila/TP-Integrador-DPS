@@ -17,7 +17,7 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
 
     /**
      * Pedir el activo entero sobre una versión con subsistemas no es un error: la decisión lo rechaza
-     * con {@link IneligibilityReason#REQUIRES_PARTIAL_CERTIFICATES} (ver {@link #requiresPartialCertificates()}).
+     * con {@link StandardIneligibilityReason#REQUIRES_PARTIAL_CERTIFICATES} (ver {@link #requiresPartialCertificates()}).
      */
     public InspectionResult forScope(CertificationScope requested) {
         if (requested instanceof CertificationScope.WholeAsset) {

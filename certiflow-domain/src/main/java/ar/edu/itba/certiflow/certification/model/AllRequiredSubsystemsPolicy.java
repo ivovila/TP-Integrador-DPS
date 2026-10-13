@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  */
 public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPolicy {
 
-    private static final IneligibilityReason INVALID = IneligibilityReason.INVALID_PARTIAL_CERTIFICATE;
+    private static final IneligibilityReason INVALID = StandardIneligibilityReason.INVALID_PARTIAL_CERTIFICATE;
 
     @Override
     public String code() { return "ALL-REQUIRED-SUBSYSTEMS"; }
@@ -38,11 +38,11 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                         partial -> partial.number().value() + " does not certify a required subsystem"),
                 Requirement.that(partial -> partial.decision().jurisdictionCode().equals(jurisdiction), INVALID,
                         partial -> partial.number().value() + " was decided under another jurisdiction"),
-                Requirement.that(partial -> partial.statusOn(date) == CertificateStatus.ACTIVE, INVALID,
+                Requirement.that(partial -> partial.statusOn(date, partials) == CertificateStatus.ACTIVE, INVALID,
                         partial -> partial.number().value() + " is not active"));
 
         List<Ineligibility> reasons = new ArrayList<>(Requirement.unmetBy(List.of(
-                Requirement.<Set<SubsystemCode>>that(codes -> !codes.isEmpty(), IneligibilityReason.MISSING_SUBSYSTEM,
+                Requirement.<Set<SubsystemCode>>that(codes -> !codes.isEmpty(), StandardIneligibilityReason.MISSING_SUBSYSTEM,
                         codes -> "Schema has no required subsystems")), required));
         partials.forEach(partial -> reasons.addAll(Requirement.unmetBy(backing, partial)));
         List<Certificate> valid = partials.stream().filter(partial -> Requirement.unmetBy(backing, partial).isEmpty()).toList();
@@ -65,7 +65,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
         Set<SubsystemCode> covered = subsystemsOf(valid).keySet();
         return required.stream().sorted(Comparator.comparing(SubsystemCode::value))
                 .filter(code -> !covered.contains(code))
-                .map(code -> new Ineligibility(IneligibilityReason.MISSING_SUBSYSTEM, "Missing partial for " + code.value()))
+                .map(code -> new Ineligibility(StandardIneligibilityReason.MISSING_SUBSYSTEM, "Missing partial for " + code.value()))
                 .toList();
     }
 

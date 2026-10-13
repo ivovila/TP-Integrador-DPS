@@ -67,7 +67,7 @@ public class FindingController {
     @GetMapping("/findings")
     public PagedModel<FindingResource> list(@RequestParam Optional<String> asset, @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
-        return PageLinks.page(listFindings.execute(asset.map(AssetCode::new)).stream().map(this::resource).toList(), page, size,
+        return PageLinks.page(asset.map(code -> listFindings.execute(new AssetCode(code))).orElseGet(listFindings::execute).stream().map(this::resource).toList(), page, size,
                 "/api/v1/findings", Uris.query("asset", asset).orElse(""));
     }
 

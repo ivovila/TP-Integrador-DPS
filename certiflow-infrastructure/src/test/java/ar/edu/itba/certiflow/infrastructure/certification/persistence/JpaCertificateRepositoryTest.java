@@ -94,6 +94,6 @@ class JpaCertificateRepositoryTest {
         Certificate restored = repository.findByNumber(certificate.number()).orElseThrow();
 
         assertEquals(certificate.snapshot(), restored.snapshot());
-        assertEquals(CertificateStatus.SUSPENDED, restored.statusOn(TODAY));
+        assertEquals(CertificateStatus.SUSPENDED, restored.statusOn(TODAY, List.of()));
     }
 }

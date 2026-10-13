@@ -60,7 +60,7 @@ public class AssetController {
     @GetMapping
     public PagedModel<AssetResponse> list(@RequestParam Optional<String> type, @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "20") int size) {
-        return PageLinks.page(listAssets.execute(type.map(AssetType::new)).stream().map(this::resource).toList(), page, size,
+        return PageLinks.page(type.map(value -> listAssets.execute(new AssetType(value))).orElseGet(listAssets::execute).stream().map(this::resource).toList(), page, size,
                 "/api/v1/assets", Uris.query("type", type).orElse(""));
     }
 

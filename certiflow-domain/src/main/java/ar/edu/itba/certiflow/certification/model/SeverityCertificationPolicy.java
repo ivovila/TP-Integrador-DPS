@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.certification.model;
 
-import static ar.edu.itba.certiflow.certification.model.FindingTreatment.BLOCKS;
-import static ar.edu.itba.certiflow.certification.model.FindingTreatment.REQUIRES_CONDITION;
-import static ar.edu.itba.certiflow.certification.model.FindingTreatment.TOLERATED;
+import static ar.edu.itba.certiflow.certification.model.StandardFindingTreatment.BLOCKS;
+import static ar.edu.itba.certiflow.certification.model.StandardFindingTreatment.REQUIRES_CONDITION;
+import static ar.edu.itba.certiflow.certification.model.StandardFindingTreatment.TOLERATED;
 import static ar.edu.itba.certiflow.schema.model.StandardSeverity.CRITICAL;
 import static ar.edu.itba.certiflow.schema.model.StandardSeverity.MAJOR;
 import static ar.edu.itba.certiflow.schema.model.StandardSeverity.MINOR;
@@ -58,7 +58,7 @@ public final class SeverityCertificationPolicy implements CertificationPolicy {
     public CertificationDecision evaluate(CertificationAssessmentContext context) {
         PolicyAssessment assessment = new PolicyAssessment(context, code, approvedTerm, conditionalTerm);
         context.result().openNonConformities().forEach(finding ->
-                treatments.getOrDefault(finding.severity(), FindingTreatment.UNSUPPORTED).applyTo(finding, assessment));
+                treatments.getOrDefault(finding.severity(), StandardFindingTreatment.UNSUPPORTED).applyTo(finding, assessment));
         return assessment.decision();
     }
 }

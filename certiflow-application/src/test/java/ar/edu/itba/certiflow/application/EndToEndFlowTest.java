@@ -12,7 +12,6 @@ import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredExce
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetCommand;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
-import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.usecase.CertificateDocument;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -31,6 +30,7 @@ import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 
 class EndToEndFlowTest {
 
@@ -66,7 +66,7 @@ class EndToEndFlowTest {
         FindingsSummary summaryAfterClosing = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(2, summaryAfterClosing.openFindings());
         assertFalse(fixture.evaluate(inspection).isEligible());
-        CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, fixture.certifier));
+        CertiflowFixture.assertNotEligible(StandardIneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, fixture.certifier));
 
         FindingId lowPressureFinding = findings.getFirst();
         CorrectiveActionId rechargeAction = fixture.plan(lowPressureFinding, "Recharge the extinguisher", fixture.maintenanceTechnician, CertiflowFixture.TODAY.plusDays(10), fixture.assetResponsible);

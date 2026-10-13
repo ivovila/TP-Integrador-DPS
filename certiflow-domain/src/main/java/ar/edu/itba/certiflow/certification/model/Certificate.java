@@ -79,7 +79,7 @@ public final class Certificate {
     }
 
     void suspend(String reason, Person suspendedBy, Instant suspendedAt, LocalDate suspendedOn) {
-        if (statusOn(suspendedOn) != CertificateStatus.ACTIVE) {
+        if (lifecycleStatusOn(suspendedOn) != CertificateStatus.ACTIVE) {
             throw new CertificateNotActiveException(number);
         }
         suspensions.add(new Suspension(reason, suspendedBy, suspendedAt));
@@ -113,7 +113,7 @@ public final class Certificate {
         return auditTrail.pull();
     }
 
-    public CertificateStatus statusOn(LocalDate referenceDate) {
+    private CertificateStatus lifecycleStatusOn(LocalDate referenceDate) {
         return lifecycle.statusOn(validity, referenceDate);
     }
 
@@ -152,11 +152,17 @@ public final class Certificate {
         };
     }
 
-    public CertificateStatus effectiveStatusOn(LocalDate date, List<Certificate> partials) {
-        CertificateStatus own = statusOn(date);
+    /**
+     * El estado del certificado en una fecha: el de su ciclo de vida (emitido, suspendido, renovado) y su vigencia.
+     * Un global activo queda {@link CertificateStatus#DEPENDENCY_INVALID} si alguno de sus parciales, que se buscan
+     * entre los certificados del activo, ya no está activo.
+     */
+    public CertificateStatus statusOn(LocalDate date, List<Certificate> assetCertificates) {
+        CertificateStatus own = lifecycleStatusOn(date);
         if (own == CertificateStatus.ACTIVE && basis instanceof CertificateBasis.PartialCertificatesBasis backing) {
             for (CertificateNumber number : backing.partials()) {
-                if (partials.stream().noneMatch(partial -> partial.number().equals(number) && partial.statusOn(date) == CertificateStatus.ACTIVE)) {
+                if (assetCertificates.stream().noneMatch(partial -> partial.number().equals(number)
+                        && partial.statusOn(date, assetCertificates) == CertificateStatus.ACTIVE)) {
                     return CertificateStatus.DEPENDENCY_INVALID;
                 }
             }

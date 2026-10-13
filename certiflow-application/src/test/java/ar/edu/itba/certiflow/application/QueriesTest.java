@@ -23,8 +23,8 @@ class QueriesTest {
     @Test
     void assetsAreFoundByCodeAndListedByType() {
         assertEquals(fixture.extinguisher, fixture.findAsset.execute(fixture.extinguisher.code()));
-        assertEquals(List.of(fixture.extinguisher), fixture.listAssets.execute(Optional.of(CertiflowFixture.EXTINGUISHER)));
-        assertEquals(List.of(), fixture.listAssets.execute(Optional.of(new AssetType("Boiler"))));
+        assertEquals(List.of(fixture.extinguisher), fixture.listAssets.execute(CertiflowFixture.EXTINGUISHER));
+        assertEquals(List.of(), fixture.listAssets.execute(new AssetType("Boiler")));
         assertThrows(AssetNotFoundException.class, () -> fixture.findAsset.execute(new AssetCode("NOPE")));
     }
 
@@ -33,7 +33,7 @@ class QueriesTest {
         InspectionId inspection = fixture.assignedInspection();
         FindingId finding = fixture.majorFindingOf(inspection);
 
-        assertEquals(List.of(finding), fixture.listFindings.execute(Optional.of(fixture.extinguisher.code())).stream()
+        assertEquals(List.of(finding), fixture.listFindings.execute(fixture.extinguisher.code()).stream()
                 .map(f -> f.id()).toList());
         assertEquals(finding, fixture.findFinding.execute(finding).id());
         assertEquals(List.of(InspectionAudit.ASSIGNED, InspectionAudit.ANSWER_RECORDED),
@@ -45,8 +45,8 @@ class QueriesTest {
     void certificatesAreListedByAsset() {
         var number = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
 
-        assertEquals(List.of(number), fixture.listCertificates.execute(Optional.of(fixture.extinguisher.code())).stream()
-                .map(c -> c.number()).toList());
-        assertEquals(number, fixture.findCertificate.execute(number).number());
+        assertEquals(List.of(number), fixture.listCertificates.execute(fixture.extinguisher.code()).stream()
+                .map(view -> view.certificate().number()).toList());
+        assertEquals(number, fixture.findCertificate.execute(number).certificate().number());
     }
 }

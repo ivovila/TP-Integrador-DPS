@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 @DataJpaTest
 @Import(JpaInspectionSchemaRepository.class)
@@ -66,13 +68,17 @@ class JpaInspectionSchemaRepositoryTest {
     }
 
     @Test
-    void everySchemaIsListedOrderedByAssetType() {
+    void schemasAreListedByPageOrderedByAssetType() {
         Instant createdAt = Instant.parse("2026-03-01T00:00:00Z");
         repository.save(new InspectionSchema("Extinguisher", new AssetType("Fire extinguisher"), DomainSamples.sections(), createdAt));
         repository.save(new InspectionSchema("Boiler", new AssetType("Boiler"), DomainSamples.sections(), createdAt));
         entityManager.flush();
         entityManager.clear();
-        assertEquals(List.of("Boiler", "Fire extinguisher"),
-                repository.findAll().stream().map(schema -> schema.assetType().name()).toList());
+        Page<InspectionSchema> first = repository.findPage(new PageRequest(0, 1));
+        Page<InspectionSchema> second = repository.findPage(new PageRequest(1, 1));
+        assertEquals(List.of("Boiler"), first.items().stream().map(schema -> schema.assetType().name()).toList());
+        assertEquals(List.of("Fire extinguisher"), second.items().stream().map(schema -> schema.assetType().name()).toList());
+        assertEquals(2, first.totalItems());
+        assertEquals(2, first.totalPages());
     }
 }

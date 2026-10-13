@@ -57,7 +57,7 @@ final class EvaluationJson {
 
     private static EvidenceDocument document(AttachedEvidence attached) {
         PersonColumns by = PersonColumns.of(attached.attachedBy());
-        return new EvidenceDocument(((StandardEvidenceKind) attached.evidence().kind()).name(), attached.evidence().reference(),
+        return new EvidenceDocument(attached.evidence().kind().code(), attached.evidence().reference(),
                 attached.evidence().description(), by.id(), by.name(), Instants.asStored(attached.attachedAt()));
     }
 

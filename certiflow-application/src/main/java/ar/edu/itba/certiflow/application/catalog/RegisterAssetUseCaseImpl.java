@@ -30,7 +30,7 @@ public final class RegisterAssetUseCaseImpl implements RegisterAssetUseCase {
         ensureJurisdictionIsConfigured(command.jurisdictionCode());
         Asset asset = new Asset(command.code(), command.name(), command.type(), command.location(), command.responsible(),
                 command.characteristics(), command.jurisdictionCode(), command.subsystems());
-        Asset registeredAsset = assetService.register(asset, assetRepository.findByCode(asset.code()), command.registeredBy(),
+        Asset registeredAsset = assetService.register(asset, command.registeredBy(),
                 clock.instant());
         assetRepository.save(registeredAsset);
         return registeredAsset;

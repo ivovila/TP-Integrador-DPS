@@ -68,7 +68,7 @@ public final class SchemaPayloads {
         return new CriterionPayload(criterion.code(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
                 rulePayload(criterion.rule()),
                 criterion.requiredEvidence().stream()
-                        .map(r -> new EvidenceRequirementPayload(((StandardEvidenceKind) r.kind()).name(), r.minimum())).toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
+                        .map(r -> new EvidenceRequirementPayload(r.kind().code(), r.minimum())).toList(), criterion.subsystemCode().map(code -> code.value()).orElse(null));
     }
 
     private static Criterion<?> criterion(CriterionPayload payload) {

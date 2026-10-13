@@ -1,9 +1,8 @@
 package ar.edu.itba.certiflow.certification.model;
 
-public enum IneligibilityReason {
-    UNSUPPORTED_SEVERITY, MISSING_SUBSYSTEM, INVALID_PARTIAL_CERTIFICATE,
-    INSPECTION_NOT_CLOSED,
-    PARTIAL_INSPECTION,
-    REQUIRES_PARTIAL_CERTIFICATES,
-    BLOCKING_FINDINGS
+/** Por qué una decisión no permite certificar. Una política nueva puede traer sus propios motivos. */
+public interface IneligibilityReason {
+
+    /** Identificador estable con el que se guarda y se publica. */
+    String code();
 }

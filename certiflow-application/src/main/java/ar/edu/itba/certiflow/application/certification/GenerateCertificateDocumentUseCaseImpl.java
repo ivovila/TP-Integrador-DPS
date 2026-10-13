@@ -17,11 +17,13 @@ public final class GenerateCertificateDocumentUseCaseImpl implements GenerateCer
     private final CertificateRepository certificateRepository;
     private final AssetRepository assetRepository;
     private final Clock clock;
+    private final CertificateStatuses statuses;
 
     public GenerateCertificateDocumentUseCaseImpl(CertificateRepository certificateRepository, AssetRepository assetRepository, Clock clock) {
         this.certificateRepository = certificateRepository;
         this.assetRepository = assetRepository;
         this.clock = clock;
+        this.statuses = new CertificateStatuses(certificateRepository, clock);
     }
 
     @Override
@@ -32,7 +34,7 @@ public final class GenerateCertificateDocumentUseCaseImpl implements GenerateCer
         Asset asset = assetRepository.findByCode(certificate.assetCode())
                 .orElseThrow(() -> new AssetNotFoundException(certificate.assetCode()));
         return new CertificateDocument(certificate.number(), asset.code(), asset.name(), certificate.validity(), today,
-                certificate.effectiveStatusOn(today, certificateRepository.findByAsset(certificate.assetCode())), certificate.issuedBy(), certificate.issuedAt(),
+                statuses.statusOf(certificate, today), certificate.issuedBy(), certificate.issuedAt(),
                 certificate.suspensions(), certificate.decision(), certificate.scope(), certificate.basis());
     }
 }

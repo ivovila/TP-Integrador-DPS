@@ -177,7 +177,7 @@ public final class CertiflowFixture {
 
     public final AuditLog<AssetCode> assetLog = new InMemoryAuditLog<>();
     private final InspectionSchemaService inspectionSchemaService = new InspectionSchemaService(schemaLog);
-    private final AssetService assetService = new AssetService(assetLog);
+    private final AssetService assetService = new AssetService(assetLog, assetRepository);
     private final InspectionService inspectionService = new InspectionService(new InspectionFactory(), inspectionLog);
     private final FindingService findingService = new FindingService(new FindingFactory(), findingLog);
     private final CertificateService certificateService = new CertificateService(new CertificateFactory(), certificateLog);
@@ -217,8 +217,8 @@ public final class CertiflowFixture {
     public final FindInspectionUseCase findInspection = new FindInspectionUseCaseImpl(inspectionRepository);
     public final FindFindingUseCase findFinding = new FindFindingUseCaseImpl(findingRepository);
     public final ListFindingsUseCase listFindings = new ListFindingsUseCaseImpl(findingRepository);
-    public final ListCertificatesUseCase listCertificates = new ListCertificatesUseCaseImpl(certificateRepository);
-    public final FindCertificateUseCase findCertificate = new FindCertificateUseCaseImpl(certificateRepository);
+    public final ListCertificatesUseCase listCertificates = new ListCertificatesUseCaseImpl(certificateRepository, clock);
+    public final FindCertificateUseCase findCertificate = new FindCertificateUseCaseImpl(certificateRepository, clock);
     public final AuditHistoryUseCase auditHistory = new AuditHistoryUseCaseImpl(assetLog, schemaLog, inspectionLog, findingLog,
             certificateLog);
 

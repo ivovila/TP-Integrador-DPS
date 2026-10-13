@@ -27,7 +27,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.Link;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +37,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.hateoas.PagedModel;
+import ar.edu.itba.certiflow.web.support.PageLinks;
 
 @RestController
 @RequestMapping("/api/v1/schemas")
@@ -72,9 +73,10 @@ public class SchemaController {
     }
 
     @GetMapping
-    public ResponseEntity<CollectionModel<SchemaResponse>> list() {
-        CollectionModel<SchemaResponse> schemas = CollectionModel.of(listSchemas.execute().stream().map(this::resource).toList(),
-                Link.of("/api/v1/schemas").withSelfRel());
+    public ResponseEntity<PagedModel<SchemaResponse>> list(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "20") int size) {
+        PagedModel<SchemaResponse> schemas = PageLinks.of(listSchemas.execute(PageLinks.request(page, size)).map(this::resource),
+                "/api/v1/schemas", "");
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(schemas);
     }
 
@@ -87,7 +89,7 @@ public class SchemaController {
     public ResponseEntity<VersionResponse> publish(@PathVariable String assetType, @RequestBody VersionRequest request,
                                                    @ActingPerson Person publishedBy) {
         SchemaVersion version = publishSchemaVersion.execute(new PublishSchemaVersionCommand(new AssetType(assetType),
-                SchemaPayloads.toSections(request.sections()), publishedBy, Optional.ofNullable(request.effectiveFrom()), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
+                SchemaPayloads.toSections(request.sections()), publishedBy, request.effectiveFrom(), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
         VersionResponse response = versionResource(assetType, version);
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
     }

@@ -7,6 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import ar.edu.itba.certiflow.shared.model.Page;
+import ar.edu.itba.certiflow.shared.model.PageRequest;
+import java.util.Comparator;
 
 public final class InMemoryInspectionSchemaRepository implements InspectionSchemaRepository {
 
@@ -23,7 +26,10 @@ public final class InMemoryInspectionSchemaRepository implements InspectionSchem
     }
 
     @Override
-    public List<InspectionSchema> findAll() {
-        return List.copyOf(schemas.values());
+    public Page<InspectionSchema> findPage(PageRequest request) {
+        List<InspectionSchema> sorted = schemas.values().stream()
+                .sorted(Comparator.comparing(schema -> schema.assetType().name()))
+                .toList();
+        return new Page<>(sorted.stream().skip(request.offset()).limit(request.size()).toList(), request, sorted.size());
     }
 }

@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
-import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
 import java.time.LocalDate;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 
 class CertificationDecisionTest {
 
@@ -35,8 +35,8 @@ class CertificationDecisionTest {
         assertEquals("STANDARD", decision.policyCode());
         assertTrue(decision.validity().isEmpty());
         assertEquals(2, decision.ineligibilities().size());
-        assertTrue(decision.isBlockedBy(IneligibilityReason.INSPECTION_NOT_CLOSED));
-        assertTrue(decision.isBlockedBy(IneligibilityReason.PARTIAL_INSPECTION));
+        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.INSPECTION_NOT_CLOSED));
+        assertTrue(decision.isBlockedBy(StandardIneligibilityReason.PARTIAL_INSPECTION));
         assertTrue(fixture.certificateRepository.findCurrentFor(fixture.extinguisher.code(), LocalDate.now(fixture.clock)).isEmpty());
     }
 
@@ -48,7 +48,7 @@ class CertificationDecisionTest {
         CertificationDecision decision = fixture.evaluate(inspection);
 
         assertEquals(1, decision.ineligibilities().size());
-        assertEquals(IneligibilityReason.BLOCKING_FINDINGS, decision.ineligibilities().getFirst().reason());
+        assertEquals(StandardIneligibilityReason.BLOCKING_FINDINGS, decision.ineligibilities().getFirst().reason());
         assertTrue(decision.ineligibilities().getFirst().detail().contains("EXT-01"));
     }
 }

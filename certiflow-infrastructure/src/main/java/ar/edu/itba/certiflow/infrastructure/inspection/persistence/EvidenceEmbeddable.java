@@ -27,7 +27,7 @@ public class EvidenceEmbeddable {
     static EvidenceEmbeddable of(AttachedEvidence attached) {
         EvidenceEmbeddable embeddable = new EvidenceEmbeddable();
         PersonColumns by = PersonColumns.of(attached.attachedBy());
-        embeddable.kind = ((StandardEvidenceKind) attached.evidence().kind()).name();
+        embeddable.kind = attached.evidence().kind().code();
         embeddable.reference = attached.evidence().reference();
         embeddable.description = attached.evidence().description();
         embeddable.attachedById = by.id();

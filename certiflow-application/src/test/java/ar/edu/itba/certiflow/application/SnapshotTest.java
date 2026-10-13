@@ -18,6 +18,7 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionAlreadyClosedException;
 import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import org.junit.jupiter.api.Test;
+import java.util.List;
 
 class SnapshotTest {
 
@@ -63,6 +64,6 @@ class SnapshotTest {
         Certificate restored = new CertificateFactory().restore(original.snapshot());
 
         assertEquals(original.snapshot(), restored.snapshot());
-        assertEquals(original.statusOn(CertiflowFixture.TODAY), restored.statusOn(CertiflowFixture.TODAY));
+        assertEquals(original.statusOn(CertiflowFixture.TODAY, List.of()), restored.statusOn(CertiflowFixture.TODAY, List.of()));
     }
 }

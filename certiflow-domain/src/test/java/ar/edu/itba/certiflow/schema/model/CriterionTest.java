@@ -16,6 +16,11 @@ class CriterionTest {
         ADVISORY;
 
         @Override
+        public String code() {
+            return name();
+        }
+
+        @Override
         public String label() {
             return "Advisory";
         }

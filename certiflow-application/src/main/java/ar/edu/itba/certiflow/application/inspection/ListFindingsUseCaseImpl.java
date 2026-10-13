@@ -5,7 +5,6 @@ import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
 import java.util.List;
-import java.util.Optional;
 
 public final class ListFindingsUseCaseImpl implements ListFindingsUseCase {
 
@@ -16,7 +15,12 @@ public final class ListFindingsUseCaseImpl implements ListFindingsUseCase {
     }
 
     @Override
-    public List<Finding> execute(Optional<AssetCode> asset) {
-        return asset.map(findingRepository::findByAsset).orElseGet(findingRepository::findAll);
+    public List<Finding> execute() {
+        return findingRepository.findAll();
+    }
+
+    @Override
+    public List<Finding> execute(AssetCode asset) {
+        return findingRepository.findByAsset(asset);
     }
 }

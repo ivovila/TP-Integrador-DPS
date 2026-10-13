@@ -103,13 +103,13 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments arguments) {
-        if (!listAssets.execute(Optional.empty()).isEmpty()) {
+        if (!listAssets.execute().isEmpty()) {
             return;
         }
         createSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
                 extinguisherSections(false), coordinator, Set.of()));
         publishVersion.execute(new PublishSchemaVersionCommand(EXTINGUISHER, extinguisherSections(true), coordinator,
-                Optional.of(clock.instant().plus(Duration.ofDays(30))), Set.of()));
+                clock.instant().plus(Duration.ofDays(30)), Set.of()));
         createSchema.execute(new CreateInspectionSchemaCommand("Pressure vessel inspection", PRESSURE_VESSEL,
                 vesselSections(), coordinator, Set.of(ELECTRICAL, PRESSURE)));
 

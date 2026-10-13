@@ -18,7 +18,7 @@ public class EligibilityResource extends RepresentationModel<EligibilityResource
         this.eligible = decision.isEligible();
         this.decision = DecisionPayload.of(decision);
         this.ineligibilities = decision.ineligibilities().stream()
-                .map(ineligibility -> new Reason(ineligibility.reason().name(), ineligibility.detail()))
+                .map(ineligibility -> new Reason(ineligibility.reason().code(), ineligibility.detail()))
                 .toList();
     }
 }
