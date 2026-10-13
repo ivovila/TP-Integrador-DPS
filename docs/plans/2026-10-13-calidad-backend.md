@@ -147,8 +147,46 @@
 
 ### Task 14: Documentación y regla ejecutable
 
-- [ ] `DESIGN.md`: decisiones nuevas, D17 reemplazada, D18 con su riesgo, D21 actualizada, fronteras en limitaciones y las cuatro líneas desactualizadas.
-- [ ] `docs/certiflow-domain.puml`, `README.md`, `CHANGES.md`.
-- [ ] Tests de arquitectura con ArchUnit: `shared` sin contextos, dominio y aplicación sin frameworks, certificación sin el modelo de inspección salvo sus ids.
-- [ ] Lista «Pendiente del módulo web» con todo lo que no se tocó en `certiflow-web`.
-- [ ] Inventario final regenerado y comparado con los criterios de aceptación de la spec.
+- [x] `DESIGN.md`: decisiones nuevas (D26 a D30), D17 reemplazada, D18 con su riesgo, D21 actualizada, fronteras y pendientes en limitaciones, y las líneas desactualizadas.
+- [x] `docs/certiflow-domain.puml`, `README.md`, `CHANGES.md`.
+- [x] Tests de arquitectura con ArchUnit (`ArchitectureRulesTest`): capas, `shared` sin contextos, orden entre contextos, dominio y aplicación sin frameworks, certificación sin el modelo de inspección salvo sus ids, y toda excepción de dominio dentro de una categoría.
+- [x] Lista «Pendiente del módulo web», abajo.
+- [x] Inventario final regenerado.
+
+---
+
+## Pendiente del módulo web
+
+Lo que no se tocó en `certiflow-web`, para el plan propio de ese módulo. Las secciones citadas son las de la spec.
+
+**Respuestas con `null` (spec §6; exige adaptar el frontend).**
+- `InspectionResponse.sections` cuando el alcance es completo.
+- `CriterionResponseResource`: `answer`, `answeredBy` y `answeredAt` mientras el criterio está pendiente. Cuando se resuelva, `CriterionResponse.given()` puede irse del dominio: hoy existe porque este recurso lo consume.
+- `DecisionPayload`: `validFrom` y `validUntil` en una decisión rechazada.
+- `ScopePayload`, `BasisPayload` y `RulePayload`: un único record con los campos de todas las variantes, vacíos los que no son de la suya.
+- `CertificateResource.inspectionId`, que repite la base.
+
+**Condicionales y tipos (spec §5.10).**
+- Los `if` que deciden links según el estado (inspección abierta o cerrada, certificado activo, hallazgo abierto, páginas `prev` y `next`).
+- `methodOn(..., null)` para armar links.
+- `SchemaPayloads`: registros por clase y por texto para las reglas, cuatro casts, bloque `static`; severidades y tipos de evidencia resueltos contra los enums en lugar de los catálogos (también en `VocabularyController`).
+- `AuditEntryResponse`: cast a `Enum` para leer el nombre de la acción; `AuditAction.name()` ya existe.
+- `CriterionResponseController` y `FindingController` buscan dentro de un agregado y lanzan excepciones de dominio; la búsqueda es del dominio.
+
+**Excepciones (spec §5.6).**
+- `RequestFields`, `AssignmentRequest`, `VerificationRequest`, `SchemaPayloads` y `RawAnswers` lanzan excepciones de dominio (`RequiredValueMissingException`, `InvalidRuleConfigurationException`, `AnswerTypeMismatchException`) para decir 400; les corresponde `InvalidRequestException`.
+- `PageLinks` repite la validación de `PageRequest` con su propia excepción.
+
+**Estáticos y utilitarios (spec §5.10).**
+- `RawAnswers`, `RequestFields`, `PageLinks`, `Uris`, `SchemaPayloads`, `CertificationPayloads`, `TransactionalUseCases` (este último se deja como está por decisión).
+- `DemoDataSeeder`.
+- Los veintiséis `TransactionalUseCases.wrap(...)` repetidos en las clases de configuración y el parámetro `tx`.
+
+**Otros.**
+- Parámetros de consulta opcionales manejados con `null` y filtros aplicados en el controlador.
+- Paginación en memoria.
+- El número de un sub-recurso nuevo se deduce de un tamaño después de una segunda lectura.
+- Controladores que dependen de otros controladores.
+- Nombres (`GlobalRequest`, campos de `GlobalCertificateController`, lambdas de una letra), dos imports con comodín, líneas de más de 150 caracteres y cuerpos en una línea.
+- `RequestFields.requireElements` llama a `contains(null)`, que lanza `NullPointerException` sobre una lista inmutable como `List.of()`. Con las listas que arma Jackson no ocurre; apareció al escribir `VersionRequestTest`.
+- Seguridad (spec §5.11): fuera de alcance por decisión; lo encontrado en ese código está listado en la spec, §5.11.

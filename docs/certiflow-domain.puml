@@ -1,16 +1,18 @@
 @startuml certiflow-domain
 !pragma layout smetana
-title Certiflow - Modelo de dominio (Entrega 1)
+title Certiflow - Modelo de dominio (Entrega 2)
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 hide empty members
 
 note as ExceptionsNote
-  Las excepciones de dominio no se dibujan.
+  Las excepciones concretas de dominio no se dibujan.
   Viven en el subpaquete exceptions de cada concepto
   (inspection.model.exceptions, schema.model.exceptions,
-  certification.model.exceptions, catalog.model.exceptions)
-  y extienden DomainException.
+  certification.model.exceptions, catalog.model.exceptions;
+  las genericas, en shared.model)
+  y cada una extiende una de las tres categorias de shared.model:
+  NotFoundException, InvalidValueException o RuleViolationException.
 end note
 
 package "shared.model" {
@@ -18,7 +20,18 @@ package "shared.model" {
     id: PersonId
     name: String
   }
+  class Stamp <<value object>> {
+    author: Person
+    instant: Instant
+  }
   abstract class DomainException <<exception>>
+  abstract class NotFoundException <<exception>>
+  abstract class InvalidValueException <<exception>>
+  abstract class RuleViolationException <<exception>>
+  Stamp --> Person
+  DomainException <|-- NotFoundException
+  DomainException <|-- InvalidValueException
+  DomainException <|-- RuleViolationException
 }
 
 package "shared.model (auditoria)" {
@@ -28,20 +41,27 @@ package "shared.model (auditoria)" {
     +recordAll(S, List<AuditEntry>)
   }
   class AuditTrail {
-    +record(AuditAction, Person, Instant, detail)
+    +record(AuditAction, Stamp, detail)
     +pull(): List<AuditEntry>
   }
   class AuditEntry <<value object>> {
     action: AuditAction
-    performedBy: Person
-    occurredAt: Instant
+    performed: Stamp
     detail: String
   }
   interface AuditAction <<enum extensible>> {
+    +code(): String
+    +name(): String
     +label(): String
+  }
+  class AuditActionCatalog <<coleccion de primera clase>> {
+    +withCode(String): Optional<AuditAction>
+    +all(): List<AuditAction>
   }
   AuditLog ..> AuditEntry
   AuditEntry --> AuditAction
+  AuditEntry --> Stamp
+  AuditActionCatalog o-- "*" AuditAction
 }
 
 package "catalog.model" {
@@ -52,10 +72,11 @@ package "catalog.model" {
     location: Location
     responsible: Person
     characteristics: Characteristics
+    jurisdictionCode: JurisdictionCode
+    subsystems: List<Subsystem>
   }
   class Characteristics <<value object>> {
     entries: List<Characteristic>
-    +valueOf(String): Optional<String>
   }
   class Characteristic <<value object>> {
     name: String
@@ -66,9 +87,32 @@ package "catalog.model" {
   class AssetCode <<identificador de negocio>>
   class AssetType <<value object>>
   class Location <<value object>>
+  class JurisdictionCode <<identificador de negocio>>
+  class Subsystem <<value object>> {
+    code: SubsystemCode
+    name: String
+  }
+  class SubsystemCode <<identificador de negocio>>
+  interface SubsystemAssociation {
+    +orElse(SubsystemAssociation): SubsystemAssociation
+    +isAssignedTo(SubsystemCode): boolean
+    +reaches(SubsystemCode): boolean
+    +describedBy(SubsystemAssociationDescriber<T>): T
+  }
+  class NoSubsystem <<value object>>
+  class InSubsystem <<value object>> {
+    subsystemCode: SubsystemCode
+  }
+  interface "SubsystemAssociationDescriber<T>" as SubsystemAssociationDescriber {
+    +noSubsystem(): T
+    +inSubsystem(SubsystemCode): T
+  }
+  class AssignedSubsystems
   class AssetService <<servicio de dominio>> {
     -assetLog: AuditLog<AssetCode>
-    +register(Asset, Optional<Asset>, Person, Instant): Asset
+    -assets: AssetRepository
+    -knownJurisdictions: KnownJurisdictions
+    +register(Asset, Stamp): Asset
   }
   enum AssetAudit {
     REGISTERED
@@ -78,10 +122,29 @@ package "catalog.model" {
   Asset --> AssetCode
   Asset --> AssetType
   Asset --> Location
+  Asset --> JurisdictionCode
+  Asset *-- "*" Subsystem
+  Subsystem --> SubsystemCode
+  SubsystemAssociation <|.. NoSubsystem
+  SubsystemAssociation <|.. InSubsystem
+  InSubsystem --> SubsystemCode
+  SubsystemAssociation ..> SubsystemAssociationDescriber
+  SubsystemAssociationDescriber <|.. AssignedSubsystems
 }
 
 package "schema.model (evaluacion)" {
-  interface Answer
+  interface Answer {
+    +describedBy(AnswerDescriber<T>): T
+  }
+  interface "AnswerDescriber<T>" as AnswerDescriber {
+    +number(BigDecimal): T
+    +yesNo(boolean): T
+    +option(String): T
+  }
+  class AnswerText
+  class RawAnswer <<value object>> {
+    text: String
+  }
   class NumericAnswer <<value object>> {
     value: BigDecimal
   }
@@ -95,6 +158,13 @@ package "schema.model (evaluacion)" {
   class Unit <<value object>>
   interface "ApprovalRule<A extends Answer>" as ApprovalRule {
     +isSatisfiedBy(A): boolean
+    +answerFrom(RawAnswer): A
+    +describedBy(ApprovalRuleDescriber<T>): T
+  }
+  interface "ApprovalRuleDescriber<T>" as ApprovalRuleDescriber {
+    +numericRange(Unit, Range): T
+    +yesNo(YesNoAnswer): T
+    +optionInList(Set<String>): T
   }
   class NumericRangeRule <<regla de NumericAnswer>> {
     unit: Unit
@@ -119,21 +189,30 @@ package "schema.model (evaluacion)" {
     +raisesFinding(): boolean
   }
   interface Severity <<enum extensible>> {
+    +code(): String
     +label(): String
     +outcomeWhenUnmet(): Outcome
-    +blocksCertification(): boolean
   }
   enum StandardSeverity {
     MINOR
     MAJOR
     CRITICAL
   }
+  class SeverityCatalog <<coleccion de primera clase>> {
+    +withCode(String): Optional<Severity>
+    +all(): List<Severity>
+  }
   interface EvidenceKind <<enum extensible>> {
+    +code(): String
     +label(): String
   }
   enum StandardEvidenceKind {
     PHOTO
     DOCUMENT
+  }
+  class EvidenceKindCatalog <<coleccion de primera clase>> {
+    +withCode(String): Optional<EvidenceKind>
+    +all(): List<EvidenceKind>
   }
   class Evidence <<value object>> {
     kind: EvidenceKind
@@ -150,13 +229,19 @@ package "schema.model (evaluacion)" {
   Answer <|.. NumericAnswer
   Answer <|.. YesNoAnswer
   Answer <|.. OptionAnswer
+  Answer ..> AnswerDescriber
+  AnswerDescriber <|.. AnswerText
   ApprovalRule <|.. NumericRangeRule
   ApprovalRule <|.. YesNoRule
   ApprovalRule <|.. OptionInListRule
+  ApprovalRule ..> ApprovalRuleDescriber
+  ApprovalRule ..> RawAnswer : la convierte en Answer
   NumericRangeRule --> Range
   Severity <|.. StandardSeverity
   Severity ..> Outcome
+  SeverityCatalog o-- "*" Severity
   EvidenceKind <|.. StandardEvidenceKind
+  EvidenceKindCatalog o-- "*" EvidenceKind
   Evidence --> EvidenceKind
   EvidenceRequirement --> EvidenceKind
 }
@@ -166,40 +251,66 @@ package "schema.model" {
     name: String
     assetType: AssetType
     versionLog: SchemaVersionLog
-    +withNewVersion(List<Section>, Instant): InspectionSchema
-    +currentVersion(): SchemaVersion
-    +appliesTo(AssetType): boolean
+    +withNewVersion(List<Section>, Instant publishedAt, Instant effectiveFrom, Set<SubsystemCode>): InspectionSchema
+    +versionAt(Instant): SchemaVersion
+    +version(int): SchemaVersion
+    +latestPublishedVersion(): SchemaVersion
+    +versions(): List<SchemaVersion>
   }
   class SchemaVersionLog <<value object inmutable>> {
     versions: List<SchemaVersion>
-    +{static} startingWith(List<Section>, Instant): SchemaVersionLog
-    +append(List<Section>, Instant): SchemaVersionLog
-    +current(): SchemaVersion
+    +SchemaVersionLog(List<Section>, Instant publishedAt, Set<SubsystemCode>)
+    +append(List<Section>, Instant publishedAt, Instant effectiveFrom, Set<SubsystemCode>): SchemaVersionLog
+    +versionAt(Instant): SchemaVersion
+    +latestPublished(): SchemaVersion
   }
   class SchemaVersion <<value object inmutable>> {
     number: int
-    sections: List<Section>
+    sections: SchemaSections
     publishedAt: Instant
+    effectiveFrom: Instant
+    +requiredSubsystems(): Set<SubsystemCode>
+    +ensureRequires(Set<SubsystemCode>)
+    +associationOf(Criterion<?>): SubsystemAssociation
+    +criteriaFor(SubsystemCode): List<Criterion<?>>
     +criteria(): List<Criterion<?>>
+    +section(SectionTitle): Section
+    +criterion(CriterionCode): Criterion<?>
     +ensureContains(Criterion<?>)
   }
-  class Section <<value object>> {
-    title: String
-    criteria: List<Criterion<?>>
+  class SchemaSections <<coleccion de primera clase>> {
+    all: List<Section>
+    +criteria(): List<Criterion<?>>
+    +withTitle(SectionTitle): Section
+    +withCode(CriterionCode): Criterion<?>
+    +ensureContains(Criterion<?>)
+    +associationOf(Criterion<?>): SubsystemAssociation
+    +assignedTo(SubsystemCode): List<Criterion<?>>
+    +assignedSubsystems(): Set<SubsystemCode>
+    +hasCriteriaWithoutSubsystem(): boolean
   }
+  class Section <<value object>> {
+    title: SectionTitle
+    criteria: List<Criterion<?>>
+    subsystem: SubsystemAssociation
+  }
+  class SectionTitle <<value object>>
   class "Criterion<A extends Answer>" as Criterion <<value object>> {
-    code: String
+    code: CriterionCode
     text: String
     rule: ApprovalRule<A>
     severity: Severity
     requiredEvidence: List<EvidenceRequirement>
+    subsystem: SubsystemAssociation
     +outcomeOf(A): Outcome
+    +answerFrom(RawAnswer): A
     +evidenceRequirementsMetBy(List<Evidence>): boolean
   }
+  class CriterionCode <<value object>>
   class InspectionSchemaService <<servicio de dominio>> {
-    -schemaLog: AuditLog<AssetType>
-    +create(name, AssetType, List<Section>, Person, Instant): InspectionSchema
-    +addVersion(InspectionSchema, List<Section>, Person, Instant): InspectionSchema
+    -auditLog: AuditLog<AssetType>
+    +create(name, AssetType, List<Section>, Stamp, Set<SubsystemCode>): InspectionSchema
+    +publishVersion(InspectionSchema, List<Section>, Stamp, Instant effectiveFrom, Set<SubsystemCode>): InspectionSchema
   }
   enum SchemaAudit {
     CREATED
@@ -209,8 +320,13 @@ package "schema.model" {
   InspectionSchemaService ..> InspectionSchema : crea versiones y audita
   InspectionSchema *-- SchemaVersionLog
   SchemaVersionLog "1" *-- "1..*" SchemaVersion
-  SchemaVersion *-- "1..*" Section
+  SchemaVersion *-- SchemaSections
+  SchemaSections *-- "1..*" Section
   Section *-- "1..*" Criterion
+  Section --> SectionTitle
+  Section --> SubsystemAssociation
+  Criterion --> CriterionCode
+  Criterion --> SubsystemAssociation
   Criterion --> ApprovalRule
   Criterion --> Severity
   Criterion --> "*" EvidenceRequirement
@@ -222,50 +338,66 @@ package "inspection.model" {
     +id(): InspectionId
     +evaluate(): Evaluation
     +isClosed(): boolean
+    +closedAt(): Optional<Instant>
     +originalRevision(): Revision
-    +revisions(): List<Revision>
+    +revisions(): Revisions
     +assetCode(): AssetCode
+    +assetType(): AssetType
     +assetResponsible(): Person
     +coversWholeSchema(): boolean
     +assignment(): InspectionAssignment
     +schemaVersion(): SchemaVersion
   }
+  class InspectionId <<identificador>>
   class Inspection <<aggregate root>> {
     -responses: Map<Criterion<?>, CriterionResponse<?>>
-    -revisions: List<Revision>
+    -revisions: Revisions
     -auditTrail: AuditTrail
-    ~recordAnswer(Criterion<A>, A, Person, Instant)
-    ~attachEvidence(Criterion<?>, Evidence, Person, Instant)
-    ~addObservation(Criterion<?>, String, Person, Instant)
-    ~close(Person, Instant): InspectionClosed
-    ~rectify(Criterion<A>, A, reason, Person, Instant): InspectionRectified
+    ~recordAnswer(Criterion<A>, A, Stamp)
+    ~attachEvidence(Criterion<?>, Evidence, Stamp)
+    ~addObservation(Criterion<?>, String, Stamp)
+    ~close(Stamp): InspectionClosed
+    ~rectify(Criterion<A>, A, reason, Stamp): InspectionRectified
     ~pullAuditEntries(): List<AuditEntry>
     +ensureClosed()
+    +covers(SubsystemCode): boolean
   }
   class InspectionFactory {
-    +create(InspectionId, Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
+    +create(InspectionId, Asset, InspectionAssignment, SchemaVersion, Stamp): Inspection
   }
   class InspectionService <<servicio de dominio>> {
     -inspectionFactory: InspectionFactory
-    -inspectionLog: AuditLog<Inspection>
-    +assign(InspectionId, Asset, InspectionAssignment, SchemaVersion, Person, Instant): Inspection
-    +recordAnswer(Inspection, Criterion<A>, A, Person, Instant)
-    +attachEvidence(Inspection, Criterion<?>, Evidence, Person, Instant)
-    +addObservation(Inspection, Criterion<?>, String, Person, Instant)
-    +close(Inspection, Person, Instant): InspectionClosed
-    +rectify(Inspection, Criterion<A>, A, reason, Person, Instant): InspectionRectified
+    -inspectionLog: AuditLog<InspectionId>
+    +assign(InspectionId, Asset, InspectionAssignment, SchemaVersion, Stamp): Inspection
+    +recordAnswer(Inspection, CriterionCode, RawAnswer, Stamp)
+    +attachEvidence(Inspection, CriterionCode, Evidence, Stamp)
+    +addObservation(Inspection, CriterionCode, String, Stamp)
+    +close(Inspection, Stamp): InspectionClosed
+    +rectify(Inspection, CriterionCode, RawAnswer, reason, Stamp): InspectionRectified
+  }
+  interface RaisesFindings {
+    +inspectionId(): InspectionId
+    +assetCode(): AssetCode
+    +assetResponsible(): Person
+    +nonConformities(): List<CriterionResponse<?>>
+    +raised(): Stamp
+    +schemaVersion(): SchemaVersion
   }
   class InspectionClosed <<evento de dominio>> {
     inspectionId: InspectionId
     assetCode: AssetCode
     assetResponsible: Person
     nonConformities: List<CriterionResponse<?>>
+    closed: Stamp
+    schemaVersion: SchemaVersion
   }
   class InspectionRectified <<evento de dominio>> {
     inspectionId: InspectionId
     assetCode: AssetCode
     assetResponsible: Person
     nonConformities: List<CriterionResponse<?>>
+    rectified: Stamp
+    schemaVersion: SchemaVersion
   }
   class InspectionAssignment <<value object>> {
     inspector: Person
@@ -274,60 +406,74 @@ package "inspection.model" {
   }
   interface InspectionScope {
     +criteriaIn(SchemaVersion): List<Criterion<?>>
+    +describedBy(InspectionScopeDescriber<T>): T
+  }
+  interface "InspectionScopeDescriber<T>" as InspectionScopeDescriber {
+    +full(): T
+    +sections(Set<SectionTitle>): T
   }
   class FullScope <<value object>>
   class SectionsScope <<value object>> {
-    sectionTitles: Set<String>
+    sectionTitles: Set<SectionTitle>
   }
   InspectionScope <|.. FullScope
   InspectionScope <|.. SectionsScope
+  InspectionScope ..> InspectionScopeDescriber
+  SectionsScope --> "1..*" SectionTitle
   InspectionAssignment --> InspectionScope
   class "CriterionResponse<A extends Answer>" as CriterionResponse <<value object inmutable>> {
     criterion: Criterion<A>
-    given: Optional<GivenAnswer<A>>
+    answering: Answering<A>
     attachments: List<AttachedEvidence>
     observations: List<Observation>
-    +answeredWith(Criterion<B>, B, Person, Instant): CriterionResponse<B>
-    +withEvidence(Evidence, Person, Instant)
+    +given(): Optional<GivenAnswer<A>>
+    +answeredWith(Criterion<B>, B, Stamp): CriterionResponse<B>
+    +withEvidence(Evidence, Stamp)
     +withObservation(Observation)
     +outcome(): Outcome
     +isFor(Criterion<?>): boolean
   }
+  interface "Answering<A extends Answer>" as Answering {
+    +outcomeFor(Criterion<A>, List<Evidence>): Outcome
+    +describedBy(AnsweringDescriber<A, T>): T
+  }
+  class "NotAnswered<A extends Answer>" as NotAnswered <<value object>>
   class "GivenAnswer<A extends Answer>" as GivenAnswer <<value object>> {
     value: A
-    answeredBy: Person
-    answeredAt: Instant
+    answered: Stamp
+  }
+  interface "AnsweringDescriber<A extends Answer, T>" as AnsweringDescriber {
+    +notAnswered(): T
+    +answered(GivenAnswer<A>): T
   }
   class AttachedEvidence <<value object>> {
     evidence: Evidence
-    attachedBy: Person
-    attachedAt: Instant
+    attached: Stamp
   }
   class Observation <<value object>> {
     text: String
-    observedBy: Person
-    observedAt: Instant
+    observed: Stamp
   }
   class Evaluation <<value object>> {
     responses: List<CriterionResponse<?>>
-    +outcomeOf(Criterion<?>): Outcome
     +pending(): List<CriterionResponse<?>>
     +nonConformities(): List<CriterionResponse<?>>
     +ensureComplete()
   }
   class Revisions <<coleccion de primera clase>> {
-    +sealedWith(reason, Evaluation, Person, Instant): Revisions
+    revisions: List<Revision>
+    +sealedWith(reason, Evaluation, Stamp): Revisions
     +original(): Revision
     +last(): Revision
-    +size(): int
+    +firstSealedAt(): Optional<Instant>
     +isEmpty(): boolean
+    +asList(): List<Revision>
   }
   class Revision <<value object>> {
     number: int
     reason: String
     evaluation: Evaluation
-    sealedBy: Person
-    sealedAt: Instant
+    sealed: Stamp
   }
   enum InspectionAudit {
     ASSIGNED
@@ -340,7 +486,8 @@ package "inspection.model" {
   InspectionView <|.. Inspection
   InspectionFactory ..> Inspection : crea
   Inspection *-- AuditTrail
-  Inspection --> Asset
+  Inspection --> InspectionId
+  Inspection --> AssetCode : por codigo
   Inspection --> InspectionAssignment
   Inspection --> SchemaVersion : fijada al asignar
   Inspection *-- "*" CriterionResponse
@@ -350,26 +497,32 @@ package "inspection.model" {
   Revision --> Evaluation
   Evaluation o-- "*" CriterionResponse
   CriterionResponse --> Criterion
-  CriterionResponse --> "0..1" GivenAnswer
+  CriterionResponse --> Answering
+  Answering <|.. NotAnswered
+  Answering <|.. GivenAnswer
+  Answering ..> AnsweringDescriber
   CriterionResponse --> "*" AttachedEvidence
   CriterionResponse --> "*" Observation
   GivenAnswer --> Answer
   AttachedEvidence --> Evidence
+  RaisesFindings <|.. InspectionClosed
+  RaisesFindings <|.. InspectionRectified
   AuditAction <|.. InspectionAudit
 }
 
 package "inspection.model (hallazgos)" {
   class Finding <<aggregate root>> {
     -auditTrail: AuditTrail
-    ~planAction(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
-    ~verifyAction(CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
+    ~planAction(ActionPlan, Stamp, LocalDate): CorrectiveAction
+    ~verifyAction(CorrectiveActionId, VerificationResult, notes, Stamp): Verification
     +isOpen(): boolean
-    +blocksCertification(): boolean
     +concerns(AssetCode): boolean
     +isOpenFor(InspectionId, CriterionResponse<?>): boolean
     +id(): FindingId
+    +assetCode(): AssetCode
     +inspectionId(): InspectionId
     +criterion(): Criterion<?>
+    +subsystem(): SubsystemAssociation
     +severity(): Severity
     +evidence(): List<AttachedEvidence>
     +responsible(): Person
@@ -377,42 +530,46 @@ package "inspection.model (hallazgos)" {
     ~pullAuditEntries(): List<AuditEntry>
   }
   class FindingFactory {
-    +create(FindingId, InspectionId, AssetCode, Person, CriterionResponse<?>, Person, Instant): Finding
+    +create(FindingId, RaisesFindings, CriterionResponse<?>): Finding
   }
   class FindingService <<servicio de dominio>> {
     -findingFactory: FindingFactory
-    -findingLog: AuditLog<Finding>
+    -findingLog: AuditLog<FindingId>
     +raiseFrom(InspectionClosed, Supplier<FindingId>): List<Finding>
     +raiseFrom(InspectionRectified, List<Finding>, Supplier<FindingId>): List<Finding>
-    +planAction(Finding, description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
-    +verifyAction(Finding, CorrectiveActionId, Person, VerificationResult, notes, Instant): Verification
+    +planAction(Finding, ActionPlan, Stamp, LocalDate): CorrectiveAction
+    +verifyAction(Finding, CorrectiveActionId, VerificationResult, notes, Stamp): Verification
   }
   class CorrectiveActions <<coleccion de primera clase, de paquete>> {
-    ~plan(description, Person, LocalDate, Person, Instant, LocalDate): CorrectiveAction
+    ~plan(ActionPlan, Stamp, LocalDate): CorrectiveAction
     ~withId(CorrectiveActionId): CorrectiveAction
-    ~cancelOpen(Person, Instant)
+    ~cancelOpen(Stamp)
     ~noneAccepted(): boolean
+    ~asList(): List<CorrectiveAction>
   }
   class CorrectiveAction <<entidad interna>> {
-    -description: String
-    -responsible: Person
-    -dueDate: LocalDate
-    -plannedBy: Person
-    -plannedAt: Instant
+    -id: CorrectiveActionId
+    -plan: ActionPlan
+    -planned: Stamp
     -verifications: List<Verification>
-    -cancellation: Cancellation
-    ~verify(Person, VerificationResult, notes, Instant): Verification
-    ~cancel(Person, Instant)
+    -cancellation: CancellationState
+    ~verify(VerificationResult, notes, Stamp): Verification
+    ~cancel(Stamp)
     +isClosed(): boolean
     +isCancelled(): boolean
     +isOpen(): boolean
     +isOverdueOn(LocalDate): boolean
   }
+  class ActionPlan <<value object>> {
+    description: String
+    responsible: Person
+    dueDate: LocalDate
+    ~ensureDueOnOrAfter(LocalDate)
+  }
   class Verification <<value object>> {
-    verifier: Person
     result: VerificationResult
     notes: String
-    verifiedAt: Instant
+    verified: Stamp
     +isAccepted(): boolean
   }
   enum VerificationResult {
@@ -422,9 +579,17 @@ package "inspection.model (hallazgos)" {
     +requiresNotes(): boolean
     +audit(): FindingAudit
   }
+  interface CancellationState {
+    +isCancelled(): boolean
+    +describedBy(CancellationStateDescriber<T>): T
+  }
+  class NotCancelled <<value object>>
   class Cancellation <<value object>> {
-    cancelledBy: Person
-    cancelledAt: Instant
+    cancelled: Stamp
+  }
+  interface "CancellationStateDescriber<T>" as CancellationStateDescriber {
+    +notCancelled(): T
+    +cancelled(Cancellation): T
   }
   enum FindingAudit {
     RAISED
@@ -433,13 +598,20 @@ package "inspection.model (hallazgos)" {
     VERIFICATION_REJECTED
   }
   FindingFactory ..> Finding : crea
+  FindingFactory ..> RaisesFindings : a partir de
   Finding *-- CorrectiveActions
   CorrectiveActions *-- CorrectiveAction
   Finding *-- AuditTrail
   Finding --> InspectionId : por id
   Finding --> Criterion
+  Finding --> SubsystemAssociation
   Finding --> "*" AttachedEvidence
+  CorrectiveAction --> ActionPlan
   CorrectiveAction *-- "*" Verification
+  CorrectiveAction --> CancellationState
+  CancellationState <|.. NotCancelled
+  CancellationState <|.. Cancellation
+  CancellationState ..> CancellationStateDescriber
   Verification --> VerificationResult
   AuditAction <|.. FindingAudit
 }
@@ -448,31 +620,51 @@ package "certification.model" {
   class Certificate <<aggregate root>> {
     -lifecycle: CertificateLifecycle
     -auditTrail: AuditTrail
-    ~suspend(reason, Person, Instant, LocalDate)
-    ~ensureRenewableWith(InspectionView)
-    ~renew(CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
-    +statusOn(LocalDate): CertificateStatus
+    ~suspend(reason, Stamp, LocalDate)
+    ~ensureRenewableWith(InspectionResult)
+    ~ensureReplaceableByGlobal(DecidedGlobalCertification)
+    ~renewedBy(Certificate, Stamp)
+    +statusOn(LocalDate, List<Certificate>): CertificateStatus
     +isCurrentOn(LocalDate): boolean
+    +isCurrentFor(CertificationScope, LocalDate): boolean
     +certifies(AssetCode): boolean
+    +isIssuedFor(SchemaReference): boolean
+    +wasDecidedUnder(JurisdictionCode): boolean
+    +certifiedSubsystems(): List<SubsystemCode>
     +number(): CertificateNumber
     +assetCode(): AssetCode
-    +basedOn(): InspectionReference
+    +basis(): CertificateBasis
+    +decision(): GrantedDecision
+    +scope(): CertificationScope
+    +schemaReference(): SchemaReference
     +validity(): ValidityPeriod
+    +latestInspectionClosedAt(): Instant
     +issuedBy(): Person
     +issuedAt(): Instant
     +suspensions(): List<Suspension>
     ~pullAuditEntries(): List<AuditEntry>
   }
   class CertificateFactory {
-    +create(CertificateNumber, AssetCode, InspectionView, ValidityPeriod, Person, Instant): Certificate
+    +create(CertificateNumber, InspectionResult, GrantedDecision, Stamp): Certificate
+    +createGlobal(CertificateNumber, DecidedGlobalCertification, Person): Certificate
   }
   class CertificateService <<servicio de dominio>> {
     -certificateFactory: CertificateFactory
-    -certificateLog: AuditLog<Certificate>
-    +issue(CertificateNumber, AssetCode, InspectionView, ValidityPeriod, Person, Instant): Certificate
-    +ensureRenewableWith(Certificate, InspectionView)
-    +renew(Certificate, CertificateNumber, ValidityPeriod, InspectionView, Person, Instant): Certificate
-    +suspend(Certificate, reason, Person, Instant, LocalDate)
+    -certificateLog: AuditLog<CertificateNumber>
+    +issue(CertificateNumber, InspectionResult, GrantedDecision, Stamp): Certificate
+    +ensureRenewableWith(Certificate, InspectionResult)
+    +renew(Certificate, CertificateNumber, GrantedDecision, InspectionResult, Stamp): Certificate
+    +suspend(Certificate, reason, Stamp, LocalDate)
+    +issueGlobal(CertificateNumber, DecidedGlobalCertification, Person): Certificate
+    +ensureGlobalRenewable(Certificate, DecidedGlobalCertification)
+    +markRenewed(Certificate, Certificate, Stamp)
+  }
+  class AssetCertificates <<coleccion de primera clase>> {
+    assetCode: AssetCode
+    certificates: List<Certificate>
+    +ensureScopeAvailable(CertificationScope, LocalDate)
+    +ensureScopeAvailableToReplace(Certificate, CertificationScope, LocalDate)
+    +statusOf(Certificate, LocalDate): CertificateStatus
   }
   class CertificateNumber <<identificador de negocio>>
   class ValidityPeriod <<value object>> {
@@ -480,22 +672,72 @@ package "certification.model" {
     validUntil: LocalDate
     +covers(LocalDate): boolean
   }
+  interface ValidityTerm {
+    +startingOn(LocalDate): ValidityPeriod
+  }
+  class MonthsTerm <<value object>> {
+    months: int
+  }
+  class DaysTerm <<value object>> {
+    days: int
+  }
   class Suspension <<value object>> {
     reason: String
-    suspendedBy: Person
-    suspendedAt: Instant
+    suspended: Stamp
   }
-  enum CertificateLifecycle <<de paquete>> {
+  interface CertificationScope {
+    +narrow(InspectionResult): InspectionResult
+    +requiresPartialCertificates(List<SubsystemResult>): boolean
+    +describedBy(CertificationScopeDescriber<T>): T
+  }
+  class WholeAssetScope <<value object>>
+  class SubsystemScope <<value object>> {
+    subsystemCode: SubsystemCode
+  }
+  interface "CertificationScopeDescriber<T>" as CertificationScopeDescriber {
+    +wholeAsset(): T
+    +subsystem(SubsystemCode): T
+  }
+  interface CertificateBasis {
+    +latestInspectionClosedAt(): Instant
+    +isSupportedOn(LocalDate, List<Certificate>): boolean
+    +backsGlobalCertificate(): boolean
+    +describedBy(CertificateBasisDescriber<T>): T
+  }
+  class InspectionBasis <<value object>> {
+    inspection: InspectionReference
+  }
+  class PartialCertificatesBasis <<value object>> {
+    partialCertificateNumbers: List<CertificateNumber>
+    globalPolicyCode: PolicyCode
+    latestInspectionClosedAt: Instant
+  }
+  interface "CertificateBasisDescriber<T>" as CertificateBasisDescriber {
+    +inspection(InspectionReference): T
+    +partialCertificates(List<CertificateNumber>, PolicyCode, Instant): T
+  }
+  class InspectionReference <<value object>> {
+    id: InspectionId
+    closedAt: Instant
+  }
+  class SchemaReference <<value object>> {
+    assetType: AssetType
+    number: int
+  }
+  enum CertificateLifecycle {
     ISSUED
     SUSPENDED
     RENEWED
     ~statusOn(ValidityPeriod, LocalDate): CertificateStatus
+    ~isReplaced(): boolean
   }
   enum CertificateStatus {
+    DEPENDENCY_INVALID
     ACTIVE
     EXPIRED
     SUSPENDED
     RENEWED
+    +isActive(): boolean
   }
   enum CertificateAudit {
     ISSUED
@@ -505,12 +747,26 @@ package "certification.model" {
   CertificateFactory ..> Certificate : crea
   Certificate *-- AuditTrail
   Certificate --> CertificateNumber
-  Certificate --> Asset
-  Certificate --> InspectionReference : basedOn (id + cierre)
-  Certificate --> ValidityPeriod
+  Certificate --> AssetCode : por codigo
+  Certificate --> CertificateBasis : basis
+  Certificate --> SchemaReference
   Certificate --> CertificateLifecycle
   Certificate *-- "*" Suspension
   CertificateLifecycle ..> CertificateStatus : deriva
+  AssetCertificates o-- "*" Certificate
+  CertificateBasis <|.. InspectionBasis
+  CertificateBasis <|.. PartialCertificatesBasis
+  CertificateBasis ..> CertificateBasisDescriber
+  InspectionBasis --> InspectionReference : id + cierre
+  InspectionReference --> InspectionId
+  PartialCertificatesBasis --> "*" CertificateNumber : parciales
+  CertificationScope <|.. WholeAssetScope
+  CertificationScope <|.. SubsystemScope
+  CertificationScope ..> CertificationScopeDescriber
+  SubsystemScope --> SubsystemCode
+  ValidityTerm <|.. MonthsTerm
+  ValidityTerm <|.. DaysTerm
+  ValidityTerm ..> ValidityPeriod
   AuditAction <|.. CertificateAudit
 }
 
@@ -518,27 +774,43 @@ package "<contexto>.repository" {
   interface AssetRepository {
     +save(Asset)
     +findByCode(AssetCode): Optional<Asset>
+    +findAll(): List<Asset>
+  }
+  interface AssetLock <<puerto>> {
+    +lock(AssetCode)
+  }
+  interface KnownJurisdictions <<puerto>> {
+    +isKnown(JurisdictionCode): boolean
   }
   interface InspectionSchemaRepository {
     +save(InspectionSchema)
+    +findForUpdate(AssetType): Optional<InspectionSchema>
     +findByAssetType(AssetType): Optional<InspectionSchema>
+    +findPage(PageRequest): Page<InspectionSchema>
   }
   interface InspectionRepository {
     +nextId(): InspectionId
     +save(Inspection)
     +findById(InspectionId): Optional<Inspection>
+    +assetCodeOf(InspectionId): Optional<AssetCode>
+    +findByAsset(AssetCode): List<Inspection>
+    +findAll(): List<Inspection>
   }
   interface FindingRepository {
     +nextId(): FindingId
     +save(Finding)
     +saveAll(List<Finding>)
     +findById(FindingId): Optional<Finding>
+    +assetCodeOf(FindingId): Optional<AssetCode>
     +findByAsset(AssetCode): List<Finding>
+    +findAll(): List<Finding>
   }
   interface CertificateRepository {
     +save(Certificate)
     +findByNumber(CertificateNumber): Optional<Certificate>
-    +findCurrentFor(AssetCode, LocalDate): Optional<Certificate>
+    +assetCodeOf(CertificateNumber): Optional<AssetCode>
+    +findByAsset(AssetCode): List<Certificate>
+    +findAll(): List<Certificate>
   }
   interface CertificateNumbering {
     +next(): CertificateNumber
@@ -546,74 +818,307 @@ package "<contexto>.repository" {
 }
 
 package "certification.model (elegibilidad)" {
-  interface CertificationEligibility <<servicio de dominio, politica intercambiable>> {
-    +evaluate(InspectionResult): CertificationDecision
-    +ensureEligible(InspectionResult)
+  class CertificationEligibility <<servicio de dominio>> {
+    -commonRequirements: Requirements<InspectionResult>
+    -certificationPolicies: CertificationPolicyResolver
+    +decide(CertificationAssessmentContext): CertificationDecision
   }
-  class NoBlockingFindingsEligibility
-  class CertificationDecision <<value object>> {
-    ineligibilities: List<Ineligibility>
+  class CertificationAssessmentContext <<value object>> {
+    result: InspectionResult
+    jurisdictionCode: JurisdictionCode
+    evaluatedAt: Instant
+    issuanceDate: LocalDate
+  }
+  class "Requirement<T>" as Requirement <<value object>> {
+    isMet: Predicate<T>
+    reason: IneligibilityReason
+    detail: Function<T, String>
+    ~isMetBy(T): boolean
+    ~ineligibilityOf(T): Ineligibility
+  }
+  class "Requirements<T>" as Requirements <<coleccion de primera clase>> {
+    requirements: List<Requirement<T>>
+    +unmetBy(T): List<Ineligibility>
+    +areMetBy(T): boolean
+  }
+  interface CertificationPolicyResolver <<puerto>> {
+    +find(JurisdictionCode): Optional<CertificationPolicy>
+    +resolve(JurisdictionCode): CertificationPolicy
+  }
+  interface RegisteredJurisdictions <<puerto>> {
+    +all(): List<JurisdictionPolicy>
+  }
+  class JurisdictionPolicy <<value object>> {
+    jurisdictionCode: JurisdictionCode
+    policyCode: PolicyCode
+  }
+  class PolicyCode <<value object>>
+  interface CertificationPolicy <<politica intercambiable>> {
+    +code(): PolicyCode
+    +evaluate(CertificationAssessmentContext): CertificationDecision
+  }
+  class SeverityCertificationPolicy {
+    -code: PolicyCode
+    -treatments: Map<Severity, FindingTreatment>
+    -approvedTerm: ValidityTerm
+  }
+  class PolicyAssessment {
+    +block(IneligibilityReason, OpenNonConformity)
+    +requireCondition(OpenNonConformity, ValidityTerm)
+    ~decision(): CertificationDecision
+  }
+  interface FindingTreatment {
+    +applyTo(OpenNonConformity, PolicyAssessment)
+  }
+  enum StandardFindingTreatment {
+    BLOCKS
+    TOLERATED
+    UNSUPPORTED
+  }
+  class ConditionalTreatment <<value object>> {
+    conditionalTerm: ValidityTerm
+  }
+  interface GlobalCertificationPolicy <<politica intercambiable>> {
+    +code(): PolicyCode
+    +evaluate(GlobalAssessmentContext): CertificationDecision
+  }
+  class AllRequiredSubsystemsPolicy
+  class GlobalAssessmentContext <<value object>> {
+    assetCode: AssetCode
+    schemaReference: SchemaReference
+    requiredSubsystems: Set<SubsystemCode>
+    partials: List<Certificate>
+    jurisdictionCode: JurisdictionCode
+    issuanceDate: LocalDate
+    evaluatedAt: Instant
+    +latestInspectionClosedAt(): Instant
+    +decidedWith(GrantedDecision, PolicyCode): DecidedGlobalCertification
+  }
+  interface CertificationDecision {
+    +outcome(): CertificationOutcome
     +isEligible(): boolean
-    +isBlockedBy(IneligibilityReason): boolean
+    +ineligibilities(): List<Ineligibility>
+    +conditions(): List<CertificationCondition>
+    +granted(): Optional<GrantedDecision>
+    +policyCode(): PolicyCode
+    +jurisdictionCode(): JurisdictionCode
+    +evaluatedAt(): Instant
+    +scope(): CertificationScope
+    +describedBy(CertificationDecisionDescriber<T>): T
+  }
+  class GrantedDecision <<value object>> {
+    conditions: List<CertificationCondition>
+    validity: ValidityPeriod
+    policyCode: PolicyCode
+    jurisdictionCode: JurisdictionCode
+    evaluatedAt: Instant
+    scope: CertificationScope
+  }
+  class RejectedDecision <<value object>> {
+    ineligibilities: List<Ineligibility>
+    policyCode: PolicyCode
+    jurisdictionCode: JurisdictionCode
+    evaluatedAt: Instant
+    scope: CertificationScope
+  }
+  interface "CertificationDecisionDescriber<T>" as CertificationDecisionDescriber {
+    +granted(GrantedDecision): T
+    +rejected(RejectedDecision): T
+  }
+  enum CertificationOutcome {
+    APPROVED
+    CONDITIONAL
+    REJECTED
+  }
+  class CertificationCondition <<value object>> {
+    findingId: String
+    criterionCode: String
+    description: String
+    dueDate: LocalDate
   }
   class Ineligibility <<value object>> {
     reason: IneligibilityReason
     detail: String
   }
-  enum IneligibilityReason {
+  interface IneligibilityReason <<enum extensible>> {
+    +code(): String
+  }
+  enum StandardIneligibilityReason {
+    UNSUPPORTED_SEVERITY
+    MISSING_SUBSYSTEM
+    INVALID_PARTIAL_CERTIFICATE
     INSPECTION_NOT_CLOSED
     PARTIAL_INSPECTION
+    REQUIRES_PARTIAL_CERTIFICATES
     BLOCKING_FINDINGS
+  }
+  class DecidedCertification <<value object>> {
+    result: InspectionResult
+    decision: GrantedDecision
+    +assetCode(): AssetCode
+    +scope(): CertificationScope
+    +validFrom(): LocalDate
+    +decidedAt(): Instant
+  }
+  class DecidedGlobalCertification <<value object>> {
+    assetCode: AssetCode
+    schemaReference: SchemaReference
+    requiredSubsystems: Set<SubsystemCode>
+    partialNumbers: List<CertificateNumber>
+    globalPolicyCode: PolicyCode
+    latestInspectionClosedAt: Instant
+    decision: GrantedDecision
+    +scope(): CertificationScope
+    +validFrom(): LocalDate
+    +decidedAt(): Instant
+    +certificateBasis(): CertificateBasis
   }
   class InspectionResult <<value object, ACL>> {
     inspectionId: InspectionId
     assetCode: AssetCode
-    closedAt: Optional<Instant>
+    closure: InspectionClosure
     coversWholeSchema: boolean
     openNonConformities: List<OpenNonConformity>
+    schemaReference: SchemaReference
+    subsystems: List<SubsystemResult>
+    scope: CertificationScope
+    +forScope(CertificationScope): InspectionResult
+    +requiresPartialCertificates(): boolean
+    +isClosed(): boolean
     +reference(): InspectionReference
-    +blockingNonConformities(): List<OpenNonConformity>
+  }
+  interface InspectionClosure {
+    +isClosed(): boolean
+    +referenceOf(InspectionId): Optional<InspectionReference>
+  }
+  class StillOpen <<value object>>
+  class ClosedAt <<value object>> {
+    closedAt: Instant
+  }
+  class SubsystemResult <<value object>> {
+    code: SubsystemCode
+    covered: boolean
+    openNonConformities: List<OpenNonConformity>
   }
   class OpenNonConformity <<value object>> {
     criterionCode: String
     severity: Severity
+    findingId: String
+    subsystem: SubsystemAssociation
+    +affects(SubsystemCode): boolean
   }
   interface InspectionResultTranslator <<puerto del ACL>> {
+    +assetCodeOf(InspectionId): AssetCode
     +translate(InspectionId): InspectionResult
   }
-  CertificationEligibility ..> InspectionResult
+  CertificationEligibility ..> CertificationAssessmentContext
+  CertificationAssessmentContext --> InspectionResult
+  CertificationEligibility --> Requirements : requisitos comunes
+  Requirements *-- "*" Requirement
+  Requirement --> IneligibilityReason
+  CertificationEligibility --> CertificationPolicyResolver
+  CertificationPolicyResolver ..> CertificationPolicy : por jurisdiccion
+  RegisteredJurisdictions ..> JurisdictionPolicy
+  CertificationPolicy <|.. SeverityCertificationPolicy
+  SeverityCertificationPolicy --> "*" FindingTreatment : por Severity
+  SeverityCertificationPolicy --> ValidityTerm : vigencia aprobada
+  SeverityCertificationPolicy ..> PolicyAssessment
+  FindingTreatment <|.. StandardFindingTreatment
+  FindingTreatment <|.. ConditionalTreatment
+  FindingTreatment ..> PolicyAssessment
+  ConditionalTreatment --> ValidityTerm
+  PolicyAssessment ..> CertificationDecision
+  GlobalCertificationPolicy <|.. AllRequiredSubsystemsPolicy
+  GlobalCertificationPolicy ..> GlobalAssessmentContext
+  AllRequiredSubsystemsPolicy ..> Requirements
+  GlobalAssessmentContext ..> DecidedGlobalCertification
   InspectionResult *-- OpenNonConformity
+  InspectionResult *-- "*" SubsystemResult
+  InspectionResult --> InspectionClosure
+  InspectionResult --> CertificationScope
+  InspectionResult --> SchemaReference
+  InspectionClosure <|.. StillOpen
+  InspectionClosure <|.. ClosedAt
+  SubsystemResult *-- "*" OpenNonConformity
   InspectionResultTranslator ..> InspectionResult
   CertificationEligibility ..> CertificationDecision
-  CertificationDecision *-- Ineligibility
+  CertificationDecision <|.. GrantedDecision
+  CertificationDecision <|.. RejectedDecision
+  CertificationDecision ..> CertificationDecisionDescriber
+  CertificationDecision ..> CertificationOutcome
+  CertificationDecision --> CertificationScope
+  CertificationDecision --> PolicyCode
+  GrantedDecision *-- "*" CertificationCondition
+  GrantedDecision --> ValidityPeriod
+  RejectedDecision *-- "*" Ineligibility
   Ineligibility --> IneligibilityReason
+  IneligibilityReason <|.. StandardIneligibilityReason
+  Certificate --> GrantedDecision : decision
+  PartialCertificatesBasis --> PolicyCode
+  DecidedCertification --> InspectionResult
+  DecidedCertification --> GrantedDecision
+  DecidedGlobalCertification --> GrantedDecision
+  CertificateFactory ..> DecidedGlobalCertification
 }
 
 package "<contexto>.usecase (certiflow-domain)" {
   interface "Casos de uso: una interfaz por caso" as UseCases <<puertos de entrada>> {
-    RegisterAsset
+    RegisterAsset / FindAsset / ListAssets
     CreateInspectionSchema / PublishSchemaVersion
+    FindSchema / ListSchemas / FindEffectiveSchemaVersion
     AssignInspection
     RecordAnswer / AttachEvidence / AddObservation
     CloseInspection / RectifyInspection
+    FindInspection / ListInspections
     PlanCorrectiveAction / VerifyCorrectiveAction
+    FindFinding / ListFindings
     IssueCertificate / SuspendCertificate / RenewCertificate / EvaluateCertification
+    IssueGlobalCertificate / RenewGlobalCertificate
+    FindCertificate / ListCertificates / ListJurisdictions
     GenerateInspectionAct / GenerateFindingsSummary / GenerateCertificateDocument
-    ..reciben un XxxCommand con ids y codigos..
+    AssetHistory / SchemaHistory / InspectionHistory / FindingHistory / CertificateHistory
+    ..los que modifican reciben un XxxCommand con ids y codigos..
   }
   class "Modelos de lectura (<contexto>.usecase)" as ReadModels {
     InspectionAct / ActLine
     FindingsSummary / FindingLine
-    CertificateDocument
-    ..records sin formato..
+    CertificateDocument / CertificateView
+    ..records sin formato; FindingsSummary.openFindings() se deriva..
+  }
+  interface RequestedEffectiveDate <<schema.usecase>> {
+    +resolveAt(Instant publishedAt): Instant
+  }
+  class EffectiveOnPublication <<value object>>
+  class EffectiveFrom <<value object>> {
+    effectiveFrom: Instant
+  }
+  interface RequestedRenewalScope <<certification.usecase>> {
+    +resolveAgainst(CertificationScope): CertificationScope
+  }
+  class SameScopeAsCurrent <<value object>>
+  class ExplicitRenewalScope <<value object>> {
+    requestedScope: CertificationScope
   }
   UseCases ..> ReadModels : los informes los devuelven
+  UseCases ..> RequestedEffectiveDate : PublishSchemaVersionCommand
+  UseCases ..> RequestedRenewalScope : RenewCertificateCommand
+  RequestedEffectiveDate <|.. EffectiveOnPublication
+  RequestedEffectiveDate <|.. EffectiveFrom
+  RequestedRenewalScope <|.. SameScopeAsCurrent
+  RequestedRenewalScope <|.. ExplicitRenewalScope
+  ExplicitRenewalScope --> CertificationScope
 }
 
 package "application.<contexto> (certiflow-application)" {
   class "XxxUseCaseImpl implements XxxUseCase" as Interactors {
     ..una implementación por caso de uso..
     ..busca por id, llama al servicio de dominio y guarda..
+  }
+  class "Servicios de aplicacion de certificacion" as CertificationApplicationServices {
+    CertificationAssessmentService
+    CertificateIssuanceService
+    GlobalCertificationService
+    ..pasos que comparten los casos de uso de certificacion..
   }
 }
 
@@ -622,39 +1127,60 @@ class InspectionResultTranslatorImpl <<ACL>>
 InspectionResultTranslator <|.. InspectionResultTranslatorImpl
 InspectionResultTranslatorImpl ..> InspectionRepository
 InspectionResultTranslatorImpl ..> FindingRepository
-CertificationEligibility <|.. NoBlockingFindingsEligibility
+InspectionResultTranslatorImpl ..> AssetRepository
+Interactors ..> CertificationApplicationServices
+CertificationApplicationServices ..> InspectionResultTranslator
+CertificationApplicationServices ..> CertificationEligibility
+CertificationApplicationServices ..> GlobalCertificationPolicy
+CertificationApplicationServices ..> AssetRepository
+CertificationApplicationServices ..> InspectionSchemaRepository
+CertificationApplicationServices ..> CertificateRepository
 Interactors ..> AssetRepository
+Interactors ..> AssetLock : serializa por activo
 Interactors ..> InspectionSchemaRepository
 Interactors ..> InspectionRepository
 Interactors ..> FindingRepository
 Interactors ..> CertificateRepository
 Interactors ..> CertificateNumbering
-Interactors ..> CertificationEligibility
-Interactors ..> AuditLog : solo el acta lo lee
+Interactors ..> RegisteredJurisdictions
+Interactors ..> AuditLog : lo leen el acta y los casos de uso de historial
 Interactors ..> InspectionService
 Interactors ..> FindingService
 Interactors ..> CertificateService
 Interactors ..> AssetService
 Interactors ..> InspectionSchemaService
+AssetService ..> AssetRepository
+AssetService ..> KnownJurisdictions
+AssetService ..> AuditLog : registra el alta
+InspectionSchemaService ..> AuditLog : registra cada version
 InspectionService ..> AuditLog : vuelca la bitacora
 FindingService ..> AuditLog : vuelca la bitacora
 CertificateService ..> AuditLog : vuelca la bitacora
 
-package "infrastructure.inmemory (certiflow-infrastructure)" {
-  class InMemoryAssetRepository
-  class InMemoryInspectionSchemaRepository
-  class InMemoryInspectionRepository
-  class InMemoryFindingRepository
-  class InMemoryCertificateRepository
-  class "InMemoryAuditLog<S>" as InMemoryAuditLog
-  class SequentialCertificateNumbering
-  AssetRepository <|.. InMemoryAssetRepository
-  InspectionSchemaRepository <|.. InMemoryInspectionSchemaRepository
-  InspectionRepository <|.. InMemoryInspectionRepository
-  FindingRepository <|.. InMemoryFindingRepository
-  CertificateRepository <|.. InMemoryCertificateRepository
-  AuditLog <|.. InMemoryAuditLog
-  CertificateNumbering <|.. SequentialCertificateNumbering
+package "infrastructure.<contexto>.persistence (certiflow-infrastructure)" {
+  class JpaAssetRepository
+  class JpaAssetLock
+  class JpaInspectionSchemaRepository
+  class JpaInspectionRepository
+  class JpaFindingRepository
+  class JpaCertificateRepository
+  class "JpaAuditLog<S>" as JpaAuditLog
+  class SequenceCertificateNumbering
+  AssetRepository <|.. JpaAssetRepository
+  AssetLock <|.. JpaAssetLock
+  InspectionSchemaRepository <|.. JpaInspectionSchemaRepository
+  InspectionRepository <|.. JpaInspectionRepository
+  FindingRepository <|.. JpaFindingRepository
+  CertificateRepository <|.. JpaCertificateRepository
+  AuditLog <|.. JpaAuditLog
+  CertificateNumbering <|.. SequenceCertificateNumbering
+}
+
+package "infrastructure.certification.policy (certiflow-infrastructure)" {
+  class ConfiguredPolicyResolver
+  CertificationPolicyResolver <|.. ConfiguredPolicyResolver
+  RegisteredJurisdictions <|.. ConfiguredPolicyResolver
+  KnownJurisdictions <|.. ConfiguredPolicyResolver
 }
 
 note as Snapshots

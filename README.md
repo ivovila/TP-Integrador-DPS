@@ -11,7 +11,9 @@ Requiere JDK 25 y Maven 3.9 o superior.
 mvn clean verify
 ```
 
-Compila y corre todos los tests: dominio, casos de uso, repositorios (sobre H2 en modo PostgreSQL) y API.
+Compila y corre todos los tests: dominio, casos de uso, repositorios (sobre H2 en modo PostgreSQL), API y las
+reglas de arquitectura (`ArchitectureRulesTest`, que hace fallar el build si se rompe una frontera entre capas o
+entre contextos; ver D30 en `DESIGN.md`).
 Usar siempre `clean`: si un IDE compila en paralelo hacia `target/`, puede dejar clases o recursos duplicados.
 
 Para levantar la aplicación contra PostgreSQL:
@@ -40,8 +42,8 @@ certiflow-domain            modelo y contratos; no depende de nada
 certiflow-application       implementación de los casos de uso (XxxUseCaseImpl) y el ACL de certificación
 └── ar/edu/itba/certiflow/application/<contexto>
 
-certiflow-infrastructure    adaptadores: JPA, Flyway, numeración, bitácora; repositorios en memoria para tests
-└── ar/edu/itba/certiflow/infrastructure/<contexto>/persistence, inmemory
+certiflow-infrastructure    adaptadores: JPA, Flyway, numeración, bitácora, bloqueo por activo
+└── ar/edu/itba/certiflow/infrastructure/<contexto>/persistence
 
 certiflow-web               Spring Boot: controladores REST, recursos HAL, composición, transacciones, errores
 └── ar/edu/itba/certiflow/web/<contexto>, config, support

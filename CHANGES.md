@@ -646,3 +646,48 @@ Siguiendo [docs/specs/2026-10-13-login.md](docs/specs/2026-10-13-login.md) §8.
   llegan a cada registro por el menú del rol.
 - Tests: `RoleReadAccessApiTest` (colección × rol y guarda de `@ReadableBy`), login por usuario en la API y en la
   interfaz, `AssetDetailPage.test.tsx`, secciones bloqueadas en `navigation.test.tsx`.
+
+## 2026-10-13 · Revisión de calidad del backend
+
+Siguiendo [docs/specs/2026-10-13-calidad-backend.md](docs/specs/2026-10-13-calidad-backend.md) y su
+[plan](docs/plans/2026-10-13-calidad-backend.md). Alcance: dominio, aplicación e infraestructura. En `certiflow-web`
+solo se tocó lo que dejaba de compilar, con el mismo JSON; lo demás queda listado en el plan para un plan propio.
+No hay migración: lo guardado y las respuestas de la API conservan su forma.
+
+- **Decisión de certificación y plazos.** `CertificationDecision` es `GrantedDecision` o `RejectedDecision`; un
+  certificado solo se construye con la primera y deriva de ella su alcance y su vigencia. `ValidityTerm` es
+  `MonthsTerm` o `DaysTerm`.
+- **Sin `sealed`, `switch` ni `instanceof`.** Alcance, base y alcance de inspección responden por sí mismos o se
+  describen a un receptor (`describedBy`), en el dominio, en persistencia y en los payloads.
+- **Respuestas.** `RawAnswer` lleva el texto tal como llegó y cada regla interpreta el suyo; `Answer` y
+  `ApprovalRule` se describen a un receptor. `"7"` vale para un criterio numérico y `"true"` para uno de sí/no.
+- **Ausencias como variantes.** `SubsystemAssociation`, `Answering`, `CancellationState`, `InspectionClosure`,
+  `RequestedEffectiveDate`. No queda ningún `null` en dominio ni en aplicación.
+- **Catálogos.** `SeverityCatalog`, `EvidenceKindCatalog` y `AuditActionCatalog`, armados en la composición;
+  `AuditAction.code()` es el texto que ya se guardaba.
+- **Excepciones.** Tres categorías bajo `DomainException` que deciden el estado HTTP. Pasan de 409 a 400:
+  `AssignerCannotInspectException`, `DueDateInThePastException`, `InvalidValidityPeriodException`,
+  `RectificationReasonRequiredException`, `VerificationNotesRequiredException`. Títulos nuevos:
+  `AssetLacksRequiredSubsystemsException`, `DuplicateSubsystemCodeException`, `UnknownJurisdictionException`,
+  `RenewalScopeMismatchException`, `NotAGlobalCertificateException`, `ReplacementForAnotherAssetException`
+  (antes `InspectionOfAnotherAssetException`), `InspectionNotClosedForCertificationException`.
+- **Reglas en el dominio.** `CertificationEligibility`, `AssetCertificates`, `Requirements`, `SchemaSections`
+  (los subsistemas que exige una versión se derivan de sus criterios); las políticas de ejemplo se arman en la
+  composición; registrar un activo pregunta por la jurisdicción a un puerto del catálogo.
+- **Reloj.** El reloj inyectado entrega microsegundos y la fecha de vigencia que manda el cliente se trunca al
+  entrar; se van `StoredInstant` e `Instants`.
+- **Bloqueo por activo explícito.** Cada uno de los ocho casos de uso que cambian algo de un activo resuelve su
+  código, lo bloquea con `AssetLock` y recién después carga. Se van `LocksAsset`, `AssetLockKey` y
+  `CertificationTransactionLocks`. El historial es un caso de uso por contexto; se va `AuditSubject`.
+- **Persistencia.** Los utilitarios estáticos son objetos (`StoredJson`, `XxxDocumentMapper`) que el repositorio
+  le pasa a la entidad; constructores en lugar de `from` y `of`; `StoredSchemaVersions` en lugar de depender del
+  repositorio concreto de esquemas.
+- **Nombres y value objects.** `Stamp(author, instant)`; `CriterionCode`, `SectionTitle`, `PolicyCode`;
+  `ActionPlan` con su regla; se borra lo que solo llamaban los tests.
+- **Reglas ejecutables.** `ArchitectureRulesTest` (ArchUnit): capas, contextos, frameworks y categorías de
+  excepción.
+- **Frontend.** `DomainError.ts` conoce los títulos nuevos y el contrato espera
+  `AssetLacksRequiredSubsystemsException`, `UnknownJurisdictionException` y `ReplacementForAnotherAssetException`.
+- **CI.** La sonda del job `e2e` entra como `ana.torres`.
+- `DESIGN.md`: D26 a D30 nuevas; D1, D2, D5, D7, D8, D10, D11, D12, D16, D17, D18, D19, D20 y D21 actualizadas;
+  mapa de dependencias y limitaciones al día.
