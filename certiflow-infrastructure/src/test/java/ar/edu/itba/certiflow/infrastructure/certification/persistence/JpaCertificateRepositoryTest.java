@@ -28,11 +28,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
 @Import({JpaCertificateRepository.class, SequenceCertificateNumbering.class, JpaInspectionRepository.class,
-        JpaInspectionSchemaRepository.class})
+        JpaInspectionSchemaRepository.class, PersistenceMappers.class})
 class JpaCertificateRepositoryTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 3, 10);

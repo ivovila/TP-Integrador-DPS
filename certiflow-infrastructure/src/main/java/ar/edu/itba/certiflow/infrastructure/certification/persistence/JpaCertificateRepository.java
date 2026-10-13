@@ -6,6 +6,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateSnapshot;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
@@ -16,16 +17,22 @@ public class JpaCertificateRepository implements CertificateRepository {
     private final SpringDataCertificateRepository certificates;
     private final CertificateFactory factory = new CertificateFactory();
 
-    public JpaCertificateRepository(SpringDataCertificateRepository certificates) {
+    private final DecisionDocumentMapper decisionDocuments;
+    private final CodesDocumentMapper codeDocuments;
+
+    public JpaCertificateRepository(SpringDataCertificateRepository certificates,
+                                    DecisionDocumentMapper decisionDocuments, CodesDocumentMapper codeDocuments) {
         this.certificates = certificates;
+        this.decisionDocuments = decisionDocuments;
+        this.codeDocuments = codeDocuments;
     }
 
     @Override
     public void save(Certificate certificate) {
         CertificateSnapshot snapshot = certificate.snapshot();
         certificates.findById(snapshot.number().value()).ifPresentOrElse(
-                existing -> existing.copyFrom(snapshot),
-                () -> certificates.save(CertificateEntity.from(snapshot)));
+                existing -> existing.copyFrom(snapshot, decisionDocuments, codeDocuments),
+                () -> certificates.save(new CertificateEntity(snapshot, decisionDocuments, codeDocuments)));
     }
 
     @Override
@@ -44,6 +51,6 @@ public class JpaCertificateRepository implements CertificateRepository {
     }
 
     private Certificate restore(CertificateEntity entity) {
-        return factory.restore(entity.toSnapshot());
+        return factory.restore(entity.toSnapshot(decisionDocuments, codeDocuments));
     }
 }

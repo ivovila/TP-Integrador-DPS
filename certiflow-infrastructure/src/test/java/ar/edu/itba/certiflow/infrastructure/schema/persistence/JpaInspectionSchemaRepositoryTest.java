@@ -24,17 +24,20 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
 import ar.edu.itba.certiflow.shared.model.Page;
 import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 @DataJpaTest
-@Import(JpaInspectionSchemaRepository.class)
+@Import({JpaInspectionSchemaRepository.class, PersistenceMappers.class})
 class JpaInspectionSchemaRepositoryTest {
 
 
     @Autowired
     private JpaInspectionSchemaRepository repository;
+    @Autowired
+    private StoredSchemaVersions storedSchemaVersions;
     @Autowired
     private EntityManager entityManager;
 
@@ -57,14 +60,18 @@ class JpaInspectionSchemaRepositoryTest {
         InspectionSchema first = new InspectionSchema("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"));
         repository.save(first);
         entityManager.flush();
-        Long firstVersionId = repository.versionEntity(extinguisher, 1).getId();
+        Object firstVersionId = rowIdOf(storedSchemaVersions.entityOf(extinguisher, 1));
 
         repository.save(first.withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-05T00:00:00Z"), Instant.parse("2026-03-05T00:00:00Z"), Set.of()));
         entityManager.flush();
         entityManager.clear();
 
-        assertEquals(firstVersionId, repository.versionEntity(extinguisher, 1).getId());
+        assertEquals(firstVersionId, rowIdOf(storedSchemaVersions.entityOf(extinguisher, 1)));
         assertEquals(2, repository.findByAssetType(extinguisher).orElseThrow().versions().size());
+    }
+
+    private Object rowIdOf(SchemaVersionEntity versionEntity) {
+        return entityManager.getEntityManagerFactory().getPersistenceUnitUtil().getIdentifier(versionEntity);
     }
 
     @Test

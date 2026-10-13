@@ -27,11 +27,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 
 @DataJpaTest
-@Import({JpaInspectionRepository.class, JpaInspectionSchemaRepository.class})
+@Import({JpaInspectionRepository.class, JpaInspectionSchemaRepository.class, PersistenceMappers.class})
 class JpaInspectionRepositoryTest {
 
     @Autowired

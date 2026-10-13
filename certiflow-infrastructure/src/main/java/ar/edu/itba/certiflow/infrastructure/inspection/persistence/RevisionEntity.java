@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.inspection.model.Revision;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.Instant;
@@ -24,20 +24,18 @@ public class RevisionEntity {
     protected RevisionEntity() {
     }
 
-    static RevisionEntity from(Revision revision) {
-        RevisionEntity entity = new RevisionEntity();
-        PersonColumns by = PersonColumns.of(revision.sealedBy());
-        entity.number = revision.number();
-        entity.reason = revision.reason();
-        entity.sealedById = by.id();
-        entity.sealedByName = by.name();
-        entity.sealedAt = revision.sealedAt();
-        entity.evaluation = EvaluationJson.write(revision.evaluation());
-        return entity;
+    RevisionEntity(Revision revision, EvaluationDocumentMapper evaluationDocuments) {
+        PersonColumns sealedBy = new PersonColumns(revision.sealedBy());
+        this.number = revision.number();
+        this.reason = revision.reason();
+        this.sealedById = sealedBy.id();
+        this.sealedByName = sealedBy.name();
+        this.sealedAt = revision.sealedAt();
+        this.evaluation = evaluationDocuments.write(revision.evaluation());
     }
 
-    Revision toDomain(SchemaVersion version) {
-        return new Revision(number, reason, EvaluationJson.read(evaluation, version),
+    Revision toDomain(SchemaVersion version, EvaluationDocumentMapper evaluationDocuments) {
+        return new Revision(number, reason, evaluationDocuments.read(evaluation, version),
                 new Stamp(new PersonColumns(sealedById, sealedByName).toDomain(), sealedAt));
     }
 }

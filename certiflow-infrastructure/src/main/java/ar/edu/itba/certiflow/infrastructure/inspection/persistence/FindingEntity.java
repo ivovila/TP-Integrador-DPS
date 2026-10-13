@@ -1,7 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
-import ar.edu.itba.certiflow.infrastructure.schema.persistence.SectionsJson;
+import ar.edu.itba.certiflow.infrastructure.schema.persistence.SectionsDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SubsystemColumn;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionSnapshot;
@@ -22,6 +22,7 @@ import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Entity
 @Table(name = "finding")
@@ -52,34 +53,33 @@ public class FindingEntity {
     protected FindingEntity() {
     }
 
-    FindingEntity(FindingSnapshot snapshot) {
+    FindingEntity(FindingSnapshot snapshot, SectionsDocumentMapper sectionsDocuments) {
         this.id = snapshot.id().value();
         this.inspectionId = snapshot.inspectionId().value();
         this.assetCode = snapshot.assetCode().value();
-        this.criterion = SectionsJson.writeCriterion(snapshot.criterion());
+        this.criterion = sectionsDocuments.writeCriterion(snapshot.criterion());
         this.subsystemCode = new SubsystemColumn(snapshot.subsystem()).subsystemCode();
-        PersonColumns responsible = PersonColumns.of(snapshot.responsible());
+        PersonColumns responsible = new PersonColumns(snapshot.responsible());
         this.responsibleId = responsible.id();
         this.responsibleName = responsible.name();
-        snapshot.evidence().forEach(attached -> evidence.add(EvidenceEmbeddable.of(attached)));
+        snapshot.evidence().forEach(attached -> evidence.add(new EvidenceEmbeddable(attached)));
         copyActionsFrom(snapshot);
     }
 
+    /** Las acciones solo crecen: se actualizan las filas que ya existen y después se agregan las nuevas. */
     void copyActionsFrom(FindingSnapshot snapshot) {
         List<CorrectiveActionSnapshot> current = snapshot.actions();
-        for (int index = 0; index < current.size(); index++) {
-            if (index < actions.size()) {
-                actions.get(index).copyFrom(current.get(index));
-            } else {
-                actions.add(CorrectiveActionEntity.from(id, current.get(index)));
-            }
-        }
+        int storedActions = actions.size();
+        IntStream.range(0, storedActions).forEach(index -> actions.get(index).copyFrom(current.get(index)));
+        current.subList(storedActions, current.size())
+                .forEach(addedAction -> actions.add(new CorrectiveActionEntity(id, addedAction)));
     }
 
-    FindingSnapshot toSnapshot() {
+    FindingSnapshot toSnapshot(SectionsDocumentMapper sectionsDocuments) {
         return new FindingSnapshot(new FindingId(id), new InspectionId(inspectionId), new AssetCode(assetCode),
-                SectionsJson.readCriterion(criterion), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
+                sectionsDocuments.readCriterion(criterion), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
-                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(), new SubsystemColumn(subsystemCode).association());
+                actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(),
+                new SubsystemColumn(subsystemCode).association());
     }
 }

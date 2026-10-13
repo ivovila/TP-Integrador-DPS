@@ -19,7 +19,7 @@ public class JpaAuditLog<S> implements AuditLog<S> {
 
     @Override
     public void record(S subject, AuditEntry entry) {
-        entries.save(AuditEntryEntity.of(subjectType, idOf.apply(subject), entry));
+        entries.save(new AuditEntryEntity(subjectType, idOf.apply(subject), entry));
     }
 
     @Override

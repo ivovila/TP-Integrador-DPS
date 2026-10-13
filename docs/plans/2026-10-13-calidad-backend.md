@@ -47,34 +47,34 @@
 
 ### Task 0: Base en verde
 
-- [ ] El job `e2e` de CI falla en `c7d4b7a` porque su sonda entra con un id de persona y el login ya es por nombre de usuario. Se corrige la sonda.
+- [x] El job `e2e` de CI falla en `c7d4b7a` porque su sonda entra con un id de persona y el login ya es por nombre de usuario. Se corrige la sonda.
 - [x] Decisiones confirmadas el 2026-10-13 (spec §9.1). **Alcance: dominio, aplicación e infraestructura.** Las tareas 10, 11 y 12 quedan para el plan del módulo web.
 
 ### Task 1: Decisión de certificación y plazos (spec §5.1)
 
-- [ ] `CertificationDecision` como interfaz con `GrantedDecision` y `RejectedDecision`; `Certificate` recibe un `GrantedDecision` y deja de guardar `scope` y `validity`.
-- [ ] `MonthsTerm`, `DaysTerm` y `ConditionalTreatment`; se va `ValidityTerm.notGranted()`.
-- [ ] Los enums de ciclo de vida y estado responden en lugar de compararse.
-- [ ] `DecisionJson` y los payloads de decisión escriben el mismo JSON. Test de ida y vuelta.
+- [x] `CertificationDecision` como interfaz con `GrantedDecision` y `RejectedDecision`; `Certificate` recibe un `GrantedDecision` y deja de guardar `scope` y `validity`.
+- [x] `MonthsTerm`, `DaysTerm` y `ConditionalTreatment`; se va `ValidityTerm.notGranted()`.
+- [x] Los enums de ciclo de vida y estado responden en lugar de compararse.
+- [x] `DecisionJson` y los payloads de decisión escriben el mismo JSON. Test de ida y vuelta.
 
 ### Task 2: Alcance, base y alcance de inspección (spec §5.2)
 
-- [ ] `CertificationScope` y `CertificateBasis` sin `sealed`, con su comportamiento y su receptor; `InspectionScope` con su receptor.
-- [ ] Receptores en `CertificateEntity`, `InspectionEntity`, `DecisionJson`, payloads y links; lectura de `scope_type` y `basis_type` por selección.
-- [ ] Se borran `Certificate.basedOn()` y `inspectionId` del recurso; el alcance pedido al renovar es una variante.
-- [ ] Verificación: secciones 1, 2 y 3 del inventario en cero, salvo excepciones y seguridad.
+- [x] `CertificationScope` y `CertificateBasis` sin `sealed`, con su comportamiento y su receptor; `InspectionScope` con su receptor.
+- [x] Receptores en `CertificateEntity`, `InspectionEntity`, `DecisionJson`, payloads y links; lectura de `scope_type` y `basis_type` por selección.
+- [x] Se borran `Certificate.basedOn()` y `inspectionId` del recurso; el alcance pedido al renovar es una variante.
+- [x] Verificación: secciones 1, 2 y 3 del inventario en cero, salvo excepciones y seguridad.
 
 ### Task 3: Respuestas (spec §5.3)
 
-- [ ] `RawAnswer` con texto; cada regla interpreta el suyo; `RawAnswerTest` con los casos nuevos.
-- [ ] `Answer.describedBy`; receptores en `AnswerColumns`, `EvaluationJson` y los dos recursos de la API.
-- [ ] Se van el registro de `AnswerColumns` y la tabla de `RawAnswers`.
+- [x] `RawAnswer` con texto; cada regla interpreta el suyo; `RawAnswerTest` con los casos nuevos.
+- [x] `Answer.describedBy`; receptores en `AnswerColumns`, `EvaluationJson` y los dos recursos de la API.
+- [x] Se van el registro de `AnswerColumns` y la tabla de `RawAnswers`.
 
 ### Task 4: Ausencias del dominio (spec §5.4)
 
-- [ ] `SubsystemAssociation` en criterio, sección, hallazgo, línea y no conformidad.
-- [ ] `NotAnswered`, `NotCancelled`, `StillOpen` y `EffectiveOnPublication` con sus pares; `InspectionResult` sin excepciones del contexto de inspección.
-- [ ] Verificación: cero `null` y cero `Optional.ofNullable` en dominio y aplicación.
+- [x] `SubsystemAssociation` en criterio, sección, hallazgo, línea y no conformidad.
+- [x] `NotAnswered`, `NotCancelled`, `StillOpen` y `EffectiveOnPublication` con sus pares; `InspectionResult` sin excepciones del contexto de inspección.
+- [x] Verificación: cero `null` y cero `Optional.ofNullable` en dominio y aplicación.
 
 ### Task 5: Reglas, catálogos y acciones de bitácora (spec §5.5)
 
@@ -108,9 +108,11 @@
 
 ### Task 9: Infraestructura (spec §5.9)
 
-- [ ] Las utilitarias como objetos; un solo `JsonMapper`; constructores en lugar de `from` y `of`.
-- [ ] Fusiones posicionales sin condición; `JpaInspectionRepository` sin la clase concreta de esquemas.
-- [ ] Se borra el código sin uso.
+**Orden real: se hizo antes de la Task 5.** Los catálogos y los lectores de reglas de la Task 5 necesitan un objeto donde inyectarse, y las utilitarias estáticas no lo ofrecen. Quedan para más adelante lo que depende de otras tareas: `AuditActions` (Task 5), `Instants` (Task 7) y `CertificationTransactionLocks` (Task 8).
+
+- [x] Las utilitarias como objetos; un solo `JsonMapper`; constructores en lugar de `from` y `of`.
+- [x] Fusiones posicionales sin condición; `JpaInspectionRepository` sin la clase concreta de esquemas.
+- [x] Se borra el código sin uso.
 
 ### Task 10: Web (spec §5.10) · diferida al plan del módulo web
 

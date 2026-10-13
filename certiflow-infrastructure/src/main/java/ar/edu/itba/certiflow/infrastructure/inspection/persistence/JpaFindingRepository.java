@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.infrastructure.schema.persistence.SectionsDocumentMapper;
 import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingFactory;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -17,8 +18,11 @@ public class JpaFindingRepository implements FindingRepository {
     private final SpringDataFindingRepository findings;
     private final FindingFactory factory = new FindingFactory();
 
-    public JpaFindingRepository(SpringDataFindingRepository findings) {
+    private final SectionsDocumentMapper sectionsDocuments;
+
+    public JpaFindingRepository(SpringDataFindingRepository findings, SectionsDocumentMapper sectionsDocuments) {
         this.findings = findings;
+        this.sectionsDocuments = sectionsDocuments;
     }
 
     @Override
@@ -31,7 +35,7 @@ public class JpaFindingRepository implements FindingRepository {
         FindingSnapshot snapshot = finding.snapshot();
         findings.findById(snapshot.id().value()).ifPresentOrElse(
                 existing -> existing.copyActionsFrom(snapshot),
-                () -> findings.save(new FindingEntity(snapshot)));
+                () -> findings.save(new FindingEntity(snapshot, sectionsDocuments)));
     }
 
     @Override
@@ -55,6 +59,6 @@ public class JpaFindingRepository implements FindingRepository {
     }
 
     private Finding restore(FindingEntity entity) {
-        return factory.restore(entity.toSnapshot());
+        return factory.restore(entity.toSnapshot(sectionsDocuments));
     }
 }

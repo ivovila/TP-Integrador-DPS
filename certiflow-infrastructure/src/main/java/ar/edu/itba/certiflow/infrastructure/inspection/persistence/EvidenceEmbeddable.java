@@ -25,16 +25,14 @@ public class EvidenceEmbeddable {
     protected EvidenceEmbeddable() {
     }
 
-    static EvidenceEmbeddable of(AttachedEvidence attached) {
-        EvidenceEmbeddable embeddable = new EvidenceEmbeddable();
-        PersonColumns by = PersonColumns.of(attached.attachedBy());
-        embeddable.kind = attached.evidence().kind().code();
-        embeddable.reference = attached.evidence().reference();
-        embeddable.description = attached.evidence().description();
-        embeddable.attachedById = by.id();
-        embeddable.attachedByName = by.name();
-        embeddable.attachedAt = attached.attachedAt();
-        return embeddable;
+    EvidenceEmbeddable(AttachedEvidence attached) {
+        PersonColumns attachedBy = new PersonColumns(attached.attachedBy());
+        this.kind = attached.evidence().kind().code();
+        this.reference = attached.evidence().reference();
+        this.description = attached.evidence().description();
+        this.attachedById = attachedBy.id();
+        this.attachedByName = attachedBy.name();
+        this.attachedAt = attached.attachedAt();
     }
 
     AttachedEvidence toDomain() {

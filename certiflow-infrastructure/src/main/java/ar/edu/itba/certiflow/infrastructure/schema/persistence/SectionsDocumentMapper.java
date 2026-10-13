@@ -1,10 +1,10 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SubsystemColumn;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
-import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
 import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
 import ar.edu.itba.certiflow.schema.model.OptionInListRule;
@@ -23,12 +23,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
+import org.springframework.stereotype.Component;
 
-public final class SectionsJson {
-
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+@Component
+public class SectionsDocumentMapper {
 
     record SectionDocument(String title, List<CriterionDocument> criteria, String subsystemCode) {
     }
@@ -63,61 +61,69 @@ public final class SectionsJson {
                     (type, option) -> new RuleDocument(type, null, null, null, null, new TreeSet<>(option.acceptedOptions())),
                     document -> new OptionInListRule(document.options())));
 
-    private SectionsJson() {
+    private final StoredJson storedJson;
+
+    public SectionsDocumentMapper(StoredJson storedJson) {
+        this.storedJson = storedJson;
     }
 
-    public static String write(List<Section> sections) {
-        return MAPPER.writeValueAsString(sections.stream()
-                .map(section -> new SectionDocument(section.title(), section.criteria().stream().map(SectionsJson::document).toList(), new SubsystemColumn(section.subsystem()).subsystemCode()))
-                .toList());
+    public String write(List<Section> sections) {
+        return storedJson.write(sections.stream().map(this::sectionDocumentOf).toList());
     }
 
-    public static List<Section> read(String json) {
-        List<SectionDocument> documents = MAPPER.readValue(json, new TypeReference<List<SectionDocument>>() {
-        });
-        return documents.stream()
-                .map(document -> new Section(document.title(), document.criteria().stream().<Criterion<?>>map(SectionsJson::criterion).toList(), new SubsystemColumn(document.subsystemCode()).association()))
-                .toList();
+    public List<Section> read(String storedSections) {
+        return storedJson.readListOf(storedSections, SectionDocument.class).stream().map(this::sectionOf).toList();
     }
 
-    public static String writeCriterion(Criterion<?> criterion) {
-        return MAPPER.writeValueAsString(document(criterion));
+    public String writeCriterion(Criterion<?> criterion) {
+        return storedJson.write(criterionDocumentOf(criterion));
     }
 
-    public static Criterion<?> readCriterion(String json) {
-        return criterion(MAPPER.readValue(json, CriterionDocument.class));
+    public Criterion<?> readCriterion(String storedCriterion) {
+        return criterionOf(storedJson.read(storedCriterion, CriterionDocument.class));
     }
 
-    private static CriterionDocument document(Criterion<?> criterion) {
-        return new CriterionDocument(criterion.code(), criterion.text(), document(criterion.rule()), criterion.severity().code(),
+    private SectionDocument sectionDocumentOf(Section section) {
+        return new SectionDocument(section.title(),
+                section.criteria().stream().map(this::criterionDocumentOf).toList(),
+                new SubsystemColumn(section.subsystem()).subsystemCode());
+    }
+
+    private Section sectionOf(SectionDocument document) {
+        return new Section(document.title(),
+                document.criteria().stream().<Criterion<?>>map(this::criterionOf).toList(),
+                new SubsystemColumn(document.subsystemCode()).association());
+    }
+
+    private CriterionDocument criterionDocumentOf(Criterion<?> criterion) {
+        return new CriterionDocument(criterion.code(), criterion.text(), ruleDocumentOf(criterion.rule()),
+                criterion.severity().code(),
                 criterion.requiredEvidence().stream()
                         .map(requirement -> new EvidenceDocument(requirement.kind().code(), requirement.minimum()))
-                        .toList(), new SubsystemColumn(criterion.subsystem()).subsystemCode());
+                        .toList(),
+                new SubsystemColumn(criterion.subsystem()).subsystemCode());
     }
 
-    private static RuleDocument document(ApprovalRule<?> rule) {
+    private RuleDocument ruleDocumentOf(ApprovalRule<?> rule) {
         return RULES.stream().flatMap(codec -> codec.documentOf(rule).stream()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No JSON mapping for rule " + rule.getClass().getName()));
     }
 
-    private static Criterion<?> criterion(CriterionDocument document) {
+    private Criterion<?> criterionOf(CriterionDocument document) {
         List<EvidenceRequirement> evidence = document.requiredEvidence().stream()
-                .map(requirement -> new EvidenceRequirement(evidenceKind(requirement.kind()), requirement.minimum()))
+                .map(requirement -> new EvidenceRequirement(StandardEvidenceKind.valueOf(requirement.kind()),
+                        requirement.minimum()))
                 .toList();
         Severity severity = StandardSeverity.valueOf(document.severity());
         ApprovalRule<?> rule = RULES.stream().filter(codec -> codec.type().equals(document.rule().type())).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown rule type " + document.rule().type()))
                 .read().apply(document.rule());
-        return criterion(document, rule, severity, evidence);
+        return criterionOf(document, rule, severity, evidence);
     }
 
-    private static <A extends Answer> Criterion<A> criterion(CriterionDocument document, ApprovalRule<A> rule, Severity severity,
-                                                             List<EvidenceRequirement> evidence) {
+    private <A extends Answer> Criterion<A> criterionOf(CriterionDocument document, ApprovalRule<A> rule,
+                                                        Severity severity, List<EvidenceRequirement> evidence) {
         return new Criterion<>(document.code(), document.text(), rule, severity, evidence,
                 new SubsystemColumn(document.subsystemCode()).association());
-    }
-
-    private static EvidenceKind evidenceKind(String name) {
-        return StandardEvidenceKind.valueOf(name);
     }
 }

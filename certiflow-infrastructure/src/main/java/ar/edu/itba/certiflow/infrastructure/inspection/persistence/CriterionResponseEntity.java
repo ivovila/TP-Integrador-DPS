@@ -48,10 +48,8 @@ public class CriterionResponseEntity {
     protected CriterionResponseEntity() {
     }
 
-    static CriterionResponseEntity from(CriterionResponse<?> response) {
-        CriterionResponseEntity entity = new CriterionResponseEntity();
-        entity.copyFrom(response);
-        return entity;
+    CriterionResponseEntity(CriterionResponse<?> response) {
+        copyFrom(response);
     }
 
     void copyFrom(CriterionResponse<?> response) {
@@ -63,15 +61,14 @@ public class CriterionResponseEntity {
         answeredByName = answering.answeredByName();
         answeredAt = answering.answeredAt();
         evidence.clear();
-        response.attachments().forEach(attached -> evidence.add(EvidenceEmbeddable.of(attached)));
+        response.attachments().forEach(attached -> evidence.add(new EvidenceEmbeddable(attached)));
         observations.clear();
-        response.observations().forEach(observation -> observations.add(ObservationEmbeddable.of(observation)));
+        response.observations().forEach(observation -> observations.add(new ObservationEmbeddable(observation)));
     }
 
     CriterionResponse<?> toDomain(SchemaVersion version) {
-        return ResponseRebuilder.rebuild(version.criterion(criterionCode),
-                new StoredAnswering(answerType, answerValue, answeredById, answeredByName, answeredAt),
-                evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
+        return new StoredAnswering(answerType, answerValue, answeredById, answeredByName, answeredAt)
+                .responseTo(version.criterion(criterionCode), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
                 observations.stream().map(ObservationEmbeddable::toDomain).toList());
     }
 }

@@ -1,12 +1,14 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.infrastructure.schema.persistence.JpaInspectionSchemaRepository;
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.infrastructure.schema.persistence.SchemaVersionEntity;
+import ar.edu.itba.certiflow.infrastructure.schema.persistence.StoredSchemaVersions;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.inspection.model.Inspection;
 import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionSnapshot;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
-import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,12 +18,17 @@ import org.springframework.stereotype.Repository;
 public class JpaInspectionRepository implements InspectionRepository {
 
     private final SpringDataInspectionRepository inspections;
-    private final JpaInspectionSchemaRepository schemas;
+    private final StoredSchemaVersions schemaVersions;
+    private final CodesDocumentMapper codeDocuments;
+    private final EvaluationDocumentMapper evaluationDocuments;
     private final InspectionFactory factory = new InspectionFactory();
 
-    public JpaInspectionRepository(SpringDataInspectionRepository inspections, JpaInspectionSchemaRepository schemas) {
+    public JpaInspectionRepository(SpringDataInspectionRepository inspections, StoredSchemaVersions schemaVersions,
+                                   CodesDocumentMapper codeDocuments, EvaluationDocumentMapper evaluationDocuments) {
         this.inspections = inspections;
-        this.schemas = schemas;
+        this.schemaVersions = schemaVersions;
+        this.codeDocuments = codeDocuments;
+        this.evaluationDocuments = evaluationDocuments;
     }
 
     @Override
@@ -33,22 +40,32 @@ public class JpaInspectionRepository implements InspectionRepository {
     public void save(Inspection inspection) {
         InspectionSnapshot snapshot = inspection.snapshot();
         inspections.findById(snapshot.id().value()).ifPresentOrElse(
-                existing -> existing.copyFrom(snapshot),
-                () -> inspections.save(new InspectionEntity(snapshot, schemas.versionEntityFor(snapshot.schemaVersion()))));
+                existing -> existing.copyFrom(snapshot, codeDocuments, evaluationDocuments),
+                () -> inspections.save(newEntityOf(snapshot)));
     }
 
     @Override
     public Optional<Inspection> findById(InspectionId id) {
-        return inspections.findById(id.value()).map(entity -> factory.restore(entity.toSnapshot()));
+        return inspections.findById(id.value()).map(this::restore);
     }
 
     @Override
     public List<Inspection> findByAsset(AssetCode assetCode) {
-        return inspections.findByAssetCode(assetCode.value()).stream().map(entity -> factory.restore(entity.toSnapshot())).toList();
+        return inspections.findByAssetCode(assetCode.value()).stream().map(this::restore).toList();
     }
 
     @Override
     public List<Inspection> findAll() {
-        return inspections.findAll().stream().map(entity -> factory.restore(entity.toSnapshot())).toList();
+        return inspections.findAll().stream().map(this::restore).toList();
+    }
+
+    private InspectionEntity newEntityOf(InspectionSnapshot snapshot) {
+        SchemaVersionEntity schemaVersion = schemaVersions.entityOf(snapshot.assetType(),
+                snapshot.schemaVersion().number());
+        return new InspectionEntity(snapshot, schemaVersion, codeDocuments, evaluationDocuments);
+    }
+
+    private Inspection restore(InspectionEntity entity) {
+        return factory.restore(entity.toSnapshot(schemaVersions, codeDocuments, evaluationDocuments));
     }
 }

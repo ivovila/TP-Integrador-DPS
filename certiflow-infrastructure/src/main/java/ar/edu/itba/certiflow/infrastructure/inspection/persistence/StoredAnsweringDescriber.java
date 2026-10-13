@@ -15,7 +15,7 @@ final class StoredAnsweringDescriber<A extends Answer> implements AnsweringDescr
     @Override
     public StoredAnswering answered(GivenAnswer<A> givenAnswer) {
         AnswerColumns answer = givenAnswer.value().describedBy(new AnswerColumnsDescriber());
-        PersonColumns answeredBy = PersonColumns.of(givenAnswer.answeredBy());
+        PersonColumns answeredBy = new PersonColumns(givenAnswer.answeredBy());
         return new StoredAnswering(answer.type(), answer.value(), answeredBy.id(), answeredBy.name(),
                 givenAnswer.answeredAt());
     }

@@ -13,7 +13,7 @@ final class StoredCancellationDescriber implements CancellationStateDescriber<St
 
     @Override
     public StoredCancellation cancelled(Cancellation cancellation) {
-        PersonColumns cancelledBy = PersonColumns.of(cancellation.cancelledBy());
+        PersonColumns cancelledBy = new PersonColumns(cancellation.cancelledBy());
         return new StoredCancellation(cancelledBy.id(), cancelledBy.name(), cancellation.cancelledAt());
     }
 }

@@ -2,7 +2,7 @@ package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
-import jakarta.persistence.EntityManager;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -10,15 +10,15 @@ public class SequenceCertificateNumbering implements CertificateNumbering {
 
     private static final String NUMBER_FORMAT = "CERT-%05d";
 
-    private final EntityManager entityManager;
+    private final JdbcTemplate jdbcTemplate;
 
-    public SequenceCertificateNumbering(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public SequenceCertificateNumbering(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public CertificateNumber next() {
-        Number next = (Number) entityManager.createNativeQuery("select nextval('certificate_number_seq')").getSingleResult();
-        return new CertificateNumber(NUMBER_FORMAT.formatted(next.longValue()));
+        Long nextValue = jdbcTemplate.queryForObject("select nextval('certificate_number_seq')", Long.class);
+        return new CertificateNumber(NUMBER_FORMAT.formatted(nextValue));
     }
 }

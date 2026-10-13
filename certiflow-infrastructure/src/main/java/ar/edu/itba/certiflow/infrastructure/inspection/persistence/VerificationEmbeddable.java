@@ -23,15 +23,13 @@ public class VerificationEmbeddable {
     protected VerificationEmbeddable() {
     }
 
-    static VerificationEmbeddable of(Verification verification) {
-        VerificationEmbeddable embeddable = new VerificationEmbeddable();
-        PersonColumns verifier = PersonColumns.of(verification.verifier());
-        embeddable.verifierId = verifier.id();
-        embeddable.verifierName = verifier.name();
-        embeddable.result = verification.result().name();
-        embeddable.notes = verification.notes();
-        embeddable.verifiedAt = verification.verifiedAt();
-        return embeddable;
+    VerificationEmbeddable(Verification verification) {
+        PersonColumns verifier = new PersonColumns(verification.verifier());
+        this.verifierId = verifier.id();
+        this.verifierName = verifier.name();
+        this.result = verification.result().name();
+        this.notes = verification.notes();
+        this.verifiedAt = verification.verifiedAt();
     }
 
     Verification toDomain() {

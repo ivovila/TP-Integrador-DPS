@@ -6,7 +6,8 @@ import ar.edu.itba.certiflow.catalog.model.*;
 import ar.edu.itba.certiflow.certification.model.*;
 import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.exceptions.JurisdictionPolicyNotFoundException;
-import ar.edu.itba.certiflow.infrastructure.certification.persistence.DecisionJson;
+import ar.edu.itba.certiflow.infrastructure.certification.persistence.DecisionDocumentMapper;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.*;
 import java.util.*;
@@ -34,7 +35,8 @@ class ConfiguredPolicyResolverTest {
         GrantedDecision grantedDecision = decision.granted().orElseThrow();
         assertEquals(LocalDate.of(2026, 5, 27), grantedDecision.validity().validUntil());
         assertThrows(JurisdictionPolicyNotFoundException.class, () -> resolver.resolve(new JurisdictionCode("MISSING")));
-        assertEquals(grantedDecision, DecisionJson.read(DecisionJson.write(grantedDecision)));
+        DecisionDocumentMapper decisionDocuments = new DecisionDocumentMapper(new StoredJson());
+        assertEquals(grantedDecision, decisionDocuments.read(decisionDocuments.write(grantedDecision)));
     }
 
     @Test void registeredJurisdictionsAreListedWithThePolicyThatDecidesForThem() {

@@ -9,6 +9,7 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
 import ar.edu.itba.certiflow.catalog.model.Subsystem;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -19,9 +20,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import tools.jackson.databind.json.JsonMapper;
 
 @Entity
 @Table(name = "asset")
@@ -47,27 +46,26 @@ public class AssetEntity {
     protected AssetEntity() {
     }
 
-    static AssetEntity from(Asset asset) {
-        AssetEntity entity = new AssetEntity();
-        entity.code = asset.code().value();
-        entity.name = asset.name();
-        entity.type = asset.type().name();
-        entity.location = asset.location().description();
-        entity.jurisdictionCode = asset.jurisdictionCode().value();
-        entity.subsystems = JsonMapper.builder().build().writeValueAsString(asset.subsystems());
-        PersonColumns responsible = PersonColumns.of(asset.responsible());
-        entity.responsibleId = responsible.id();
-        entity.responsibleName = responsible.name();
-        asset.characteristics().entries().forEach(characteristic -> entity.characteristics.add(
+    AssetEntity(Asset asset, StoredJson storedJson) {
+        PersonColumns responsible = new PersonColumns(asset.responsible());
+        this.code = asset.code().value();
+        this.name = asset.name();
+        this.type = asset.type().name();
+        this.location = asset.location().description();
+        this.jurisdictionCode = asset.jurisdictionCode().value();
+        this.subsystems = storedJson.write(asset.subsystems());
+        this.responsibleId = responsible.id();
+        this.responsibleName = responsible.name();
+        asset.characteristics().entries().forEach(characteristic -> characteristics.add(
                 new AssetCharacteristicEmbeddable(characteristic.name(), characteristic.value())));
-        return entity;
     }
 
-    Asset toDomain() {
+    Asset toDomain(StoredJson storedJson) {
         return new Asset(new AssetCode(code), name, new AssetType(type), new Location(location),
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
                 new Characteristics(characteristics.stream()
                         .map(characteristic -> new Characteristic(characteristic.name(), characteristic.value()))
-                        .toList()), new JurisdictionCode(jurisdictionCode), Arrays.asList(JsonMapper.builder().build().readValue(subsystems, Subsystem[].class)));
+                        .toList()),
+                new JurisdictionCode(jurisdictionCode), storedJson.readListOf(subsystems, Subsystem.class));
     }
 }

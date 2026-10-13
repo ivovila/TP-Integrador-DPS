@@ -1,8 +1,8 @@
 package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.certification.model.Suspension;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.Instant;
@@ -21,14 +21,12 @@ public class SuspensionEmbeddable {
     protected SuspensionEmbeddable() {
     }
 
-    static SuspensionEmbeddable of(Suspension suspension) {
-        SuspensionEmbeddable embeddable = new SuspensionEmbeddable();
-        PersonColumns by = PersonColumns.of(suspension.suspendedBy());
-        embeddable.reason = suspension.reason();
-        embeddable.suspendedById = by.id();
-        embeddable.suspendedByName = by.name();
-        embeddable.suspendedAt = suspension.suspendedAt();
-        return embeddable;
+    SuspensionEmbeddable(Suspension suspension) {
+        PersonColumns suspendedBy = new PersonColumns(suspension.suspendedBy());
+        this.reason = suspension.reason();
+        this.suspendedById = suspendedBy.id();
+        this.suspendedByName = suspendedBy.name();
+        this.suspendedAt = suspension.suspendedAt();
     }
 
     Suspension toDomain() {

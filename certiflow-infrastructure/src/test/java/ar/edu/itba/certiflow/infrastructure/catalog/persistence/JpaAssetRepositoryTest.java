@@ -17,10 +17,11 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import(JpaAssetRepository.class)
+@Import({JpaAssetRepository.class, PersistenceMappers.class})
 class JpaAssetRepositoryTest {
 
     @Autowired

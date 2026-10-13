@@ -1,7 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.shared.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -33,17 +33,15 @@ public class AuditEntryEntity {
     protected AuditEntryEntity() {
     }
 
-    static AuditEntryEntity of(String subjectType, String subjectId, AuditEntry entry) {
-        AuditEntryEntity entity = new AuditEntryEntity();
-        PersonColumns by = PersonColumns.of(entry.performedBy());
-        entity.subjectType = subjectType;
-        entity.subjectId = subjectId;
-        entity.action = AuditActions.nameOf(entry.action());
-        entity.performedById = by.id();
-        entity.performedByName = by.name();
-        entity.occurredAt = entry.occurredAt();
-        entity.detail = entry.detail();
-        return entity;
+    AuditEntryEntity(String subjectType, String subjectId, AuditEntry entry) {
+        PersonColumns performedBy = new PersonColumns(entry.performedBy());
+        this.subjectType = subjectType;
+        this.subjectId = subjectId;
+        this.action = AuditActions.nameOf(entry.action());
+        this.performedById = performedBy.id();
+        this.performedByName = performedBy.name();
+        this.occurredAt = entry.occurredAt();
+        this.detail = entry.detail();
     }
 
     AuditEntry toDomain() {

@@ -21,14 +21,12 @@ public class ObservationEmbeddable {
     protected ObservationEmbeddable() {
     }
 
-    static ObservationEmbeddable of(Observation observation) {
-        ObservationEmbeddable embeddable = new ObservationEmbeddable();
-        PersonColumns by = PersonColumns.of(observation.observedBy());
-        embeddable.text = observation.text();
-        embeddable.observedById = by.id();
-        embeddable.observedByName = by.name();
-        embeddable.observedAt = observation.observedAt();
-        return embeddable;
+    ObservationEmbeddable(Observation observation) {
+        PersonColumns observedBy = new PersonColumns(observation.observedBy());
+        this.text = observation.text();
+        this.observedById = observedBy.id();
+        this.observedByName = observedBy.name();
+        this.observedAt = observation.observedAt();
     }
 
     Observation toDomain() {

@@ -84,26 +84,24 @@ public class CorrectiveActionEntity {
     protected CorrectiveActionEntity() {
     }
 
-    static CorrectiveActionEntity from(String findingId, CorrectiveActionSnapshot snapshot) {
-        CorrectiveActionEntity entity = new CorrectiveActionEntity();
-        entity.findingId = findingId;
-        entity.number = snapshot.id().value();
-        PersonColumns responsible = PersonColumns.of(snapshot.responsible());
-        PersonColumns plannedBy = PersonColumns.of(snapshot.plannedBy());
-        entity.description = snapshot.description();
-        entity.responsibleId = responsible.id();
-        entity.responsibleName = responsible.name();
-        entity.dueDate = snapshot.dueDate();
-        entity.plannedById = plannedBy.id();
-        entity.plannedByName = plannedBy.name();
-        entity.plannedAt = snapshot.plannedAt();
-        entity.copyFrom(snapshot);
-        return entity;
+    CorrectiveActionEntity(String findingId, CorrectiveActionSnapshot snapshot) {
+        PersonColumns responsible = new PersonColumns(snapshot.responsible());
+        PersonColumns plannedBy = new PersonColumns(snapshot.plannedBy());
+        this.findingId = findingId;
+        this.number = snapshot.id().value();
+        this.description = snapshot.description();
+        this.responsibleId = responsible.id();
+        this.responsibleName = responsible.name();
+        this.dueDate = snapshot.dueDate();
+        this.plannedById = plannedBy.id();
+        this.plannedByName = plannedBy.name();
+        this.plannedAt = snapshot.plannedAt();
+        copyFrom(snapshot);
     }
 
     void copyFrom(CorrectiveActionSnapshot snapshot) {
         verifications.clear();
-        snapshot.verifications().forEach(verification -> verifications.add(VerificationEmbeddable.of(verification)));
+        snapshot.verifications().forEach(verification -> verifications.add(new VerificationEmbeddable(verification)));
         StoredCancellation cancellation = snapshot.cancellation().describedBy(new StoredCancellationDescriber());
         cancelledById = cancellation.cancelledById();
         cancelledByName = cancellation.cancelledByName();

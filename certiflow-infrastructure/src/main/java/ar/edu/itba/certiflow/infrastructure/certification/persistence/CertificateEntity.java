@@ -2,7 +2,6 @@ package ar.edu.itba.certiflow.infrastructure.certification.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.CertificateBasis;
 import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateLifecycle;
@@ -13,7 +12,7 @@ import ar.edu.itba.certiflow.certification.model.InspectionBasis;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
 import ar.edu.itba.certiflow.certification.model.PartialCertificatesBasis;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
-import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesJson;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
@@ -33,7 +32,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Entity
@@ -85,22 +83,22 @@ public class CertificateEntity {
     protected CertificateEntity() {
     }
 
-    static CertificateEntity from(CertificateSnapshot snapshot) {
-        CertificateEntity entity = new CertificateEntity();
-        entity.number = snapshot.number().value();
-        entity.copyFrom(snapshot);
-        return entity;
+    CertificateEntity(CertificateSnapshot snapshot, DecisionDocumentMapper decisionDocuments,
+                      CodesDocumentMapper codeDocuments) {
+        this.number = snapshot.number().value();
+        copyFrom(snapshot, decisionDocuments, codeDocuments);
     }
 
-    void copyFrom(CertificateSnapshot snapshot) {
-        PersonColumns issuer = PersonColumns.of(snapshot.issuedBy());
+    void copyFrom(CertificateSnapshot snapshot, DecisionDocumentMapper decisionDocuments,
+                  CodesDocumentMapper codeDocuments) {
+        PersonColumns issuer = new PersonColumns(snapshot.issuedBy());
         assetCode = snapshot.assetCode().value();
         CertificationScope scope = snapshot.decision().scope();
         scopeType = scope.describedBy(new ScopeTypeColumn());
         subsystemCode = scope.describedBy(new ScopeSubsystemColumn()).orElse(null);
         schemaAssetType = snapshot.schemaReference().assetType().name();
         schemaNumber = snapshot.schemaReference().number();
-        requiredSubsystems = CodesJson.write(snapshot.requiredSubsystems().stream().map(code -> code.value()).sorted().toList());
+        requiredSubsystems = codeDocuments.writeSubsystemCodes(snapshot.requiredSubsystems());
         partials.clear();
         basisType = snapshot.basis().describedBy(new BasisColumns());
         validFrom = snapshot.decision().validity().validFrom();
@@ -109,9 +107,9 @@ public class CertificateEntity {
         issuedByName = issuer.name();
         issuedAt = snapshot.issuedAt();
         lifecycle = snapshot.lifecycle();
-        decision = DecisionJson.write(snapshot.decision());
+        decision = decisionDocuments.write(snapshot.decision());
         suspensions.clear();
-        snapshot.suspensions().forEach(suspension -> suspensions.add(SuspensionEmbeddable.of(suspension)));
+        snapshot.suspensions().forEach(suspension -> suspensions.add(new SuspensionEmbeddable(suspension)));
     }
 
     private CertificateBasis basis() {
@@ -176,12 +174,13 @@ public class CertificateEntity {
         }
     }
 
-    CertificateSnapshot toSnapshot() {
+    CertificateSnapshot toSnapshot(DecisionDocumentMapper decisionDocuments, CodesDocumentMapper codeDocuments) {
         return new CertificateSnapshot(new CertificateNumber(number), new AssetCode(assetCode),
                 basis(),
                 new SchemaReference(new AssetType(schemaAssetType), schemaNumber),
-                CodesJson.read(requiredSubsystems).stream().map(SubsystemCode::new).collect(Collectors.toSet()),
+                codeDocuments.readSubsystemCodes(requiredSubsystems),
                 new Stamp(new PersonColumns(issuedById, issuedByName).toDomain(), issuedAt),
-                suspensions.stream().map(SuspensionEmbeddable::toDomain).toList(), lifecycle, DecisionJson.read(decision));
+                suspensions.stream().map(SuspensionEmbeddable::toDomain).toList(), lifecycle,
+                decisionDocuments.read(decision));
     }
 }

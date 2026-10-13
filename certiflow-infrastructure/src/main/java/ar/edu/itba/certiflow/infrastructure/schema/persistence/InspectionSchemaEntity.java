@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersionLog;
 import jakarta.persistence.CascadeType;
@@ -31,24 +32,26 @@ public class InspectionSchemaEntity {
     protected InspectionSchemaEntity() {
     }
 
-    InspectionSchemaEntity(InspectionSchema schema) {
+    InspectionSchemaEntity(InspectionSchema schema, SectionsDocumentMapper sectionsDocuments,
+                           CodesDocumentMapper codeDocuments) {
         this.assetType = schema.assetType().name();
         this.name = schema.name();
-        appendVersionsOf(schema);
+        appendVersionsOf(schema, sectionsDocuments, codeDocuments);
     }
 
-    void appendVersionsOf(InspectionSchema schema) {
+    /** Las versiones publicadas no cambian: solo se agregan las que todavía no están guardadas. */
+    void appendVersionsOf(InspectionSchema schema, SectionsDocumentMapper sectionsDocuments,
+                          CodesDocumentMapper codeDocuments) {
         schema.versions().stream()
-                .filter(version -> version.number() > versions.size())
-                .forEach(version -> versions.add(SchemaVersionEntity.from(assetType, version)));
+                .skip(versions.size())
+                .forEach(version -> versions.add(
+                        new SchemaVersionEntity(assetType, version, sectionsDocuments, codeDocuments)));
     }
 
-    List<SchemaVersionEntity> versions() {
-        return versions;
-    }
-
-    InspectionSchema toDomain() {
+    InspectionSchema toDomain(SectionsDocumentMapper sectionsDocuments, CodesDocumentMapper codeDocuments) {
         return new InspectionSchema(name, new AssetType(assetType),
-                new SchemaVersionLog(versions.stream().map(SchemaVersionEntity::toDomain).toList()));
+                new SchemaVersionLog(versions.stream()
+                        .map(version -> version.toDomain(sectionsDocuments, codeDocuments))
+                        .toList()));
     }
 }
