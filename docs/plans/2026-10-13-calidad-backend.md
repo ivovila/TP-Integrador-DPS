@@ -78,9 +78,10 @@
 
 ### Task 5: Reglas, catálogos y acciones de bitácora (spec §5.5)
 
-- [ ] `ApprovalRule.describedBy`; un payload por tipo de regla; lectores por tipo en web y en persistencia.
-- [ ] `SeverityCatalog`, `EvidenceKindCatalog`, `IneligibilityReasonCatalog` y `AuditActionCatalog`, armados en la composición.
-- [ ] `AuditAction` con `name()` y `code()`. Se van todos los casts.
+- [x] `ApprovalRule.describedBy`; en persistencia, `RuleDocumentDescriber` para escribir y un `StoredRuleReader` por tipo de regla para leer.
+- [x] `SeverityCatalog`, `EvidenceKindCatalog` y `AuditActionCatalog`, armados en la composición. `IneligibilityReasonCatalog` no hace falta: un certificado solo guarda una decisión otorgada, que no tiene motivos de rechazo.
+- [x] `AuditAction` con `name()` y `code()`; se va `AuditActions` de persistencia con sus casts.
+- [ ] Diferido al plan del módulo web: un payload por tipo de regla y lectores por tipo en `SchemaPayloads`, los catálogos en `VocabularyController` y el cast a `Enum` de `AuditEntryResponse`.
 
 ### Task 6: Excepciones (spec §5.6)
 

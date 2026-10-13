@@ -43,6 +43,7 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEn
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import java.time.Clock;
 import java.util.Map;
@@ -61,8 +62,9 @@ public class CertificationConfiguration {
     }
 
     @Bean
-    AuditLog<CertificateNumber> certificateLog(SpringDataAuditEntryRepository entries) {
-        return new JpaAuditLog<>(entries, "certificate", CertificateNumber::value);
+    AuditLog<CertificateNumber> certificateLog(SpringDataAuditEntryRepository entries,
+                                               AuditActionCatalog auditActions) {
+        return new JpaAuditLog<>(entries, "certificate", CertificateNumber::value, auditActions);
     }
 
     @Bean

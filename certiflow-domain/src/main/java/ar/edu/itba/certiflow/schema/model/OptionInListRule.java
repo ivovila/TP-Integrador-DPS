@@ -20,4 +20,9 @@ public record OptionInListRule(Set<String> acceptedOptions) implements ApprovalR
     public OptionAnswer answerFrom(RawAnswer raw) {
         return new OptionAnswer(raw.text());
     }
+
+    @Override
+    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
+        return describer.optionInList(acceptedOptions);
+    }
 }

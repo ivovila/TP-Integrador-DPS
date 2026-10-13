@@ -1,10 +1,12 @@
 package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 
-import ar.edu.itba.certiflow.shared.model.Stamp;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.schema.model.Evidence;
-import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
+import ar.edu.itba.certiflow.schema.model.EvidenceKind;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.Instant;
@@ -35,8 +37,10 @@ public class EvidenceEmbeddable {
         this.attachedAt = attached.attachedAt();
     }
 
-    AttachedEvidence toDomain() {
-        return new AttachedEvidence(new Evidence(StandardEvidenceKind.valueOf(kind), reference, description),
+    AttachedEvidence toDomain(EvidenceKindCatalog evidenceKinds) {
+        EvidenceKind evidenceKind = evidenceKinds.withCode(kind)
+                .orElseThrow(() -> new UnreadableStoredDataException("evidence kind", kind));
+        return new AttachedEvidence(new Evidence(evidenceKind, reference, description),
                 new Stamp(new PersonColumns(attachedById, attachedByName).toDomain(), attachedAt));
     }
 }

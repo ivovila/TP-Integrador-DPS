@@ -1,15 +1,24 @@
 package ar.edu.itba.certiflow.web.config;
 
 import ar.edu.itba.certiflow.application.shared.AuditHistoryUseCaseImpl;
+import ar.edu.itba.certiflow.catalog.model.AssetAudit;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.certification.model.CertificateAudit;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.CertificationTransactionLocks;
+import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
+import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.schema.model.SchemaAudit;
+import ar.edu.itba.certiflow.shared.model.AuditAction;
+import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.time.Clock;
+import java.util.Arrays;
+import java.util.stream.Stream;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -27,6 +36,15 @@ public class SharedConfiguration {
     @Bean
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    /** El único lugar que nombra los enums de acciones: la persistencia las busca por su código. */
+    @Bean
+    AuditActionCatalog auditActionCatalog() {
+        return new AuditActionCatalog(Stream.<AuditAction[]>of(AssetAudit.values(), SchemaAudit.values(),
+                        InspectionAudit.values(), FindingAudit.values(), CertificateAudit.values())
+                .flatMap(Arrays::stream)
+                .toList());
     }
 
     @Bean

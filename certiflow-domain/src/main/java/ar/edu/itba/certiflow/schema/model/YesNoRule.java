@@ -16,4 +16,9 @@ public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswe
                 .findFirst()
                 .orElseThrow(() -> new AnswerTypeMismatchException("yes/no", raw));
     }
+
+    @Override
+    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
+        return describer.yesNo(expected);
+    }
 }

@@ -17,4 +17,9 @@ public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<N
             throw new AnswerTypeMismatchException("numeric", raw);
         }
     }
+
+    @Override
+    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
+        return describer.numericRange(unit, range);
+    }
 }

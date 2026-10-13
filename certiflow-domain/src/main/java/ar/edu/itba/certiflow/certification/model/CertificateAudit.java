@@ -14,6 +14,11 @@ public enum CertificateAudit implements AuditAction {
     }
 
     @Override
+    public String code() {
+        return "CertificateAudit." + name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

@@ -13,6 +13,11 @@ public enum SchemaAudit implements AuditAction {
     }
 
     @Override
+    public String code() {
+        return "SchemaAudit." + name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

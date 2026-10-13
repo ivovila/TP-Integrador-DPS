@@ -9,6 +9,7 @@ import ar.edu.itba.certiflow.inspection.model.InspectionFactory;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionSnapshot;
 import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,14 +22,17 @@ public class JpaInspectionRepository implements InspectionRepository {
     private final StoredSchemaVersions schemaVersions;
     private final CodesDocumentMapper codeDocuments;
     private final EvaluationDocumentMapper evaluationDocuments;
+    private final EvidenceKindCatalog evidenceKinds;
     private final InspectionFactory factory = new InspectionFactory();
 
     public JpaInspectionRepository(SpringDataInspectionRepository inspections, StoredSchemaVersions schemaVersions,
-                                   CodesDocumentMapper codeDocuments, EvaluationDocumentMapper evaluationDocuments) {
+                                   CodesDocumentMapper codeDocuments, EvaluationDocumentMapper evaluationDocuments,
+                                   EvidenceKindCatalog evidenceKinds) {
         this.inspections = inspections;
         this.schemaVersions = schemaVersions;
         this.codeDocuments = codeDocuments;
         this.evaluationDocuments = evaluationDocuments;
+        this.evidenceKinds = evidenceKinds;
     }
 
     @Override
@@ -66,6 +70,6 @@ public class JpaInspectionRepository implements InspectionRepository {
     }
 
     private Inspection restore(InspectionEntity entity) {
-        return factory.restore(entity.toSnapshot(schemaVersions, codeDocuments, evaluationDocuments));
+        return factory.restore(entity.toSnapshot(schemaVersions, codeDocuments, evaluationDocuments, evidenceKinds));
     }
 }

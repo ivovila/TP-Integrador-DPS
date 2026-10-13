@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `f737b60` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `d04fcad` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 272 | 5602 | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 3 | 1 | 0 | 1 | 0 |
+| domain | 276 | 5731 | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 3 | 1 | 0 | 1 | 0 |
 | application | 40 | 1519 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 1 | 0 | 0 |
-| infrastructure | 58 | 2379 | 0 | 0 | 0 | 5 | 2 | 3 | 5 | 25 | 5 | 0 | 0 | 2 |
-| web | 89 | 4040 | 0 | 6 | 0 | 7 | 6 | 4 | 41 | 62 | 7 | 2 | 23 | 3 |
-| **total** | 459 | 13540 | 0 | 6 | 0 | 12 | 8 | 7 | 72 | 90 | 13 | 3 | 24 | 5 |
+| infrastructure | 63 | 2476 | 0 | 0 | 0 | 2 | 0 | 1 | 2 | 24 | 2 | 0 | 0 | 2 |
+| web | 89 | 4079 | 0 | 6 | 0 | 7 | 6 | 4 | 41 | 62 | 7 | 2 | 23 | 3 |
+| **total** | 468 | 13805 | 0 | 6 | 0 | 9 | 6 | 5 | 69 | 89 | 10 | 3 | 24 | 5 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -65,15 +65,12 @@ Ninguna.
 
 ## 4. Tipo consultado por reflexión (`isInstance`, `cast`, `getClass`)
 
-12 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
+9 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:37` | `.filter(LocksAsset.class::isInstance)` |
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:38` | `.map(LocksAsset.class::cast)` |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java:48` | `return Optional.of(rule).filter(ruleClass::isInstance).map(ruleClass::cast).map(typed -> write.apply(type, ...` |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java:109` | `.orElseThrow(() -> new IllegalArgumentException("No JSON mapping for rule " + rule.getClass().getName()));` |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java:36` | `return constant.getDeclaringClass().getSimpleName() + "." + constant.name();` |
 | web | `web/config/TransactionalUseCases.java:21` | `if (method.getDeclaringClass() == Object.class) {` |
 | web | `web/config/TransactionalUseCases.java:35` | `return useCase.cast(proxy);` |
 | web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
@@ -84,12 +81,10 @@ Ninguna.
 
 ## 5. Casts a un tipo concreto (heurística)
 
-8 ocurrencias. Tareas del plan: 2, 5, 10 (`DemoDataSeeder`).
+6 ocurrencias. Tareas del plan: 2, 5, 10 (`DemoDataSeeder`).
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java:18` | `.collect(Collectors.toMap(AuditActions::name, constant -> (AuditAction) constant));` |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java:24` | `return name((Enum<?>) action);` |
 | web | `web/config/DemoDataSeeder.java:160` | `answers.put((String) codesAndAnswers[index], (YesNoAnswer) codesAndAnswers[index + 1]);` |
 | web | `web/schema/SchemaPayloads.java:43` | `NumericRangeRule numeric = (NumericRangeRule) rule;` |
 | web | `web/schema/SchemaPayloads.java:47` | `YesNoRule.class, rule -> new RulePayload("yes-no", null, null, null, ((YesNoRule) rule).expected().name(), ...` |
@@ -99,13 +94,11 @@ Ninguna.
 
 ## 6. Registros por clase o por texto (heurística)
 
-7 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
+5 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:23` | `private final Map<String, Function<String, Optional<String>>> assetCodeByOwner;` |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java:52` | `private static final List<RuleCodec<?>> RULES = List.of(` |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java:15` | `private static final Map<String, AuditAction> BY_NAME = Stream.<Enum<?>[]>of(AssetAudit.values(), SchemaAud...` |
 | web | `web/inspection/InspectionController.java:46` | `private static final Map<String, Boolean> CLOSED_BY_STATUS = Map.of("open", false, "closed", true);` |
 | web | `web/schema/SchemaPayloads.java:31` | `private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();` |
 | web | `web/schema/SchemaPayloads.java:41` | `private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(` |
@@ -113,7 +106,7 @@ Ninguna.
 
 ## 7. Métodos y bloques estáticos
 
-72 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
+69 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
@@ -129,7 +122,6 @@ Ninguna.
 | application | `application/certification/GlobalCertificationService.java` | 76 |
 | application | `application/certification/InspectionResultTranslatorImpl.java` | 61 |
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java` | 50 |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java` | 23, 27, 35 |
 | infrastructure | `infrastructure/shared/persistence/Instants.java` | 10 |
 | web | `CertiflowApplication.java` | 9 |
 | web | `web/certification/CertificationPayloads.java` | 21, 28, 42, 57 |
@@ -150,7 +142,7 @@ Ninguna.
 
 ## 8. Literales `null`
 
-90 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
+89 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
@@ -159,11 +151,10 @@ Ninguna.
 | domain | `catalog/model/SubsystemCode.java` | 7 |
 | infrastructure | `infrastructure/certification/persistence/CertificateEntity.java` | 98 |
 | infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 36 |
-| infrastructure | `infrastructure/inspection/persistence/InspectionEntity.java` | 87 |
+| infrastructure | `infrastructure/inspection/persistence/InspectionEntity.java` | 88 |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnsweringDescriber.java` | 12 |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellationDescriber.java` | 11 |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java` | 55, 58, 61 |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java` | 29 |
+| infrastructure | `infrastructure/schema/persistence/RuleDocumentDescriber.java` | 15, 20, 25 |
 | infrastructure | `infrastructure/shared/persistence/Instants.java` | 11 |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java` | 17 |
 | web | `web/certification/BasisPayloadDescriber.java` | 14, 20 |
@@ -247,16 +238,13 @@ Ninguna.
 
 ## 9. `IllegalArgumentException` e `IllegalStateException`
 
-13 ocurrencias. Tareas del plan: 1, 6, 11.
+10 ocurrencias. Tareas del plan: 1, 6, 11.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
 | domain | `shared/model/PageRequest.java:8` | `throw new IllegalArgumentException("page must be 0 or more and size 1 or more");` |
 | infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:46` | `.orElseThrow(() -> new IllegalStateException("Unknown lock owner " + key.owner()))` |
 | infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:21` | `throw new IllegalArgumentException("At least one jurisdiction policy is required");` |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java:109` | `.orElseThrow(() -> new IllegalArgumentException("No JSON mapping for rule " + rule.getClass().getName()));` |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java:119` | `.orElseThrow(() -> new IllegalArgumentException("Unknown rule type " + document.rule().type()))` |
-| infrastructure | `infrastructure/shared/persistence/AuditActions.java:30` | `throw new IllegalStateException("Unknown audit action " + name);` |
 | web | `web/config/TransactionalUseCases.java:31` | `throw new IllegalStateException(failure);` |
 | web | `web/config/TransactionalUseCases.java:45` | `return new IllegalStateException(cause);` |
 | web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
@@ -343,7 +331,7 @@ Ninguna.
 
 ## 15. Líneas de más de 150 caracteres
 
-39 líneas en 21 archivos. Tareas del plan: 13.
+38 líneas en 20 archivos. Tareas del plan: 13.
 
 | Módulo | Archivo | Cantidad |
 |---|---|---|
@@ -360,7 +348,6 @@ Ninguna.
 | domain | `inspection/usecase/RectifyInspectionCommand.java` | 1 |
 | domain | `inspection/usecase/VerifyCorrectiveActionCommand.java` | 1 |
 | domain | `schema/usecase/CreateInspectionSchemaCommand.java` | 1 |
-| infrastructure | `infrastructure/schema/persistence/SectionsDocumentMapper.java` | 1 |
 | web | `web/catalog/AssetController.java` | 1 |
 | web | `web/catalog/AssetRequest.java` | 1 |
 | web | `web/config/CatalogConfiguration.java` | 1 |

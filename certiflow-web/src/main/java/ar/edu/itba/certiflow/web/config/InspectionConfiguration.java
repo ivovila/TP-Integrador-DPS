@@ -41,6 +41,7 @@ import ar.edu.itba.certiflow.inspection.usecase.RecordAnswerUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.RectifyInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -58,13 +59,13 @@ public class InspectionConfiguration {
     }
 
     @Bean
-    AuditLog<InspectionId> inspectionLog(SpringDataAuditEntryRepository entries) {
-        return new JpaAuditLog<>(entries, "inspection", InspectionId::value);
+    AuditLog<InspectionId> inspectionLog(SpringDataAuditEntryRepository entries, AuditActionCatalog auditActions) {
+        return new JpaAuditLog<>(entries, "inspection", InspectionId::value, auditActions);
     }
 
     @Bean
-    AuditLog<FindingId> findingLog(SpringDataAuditEntryRepository entries) {
-        return new JpaAuditLog<>(entries, "finding", FindingId::value);
+    AuditLog<FindingId> findingLog(SpringDataAuditEntryRepository entries, AuditActionCatalog auditActions) {
+        return new JpaAuditLog<>(entries, "finding", FindingId::value, auditActions);
     }
 
     @Bean

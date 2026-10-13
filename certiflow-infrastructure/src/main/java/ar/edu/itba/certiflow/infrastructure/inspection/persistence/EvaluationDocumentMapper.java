@@ -3,13 +3,15 @@ package ar.edu.itba.certiflow.infrastructure.inspection.persistence;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.StoredJson;
+import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
 import ar.edu.itba.certiflow.inspection.model.AttachedEvidence;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.Evaluation;
 import ar.edu.itba.certiflow.inspection.model.Observation;
 import ar.edu.itba.certiflow.schema.model.Evidence;
+import ar.edu.itba.certiflow.schema.model.EvidenceKind;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
-import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
@@ -32,9 +34,11 @@ public class EvaluationDocumentMapper {
     }
 
     private final StoredJson storedJson;
+    private final EvidenceKindCatalog evidenceKinds;
 
-    public EvaluationDocumentMapper(StoredJson storedJson) {
+    public EvaluationDocumentMapper(StoredJson storedJson, EvidenceKindCatalog evidenceKinds) {
         this.storedJson = storedJson;
+        this.evidenceKinds = evidenceKinds;
     }
 
     String write(Evaluation evaluation) {
@@ -78,8 +82,9 @@ public class EvaluationDocumentMapper {
     }
 
     private AttachedEvidence attachedEvidenceOf(EvidenceDocument document) {
-        return new AttachedEvidence(
-                new Evidence(StandardEvidenceKind.valueOf(document.kind()), document.reference(), document.description()),
+        EvidenceKind evidenceKind = evidenceKinds.withCode(document.kind())
+                .orElseThrow(() -> new UnreadableStoredDataException("evidence kind", document.kind()));
+        return new AttachedEvidence(new Evidence(evidenceKind, document.reference(), document.description()),
                 new Stamp(new PersonColumns(document.attachedById(), document.attachedByName()).toDomain(),
                         document.attachedAt()));
     }

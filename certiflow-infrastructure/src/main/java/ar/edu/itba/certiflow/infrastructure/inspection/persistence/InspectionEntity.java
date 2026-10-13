@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionScope;
 import ar.edu.itba.certiflow.inspection.model.InspectionSnapshot;
 import ar.edu.itba.certiflow.inspection.model.Revisions;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -96,14 +97,16 @@ public class InspectionEntity {
     }
 
     InspectionSnapshot toSnapshot(StoredSchemaVersions schemaVersions, CodesDocumentMapper codeDocuments,
-                                  EvaluationDocumentMapper evaluationDocuments) {
+                                  EvaluationDocumentMapper evaluationDocuments, EvidenceKindCatalog evidenceKinds) {
         SchemaVersion version = schemaVersions.versionStoredIn(schemaVersion);
         InspectionScope scope = new StoredInspectionScope(scopeSections).scope(codeDocuments);
         return new InspectionSnapshot(new InspectionId(id), new AssetCode(assetCode), new AssetType(schemaVersion.assetType()),
                 new PersonColumns(assetResponsibleId, assetResponsibleName).toDomain(),
                 new InspectionAssignment(new PersonColumns(inspectorId, inspectorName).toDomain(), plannedDate, scope),
                 version,
-                responses.stream().<CriterionResponse<?>>map(response -> response.toDomain(version)).toList(),
+                responses.stream()
+                        .<CriterionResponse<?>>map(response -> response.toDomain(version, evidenceKinds))
+                        .toList(),
                 new Revisions(revisions.stream().map(revision -> revision.toDomain(version, evaluationDocuments)).toList()));
     }
 }

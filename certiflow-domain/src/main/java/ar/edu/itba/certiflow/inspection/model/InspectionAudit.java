@@ -17,6 +17,11 @@ public enum InspectionAudit implements AuditAction {
     }
 
     @Override
+    public String code() {
+        return "InspectionAudit." + name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

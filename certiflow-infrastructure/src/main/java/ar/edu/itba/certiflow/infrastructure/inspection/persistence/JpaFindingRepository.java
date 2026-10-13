@@ -7,6 +7,7 @@ import ar.edu.itba.certiflow.inspection.model.FindingFactory;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FindingSnapshot;
 import ar.edu.itba.certiflow.inspection.repository.FindingRepository;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,10 +20,13 @@ public class JpaFindingRepository implements FindingRepository {
     private final FindingFactory factory = new FindingFactory();
 
     private final SectionsDocumentMapper sectionsDocuments;
+    private final EvidenceKindCatalog evidenceKinds;
 
-    public JpaFindingRepository(SpringDataFindingRepository findings, SectionsDocumentMapper sectionsDocuments) {
+    public JpaFindingRepository(SpringDataFindingRepository findings, SectionsDocumentMapper sectionsDocuments,
+                                EvidenceKindCatalog evidenceKinds) {
         this.findings = findings;
         this.sectionsDocuments = sectionsDocuments;
+        this.evidenceKinds = evidenceKinds;
     }
 
     @Override
@@ -59,6 +63,6 @@ public class JpaFindingRepository implements FindingRepository {
     }
 
     private Finding restore(FindingEntity entity) {
-        return factory.restore(entity.toSnapshot(sectionsDocuments));
+        return factory.restore(entity.toSnapshot(sectionsDocuments, evidenceKinds));
     }
 }

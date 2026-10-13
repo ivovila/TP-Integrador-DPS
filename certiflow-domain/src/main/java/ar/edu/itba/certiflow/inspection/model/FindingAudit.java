@@ -15,6 +15,11 @@ public enum FindingAudit implements AuditAction {
     }
 
     @Override
+    public String code() {
+        return "FindingAudit." + name();
+    }
+
+    @Override
     public String label() {
         return label;
     }

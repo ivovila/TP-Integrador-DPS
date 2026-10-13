@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.shared.persistence;
 
+import ar.edu.itba.certiflow.shared.model.AuditAction;
+import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.Column;
@@ -37,15 +39,17 @@ public class AuditEntryEntity {
         PersonColumns performedBy = new PersonColumns(entry.performedBy());
         this.subjectType = subjectType;
         this.subjectId = subjectId;
-        this.action = AuditActions.nameOf(entry.action());
+        this.action = entry.action().code();
         this.performedById = performedBy.id();
         this.performedByName = performedBy.name();
         this.occurredAt = entry.occurredAt();
         this.detail = entry.detail();
     }
 
-    AuditEntry toDomain() {
-        return new AuditEntry(AuditActions.valueOf(action),
+    AuditEntry toDomain(AuditActionCatalog auditActions) {
+        AuditAction storedAction = auditActions.withCode(action)
+                .orElseThrow(() -> new UnreadableStoredDataException("audit action", action));
+        return new AuditEntry(storedAction,
                 new Stamp(new PersonColumns(performedById, performedByName).toDomain(), occurredAt), detail);
     }
 }

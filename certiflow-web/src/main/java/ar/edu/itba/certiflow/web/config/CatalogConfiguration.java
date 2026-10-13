@@ -13,6 +13,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.CertificationTransactionLocks;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.JpaAuditLog;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEntryRepository;
+import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -30,8 +31,8 @@ public class CatalogConfiguration {
     }
 
     @Bean
-    AuditLog<AssetCode> assetLog(SpringDataAuditEntryRepository entries) {
-        return new JpaAuditLog<>(entries, "asset", AssetCode::value);
+    AuditLog<AssetCode> assetLog(SpringDataAuditEntryRepository entries, AuditActionCatalog auditActions) {
+        return new JpaAuditLog<>(entries, "asset", AssetCode::value, auditActions);
     }
 
     @Bean

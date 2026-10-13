@@ -8,6 +8,7 @@ import ar.edu.itba.certiflow.inspection.model.CorrectiveActionSnapshot;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.FindingSnapshot;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -75,9 +76,9 @@ public class FindingEntity {
                 .forEach(addedAction -> actions.add(new CorrectiveActionEntity(id, addedAction)));
     }
 
-    FindingSnapshot toSnapshot(SectionsDocumentMapper sectionsDocuments) {
+    FindingSnapshot toSnapshot(SectionsDocumentMapper sectionsDocuments, EvidenceKindCatalog evidenceKinds) {
         return new FindingSnapshot(new FindingId(id), new InspectionId(inspectionId), new AssetCode(assetCode),
-                sectionsDocuments.readCriterion(criterion), evidence.stream().map(EvidenceEmbeddable::toDomain).toList(),
+                sectionsDocuments.readCriterion(criterion), evidence.stream().map(attached -> attached.toDomain(evidenceKinds)).toList(),
                 new PersonColumns(responsibleId, responsibleName).toDomain(),
                 actions.stream().map(CorrectiveActionEntity::toSnapshot).toList(),
                 new SubsystemColumn(subsystemCode).association());

@@ -5,4 +5,6 @@ public interface ApprovalRule<A extends Answer> {
     boolean isSatisfiedBy(A answer);
 
     A answerFrom(RawAnswer raw);
+
+    <T> T describedBy(ApprovalRuleDescriber<T> describer);
 }
