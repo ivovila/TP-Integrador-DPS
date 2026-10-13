@@ -46,3 +46,52 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: certiflow
+          POSTGRES_USER: certiflow
+          POSTGRES_PASSWORD: certiflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U certiflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: certiflow-frontend/package-lock.json
+      - run: mvn -B -q -DskipTests install
+      - name: Start the backend
+        run: |
+          nohup mvn -B -q -pl certiflow-web spring-boot:run > backend.log 2>&1 &
+          for attempt in $(seq 1 90); do
+            if curl -sf http://localhost:8080/api/v1 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend.log
+          exit 1
+      - run: npm ci
+        working-directory: certiflow-frontend
+      - run: npm run test:e2e
+        working-directory: certiflow-frontend
+      - name: Backend log
+        if: failure()
+        run: cat backend.log
+

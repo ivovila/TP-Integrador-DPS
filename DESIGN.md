@@ -10,7 +10,7 @@ que tiene.
 mvn clean verify   # compila y prueba los cuatro módulos: dominio, aplicación, repositorios sobre H2 y API
 ```
 
-La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del build de Maven; ver D22.
+La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del build de Maven, y trabaja contra la API; ver D22 y D23.
 
 ---
 
@@ -364,22 +364,38 @@ determinista y los tests usan un reloj controlable.
 - **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula.
 - **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
-### D22. Frontend sobre puertos, sin depender de la API
+### D22. Frontend sobre puertos
 
 - **Principio:** DIP; los detalles dependen de las reglas de negocio (Clase 7). Strategy con selección por tipo para las reglas.
-- **Dónde:** `certiflow-frontend/src`: `ports/` (una interfaz por contexto, con un método por caso de uso y su mismo comando), `adapters/inmemory/` (implementación actual), `composition.ts` (único archivo que conoce el adaptador), `ui/shared/ruleKinds.tsx` (registro de tipos de regla), `ports/certiflowContract.ts` (suite de contrato).
+- **Dónde:** `certiflow-frontend/src`: `ports/` (una interfaz por contexto, con un método por caso de uso y su mismo comando), `composition.ts` (único archivo que conoce el adaptador), `ui/shared/ruleKinds.tsx` (registro de tipos de regla), `ports/certiflowContract.ts` (suite de contrato).
 - **Por qué:**
-  - La interfaz se construyó mientras la API seguía cambiando por F1, F2 y F3. Los puertos llevan los nombres de los casos de uso del dominio, que es lo estable; de dónde salen los datos es un detalle. Conectar la API es escribir `adapters/http/` y cambiar una línea de `composition.ts`: `domain/`, `ports/` y `ui/` no se tocan.
-  - Cada recurso llega con la lista de **acciones disponibles** en su estado (`actions`), y la pantalla muestra un botón por acción. Ninguna pantalla repite la regla "si está cerrada, entonces…". Hoy la lista la calcula el adaptador en memoria; con la API sale de los `_links` de HAL (D21), que ya traen solo las transiciones válidas.
+  - La interfaz se construyó mientras la API seguía cambiando por F1, F2 y F3, contra una implementación en memoria de los puertos. Los puertos llevan los nombres de los casos de uso del dominio, que es lo estable; de dónde salen los datos es un detalle. Cuando la API quedó definida se escribió el adaptador HTTP (D23) y se cambió `composition.ts`: las pantallas no se tocaron salvo el control de fecha, que dependía del reloj en memoria.
+  - Cada recurso llega con la lista de **acciones disponibles** en su estado (`actions`), y la pantalla muestra un botón por acción. Ninguna pantalla repite la regla "si está cerrada, entonces…". La lista sale de los `_links` de HAL (D21), que traen solo las transiciones válidas.
   - Todo lo que depende del tipo de regla de un criterio (campos del editor de esquemas, control con que se responde, texto de solo lectura) está en un registro con una entrada por tipo. Un tipo de criterio nuevo es una entrada más, sin tocar las pantallas.
-  - Severidades y tipos de evidencia llegan como datos por `vocabulary()`, no como uniones cerradas, para respetar los conjuntos extensibles de D2.
-  - El adaptador en memoria aplica los supuestos S1 a S19 y rechaza con el mismo nombre de excepción. Los datos de ejemplo se cargan ejecutando los comandos de los puertos, así que cumplen las reglas y tienen su historial.
-  - La suite de contrato prueba el negocio contra el puerto, no contra la clase en memoria: la misma suite corre contra el adaptador HTTP cuando exista.
+  - Severidades, tipos de evidencia y jurisdicciones llegan como datos por `vocabulary()`, no como uniones cerradas, para respetar los conjuntos extensibles de D2 y el criterio de F3 de agregar una jurisdicción sin tocar el servicio.
+  - La suite de contrato prueba el negocio contra el puerto, no contra una implementación: primero corrió contra la implementación en memoria y hoy corre, sin reescribirse, contra el adaptador HTTP y el backend real.
 - **Alternativas descartadas:**
-  - *Llamar a la API actual:* cada cambio de F1 a F3 rompe pantallas ya terminadas.
-  - *Datos fijos sin reglas:* no permite recorrer el flujo (cerrar una inspección no levantaría hallazgos).
-  - *Empaquetar el frontend dentro del jar con Maven:* mete Node en el check `build` del backend. Se deja para la integración.
-- **Costo:** las reglas de S1 a S19 están escritas dos veces, en Java y en TypeScript, mientras exista el adaptador en memoria. Los ids (`INS-1`, `FND-1`, `CERT-1`) y la escala decimal son simplificaciones del adaptador. No hay paginación.
+  - *Llamar a la API desde el primer día:* cada cambio de F1 a F3 habría roto pantallas ya terminadas.
+  - *Datos fijos sin reglas:* no permitía recorrer el flujo (cerrar una inspección no levantaría hallazgos).
+- **Costo:** mientras existió la implementación en memoria, las reglas de S1 a S19 estuvieron escritas dos veces. Se eliminó al conectar la API.
+
+### D23. Adaptador HTTP del frontend y niveles de test
+
+- **Principio:** Adapter; anticorrupción en el borde (las pantallas no conocen la forma de la API); separar lo que se prueba rápido de lo que se prueba de verdad.
+- **Dónde:** `certiflow-frontend/src/adapters/http`: `HalClient` (fetch, headers, persona, errores, paginación), `actions.ts` (tabla `rel` → acción), `*Mapping.ts` (funciones puras de la respuesta de la API a los tipos del frontend), `Http*Port.ts`, `__fixtures__/` (respuestas reales). En el backend: `ListSchemasUseCase`, `ListJurisdictionsUseCase`, `RegisteredJurisdictions`, `VocabularyController`, y los campos y links nuevos de `FindingResource`, `FindingsSummaryResource` y `AssetController`.
+- **Por qué:**
+  - **Las URLs se arman, los links se siguen.** El adaptador construye la URL de un recurso con su identificador, porque las rutas del navegador llevan identificadores, y sigue los links de la respuesta para las acciones disponibles, la paginación y los recursos relacionados. Las acciones nunca se deducen del estado.
+  - **Todo `href` se reduce a ruta y query.** La API mezcla links absolutos y relativos; seguido tal cual, un link absoluto saltearía el proxy del frontend y fallaría por origen cruzado.
+  - **La traducción está en un solo lugar y es pura.** La API serializa tipos del dominio tal cual (`{value}`, tipos sellados sin discriminador), devuelve la severidad como nombre o como etiqueta según el recurso y la inspección en tres recursos. Las funciones de `*Mapping.ts` absorben eso y se prueban contra respuestas reales guardadas, sin levantar nada.
+  - **Las jurisdicciones salen del registro de políticas.** `ConfiguredPolicyResolver` implementa `RegisteredJurisdictions`, así la lista que ofrece el alta de activos es la misma que resuelve las políticas: registrar una jurisdicción en `UseCaseConfiguration` alcanza.
+  - **Dos niveles de test.** Los rápidos (cliente, mapeos, pantallas con puertos sustitutos) corren sin backend en el job `frontend`. La suite de contrato y los flujos por pantallas corren contra el backend real en el job `e2e`; cada test usa códigos y tipos de activo propios porque la base es compartida.
+  - **Solo se agregó a la API.** Lista de esquemas, vocabulario, subsistema del hallazgo, identificador en el resumen y un link: ninguna respuesta existente cambió de forma.
+- **Alternativas descartadas:**
+  - *Cliente que descubre todo desde `GET /api/v1`:* más fiel a HATEOAS, más pedidos y más código para llegar a recursos cuyo identificador ya está en la ruta.
+  - *Conservar el modo en memoria como alternativa:* dos implementaciones de las reglas que mantener iguales.
+  - *Servir el frontend desde el jar o habilitar CORS:* el proxy del servidor de desarrollo resuelve el mismo origen sin tocar el build de Maven.
+  - *Limpiar la base entre tests de contrato:* exigiría un endpoint de borrado en el backend solo para tests.
+- **Costo:** el frontend no corre sin el backend. El adaptador depende de los nombres de campo del dominio que la API serializa directo. Leer una inspección son tres pedidos más la versión del esquema. Los casos que mueven la fecha (acción vencida, certificado expirado, versión que entra en vigencia) no se pueden probar desde el frontend, porque el reloj del servidor no se controla: los cubren los tests del backend.
 
 ---
 
@@ -500,7 +516,12 @@ Total: 237 tests. Los mocks no reemplazan las pruebas de persistencia ni de API.
 - **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
 - **Severidades y tipos de evidencia estándar.** La persistencia y la API resuelven severidades y tipos de evidencia por nombre contra `StandardSeverity` y `StandardEvidenceKind`. Una escala propia (D2) funciona en el dominio, pero para guardarla o recibirla por la API hay que registrarla en `SectionsJson`, `EvaluationJson` y `SchemaPayloads`.
 - **Sin autenticación.** La persona que actúa viaja en los headers `X-Person-Id` y `X-Person-Name` y no se verifica. Las reglas de independencia (S19, verificador distinto del responsable) se cumplen sobre lo que el cliente declara.
-- **Frontend sin API.** La interfaz corre contra un adaptador en memoria (D22). Hasta escribir el adaptador HTTP, lo que se carga en la interfaz no llega al backend y se pierde al recargar la página.
+- **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
+- **La API serializa tipos del dominio.** Certificados y decisiones de elegibilidad viajan como los records del dominio (`jurisdictionCode: {value}`, alcance y base sin discriminador). Contradice lo que D21 dice de los DTOs propios y ata al adaptador del frontend a esos nombres.
+- **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.
+- **Escala decimal en la API.** Una medición enviada como `2.50` se guarda con su escala pero la API la devuelve como `2.5`.
+- **Políticas sin descripción.** `CertificationPolicy` expone solo su código, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
+- **Elegibilidad del activo entero con subsistemas.** `GET …/certification-eligibility` sin `?subsystem` responde 409 en un esquema con subsistemas, en lugar de la decisión rechazada que preveía la spec de F3.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
 
 

@@ -553,3 +553,30 @@ Interfaz web de las capacidades actuales, siguiendo
 - Políticas concretas StrictCertificationPolicy, ConditionalCertificationPolicy y StandardCertificationPolicy.
 - Contrato code/evaluate y decisión histórica completa, sin versionado de políticas, mapas públicos ni reglas en properties.
 - Se conservan las incorporaciones remotas del frontend y su job de CI.
+
+
+## 2026-10-13 · Frontend conectado a la API
+
+Siguiendo [docs/specs/2026-10-13-frontend-api.md](docs/specs/2026-10-13-frontend-api.md) y su
+[plan](docs/plans/2026-10-13-frontend-api.md).
+
+- API, solo agregados: `GET /api/v1/schemas` (`ListSchemasUseCase`, `InspectionSchemaRepository.findAll`),
+  `GET /api/v1/vocabulary` (`ListJurisdictionsUseCase`, `RegisteredJurisdictions` implementado por
+  `ConfiguredPolicyResolver`), `subsystemCode` en `FindingResource`, `findingId` y `subsystemCode` en las líneas
+  de `FindingsSummaryResource` (y en `FindingLine`), link `global-certificates` en activos con subsistemas y links
+  `schema-list` y `vocabulary` en la raíz. Tests: `VocabularyApiTest`, `SchemaApiTest.schemasAreListedOrderedByAssetType`,
+  `AssetApiTest.onlyAnAssetWithSubsystemsOffersAGlobalCertificate`,
+  `DeliveryFeaturesApiTest.aFindingAndItsSummaryLineCarryTheSubsystemOfTheirCriterion`, entre otros.
+- Frontend: nuevo `src/adapters/http` (cliente HAL, tabla de acciones, mapeos puros y un puerto por contexto);
+  `composition.ts` lo usa. Se eliminan `src/adapters/inmemory`, `DemoControls` y el control de fecha.
+- Errores: `RejectedRequestError` para los rechazos que no son de negocio; `ErrorBanner` muestra siempre el motivo.
+- Fechas: los instantes se muestran en la hora local y `effectiveFrom` se envía como instante real.
+- `Jurisdiction` pierde `description`: el alta de activos muestra el código de la política.
+- Tests: 58 de cliente y mapeos contra respuestas reales guardadas en `__fixtures__/`; la suite de contrato (110
+  casos, con códigos y tipos de activo únicos por test y sin los casos que movían la fecha) y cinco flujos por
+  pantallas corren contra el backend con `npm run test:e2e`.
+- `npm run seed` carga datos de demostración por la API; `scripts/captureApiResponses.sh` regenera las respuestas
+  guardadas.
+- CI: job `e2e` con PostgreSQL y el backend levantado.
+- `DESIGN.md`: D22 actualizada, nueva D23 y limitaciones que se ven desde la interfaz.
+

@@ -1,12 +1,12 @@
 # CertiFlow · Frontend
 
-Interfaz web de CertiFlow. Cubre todas las capacidades actuales del sistema y **todavía no llama a la API**:
-corre contra una implementación en memoria que aplica las reglas de negocio. Spec:
-[docs/specs/2026-10-12-frontend.md](../docs/specs/2026-10-12-frontend.md).
+Interfaz web de CertiFlow. Cubre todas las capacidades de la consigna y F1, F2 y F3, y trabaja contra la API
+REST del backend. Specs: [frontend sobre puertos](../docs/specs/2026-10-12-frontend.md) y
+[frontend conectado a la API](../docs/specs/2026-10-13-frontend-api.md).
 
-## Cómo correrlo
+## Cómo corre
 
-Requiere Node 24 o superior. No necesita backend ni base de datos.
+Requiere Node 24 o superior y el backend levantado (ver el [README de la raíz](../README.md)).
 
 ```bash
 npm install
@@ -16,8 +16,20 @@ npm install
 npm run dev
 ```
 
-Abre en `http://localhost:5173` con datos de ejemplo. Los datos viven en memoria: recargar la página los
-restablece.
+Abre en `http://localhost:5173`. El servidor de desarrollo reenvía `/api` al backend, así el navegador habla con
+un solo origen. Por defecto el backend está en `http://localhost:8080`; para otro, definir `CERTIFLOW_API_URL`
+antes de `npm run dev`.
+
+Para partir de una base con datos de demostración (activos en tres jurisdicciones, un esquema con una versión
+programada, hallazgos, certificados parciales y uno global):
+
+```bash
+npm run seed
+```
+
+Usa la misma API que la interfaz. Si los datos ya están, avisa y no carga nada.
+
+## Tests
 
 ```bash
 npm run typecheck
@@ -27,9 +39,19 @@ npm run typecheck
 npm test
 ```
 
+Tests rápidos, sin backend: el cliente HTTP, la traducción de las respuestas de la API (contra respuestas reales
+guardadas en `src/adapters/http/__fixtures__/`) y las pantallas con puertos sustitutos.
+
 ```bash
-npm run build
+npm run test:e2e
 ```
+
+Tests contra el backend levantado: la suite de contrato de los puertos y los flujos manejados desde las
+pantallas. Cada test usa códigos y tipos de activo propios, así que se pueden correr varias veces sobre la misma
+base.
+
+`scripts/captureApiResponses.sh` vuelve a generar las respuestas guardadas. Hay que correrlo contra una base
+vacía cuando cambia la forma de una respuesta de la API.
 
 ## Estructura
 
@@ -37,49 +59,46 @@ npm run build
 src
 ├── domain/            tipos del lenguaje ubicuo, sin lógica
 ├── ports/             lo que la interfaz le pide al sistema: una interfaz por contexto, comandos y errores
-│   └── certiflowContract.ts   suite de tests que cualquier adaptador tiene que pasar
+│   └── certiflowContract.ts   suite de contrato que corre contra el backend
 ├── adapters/
-│   └── inmemory/      implementación actual: reglas, reloj controlable, bitácora y datos de ejemplo
+│   └── http/          implementación sobre la API REST
+│       ├── HalClient.ts        fetch, headers, persona que actúa, errores, paginación
+│       ├── actions.ts          tabla rel → acción
+│       ├── *Mapping.ts         de la respuesta de la API a los tipos de domain/
+│       ├── Http*Port.ts        un puerto por contexto
+│       └── __fixtures__/       respuestas reales de la API
 ├── ui/
 │   ├── app/           layout, rutas, sesión (persona que actúa), lista de personas de ejemplo
 │   ├── shared/        piezas comunes y el registro de tipos de regla (ruleKinds.tsx)
 │   └── catalog/ schema/ inspection/ certification/   pantallas por bounded context
 ├── composition.ts     raíz de composición: único archivo que conoce el adaptador
 └── main.tsx
+scripts/               datos de demostración y captura de respuestas
 ```
 
 Reglas de dependencia: `ui` importa `ports` y `domain`, nunca `adapters`. `adapters` importa `ports` y `domain`,
 nunca `ui`.
 
-## Cómo se usa
+## Cómo habla con la API
 
-- **Acting as** (encabezado): la persona que ejecuta cada operación. Queda registrada en el historial y es la
-  que evalúan reglas como "quien asigna no inspecciona" o "el verificador no puede ser el responsable".
-- **Today (demo)**: cambia la fecha del sistema en memoria. Sirve para ver una acción correctiva vencida o un
-  certificado expirado. Solo aparece con el adaptador en memoria.
-
-## Cómo se conecta la API
-
-1. Crear `src/adapters/http/` con una implementación de cada puerto de `src/ports/`. Cada método hace el request
-   y traduce la respuesta a los tipos de `src/domain/`:
-   - la persona del comando (`answeredBy`, `closedBy`…) va a los headers `X-Person-Id` y `X-Person-Name`;
-   - `actions` de cada recurso se arma con los `_links` de HAL (tabla `rel` → acción dentro del adaptador);
-   - un `application/problem+json` se convierte en `DomainError` usando su `title` como `name`.
-   - `ui/shared/format.ts` muestra los instantes con `timeZone: 'UTC'` porque el reloj en memoria guarda la hora local
-     marcada como UTC; con instantes reales de la API hay que quitar esa opción para ver la hora local.
-2. Cambiar `src/composition.ts` para que construya ese adaptador (sin `demoControls`, y el control de fecha
-   desaparece solo).
-3. Correr la suite de contrato contra el adaptador nuevo, igual que `inMemoryCertiflow.test.ts`.
-4. Resolver cómo se sirve: un `server.proxy` de Vite hacia el backend en desarrollo, y mismo origen o CORS al
-   desplegar.
-
-`src/domain`, `src/ports` y `src/ui` no cambian.
+- **URLs.** El adaptador arma la URL de cada recurso con su identificador y sigue los links de la respuesta para
+  las acciones disponibles, la paginación y los recursos relacionados.
+- **Links.** La API mezcla links absolutos y relativos. Todos se reducen a ruta y query antes de usarse, para que
+  pasen por el mismo origen.
+- **Acciones.** Lo que se puede hacer con un recurso sale de sus links (`closure` → cerrar, `suspensions` →
+  suspender…). La tabla está en `actions.ts`. Las pantallas muestran un botón por acción y no miran el estado.
+- **Persona que actúa.** Se elige en el encabezado ("Acting as") y viaja en `X-Person-Id` y `X-Person-Name` en
+  cada operación que escribe.
+- **Errores.** Un `problem+json` con una excepción de dominio se convierte en `DomainError`; cualquier otro rechazo,
+  en `RejectedRequestError`. Las pantallas muestran siempre el motivo que dio el servidor.
+- **Fechas.** Los instantes se muestran en la hora local del navegador. Las fechas sin hora viajan como
+  `AAAA-MM-DD`.
 
 ## Cómo se extiende
 
 | Cambio | Dónde |
 |---|---|
-| Un tipo de regla nuevo | Una variante en `ApprovalRule` (`domain/schema.ts`) y una entrada en `ui/shared/ruleKinds.tsx`. Mientras exista el adaptador en memoria, su evaluación en `adapters/inmemory/rules.ts`. |
-| Una transición nueva de un recurso | Un valor en su unión de acciones (`domain/`), el método en el puerto y el botón en la pantalla, condicionado a `actions.includes(...)`. |
-| Un dato nuevo de un recurso | El campo en su tipo de `domain/` y la fila en la pantalla. |
-| F1, F2 y F3 | Ver §6 de la spec: qué se agrega en la interfaz, en los puertos y en el adaptador para cada una. |
+| Un tipo de regla nuevo | Una variante en `ApprovalRule` (`domain/schema.ts`), una entrada en `ui/shared/ruleKinds.tsx` y su traducción en `adapters/http/schemaMapping.ts`. |
+| Una transición nueva de un recurso | Un valor en su unión de acciones (`domain/`), su `rel` en `adapters/http/actions.ts`, el método en el puerto y el botón en la pantalla, condicionado a `actions.includes(...)`. |
+| Un dato nuevo de un recurso | El campo en su tipo de `domain/`, en `adapters/http/wire.ts` y en su función de mapeo, y la fila en la pantalla. |
+| Una jurisdicción nueva | Nada en el frontend: el alta de activos la toma de `GET /api/v1/vocabulary`. |
