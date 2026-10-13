@@ -7,6 +7,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationCommand;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
 import ar.edu.itba.certiflow.inspection.model.CriterionResponse;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
@@ -246,9 +247,10 @@ public class InspectionController {
 
     @GetMapping("/{id}/certification-eligibility")
     public EligibilityResource eligibility(@PathVariable String id, @RequestParam(required = false) String subsystem) {
-        EligibilityResource eligibility = new EligibilityResource(evaluateCertification.execute(new InspectionId(id), subsystem == null
-                ? new CertificationScope.WholeAsset()
-                : new CertificationScope.SubsystemScope(new SubsystemCode(subsystem))));
+        CertificationScope scope = subsystem == null ? new CertificationScope.WholeAsset()
+                : new CertificationScope.SubsystemScope(new SubsystemCode(subsystem));
+        EligibilityResource eligibility = new EligibilityResource(
+                evaluateCertification.execute(new EvaluateCertificationCommand(new InspectionId(id), scope)));
         eligibility.add(linkTo(methodOn(InspectionController.class).eligibility(id, subsystem)).withSelfRel(),
                 linkTo(methodOn(InspectionController.class).find(id)).withRel("inspection"));
         if (eligibility.eligible) {

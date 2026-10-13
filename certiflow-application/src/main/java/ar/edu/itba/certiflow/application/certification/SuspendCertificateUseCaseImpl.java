@@ -1,12 +1,13 @@
 package ar.edu.itba.certiflow.application.certification;
 
-import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
+import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 
 public final class SuspendCertificateUseCaseImpl implements SuspendCertificateUseCase {
@@ -25,7 +26,9 @@ public final class SuspendCertificateUseCaseImpl implements SuspendCertificateUs
     public void execute(SuspendCertificateCommand command) {
         Certificate certificate = certificateRepository.findByNumber(command.number())
                 .orElseThrow(() -> new CertificateNotFoundException(command.number()));
-        certificateService.suspend(certificate, command.reason(), command.suspendedBy(), clock.instant(), LocalDate.now(clock));
+        Instant suspendedAt = clock.instant();
+        certificateService.suspend(certificate, command.reason(), command.suspendedBy(), suspendedAt,
+                LocalDate.ofInstant(suspendedAt, clock.getZone()));
         certificateRepository.save(certificate);
     }
 }

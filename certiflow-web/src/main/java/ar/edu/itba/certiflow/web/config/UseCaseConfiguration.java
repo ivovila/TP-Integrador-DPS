@@ -3,11 +3,12 @@ package ar.edu.itba.certiflow.web.config;
 import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.RegisterAssetUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.CertificateIssuanceService;
 import ar.edu.itba.certiflow.application.certification.CertificationAssessmentService;
 import ar.edu.itba.certiflow.application.certification.EvaluateCertificationUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.FindCertificateUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.GenerateCertificateDocumentUseCaseImpl;
-import ar.edu.itba.certiflow.application.certification.GlobalCertificates;
+import ar.edu.itba.certiflow.application.certification.GlobalCertificationService;
 import ar.edu.itba.certiflow.application.certification.InspectionResultTranslatorImpl;
 import ar.edu.itba.certiflow.application.certification.IssueCertificateUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.IssueGlobalCertificateUseCaseImpl;
@@ -102,6 +103,7 @@ import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.time.Clock;
+import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -170,7 +172,7 @@ public class UseCaseConfiguration {
 
     @Bean
     ConfiguredPolicyResolver certificationPolicies() {
-        return new ConfiguredPolicyResolver(java.util.Map.of(
+        return new ConfiguredPolicyResolver(Map.of(
                 new JurisdictionCode("DEMO-STRICT"), new StrictCertificationPolicy(),
                 new JurisdictionCode("DEMO-CONDITIONAL"), new ConditionalCertificationPolicy(),
                 new JurisdictionCode("DEMO-STANDARD"), new StandardCertificationPolicy()));
@@ -190,7 +192,7 @@ public class UseCaseConfiguration {
     @Bean
     RegisterAssetUseCase registerAsset(TransactionTemplate tx, AssetRepository assetRepository, AssetService assetService,
                                        Clock clock, CertificationPolicyResolver policies) {
-        return TransactionalUseCases.wrap(RegisterAssetUseCase.class, new RegisterAssetUseCaseImpl(assetRepository, assetService, clock, policies), tx, locks);
+        return TransactionalUseCases.wrap(RegisterAssetUseCase.class, new RegisterAssetUseCaseImpl(assetRepository, assetService, policies, clock), tx, locks);
     }
 
     @Bean
@@ -279,41 +281,55 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    GlobalCertificates globalCertificates(AssetRepository assets,
-            InspectionSchemaRepository schemas, CertificateRepository certificates, CertificateNumbering numbering,
-            CertificateService service, Clock clock) {
-        return new GlobalCertificates(assets, schemas, certificates,
-                numbering, service, new AllRequiredSubsystemsPolicy(), clock);
+    CertificateIssuanceService certificateIssuance(InspectionResultTranslator inspectionResultTranslator,
+                                                   CertificationAssessmentService certificationAssessment,
+                                                   CertificateRepository certificateRepository) {
+        return new CertificateIssuanceService(inspectionResultTranslator, certificationAssessment, certificateRepository);
     }
 
     @Bean
-    IssueGlobalCertificateUseCase issueGlobalCertificate(TransactionTemplate tx,
-            GlobalCertificates certificates) {
+    GlobalCertificationService globalCertification(AssetRepository assetRepository,
+                                                   InspectionSchemaRepository inspectionSchemaRepository,
+                                                   CertificateRepository certificateRepository, Clock clock) {
+        return new GlobalCertificationService(assetRepository, inspectionSchemaRepository, certificateRepository,
+                new AllRequiredSubsystemsPolicy(), clock);
+    }
+
+    @Bean
+    IssueGlobalCertificateUseCase issueGlobalCertificate(TransactionTemplate tx, GlobalCertificationService globalCertification,
+                                                         CertificateIssuanceService certificateIssuance,
+                                                         CertificateRepository certificateRepository,
+                                                         CertificateNumbering certificateNumbering,
+                                                         CertificateService certificateService) {
         return TransactionalUseCases.wrap(IssueGlobalCertificateUseCase.class,
-                new IssueGlobalCertificateUseCaseImpl(certificates), tx, locks);
+                new IssueGlobalCertificateUseCaseImpl(globalCertification, certificateIssuance, certificateRepository,
+                        certificateNumbering, certificateService), tx, locks);
     }
 
     @Bean
-    RenewGlobalCertificateUseCase renewGlobalCertificate(TransactionTemplate tx,
-            GlobalCertificates certificates) {
+    RenewGlobalCertificateUseCase renewGlobalCertificate(TransactionTemplate tx, GlobalCertificationService globalCertification,
+                                                         CertificateIssuanceService certificateIssuance,
+                                                         CertificateRepository certificateRepository,
+                                                         CertificateNumbering certificateNumbering,
+                                                         CertificateService certificateService) {
         return TransactionalUseCases.wrap(RenewGlobalCertificateUseCase.class,
-                new RenewGlobalCertificateUseCaseImpl(certificates), tx, locks);
+                new RenewGlobalCertificateUseCaseImpl(globalCertification, certificateIssuance, certificateRepository,
+                        certificateNumbering, certificateService), tx, locks);
     }
 
     @Bean
-    IssueCertificateUseCase issueCertificate(TransactionTemplate tx, InspectionResultTranslator inspectionResultTranslator,
+    IssueCertificateUseCase issueCertificate(TransactionTemplate tx, CertificateIssuanceService certificateIssuance,
                                              CertificateRepository certificateRepository,
-                                             CertificationAssessmentService certificationAssessment,
-                                             CertificateNumbering certificateNumbering, CertificateService certificateService,
-                                             Clock clock) {
-        return TransactionalUseCases.wrap(IssueCertificateUseCase.class, new IssueCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock), tx, locks);
+                                             CertificateNumbering certificateNumbering,
+                                             CertificateService certificateService) {
+        return TransactionalUseCases.wrap(IssueCertificateUseCase.class, new IssueCertificateUseCaseImpl(certificateIssuance,
+                certificateRepository, certificateNumbering, certificateService), tx, locks);
     }
 
     @Bean
-    EvaluateCertificationUseCase evaluateCertification(TransactionTemplate tx,
-                                                       InspectionResultTranslator inspectionResultTranslator,
-                                                       CertificationAssessmentService certificationAssessment) {
-        return TransactionalUseCases.wrap(EvaluateCertificationUseCase.class, new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationAssessment), tx, locks);
+    EvaluateCertificationUseCase evaluateCertification(TransactionTemplate tx, CertificateIssuanceService certificateIssuance) {
+        return TransactionalUseCases.wrap(EvaluateCertificationUseCase.class,
+                new EvaluateCertificationUseCaseImpl(certificateIssuance), tx, locks);
     }
 
     @Bean
@@ -323,12 +339,12 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    RenewCertificateUseCase renewCertificate(TransactionTemplate tx, InspectionResultTranslator inspectionResultTranslator,
+    RenewCertificateUseCase renewCertificate(TransactionTemplate tx, CertificateIssuanceService certificateIssuance,
                                              CertificateRepository certificateRepository,
-                                             CertificationAssessmentService certificationAssessment,
-                                             CertificateNumbering certificateNumbering, CertificateService certificateService,
-                                             Clock clock) {
-        return TransactionalUseCases.wrap(RenewCertificateUseCase.class, new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock), tx, locks);
+                                             CertificateNumbering certificateNumbering,
+                                             CertificateService certificateService) {
+        return TransactionalUseCases.wrap(RenewCertificateUseCase.class, new RenewCertificateUseCaseImpl(certificateIssuance,
+                certificateRepository, certificateNumbering, certificateService), tx, locks);
     }
 
     @Bean

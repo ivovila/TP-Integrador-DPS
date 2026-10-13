@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.application.support.CertiflowFixture;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
-import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
@@ -20,7 +19,7 @@ class CertificationDecisionTest {
 
     @Test
     void compliantClosedInspectionIsEligible() {
-        CertificationDecision decision = fixture.evaluateCertification.execute(fixture.closedCompliantInspection(), new CertificationScope.WholeAsset());
+        CertificationDecision decision = fixture.evaluate(fixture.closedCompliantInspection());
 
         assertTrue(decision.isEligible());
         assertTrue(decision.ineligibilities().isEmpty());
@@ -30,7 +29,7 @@ class CertificationDecisionTest {
     void decisionExplainsEveryReasonAtOnceWithoutIssuingAnything() {
         InspectionId partialInProgress = fixture.assignedInspection(new SectionsScope(Set.of(CertiflowFixture.SIGNAGE)));
 
-        CertificationDecision decision = fixture.evaluateCertification.execute(partialInProgress, new CertificationScope.WholeAsset());
+        CertificationDecision decision = fixture.evaluate(partialInProgress);
 
         assertFalse(decision.isEligible());
         assertEquals("STANDARD", decision.policyCode());
@@ -46,7 +45,7 @@ class CertificationDecisionTest {
         InspectionId inspection = fixture.assignedInspection();
         fixture.majorFindingOf(inspection);
 
-        CertificationDecision decision = fixture.evaluateCertification.execute(inspection, new CertificationScope.WholeAsset());
+        CertificationDecision decision = fixture.evaluate(inspection);
 
         assertEquals(1, decision.ineligibilities().size());
         assertEquals(IneligibilityReason.BLOCKING_FINDINGS, decision.ineligibilities().getFirst().reason());

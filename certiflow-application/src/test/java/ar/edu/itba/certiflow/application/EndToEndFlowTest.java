@@ -65,7 +65,7 @@ class EndToEndFlowTest {
 
         FindingsSummary summaryAfterClosing = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(2, summaryAfterClosing.openFindings());
-        assertFalse(fixture.evaluateCertification.execute(inspection, new ar.edu.itba.certiflow.certification.model.CertificationScope.WholeAsset()).isEligible());
+        assertFalse(fixture.evaluate(inspection).isEligible());
         CertiflowFixture.assertNotEligible(IneligibilityReason.BLOCKING_FINDINGS, () -> fixture.issue(inspection, fixture.certifier));
 
         FindingId lowPressureFinding = findings.getFirst();
@@ -75,7 +75,7 @@ class EndToEndFlowTest {
 
         FindingsSummary summaryAfterVerification = fixture.generateFindingsSummary.execute(fixture.extinguisher.code());
         assertEquals(1, summaryAfterVerification.openFindings());
-        assertTrue(fixture.evaluateCertification.execute(inspection, new ar.edu.itba.certiflow.certification.model.CertificationScope.WholeAsset()).isEligible());
+        assertTrue(fixture.evaluate(inspection).isEligible());
 
         LocalDate validUntil = LocalDate.now(fixture.clock).plusMonths(12).minusDays(1);
         CertificateNumber certificate = fixture.issue(inspection, fixture.certifier);

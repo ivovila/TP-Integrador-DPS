@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ar.edu.itba.certiflow.application.catalog.FindAssetUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.ListAssetsUseCaseImpl;
 import ar.edu.itba.certiflow.application.catalog.RegisterAssetUseCaseImpl;
+import ar.edu.itba.certiflow.application.certification.CertificateIssuanceService;
 import ar.edu.itba.certiflow.application.certification.CertificationAssessmentService;
 import ar.edu.itba.certiflow.application.certification.EvaluateCertificationUseCaseImpl;
 import ar.edu.itba.certiflow.application.certification.FindCertificateUseCaseImpl;
@@ -49,12 +50,14 @@ import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
+import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationCommand;
 import ar.edu.itba.certiflow.certification.usecase.EvaluateCertificationUseCase;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
@@ -134,6 +137,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.function.Executable;
 
@@ -177,10 +181,10 @@ public final class CertiflowFixture {
     private final InspectionService inspectionService = new InspectionService(new InspectionFactory(), inspectionLog);
     private final FindingService findingService = new FindingService(new FindingFactory(), findingLog);
     private final CertificateService certificateService = new CertificateService(new CertificateFactory(), certificateLog);
-    private final CertificationPolicyResolver policies = code -> new StandardCertificationPolicy();
+    private final CertificationPolicyResolver policies = code -> Optional.of(new StandardCertificationPolicy());
     private final CertificationAssessmentService certificationAssessment =
             new CertificationAssessmentService(assetRepository, policies, clock);
-    public final RegisterAssetUseCase registerAsset = new RegisterAssetUseCaseImpl(assetRepository, assetService, clock, policies);
+    public final RegisterAssetUseCase registerAsset = new RegisterAssetUseCaseImpl(assetRepository, assetService, policies, clock);
     public final CreateInspectionSchemaUseCase createInspectionSchema = new CreateInspectionSchemaUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final PublishSchemaVersionUseCase publishSchemaVersion = new PublishSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock);
     public final AssignInspectionUseCase assignInspection = new AssignInspectionUseCaseImpl(assetRepository, inspectionSchemaRepository, inspectionRepository,
@@ -198,10 +202,14 @@ public final class CertiflowFixture {
 
     private final InspectionResultTranslator inspectionResultTranslator = new InspectionResultTranslatorImpl(inspectionRepository, findingRepository, assetRepository);
     private final SequentialCertificateNumbering certificateNumbering = new SequentialCertificateNumbering();
-    public final IssueCertificateUseCase issueCertificate = new IssueCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock);
-    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(inspectionResultTranslator, certificationAssessment);
+    private final CertificateIssuanceService certificateIssuance =
+            new CertificateIssuanceService(inspectionResultTranslator, certificationAssessment, certificateRepository);
+    public final IssueCertificateUseCase issueCertificate =
+            new IssueCertificateUseCaseImpl(certificateIssuance, certificateRepository, certificateNumbering, certificateService);
+    public final EvaluateCertificationUseCase evaluateCertification = new EvaluateCertificationUseCaseImpl(certificateIssuance);
     public final SuspendCertificateUseCase suspendCertificate = new SuspendCertificateUseCaseImpl(certificateRepository, certificateService, clock);
-    public final RenewCertificateUseCase renewCertificate = new RenewCertificateUseCaseImpl(inspectionResultTranslator, certificateRepository, certificationAssessment, certificateNumbering, certificateService, clock);
+    public final RenewCertificateUseCase renewCertificate =
+            new RenewCertificateUseCaseImpl(certificateIssuance, certificateRepository, certificateNumbering, certificateService);
 
     public final FindAssetUseCase findAsset = new FindAssetUseCaseImpl(assetRepository);
     public final ListAssetsUseCase listAssets = new ListAssetsUseCaseImpl(assetRepository);
@@ -248,6 +256,14 @@ public final class CertiflowFixture {
 
     public Certificate certificate(CertificateNumber number) {
         return certificateRepository.findByNumber(number).orElseThrow();
+    }
+
+    public CertificationDecision evaluate(InspectionId inspection) {
+        return evaluate(inspection, new CertificationScope.WholeAsset());
+    }
+
+    public CertificationDecision evaluate(InspectionId inspection, CertificationScope scope) {
+        return evaluateCertification.execute(new EvaluateCertificationCommand(inspection, scope));
     }
 
     public static void assertNotEligible(IneligibilityReason reason, Executable certification) {
