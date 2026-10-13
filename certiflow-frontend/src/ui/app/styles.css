@@ -345,6 +345,24 @@ button:disabled {
   color: var(--ink-soft);
 }
 
+details.more {
+  margin-top: 0.5rem;
+}
+
+details.more summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+details.more form {
+  margin-top: 0.5rem;
+}
+
+.criterion form {
+  margin-top: 0.5rem;
+}
+
 .nested {
   border: 1px solid var(--line);
   border-radius: 6px;

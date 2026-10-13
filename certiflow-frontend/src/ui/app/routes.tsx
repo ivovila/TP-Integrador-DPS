@@ -3,6 +3,10 @@ import { AssetDetailPage } from '../catalog/AssetDetailPage';
 import { AssetListPage } from '../catalog/AssetListPage';
 import { FindingsSummaryPage } from '../catalog/FindingsSummaryPage';
 import { RegisterAssetPage } from '../catalog/RegisterAssetPage';
+import { AssignInspectionPage } from '../inspection/AssignInspectionPage';
+import { InspectionActPage } from '../inspection/InspectionActPage';
+import { InspectionDetailPage } from '../inspection/InspectionDetailPage';
+import { InspectionListPage } from '../inspection/InspectionListPage';
 import { CreateSchemaPage } from '../schema/CreateSchemaPage';
 import { PublishVersionPage } from '../schema/PublishVersionPage';
 import { SchemaDetailPage } from '../schema/SchemaDetailPage';
@@ -24,6 +28,10 @@ export function ApplicationRoutes() {
         <Route path="schemas/:assetType" element={<SchemaDetailPage />} />
         <Route path="schemas/:assetType/versions/new" element={<PublishVersionPage />} />
         <Route path="schemas/:assetType/versions/:number" element={<SchemaVersionPage />} />
+        <Route path="inspections" element={<InspectionListPage />} />
+        <Route path="inspections/new" element={<AssignInspectionPage />} />
+        <Route path="inspections/:id" element={<InspectionDetailPage />} />
+        <Route path="inspections/:id/act" element={<InspectionActPage />} />
       </Route>
     </Routes>
   );
