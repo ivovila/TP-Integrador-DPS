@@ -41,6 +41,11 @@ public class JpaCertificateRepository implements CertificateRepository {
     }
 
     @Override
+    public Optional<AssetCode> assetCodeOf(CertificateNumber certificateNumber) {
+        return certificates.findAssetCodeByNumber(certificateNumber.value()).map(AssetCode::new);
+    }
+
+    @Override
     public List<Certificate> findByAsset(AssetCode assetCode) {
         return certificates.findByAssetCode(assetCode.value()).stream().map(this::restore).toList();
     }

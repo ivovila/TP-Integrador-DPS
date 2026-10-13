@@ -53,6 +53,11 @@ public class JpaFindingRepository implements FindingRepository {
     }
 
     @Override
+    public Optional<AssetCode> assetCodeOf(FindingId findingId) {
+        return findings.findAssetCodeById(findingId.value()).map(AssetCode::new);
+    }
+
+    @Override
     public List<Finding> findByAsset(AssetCode assetCode) {
         return findings.findByAssetCode(assetCode.value()).stream().map(this::restore).toList();
     }

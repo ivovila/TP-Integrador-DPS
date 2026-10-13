@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.application.certification;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import ar.edu.itba.certiflow.application.support.Samples;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
+import ar.edu.itba.certiflow.catalog.repository.AssetLock;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
@@ -31,11 +33,15 @@ import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.certification.usecase.IssueCertificateCommand;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.inspection.model.exceptions.InspectionNotFoundException;
+import ar.edu.itba.certiflow.inspection.repository.InspectionRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,12 +59,28 @@ class IssueCertificateUseCaseImplTest {
     private CertificateRepository certificateRepository;
     @Mock
     private CertificateNumbering numbering;
+    @Mock
+    private InspectionRepository inspectionRepository;
+    @Mock
+    private AssetLock assetLock;
     private IssueCertificateUseCaseImpl issueCertificate;
 
     @BeforeEach
     void setUp() {
         issueCertificate = new IssueCertificateUseCaseImpl(issuance, certificateRepository, numbering,
-                new CertificateService(new CertificateFactory(), Samples.auditLog()));
+                new CertificateService(new CertificateFactory(), Samples.auditLog()), inspectionRepository, assetLock);
+        when(inspectionRepository.assetCodeOf(INSPECTION)).thenReturn(Optional.of(Samples.ASSET.code()));
+    }
+
+    @Test
+    void theAssetIsLockedBeforeDeciding() {
+        when(issuance.decide(INSPECTION, WHOLE)).thenThrow(new InspectionNotFoundException(INSPECTION));
+
+        assertThrows(InspectionNotFoundException.class, () -> issueCertificate.execute(COMMAND));
+
+        InOrder order = inOrder(assetLock, issuance);
+        order.verify(assetLock).lock(Samples.ASSET.code());
+        order.verify(issuance).decide(INSPECTION, WHOLE);
     }
 
     @Test

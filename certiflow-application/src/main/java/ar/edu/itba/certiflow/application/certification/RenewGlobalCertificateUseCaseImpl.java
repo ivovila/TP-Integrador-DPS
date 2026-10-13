@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.application.certification;
 
+import ar.edu.itba.certiflow.catalog.model.AssetCode;
+import ar.edu.itba.certiflow.catalog.repository.AssetLock;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
@@ -18,24 +20,29 @@ public final class RenewGlobalCertificateUseCaseImpl implements RenewGlobalCerti
     private final CertificateRepository certificateRepository;
     private final CertificateNumbering certificateNumbering;
     private final CertificateService certificateService;
+    private final AssetLock assetLock;
 
     public RenewGlobalCertificateUseCaseImpl(GlobalCertificationService globalCertification,
                                              CertificateIssuanceService certificateIssuance,
                                              CertificateRepository certificateRepository,
                                              CertificateNumbering certificateNumbering,
-                                             CertificateService certificateService) {
+                                             CertificateService certificateService, AssetLock assetLock) {
         this.globalCertification = globalCertification;
         this.certificateIssuance = certificateIssuance;
         this.certificateRepository = certificateRepository;
         this.certificateNumbering = certificateNumbering;
         this.certificateService = certificateService;
+        this.assetLock = assetLock;
     }
 
     @Override
     public CertificateNumber execute(RenewGlobalCertificateCommand command) {
+        AssetCode assetCode = certificateRepository.assetCodeOf(command.currentNumber())
+                .orElseThrow(() -> new CertificateNotFoundException(command.currentNumber()));
+        assetLock.lock(assetCode);
         Certificate currentCertificate = certificateRepository.findByNumber(command.currentNumber())
                 .orElseThrow(() -> new CertificateNotFoundException(command.currentNumber()));
-        DecidedGlobalCertification decided = globalCertification.decide(command.assetCode(), command.schemaVersion(),
+        DecidedGlobalCertification decided = globalCertification.decide(assetCode, command.schemaVersion(),
                 command.partialCertificateNumbers());
         certificateService.ensureGlobalRenewable(currentCertificate, decided);
         certificateIssuance.ensureScopeAvailableToReplace(currentCertificate, decided.scope(), decided.validFrom());

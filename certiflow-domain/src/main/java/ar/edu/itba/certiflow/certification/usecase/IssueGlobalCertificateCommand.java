@@ -4,16 +4,11 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.shared.model.Person;
 import java.util.List;
-import ar.edu.itba.certiflow.shared.usecase.AssetLockKey;
-import ar.edu.itba.certiflow.shared.usecase.LocksAsset;
 
 public record IssueGlobalCertificateCommand(AssetCode assetCode, int schemaVersion,
-        List<CertificateNumber> partialCertificateNumbers, Person issuedBy) implements LocksAsset {
-    public IssueGlobalCertificateCommand { partialCertificateNumbers = List.copyOf(partialCertificateNumbers); }
+                                            List<CertificateNumber> partialCertificateNumbers, Person issuedBy) {
 
-
-    @Override
-    public AssetLockKey assetLockKey() {
-        return AssetLockKey.asset(assetCode);
+    public IssueGlobalCertificateCommand {
+        partialCertificateNumbers = List.copyOf(partialCertificateNumbers);
     }
 }

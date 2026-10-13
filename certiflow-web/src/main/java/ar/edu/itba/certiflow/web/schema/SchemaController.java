@@ -14,9 +14,8 @@ import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
+import ar.edu.itba.certiflow.schema.usecase.SchemaHistoryUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
 import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import ar.edu.itba.certiflow.web.security.StaffRole;
@@ -49,18 +48,18 @@ public class SchemaController {
     private final CreateInspectionSchemaUseCase createInspectionSchema;
     private final PublishSchemaVersionUseCase publishSchemaVersion;
     private final FindSchemaUseCase findSchema;
-    private final AuditHistoryUseCase auditHistory;
+    private final SchemaHistoryUseCase schemaHistory;
     private final Clock clock;
     private final FindEffectiveSchemaVersionUseCase findEffective;
     private final ListSchemasUseCase listSchemas;
 
     public SchemaController(CreateInspectionSchemaUseCase createInspectionSchema, PublishSchemaVersionUseCase publishSchemaVersion,
-                            FindSchemaUseCase findSchema, AuditHistoryUseCase auditHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective,
+                            FindSchemaUseCase findSchema, SchemaHistoryUseCase schemaHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective,
                             ListSchemasUseCase listSchemas) {
         this.createInspectionSchema = createInspectionSchema;
         this.publishSchemaVersion = publishSchemaVersion;
         this.findSchema = findSchema;
-        this.auditHistory = auditHistory;
+        this.schemaHistory = schemaHistory;
         this.clock = clock;
         this.findEffective = findEffective;
         this.listSchemas = listSchemas;
@@ -127,7 +126,7 @@ public class SchemaController {
 
     @GetMapping("/{assetType}/audit-entries")
     public CollectionModel<AuditEntryResponse> history(@PathVariable String assetType) {
-        return CollectionModel.of(auditHistory.execute(new AuditSubject.OfSchema(new AssetType(assetType))).stream()
+        return CollectionModel.of(schemaHistory.execute(new AssetType(assetType)).stream()
                         .map(AuditEntryResponse::of).toList(),
                 linkTo(methodOn(SchemaController.class).history(assetType)).withSelfRel());
     }

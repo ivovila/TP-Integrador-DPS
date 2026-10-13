@@ -1,12 +1,8 @@
 package ar.edu.itba.certiflow.web.inspection;
 
-import ar.edu.itba.certiflow.web.security.ReadableBy;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import ar.edu.itba.certiflow.web.security.AllowedRole;
-import ar.edu.itba.certiflow.web.security.StaffRole;
-import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveAction;
 import ar.edu.itba.certiflow.inspection.model.CorrectiveActionId;
@@ -14,6 +10,7 @@ import ar.edu.itba.certiflow.inspection.model.Finding;
 import ar.edu.itba.certiflow.inspection.model.FindingId;
 import ar.edu.itba.certiflow.inspection.model.exceptions.CorrectiveActionNotInFindingException;
 import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.FindingHistoryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateFindingsSummaryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
@@ -21,12 +18,14 @@ import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.VerifyCorrectiveActionUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.ReadableBy;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
 import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
+import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -53,18 +52,18 @@ public class FindingController {
     private final PlanCorrectiveActionUseCase planCorrectiveAction;
     private final VerifyCorrectiveActionUseCase verifyCorrectiveAction;
     private final GenerateFindingsSummaryUseCase generateFindingsSummary;
-    private final AuditHistoryUseCase auditHistory;
+    private final FindingHistoryUseCase findingHistory;
     private final Clock clock;
 
     public FindingController(ListFindingsUseCase listFindings, FindFindingUseCase findFinding,
                              PlanCorrectiveActionUseCase planCorrectiveAction, VerifyCorrectiveActionUseCase verifyCorrectiveAction,
-                             GenerateFindingsSummaryUseCase generateFindingsSummary, AuditHistoryUseCase auditHistory, Clock clock) {
+                             GenerateFindingsSummaryUseCase generateFindingsSummary, FindingHistoryUseCase findingHistory, Clock clock) {
         this.listFindings = listFindings;
         this.findFinding = findFinding;
         this.planCorrectiveAction = planCorrectiveAction;
         this.verifyCorrectiveAction = verifyCorrectiveAction;
         this.generateFindingsSummary = generateFindingsSummary;
-        this.auditHistory = auditHistory;
+        this.findingHistory = findingHistory;
         this.clock = clock;
     }
 
@@ -128,7 +127,7 @@ public class FindingController {
 
     @GetMapping("/findings/{id}/audit-entries")
     public CollectionModel<AuditEntryResponse> history(@PathVariable String id) {
-        return CollectionModel.of(auditHistory.execute(new AuditSubject.OfFinding(new FindingId(id))).stream()
+        return CollectionModel.of(findingHistory.execute(new FindingId(id)).stream()
                         .map(AuditEntryResponse::of).toList(),
                 linkTo(methodOn(FindingController.class).history(id)).withSelfRel());
     }

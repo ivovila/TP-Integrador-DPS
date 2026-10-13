@@ -1,6 +1,5 @@
 package ar.edu.itba.certiflow.web.inspection;
 
-import ar.edu.itba.certiflow.web.security.ReadableBy;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -9,13 +8,13 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionView;
 import ar.edu.itba.certiflow.inspection.usecase.AssignInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.InspectionHistoryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
-import ar.edu.itba.certiflow.web.security.AllowedRole;
-import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.certification.EligibilityController;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.ReadableBy;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.InvalidRequestException;
@@ -48,16 +47,16 @@ public class InspectionController {
     private final AssignInspectionUseCase assignInspection;
     private final FindInspectionUseCase findInspection;
     private final ListInspectionsUseCase listInspections;
-    private final AuditHistoryUseCase auditHistory;
+    private final InspectionHistoryUseCase inspectionHistory;
 
     public InspectionController(AssignInspectionUseCase assignInspection,
                                 FindInspectionUseCase findInspection,
                                 ListInspectionsUseCase listInspections,
-                                AuditHistoryUseCase auditHistory) {
+                                InspectionHistoryUseCase inspectionHistory) {
         this.assignInspection = assignInspection;
         this.findInspection = findInspection;
         this.listInspections = listInspections;
-        this.auditHistory = auditHistory;
+        this.inspectionHistory = inspectionHistory;
     }
 
     @AllowedRole(StaffRole.INSPECTION_COORDINATOR)
@@ -91,7 +90,7 @@ public class InspectionController {
 
     @GetMapping("/{id}/audit-entries")
     public CollectionModel<AuditEntryResponse> history(@PathVariable String id) {
-        return CollectionModel.of(auditHistory.execute(new AuditSubject.OfInspection(new InspectionId(id))).stream()
+        return CollectionModel.of(inspectionHistory.execute(new InspectionId(id)).stream()
                         .map(AuditEntryResponse::of).toList(),
                 linkTo(methodOn(InspectionController.class).history(id)).withSelfRel());
     }

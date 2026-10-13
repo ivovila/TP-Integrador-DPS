@@ -1,24 +1,23 @@
 package ar.edu.itba.certiflow.web.catalog;
 
-import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import ar.edu.itba.certiflow.web.security.AllowedRole;
-import ar.edu.itba.certiflow.web.security.StaffRole;
-import ar.edu.itba.certiflow.web.support.Uris;
 import ar.edu.itba.certiflow.catalog.model.Asset;
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
+import ar.edu.itba.certiflow.catalog.usecase.AssetHistoryUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.FindAssetUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.ListAssetsUseCase;
 import ar.edu.itba.certiflow.catalog.usecase.RegisterAssetUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
+import ar.edu.itba.certiflow.web.security.AllowedRole;
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
+import ar.edu.itba.certiflow.web.security.StaffRole;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.Uris;
 import java.util.Optional;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.Link;
@@ -40,14 +39,14 @@ public class AssetController {
     private final RegisterAssetUseCase registerAsset;
     private final FindAssetUseCase findAsset;
     private final ListAssetsUseCase listAssets;
-    private final AuditHistoryUseCase auditHistory;
+    private final AssetHistoryUseCase assetHistory;
 
     public AssetController(RegisterAssetUseCase registerAsset, FindAssetUseCase findAsset, ListAssetsUseCase listAssets,
-                           AuditHistoryUseCase auditHistory) {
+                           AssetHistoryUseCase assetHistory) {
         this.registerAsset = registerAsset;
         this.findAsset = findAsset;
         this.listAssets = listAssets;
-        this.auditHistory = auditHistory;
+        this.assetHistory = assetHistory;
     }
 
     @AllowedRole(StaffRole.ADMINISTRATOR)
@@ -71,7 +70,7 @@ public class AssetController {
 
     @GetMapping("/{code}/audit-entries")
     public CollectionModel<AuditEntryResponse> history(@PathVariable String code) {
-        return CollectionModel.of(auditHistory.execute(new AuditSubject.OfAsset(new AssetCode(code))).stream()
+        return CollectionModel.of(assetHistory.execute(new AssetCode(code)).stream()
                         .map(AuditEntryResponse::of).toList(),
                 linkTo(methodOn(AssetController.class).history(code)).withSelfRel());
     }

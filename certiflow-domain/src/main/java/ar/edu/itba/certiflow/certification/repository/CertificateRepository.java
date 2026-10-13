@@ -12,6 +12,9 @@ public interface CertificateRepository {
 
     Optional<Certificate> findByNumber(CertificateNumber number);
 
+    /** El activo de un certificado, sin cargarlo: es lo que se bloquea antes de leerlo para cambiarlo. */
+    Optional<AssetCode> assetCodeOf(CertificateNumber certificateNumber);
+
     List<Certificate> findByAsset(AssetCode assetCode);
 
     List<Certificate> findAll();

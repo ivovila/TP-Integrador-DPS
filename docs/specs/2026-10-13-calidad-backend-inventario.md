@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `7ef0ffb` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `31f86f2` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 288 | 5959 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 1 | 0 |
-| application | 38 | 1412 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| infrastructure | 63 | 2478 | 0 | 0 | 0 | 2 | 0 | 1 | 1 | 22 | 1 | 0 | 0 | 2 |
-| web | 90 | 4121 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
-| **total** | 479 | 13970 | 0 | 5 | 0 | 7 | 6 | 4 | 44 | 82 | 8 | 2 | 22 | 5 |
+| domain | 288 | 5872 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| application | 42 | 1556 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| infrastructure | 62 | 2466 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 22 | 0 | 0 | 0 | 0 |
+| web | 90 | 4114 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
+| **total** | 482 | 14008 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -64,12 +64,10 @@ Ninguna.
 
 ## 4. Tipo consultado por reflexión (`isInstance`, `cast`, `getClass`)
 
-7 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
+5 ocurrencias. Tareas del plan: 3 (`RawAnswer`), 5 (`SectionsJson`, `SchemaPayloads`, `AuditActions`), 6 (`ApiExceptionHandler`), 8 (bloqueo). Las de `TransactionalUseCases` están aceptadas.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:37` | `.filter(LocksAsset.class::isInstance)` |
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:38` | `.map(LocksAsset.class::cast)` |
 | web | `web/config/TransactionalUseCases.java:21` | `if (method.getDeclaringClass() == Object.class) {` |
 | web | `web/config/TransactionalUseCases.java:35` | `return useCase.cast(proxy);` |
 | web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
@@ -91,38 +89,59 @@ Ninguna.
 
 ## 6. Registros por clase o por texto (heurística)
 
-4 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
+3 ocurrencias. Tareas del plan: 3, 5, 6, 8, 10 (`CLOSED_BY_STATUS`).
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:23` | `private final Map<String, Function<String, Optional<String>>> assetCodeByOwner;` |
-| web | `web/inspection/InspectionController.java:46` | `private static final Map<String, Boolean> CLOSED_BY_STATUS = Map.of("open", false, "closed", true);` |
+| web | `web/inspection/InspectionController.java:45` | `private static final Map<String, Boolean> CLOSED_BY_STATUS = Map.of("open", false, "closed", true);` |
 | web | `web/schema/SchemaPayloads.java:31` | `private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();` |
 | web | `web/schema/SchemaPayloads.java:41` | `private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(` |
 
 ## 7. Métodos y bloques estáticos
 
-44 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
+39 ocurrencias. Tareas del plan: 1, 3, 5, 7, 8, 9, 10, 11.
 
-| Módulo | Archivo | Líneas |
+| Módulo | Ubicación | Línea |
 |---|---|---|
-| domain | `shared/usecase/AssetLockKey.java` | 11, 15, 19, 23 |
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java` | 50 |
-| web | `CertiflowApplication.java` | 9 |
-| web | `web/certification/CertificationPayloads.java` | 21, 28, 42, 57 |
-| web | `web/config/DemoDataSeeder.java` | 157, 186 |
-| web | `web/config/TransactionalUseCases.java` | 13, 17, 38 |
-| web | `web/inspection/CriterionResponseController.java` | 69 |
-| web | `web/inspection/InspectionController.java` | 126 |
-| web | `web/inspection/RawAnswers.java` | 18 |
-| web | `web/schema/SchemaPayloads.java` | 33, 54, 60, 66, 73, 80, 86, 92, 98, 103, 108, 113 |
-| web | `web/security/AllowedRoleInterceptor.java` | 33, 37 |
-| web | `web/security/SecurityConfiguration.java` | 89 |
-| web | `web/support/AuditEntryResponse.java` | 11 |
-| web | `web/support/PageLinks.java` | 14, 22, 28, 45 |
-| web | `web/support/PersonPayload.java` | 13 |
-| web | `web/support/RequestFields.java` | 11, 17 |
-| web | `web/support/Uris.java` | 15, 22, 26 |
+| web | `CertiflowApplication.java:9` | `public static void main(String[] args) {` |
+| web | `web/certification/CertificationPayloads.java:21` | `public static ScopePayload of(CertificationScope scope) {` |
+| web | `web/certification/CertificationPayloads.java:28` | `public static BasisPayload of(CertificateBasis basis) {` |
+| web | `web/certification/CertificationPayloads.java:42` | `public static DecisionPayload of(CertificationDecision decision) {` |
+| web | `web/certification/CertificationPayloads.java:57` | `public static SchemaReferencePayload of(SchemaReference reference) {` |
+| web | `web/config/DemoDataSeeder.java:157` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
+| web | `web/config/DemoDataSeeder.java:186` | `private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {` |
+| web | `web/config/TransactionalUseCases.java:13` | `public static <U> U wrap(Class<U> useCase, U target, TransactionTemplate transactions) {` |
+| web | `web/config/TransactionalUseCases.java:17` | `public static <U> U wrap(Class<U> useCase, U target, TransactionTemplate transactions,` |
+| web | `web/config/TransactionalUseCases.java:38` | `private static RuntimeException unchecked(Throwable cause) {` |
+| web | `web/inspection/CriterionResponseController.java:69` | `private static CriterionResponse<?> criterionResponse(InspectionView inspection, String code) {` |
+| web | `web/inspection/InspectionController.java:125` | `private static boolean closedFor(String status) {` |
+| web | `web/inspection/RawAnswers.java:18` | `static RawAnswer from(JsonNode node) {` |
+| web | `web/schema/SchemaPayloads.java:33` | `static {` |
+| web | `web/schema/SchemaPayloads.java:54` | `public static List<Section> toSections(List<SectionPayload> sections) {` |
+| web | `web/schema/SchemaPayloads.java:60` | `public static List<SectionPayload> fromSections(List<Section> sections) {` |
+| web | `web/schema/SchemaPayloads.java:66` | `public static CriterionPayload payload(Criterion<?> criterion) {` |
+| web | `web/schema/SchemaPayloads.java:73` | `private static Criterion<?> criterion(CriterionPayload payload) {` |
+| web | `web/schema/SchemaPayloads.java:80` | `private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Se...` |
+| web | `web/schema/SchemaPayloads.java:86` | `private static ApprovalRule<?> rule(RulePayload rule) {` |
+| web | `web/schema/SchemaPayloads.java:92` | `private static RulePayload rulePayload(ApprovalRule<?> rule) {` |
+| web | `web/schema/SchemaPayloads.java:98` | `private static <T> T required(T value, String field) {` |
+| web | `web/schema/SchemaPayloads.java:103` | `private static YesNoAnswer expected(String name) {` |
+| web | `web/schema/SchemaPayloads.java:108` | `private static Severity severity(String name) {` |
+| web | `web/schema/SchemaPayloads.java:113` | `public static EvidenceKind evidenceKind(String name) {` |
+| web | `web/security/AllowedRoleInterceptor.java:33` | `private static boolean isRead(HttpServletRequest request) {` |
+| web | `web/security/AllowedRoleInterceptor.java:37` | `private static boolean hasAnyRole(Authentication authentication, StaffRole... roles) {` |
+| web | `web/security/SecurityConfiguration.java:89` | `private static AbstractAuthenticationToken authenticationOf(Jwt jwt) {` |
+| web | `web/support/AuditEntryResponse.java:11` | `public static AuditEntryResponse of(AuditEntry entry) {` |
+| web | `web/support/PageLinks.java:14` | `public static PageRequest request(int page, int size) {` |
+| web | `web/support/PageLinks.java:22` | `public static <T> PagedModel<T> page(List<T> all, int page, int size, String baseUri, String query) {` |
+| web | `web/support/PageLinks.java:28` | `public static <T> PagedModel<T> of(Page<T> page, String baseUri, String query) {` |
+| web | `web/support/PageLinks.java:45` | `private static String uri(String baseUri, String query, int page, int size) {` |
+| web | `web/support/PersonPayload.java:13` | `public static PersonPayload of(Person person) {` |
+| web | `web/support/RequestFields.java:11` | `public static void require(Object value, String field) {` |
+| web | `web/support/RequestFields.java:17` | `public static <T> List<T> requireElements(List<T> values, String field) {` |
+| web | `web/support/Uris.java:15` | `public static String path(String... segments) {` |
+| web | `web/support/Uris.java:22` | `public static Optional<String> query(String name, String value) {` |
+| web | `web/support/Uris.java:26` | `public static String etag(String... parts) {` |
 
 ## 8. Literales `null`
 
@@ -147,13 +166,13 @@ Ninguna.
 | web | `web/inspection/CriterionResponseController.java` | 138, 139, 140 |
 | web | `web/inspection/CriterionResponseResource.java` | 31, 32, 33 |
 | web | `web/inspection/EvidenceRequest.java` | 12 |
-| web | `web/inspection/FindingController.java` | 153, 165 |
-| web | `web/inspection/InspectionController.java` | 114, 117, 119, 121 |
+| web | `web/inspection/FindingController.java` | 152, 164 |
+| web | `web/inspection/InspectionController.java` | 113, 116, 118, 120 |
 | web | `web/inspection/InspectionResponse.java` | 28 |
 | web | `web/inspection/RawAnswers.java` | 20 |
 | web | `web/inspection/RevisionController.java` | 112 |
 | web | `web/inspection/VerificationRequest.java` | 12 |
-| web | `web/schema/SchemaController.java` | 141, 144, 150 |
+| web | `web/schema/SchemaController.java` | 140, 143, 149 |
 | web | `web/schema/SchemaPayloads.java` | 45, 47, 48 |
 | web | `web/schema/SchemaRequest.java` | 10 |
 | web | `web/schema/VersionRequest.java` | 16 |
@@ -165,26 +184,24 @@ Ninguna.
 
 ## 8.1 `Optional.ofNullable`
 
-22 ocurrencias. Tareas del plan: 4, 9, 10.
+20 ocurrencias. Tareas del plan: 4, 9, 10.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:36` | `Optional.ofNullable(arguments).stream().flatMap(Arrays::stream)` |
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:45` | `return Optional.ofNullable(assetCodeByOwner.get(key.owner()))` |
 | infrastructure | `infrastructure/certification/persistence/StoredScope.java:13` | `return Optional.ofNullable(subsystemCode)` |
 | infrastructure | `infrastructure/certification/policy/ConfiguredPolicyResolver.java:30` | `return Optional.ofNullable(policies.get(jurisdictionCode));` |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnswering.java:28` | `return Optional.ofNullable(answerType)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellation.java:15` | `return Optional.ofNullable(cancelledAt)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredInspectionScope.java:14` | `return Optional.ofNullable(scopeSections)` |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java:21` | `return Optional.ofNullable(subsystemCode)` |
-| web | `web/catalog/AssetController.java:68` | `return PageLinks.page(Optional.ofNullable(type).map(value -> listAssets.execute(new AssetType(value))).orEl...` |
+| web | `web/catalog/AssetController.java:67` | `return PageLinks.page(Optional.ofNullable(type).map(value -> listAssets.execute(new AssetType(value))).orEl...` |
 | web | `web/certification/CertificateController.java:110` | `List<CertificateView> certificates = Optional.ofNullable(asset).map(code -> listCertificates.execute(new As...` |
 | web | `web/certification/CertificateController.java:113` | `.filter(view -> Optional.ofNullable(subsystem)` |
 | web | `web/certification/CertificateRequest.java:25` | `return Optional.ofNullable(subsystemCode).map(code -> new SubsystemScope(new SubsystemCode(code)));` |
-| web | `web/inspection/FindingController.java:74` | `return PageLinks.page(Optional.ofNullable(asset).map(code -> listFindings.execute(new AssetCode(code))).orE...` |
-| web | `web/inspection/InspectionController.java:75` | `Optional<Boolean> closed = Optional.ofNullable(status).map(InspectionController::closedFor);` |
-| web | `web/inspection/InspectionController.java:76` | `List<InspectionResponse> inspections = Optional.ofNullable(asset).map(code -> listInspections.execute(new A...` |
-| web | `web/inspection/InspectionController.java:127` | `return Optional.ofNullable(CLOSED_BY_STATUS.get(status))` |
+| web | `web/inspection/FindingController.java:73` | `return PageLinks.page(Optional.ofNullable(asset).map(code -> listFindings.execute(new AssetCode(code))).orE...` |
+| web | `web/inspection/InspectionController.java:74` | `Optional<Boolean> closed = Optional.ofNullable(status).map(InspectionController::closedFor);` |
+| web | `web/inspection/InspectionController.java:75` | `List<InspectionResponse> inspections = Optional.ofNullable(asset).map(code -> listInspections.execute(new A...` |
+| web | `web/inspection/InspectionController.java:126` | `return Optional.ofNullable(CLOSED_BY_STATUS.get(status))` |
 | web | `web/schema/SchemaPayloads.java:87` | `return Optional.ofNullable(RULE_READERS.get(rule.type()))` |
 | web | `web/schema/SchemaPayloads.java:93` | `return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))` |
 | web | `web/schema/SchemaPayloads.java:99` | `return Optional.ofNullable(value)` |
@@ -204,21 +221,20 @@ Ninguna.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| web | `web/catalog/AssetController.java:66` | `public PagedModel<AssetResponse> list(@RequestParam(required = false) String type, @RequestParam(defaultVal...` |
+| web | `web/catalog/AssetController.java:65` | `public PagedModel<AssetResponse> list(@RequestParam(required = false) String type, @RequestParam(defaultVal...` |
 | web | `web/certification/CertificateController.java:107` | `public PagedModel<CertificateResource> list(@RequestParam(required = false) String asset,` |
 | web | `web/certification/CertificateController.java:108` | `@RequestParam(required = false) String subsystem, @RequestParam(defaultValue = "0") int page,` |
 | web | `web/certification/EligibilityController.java:36` | `public EligibilityResource eligibility(@PathVariable String id, @RequestParam(required = false) String subs...` |
-| web | `web/inspection/FindingController.java:72` | `public PagedModel<FindingResource> list(@RequestParam(required = false) String asset, @RequestParam(default...` |
-| web | `web/inspection/InspectionController.java:72` | `public PagedModel<InspectionResponse> list(@RequestParam(required = false) String asset,` |
-| web | `web/inspection/InspectionController.java:73` | `@RequestParam(required = false) String status,` |
+| web | `web/inspection/FindingController.java:71` | `public PagedModel<FindingResource> list(@RequestParam(required = false) String asset, @RequestParam(default...` |
+| web | `web/inspection/InspectionController.java:71` | `public PagedModel<InspectionResponse> list(@RequestParam(required = false) String asset,` |
+| web | `web/inspection/InspectionController.java:72` | `@RequestParam(required = false) String status,` |
 
 ## 9. `IllegalArgumentException` e `IllegalStateException`
 
-8 ocurrencias. Tareas del plan: 1, 6, 11.
+7 ocurrencias. Tareas del plan: 1, 6, 11.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:46` | `.orElseThrow(() -> new IllegalStateException("Unknown lock owner " + key.owner()))` |
 | web | `web/config/TransactionalUseCases.java:31` | `throw new IllegalStateException(failure);` |
 | web | `web/config/TransactionalUseCases.java:45` | `return new IllegalStateException(cause);` |
 | web | `web/schema/SchemaPayloads.java:94` | `.orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))` |
@@ -233,8 +249,8 @@ Ninguna.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| web | `web/catalog/AssetController.java:85` | `Link.of("/api/v1/certificates?" + Uris.query("asset", code).orElseThrow()).withRel("certificates"),` |
-| web | `web/catalog/AssetController.java:86` | `Link.of("/api/v1/findings?" + Uris.query("asset", code).orElseThrow()).withRel("findings"));` |
+| web | `web/catalog/AssetController.java:84` | `Link.of("/api/v1/certificates?" + Uris.query("asset", code).orElseThrow()).withRel("certificates"),` |
+| web | `web/catalog/AssetController.java:85` | `Link.of("/api/v1/findings?" + Uris.query("asset", code).orElseThrow()).withRel("findings"));` |
 
 ## 11. `if` cuyo cuerpo no lanza (heurística)
 
@@ -243,7 +259,7 @@ Ninguna.
 | Módulo | Ubicación | Línea |
 |---|---|---|
 | domain | `inspection/model/Finding.java:70` | `if (verification.isAccepted()) {` |
-| web | `web/catalog/AssetController.java:87` | `if (!asset.subsystems().isEmpty()) {` |
+| web | `web/catalog/AssetController.java:86` | `if (!asset.subsystems().isEmpty()) {` |
 | web | `web/certification/CertificateController.java:188` | `if (status == CertificateStatus.ACTIVE) {` |
 | web | `web/certification/CertificateController.java:191` | `if (status != CertificateStatus.RENEWED) {` |
 | web | `web/certification/EligibilityController.java:43` | `if (eligibility.eligible) {` |
@@ -252,9 +268,9 @@ Ninguna.
 | web | `web/config/TransactionalUseCases.java:21` | `if (method.getDeclaringClass() == Object.class) {` |
 | web | `web/config/TransactionalUseCases.java:39` | `if (cause instanceof RuntimeException runtime) {` |
 | web | `web/inspection/CriterionResponseController.java:137` | `if (!inspection.isClosed()) {` |
-| web | `web/inspection/FindingController.java:152` | `if (finding.isOpen()) {` |
-| web | `web/inspection/FindingController.java:164` | `if (action.isOpen()) {` |
-| web | `web/inspection/InspectionController.java:116` | `if (inspection.isClosed()) {` |
+| web | `web/inspection/FindingController.java:151` | `if (finding.isOpen()) {` |
+| web | `web/inspection/FindingController.java:163` | `if (action.isOpen()) {` |
+| web | `web/inspection/InspectionController.java:115` | `if (inspection.isClosed()) {` |
 | web | `web/security/AllowedRoleInterceptor.java:16` | `if (!(handler instanceof HandlerMethod method)) {` |
 | web | `web/security/AllowedRoleInterceptor.java:20` | `if (method.hasMethodAnnotation(AllowedRole.class)) {` |
 | web | `web/security/IssueTokenAfterBasicFilter.java:31` | `if (authentication instanceof UsernamePasswordAuthenticationToken basic && basic.isAuthenticated()) {` |
@@ -267,12 +283,10 @@ Ninguna.
 
 ## 12. `Object` en firmas o campos (heurística)
 
-5 ocurrencias. Tareas del plan: 3, 8, 10. El de `AllowedRoleInterceptor` es la frontera F4.
+3 ocurrencias. Tareas del plan: 3, 8, 10. El de `AllowedRoleInterceptor` es la frontera F4.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:20` | `public class CertificationTransactionLocks implements Consumer<Object[]> {` |
-| infrastructure | `infrastructure/certification/persistence/CertificationTransactionLocks.java:35` | `public void accept(Object[] arguments) {` |
 | web | `web/config/DemoDataSeeder.java:157` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
 | web | `web/security/AllowedRoleInterceptor.java:15` | `public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {` |
 | web | `web/support/RequestFields.java:11` | `public static void require(Object value, String field) {` |
@@ -297,26 +311,24 @@ Ninguna.
 
 ## 15. Líneas de más de 150 caracteres
 
-37 líneas en 19 archivos. Tareas del plan: 13.
+29 líneas en 17 archivos. Tareas del plan: 13.
 
 | Módulo | Archivo | Cantidad |
 |---|---|---|
-| web | `web/config/InspectionConfiguration.java` | 10 |
+| web | `web/config/InspectionConfiguration.java` | 6 |
 | web | `web/schema/SchemaController.java` | 4 |
-| web | `web/config/CertificationConfiguration.java` | 3 |
 | web | `web/schema/SchemaPayloads.java` | 3 |
-| web | `web/certification/CertificateController.java` | 2 |
+| web | `web/config/CertificationConfiguration.java` | 2 |
 | web | `web/config/SchemaConfiguration.java` | 2 |
 | application | `application/inspection/GenerateInspectionActUseCaseImpl.java` | 1 |
 | application | `application/inspection/PlanCorrectiveActionUseCaseImpl.java` | 1 |
 | domain | `catalog/usecase/RegisterAssetCommand.java` | 1 |
 | domain | `certification/usecase/CertificateDocument.java` | 1 |
-| domain | `inspection/usecase/RectifyInspectionCommand.java` | 1 |
 | domain | `inspection/usecase/VerifyCorrectiveActionCommand.java` | 1 |
 | domain | `schema/usecase/CreateInspectionSchemaCommand.java` | 1 |
 | web | `web/catalog/AssetController.java` | 1 |
 | web | `web/catalog/AssetRequest.java` | 1 |
+| web | `web/certification/CertificateController.java` | 1 |
 | web | `web/config/DemoDataSeeder.java` | 1 |
-| web | `web/config/SharedConfiguration.java` | 1 |
 | web | `web/inspection/FindingController.java` | 1 |
 | web | `web/inspection/InspectionController.java` | 1 |

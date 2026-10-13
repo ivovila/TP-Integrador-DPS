@@ -14,6 +14,9 @@ public interface InspectionRepository {
 
     Optional<Inspection> findById(InspectionId id);
 
+    /** El activo de una inspección, sin cargarla: es lo que se bloquea antes de leerla para cambiarla. */
+    Optional<AssetCode> assetCodeOf(InspectionId inspectionId);
+
     List<Inspection> findByAsset(AssetCode assetCode);
 
     List<Inspection> findAll();

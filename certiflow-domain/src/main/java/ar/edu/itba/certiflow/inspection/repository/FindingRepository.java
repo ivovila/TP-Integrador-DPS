@@ -16,6 +16,9 @@ public interface FindingRepository {
 
     Optional<Finding> findById(FindingId id);
 
+    /** El activo de un hallazgo, sin cargarlo: es lo que se bloquea antes de leerlo para cambiarlo. */
+    Optional<AssetCode> assetCodeOf(FindingId findingId);
+
     List<Finding> findByAsset(AssetCode assetCode);
 
     List<Finding> findAll();

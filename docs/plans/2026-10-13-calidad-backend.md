@@ -103,10 +103,11 @@
 
 ### Task 8: Bloqueo por activo y bitácora (spec §5.8)
 
-- [ ] `assetCodeOf(…)` en los repositorios de inspección, hallazgo y certificado.
-- [ ] Los ocho casos de uso bloquean con `AssetLock`, en el orden resolver el código, bloquear y cargar; se van `LocksAsset`, `AssetLockKey` y `CertificationTransactionLocks`.
-- [ ] Un caso de uso de historial por contexto; se van `AuditSubject` y `AuditLogs`.
-- [ ] Los tests de concurrencia de `DeliveryFeaturesApiTest` siguen pasando.
+- [x] `assetCodeOf(…)` en los repositorios de inspección, hallazgo y certificado.
+- [x] Los ocho casos de uso bloquean con `AssetLock`, en el orden resolver el código, bloquear y cargar; se van `LocksAsset`, `AssetLockKey` y `CertificationTransactionLocks`.
+- [x] Un caso de uso de historial por contexto; se van `AuditSubject` y `AuditLogs`.
+- [x] Los tests de concurrencia de `DeliveryFeaturesApiTest` siguen pasando.
+- [x] `RenewCertificateUseCaseImpl` resuelve el activo desde el certificado que se renueva y no desde la inspección: así, si faltan los dos, el error sigue siendo el del certificado, como hoy. Los tests de concurrencia pasan también contra PostgreSQL real (`PostgresFeatureApiTest`).
 
 ### Task 9: Infraestructura (spec §5.9)
 

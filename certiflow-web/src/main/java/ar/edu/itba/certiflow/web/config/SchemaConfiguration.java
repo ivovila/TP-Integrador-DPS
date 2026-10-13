@@ -5,8 +5,8 @@ import ar.edu.itba.certiflow.application.schema.FindEffectiveSchemaVersionUseCas
 import ar.edu.itba.certiflow.application.schema.FindSchemaUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.ListSchemasUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.PublishSchemaVersionUseCaseImpl;
+import ar.edu.itba.certiflow.application.schema.SchemaHistoryUseCaseImpl;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
-import ar.edu.itba.certiflow.infrastructure.certification.persistence.CertificationTransactionLocks;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.JpaAuditLog;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEntryRepository;
 import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
@@ -20,6 +20,7 @@ import ar.edu.itba.certiflow.schema.usecase.FindEffectiveSchemaVersionUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
+import ar.edu.itba.certiflow.schema.usecase.SchemaHistoryUseCase;
 import ar.edu.itba.certiflow.shared.model.AuditActionCatalog;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import java.time.Clock;
@@ -31,12 +32,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Casos de uso de los esquemas de inspección. */
 @Configuration
 public class SchemaConfiguration {
-
-    private final CertificationTransactionLocks locks;
-
-    public SchemaConfiguration(CertificationTransactionLocks locks) {
-        this.locks = locks;
-    }
 
     @Bean
     AuditLog<AssetType> schemaLog(SpringDataAuditEntryRepository entries, AuditActionCatalog auditActions) {
@@ -55,6 +50,11 @@ public class SchemaConfiguration {
     }
 
     @Bean
+    SchemaHistoryUseCase schemaHistory(TransactionTemplate tx, AuditLog<AssetType> schemaLog) {
+        return TransactionalUseCases.wrap(SchemaHistoryUseCase.class, new SchemaHistoryUseCaseImpl(schemaLog), tx);
+    }
+
+    @Bean
     InspectionSchemaService inspectionSchemaService(AuditLog<AssetType> schemaLog) {
         return new InspectionSchemaService(schemaLog);
     }
@@ -63,30 +63,30 @@ public class SchemaConfiguration {
     CreateInspectionSchemaUseCase createInspectionSchema(TransactionTemplate tx,
                                                          InspectionSchemaRepository inspectionSchemaRepository,
                                                          InspectionSchemaService inspectionSchemaService, Clock clock) {
-        return TransactionalUseCases.wrap(CreateInspectionSchemaUseCase.class, new CreateInspectionSchemaUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx, locks);
+        return TransactionalUseCases.wrap(CreateInspectionSchemaUseCase.class, new CreateInspectionSchemaUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx);
     }
 
     @Bean
     PublishSchemaVersionUseCase publishSchemaVersion(TransactionTemplate tx,
                                                      InspectionSchemaRepository inspectionSchemaRepository,
                                                      InspectionSchemaService inspectionSchemaService, Clock clock) {
-        return TransactionalUseCases.wrap(PublishSchemaVersionUseCase.class, new PublishSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx, locks);
+        return TransactionalUseCases.wrap(PublishSchemaVersionUseCase.class, new PublishSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx);
     }
 
     @Bean
     FindEffectiveSchemaVersionUseCase findEffectiveSchemaVersion(TransactionTemplate tx,
             InspectionSchemaRepository schemas) {
         return TransactionalUseCases.wrap(FindEffectiveSchemaVersionUseCase.class,
-                new FindEffectiveSchemaVersionUseCaseImpl(schemas), tx, locks);
+                new FindEffectiveSchemaVersionUseCaseImpl(schemas), tx);
     }
 
     @Bean
     ListSchemasUseCase listSchemas(TransactionTemplate tx, InspectionSchemaRepository inspectionSchemaRepository) {
-        return TransactionalUseCases.wrap(ListSchemasUseCase.class, new ListSchemasUseCaseImpl(inspectionSchemaRepository), tx, locks);
+        return TransactionalUseCases.wrap(ListSchemasUseCase.class, new ListSchemasUseCaseImpl(inspectionSchemaRepository), tx);
     }
 
     @Bean
     FindSchemaUseCase findSchema(TransactionTemplate tx, InspectionSchemaRepository inspectionSchemaRepository) {
-        return TransactionalUseCases.wrap(FindSchemaUseCase.class, new FindSchemaUseCaseImpl(inspectionSchemaRepository), tx, locks);
+        return TransactionalUseCases.wrap(FindSchemaUseCase.class, new FindSchemaUseCaseImpl(inspectionSchemaRepository), tx);
     }
 }

@@ -54,6 +54,11 @@ public class JpaInspectionRepository implements InspectionRepository {
     }
 
     @Override
+    public Optional<AssetCode> assetCodeOf(InspectionId inspectionId) {
+        return inspections.findAssetCodeById(inspectionId.value()).map(AssetCode::new);
+    }
+
+    @Override
     public List<Inspection> findByAsset(AssetCode assetCode) {
         return inspections.findByAssetCode(assetCode.value()).stream().map(this::restore).toList();
     }

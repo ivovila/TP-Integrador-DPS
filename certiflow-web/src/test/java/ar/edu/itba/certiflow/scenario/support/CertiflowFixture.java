@@ -61,6 +61,7 @@ import ar.edu.itba.certiflow.inspection.usecase.FindFindingUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateFindingsSummaryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.GenerateInspectionActUseCase;
+import ar.edu.itba.certiflow.inspection.usecase.InspectionHistoryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListFindingsUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionCommand;
 import ar.edu.itba.certiflow.inspection.usecase.PlanCorrectiveActionUseCase;
@@ -95,7 +96,6 @@ import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -166,7 +166,7 @@ public final class CertiflowFixture {
     public final ListFindingsUseCase listFindings;
     public final ListCertificatesUseCase listCertificates;
     public final FindCertificateUseCase findCertificate;
-    public final AuditHistoryUseCase auditHistory;
+    public final InspectionHistoryUseCase inspectionHistory;
     public final Asset extinguisher;
 
     /** Arma el escenario sobre la aplicación real: la base tiene que estar vacía y el reloj en su inicio. */
@@ -208,7 +208,7 @@ public final class CertiflowFixture {
         this.listFindings = context.getBean(ListFindingsUseCase.class);
         this.listCertificates = context.getBean(ListCertificatesUseCase.class);
         this.findCertificate = context.getBean(FindCertificateUseCase.class);
-        this.auditHistory = context.getBean(AuditHistoryUseCase.class);
+        this.inspectionHistory = context.getBean(InspectionHistoryUseCase.class);
         this.extinguisher = registerAsset.execute(new RegisterAssetCommand(new AssetCode("EXT-0042"), "Lobby extinguisher", EXTINGUISHER, new Location("Main building, ground floor lobby"), assetResponsible, new Characteristics(List.of(new Characteristic("capacity", "10 kg"), new Characteristic("agent", "ABC powder"))), planner, new JurisdictionCode("DEMO-STANDARD"), List.of()));
         createInspectionSchema.execute(new CreateInspectionSchemaCommand("Portable extinguisher inspection", EXTINGUISHER,
                 firstVersionSections(), planner));

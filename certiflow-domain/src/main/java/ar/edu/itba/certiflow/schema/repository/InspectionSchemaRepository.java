@@ -10,9 +10,8 @@ public interface InspectionSchemaRepository {
 
     void save(InspectionSchema schema);
 
-    default Optional<InspectionSchema> findForUpdate(AssetType assetType) {
-        return findByAssetType(assetType);
-    }
+    /** Lee el esquema y lo deja bloqueado hasta el fin de la transacción: dos publicaciones no se pisan. */
+    Optional<InspectionSchema> findForUpdate(AssetType assetType);
 
     Optional<InspectionSchema> findByAssetType(AssetType assetType);
 

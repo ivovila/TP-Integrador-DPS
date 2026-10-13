@@ -9,6 +9,7 @@ import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.SubsystemScope;
+import ar.edu.itba.certiflow.certification.usecase.CertificateHistoryUseCase;
 import ar.edu.itba.certiflow.certification.usecase.CertificateView;
 import ar.edu.itba.certiflow.certification.usecase.FindCertificateUseCase;
 import ar.edu.itba.certiflow.certification.usecase.GenerateCertificateDocumentUseCase;
@@ -24,8 +25,6 @@ import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateCommand;
 import ar.edu.itba.certiflow.certification.usecase.SuspendCertificateUseCase;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.shared.model.Person;
-import ar.edu.itba.certiflow.shared.usecase.AuditHistoryUseCase;
-import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
 import ar.edu.itba.certiflow.web.security.ReadableBy;
 import ar.edu.itba.certiflow.web.security.StaffRole;
@@ -63,14 +62,14 @@ public class CertificateController {
     private final GenerateCertificateDocumentUseCase generateCertificateDocument;
     private final SuspendCertificateUseCase suspendCertificate;
     private final RenewCertificateUseCase renewCertificate;
-    private final AuditHistoryUseCase auditHistory;
+    private final CertificateHistoryUseCase certificateHistory;
     private final IssueGlobalCertificateUseCase issueGlobal;
     private final RenewGlobalCertificateUseCase renewGlobal;
 
     public CertificateController(IssueCertificateUseCase issueCertificate, ListCertificatesUseCase listCertificates,
                                  FindCertificateUseCase findCertificate, GenerateCertificateDocumentUseCase generateCertificateDocument,
                                  SuspendCertificateUseCase suspendCertificate, RenewCertificateUseCase renewCertificate,
-                                 AuditHistoryUseCase auditHistory,
+                                 CertificateHistoryUseCase certificateHistory,
                                  IssueGlobalCertificateUseCase issueGlobal,
                                  RenewGlobalCertificateUseCase renewGlobal) {
         this.issueCertificate = issueCertificate;
@@ -79,7 +78,7 @@ public class CertificateController {
         this.generateCertificateDocument = generateCertificateDocument;
         this.suspendCertificate = suspendCertificate;
         this.renewCertificate = renewCertificate;
-        this.auditHistory = auditHistory;
+        this.certificateHistory = certificateHistory;
         this.issueGlobal = issueGlobal;
         this.renewGlobal = renewGlobal;
     }
@@ -99,8 +98,9 @@ public class CertificateController {
     @AllowedRole(StaffRole.CERTIFICATION_OFFICER)
     @PostMapping("/{number}/global-renewals")
     public ResponseEntity<CertificateResource> renewGlobal(@PathVariable String number, @RequestBody GlobalRequest request, @ActingPerson Person by) {
-        return created(renewGlobal.execute(new RenewGlobalCertificateCommand(
-                new CertificateNumber(number), findCertificate.execute(new CertificateNumber(number)).certificate().assetCode(), request.schemaVersion(), request.partialCertificateNumbers().stream().map(CertificateNumber::new).toList(), by)));
+        return created(renewGlobal.execute(new RenewGlobalCertificateCommand(new CertificateNumber(number),
+                request.schemaVersion(),
+                request.partialCertificateNumbers().stream().map(CertificateNumber::new).toList(), by)));
     }
 
     @GetMapping
@@ -165,7 +165,7 @@ public class CertificateController {
 
     @GetMapping("/{number}/audit-entries")
     public CollectionModel<AuditEntryResponse> history(@PathVariable String number) {
-        return CollectionModel.of(auditHistory.execute(new AuditSubject.OfCertificate(new CertificateNumber(number))).stream()
+        return CollectionModel.of(certificateHistory.execute(new CertificateNumber(number)).stream()
                         .map(AuditEntryResponse::of).toList(),
                 linkTo(methodOn(CertificateController.class).history(number)).withSelfRel());
     }
