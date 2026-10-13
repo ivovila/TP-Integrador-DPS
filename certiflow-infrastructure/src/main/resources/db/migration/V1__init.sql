@@ -174,3 +174,15 @@ create table audit_entry (
     detail varchar(2000) not null
 );
 create index audit_entry_subject on audit_entry (subject_type, subject_id);
+
+create table user_account (
+    person_id varchar(64) primary key,
+    name varchar(255) not null,
+    role varchar(32) not null,
+    password_hash varchar(255) not null
+);
+
+create table revoked_token (
+    jti varchar(64) primary key,
+    expires_at timestamp(6) with time zone not null
+);
