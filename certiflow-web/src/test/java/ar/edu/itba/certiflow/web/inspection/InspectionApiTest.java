@@ -194,4 +194,24 @@ class InspectionApiTest extends ApiTest {
         read(path + "/responses/EXT-01").andExpect(status().isNotFound());
         putAs("EMP-002", path + "/responses/EXT-01/answer", "{\"value\":7.00}").andExpect(status().isNotFound());
     }
+
+    @Test
+    void evidenceAndObservationsAreResourcesOfTheirOwn() throws Exception {
+        String evidence = postAs("EMP-002", inspection + "/responses/EXT-01/evidence",
+                        "{\"kind\":\"PHOTO\",\"reference\":\"photos/gauge.jpg\",\"description\":\"Gauge\"}")
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith(inspection + "/responses/EXT-01/evidence/1")))
+                .andReturn().getResponse().getHeader("Location");
+        String observation = postAs("EMP-002", inspection + "/responses/EXT-01/observations", "{\"text\":\"Needle trembles\"}")
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith(inspection + "/responses/EXT-01/observations/1")))
+                .andReturn().getResponse().getHeader("Location");
+
+        read(evidence.substring(evidence.indexOf("/api/v1"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.reference").value("photos/gauge.jpg"))
+                .andExpect(jsonPath("$._links.response.href").exists());
+        read(observation.substring(observation.indexOf("/api/v1"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.text").value("Needle trembles"));
+        read(inspection + "/responses/EXT-01/evidence/7").andExpect(status().isNotFound());
+    }
 }

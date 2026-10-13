@@ -23,10 +23,12 @@ import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
@@ -95,12 +97,27 @@ public class FindingController {
     }
 
     @PostMapping("/findings/{id}/corrective-actions/{actionId}/verifications")
-    public ResponseEntity<CorrectiveActionResource> verify(@PathVariable String id, @PathVariable int actionId,
-                                                           @RequestBody VerificationRequest request, @ActingPerson Person verifier) {
+    public ResponseEntity<EntityModel<CorrectiveActionResource.VerificationView>> verify(@PathVariable String id,
+                                                                                         @PathVariable int actionId,
+                                                                                         @RequestBody VerificationRequest request,
+                                                                                         @ActingPerson Person verifier) {
         verifyCorrectiveAction.execute(new VerifyCorrectiveActionCommand(new FindingId(id), new CorrectiveActionId(actionId), verifier,
                 request.verificationResult(), request.notes()));
-        CorrectiveActionResource resource = action(id, actionId);
-        return ResponseEntity.created(resource.getRequiredLink("self").toUri()).body(resource);
+        EntityModel<CorrectiveActionResource.VerificationView> verification =
+                verification(id, actionId, action(id, actionId).verifications.size());
+        return ResponseEntity.created(verification.getRequiredLink("self").toUri()).body(verification);
+    }
+
+    @GetMapping("/findings/{id}/corrective-actions/{actionId}/verifications/{number}")
+    public EntityModel<CorrectiveActionResource.VerificationView> verification(@PathVariable String id, @PathVariable int actionId,
+                                                                               @PathVariable int number) {
+        CorrectiveActionResource action = action(id, actionId);
+        if (number < 1 || number > action.verifications.size()) {
+            throw new ResourceNotFoundException("Corrective action " + actionId + " has no verification " + number);
+        }
+        return EntityModel.of(action.verifications.get(number - 1),
+                linkTo(methodOn(FindingController.class).verification(id, actionId, number)).withSelfRel(),
+                linkTo(methodOn(FindingController.class).action(id, actionId)).withRel("corrective-action"));
     }
 
     @GetMapping("/findings/{id}/audit-entries")

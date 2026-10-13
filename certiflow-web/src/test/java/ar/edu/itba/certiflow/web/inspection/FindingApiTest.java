@@ -1,5 +1,7 @@
 package ar.edu.itba.certiflow.web.inspection;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -79,5 +81,20 @@ class FindingApiTest extends ApiTest {
                 .andExpect(jsonPath("$.assetCode").value("EXT-0042"))
                 .andExpect(jsonPath("$.findings[0].responsible.id").value("EMP-003"))
                 .andExpect(jsonPath("$.openFindings").value(1));
+    }
+
+    @Test
+    void aVerificationIsAResourceOfItsOwn() throws Exception {
+        String action = Flows.path(postAs("EMP-001", finding + "/corrective-actions", action("EMP-004", LocalDate.now().plusDays(5)))
+                .andReturn().getResponse().getHeader("Location"));
+
+        String location = postAs("EMP-005", action + "/verifications", "{\"result\":\"REJECTED\",\"notes\":\"Still low\"}")
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith(action + "/verifications/1")))
+                .andReturn().getResponse().getHeader("Location");
+
+        read(Flows.path(location)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("REJECTED"))
+                .andExpect(jsonPath("$._links.corrective-action.href").exists());
     }
 }

@@ -326,12 +326,15 @@ suspender una **suspensión** y renovar una **renovación**, que a su vez da un 
 | `GET /api/v1/schemas/{assetType}/versions/{n}` | `FindSchema` | 200 · 404, con `ETag` |
 | `GET /api/v1/schemas/{assetType}/audit-entries` | `AuditHistory` | 200 |
 | `POST /api/v1/inspections` | `AssignInspection` | 201, `Location: /inspections/{id}` |
+| `GET /api/v1/inspections?asset=&status=open\|closed&page=&size=` | `ListInspections` | 200, paginado · 400 si el estado no existe |
 | `GET /api/v1/inspections/{id}` | `FindInspection` | 200 · 404 |
 | `GET /api/v1/inspections/{id}/responses` | `FindInspection` | 200, una por criterio del alcance |
 | `GET /api/v1/inspections/{id}/responses/{criterionCode}` | `FindInspection` | 200 · 404 |
 | `PUT /api/v1/inspections/{id}/responses/{criterionCode}/answer` | `RecordAnswer` | 204 |
-| `POST /api/v1/inspections/{id}/responses/{criterionCode}/evidence` | `AttachEvidence` | 201 |
-| `POST /api/v1/inspections/{id}/responses/{criterionCode}/observations` | `AddObservation` | 201 |
+| `POST /api/v1/inspections/{id}/responses/{criterionCode}/evidence` | `AttachEvidence` | 201, `Location: …/evidence/{n}` |
+| `GET /api/v1/inspections/{id}/responses/{criterionCode}/evidence/{n}` | `FindInspection` | 200 · 404 |
+| `POST /api/v1/inspections/{id}/responses/{criterionCode}/observations` | `AddObservation` | 201, `Location: …/observations/{n}` |
+| `GET /api/v1/inspections/{id}/responses/{criterionCode}/observations/{n}` | `FindInspection` | 200 · 404 |
 | `POST /api/v1/inspections/{id}/closure` | `CloseInspection` | 201, `Location: /inspections/{id}/revisions/1`; cuerpo con links a los hallazgos levantados |
 | `POST /api/v1/inspections/{id}/rectifications` | `RectifyInspection` | 201, `Location: /inspections/{id}/revisions/{n}`; cuerpo con links a los hallazgos levantados |
 | `GET /api/v1/inspections/{id}/revisions` | `FindInspection` | 200 |
@@ -343,13 +346,15 @@ suspender una **suspensión** y renovar una **renovación**, que a su vez da un 
 | `GET /api/v1/findings/{id}` | `FindFinding` | 200 · 404 |
 | `POST /api/v1/findings/{id}/corrective-actions` | `PlanCorrectiveAction` | 201, `Location: /findings/{id}/corrective-actions/{actionId}` |
 | `GET /api/v1/findings/{id}/corrective-actions/{actionId}` | `FindFinding` | 200 · 404 |
-| `POST /api/v1/findings/{id}/corrective-actions/{actionId}/verifications` | `VerifyCorrectiveAction` | 201 |
+| `POST /api/v1/findings/{id}/corrective-actions/{actionId}/verifications` | `VerifyCorrectiveAction` | 201, `Location: …/verifications/{n}` |
+| `GET /api/v1/findings/{id}/corrective-actions/{actionId}/verifications/{n}` | `FindFinding` | 200 · 404 |
 | `GET /api/v1/findings/{id}/audit-entries` | `AuditHistory` | 200 |
 | `POST /api/v1/certificates` | `IssueCertificate` | 201, `Location: /certificates/{number}` · 422 si no es elegible |
 | `GET /api/v1/certificates?asset=&page=&size=` | `ListCertificates` | 200, paginado |
 | `GET /api/v1/certificates/{number}` | `FindCertificate` | 200 · 404 |
 | `GET /api/v1/certificates/{number}/document` | `GenerateCertificateDocument` | 200 · 404 |
-| `POST /api/v1/certificates/{number}/suspensions` | `SuspendCertificate` | 201 |
+| `POST /api/v1/certificates/{number}/suspensions` | `SuspendCertificate` | 201, `Location: …/suspensions/{n}` |
+| `GET /api/v1/certificates/{number}/suspensions/{n}` | `FindCertificate` | 200 · 404 |
 | `POST /api/v1/certificates/{number}/renewals` | `RenewCertificate` | 201, `Location: /certificates/{nuevo}` · 422 |
 | `GET /api/v1/certificates/{number}/audit-entries` | `AuditHistory` | 200 |
 

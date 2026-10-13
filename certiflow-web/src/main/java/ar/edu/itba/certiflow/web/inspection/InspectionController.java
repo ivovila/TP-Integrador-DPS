@@ -43,6 +43,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -138,10 +139,13 @@ public class InspectionController {
     @GetMapping("/{id}/responses/{code}")
     public CriterionResponseResource response(@PathVariable String id, @PathVariable String code) {
         InspectionView inspection = view(id);
+        return responseResource(inspection, criterionResponse(inspection, code));
+    }
+
+    private static CriterionResponse<?> criterionResponse(InspectionView inspection, String code) {
         return inspection.evaluate().responses().stream()
                 .filter(response -> response.criterion().code().equals(code))
                 .findFirst()
-                .map(response -> responseResource(inspection, response))
                 .orElseThrow(() -> new CriterionNotInSchemaException(code));
     }
 
@@ -153,17 +157,48 @@ public class InspectionController {
     }
 
     @PostMapping("/{id}/responses/{code}/evidence")
-    public ResponseEntity<CriterionResponseResource> attach(@PathVariable String id, @PathVariable String code,
-                                                            @RequestBody EvidenceRequest request, @ActingPerson Person attachedBy) {
+    public ResponseEntity<EntityModel<CriterionResponseResource.EvidenceView>> attach(@PathVariable String id,
+                                                                                      @PathVariable String code,
+                                                                                      @RequestBody EvidenceRequest request,
+                                                                                      @ActingPerson Person attachedBy) {
         attachEvidence.execute(new AttachEvidenceCommand(new InspectionId(id), code, request.toDomain(), attachedBy));
-        return createdResponse(id, code);
+        EntityModel<CriterionResponseResource.EvidenceView> evidence = evidence(id, code, criterionResponse(view(id), code).attachments().size());
+        return ResponseEntity.created(evidence.getRequiredLink("self").toUri()).body(evidence);
+    }
+
+    @GetMapping("/{id}/responses/{code}/evidence/{number}")
+    public EntityModel<CriterionResponseResource.EvidenceView> evidence(@PathVariable String id, @PathVariable String code,
+                                                                        @PathVariable int number) {
+        CriterionResponseResource resource = new CriterionResponseResource(criterionResponse(view(id), code));
+        if (number < 1 || number > resource.evidence.size()) {
+            throw new ResourceNotFoundException("Criterion " + code + " has no evidence " + number);
+        }
+        return EntityModel.of(resource.evidence.get(number - 1),
+                linkTo(methodOn(InspectionController.class).evidence(id, code, number)).withSelfRel(),
+                linkTo(methodOn(InspectionController.class).response(id, code)).withRel("response"));
     }
 
     @PostMapping("/{id}/responses/{code}/observations")
-    public ResponseEntity<CriterionResponseResource> observe(@PathVariable String id, @PathVariable String code,
-                                                             @RequestBody ObservationRequest request, @ActingPerson Person observedBy) {
+    public ResponseEntity<EntityModel<CriterionResponseResource.ObservationView>> observe(@PathVariable String id,
+                                                                                          @PathVariable String code,
+                                                                                          @RequestBody ObservationRequest request,
+                                                                                          @ActingPerson Person observedBy) {
         addObservation.execute(new AddObservationCommand(new InspectionId(id), code, request.text(), observedBy));
-        return createdResponse(id, code);
+        EntityModel<CriterionResponseResource.ObservationView> observation =
+                observation(id, code, criterionResponse(view(id), code).observations().size());
+        return ResponseEntity.created(observation.getRequiredLink("self").toUri()).body(observation);
+    }
+
+    @GetMapping("/{id}/responses/{code}/observations/{number}")
+    public EntityModel<CriterionResponseResource.ObservationView> observation(@PathVariable String id, @PathVariable String code,
+                                                                              @PathVariable int number) {
+        CriterionResponseResource resource = new CriterionResponseResource(criterionResponse(view(id), code));
+        if (number < 1 || number > resource.observations.size()) {
+            throw new ResourceNotFoundException("Criterion " + code + " has no observation " + number);
+        }
+        return EntityModel.of(resource.observations.get(number - 1),
+                linkTo(methodOn(InspectionController.class).observation(id, code, number)).withSelfRel(),
+                linkTo(methodOn(InspectionController.class).response(id, code)).withRel("response"));
     }
 
     @PostMapping("/{id}/closure")
@@ -227,11 +262,6 @@ public class InspectionController {
 
     private InspectionView view(String id) {
         return findInspection.execute(new InspectionId(id));
-    }
-
-    private ResponseEntity<CriterionResponseResource> createdResponse(String id, String code) {
-        CriterionResponseResource resource = response(id, code);
-        return ResponseEntity.created(resource.getRequiredLink("self").toUri()).body(resource);
     }
 
     private ResponseEntity<RevisionResource> createdRevision(String id, List<FindingId> raised) {

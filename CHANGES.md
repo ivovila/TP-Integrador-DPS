@@ -457,3 +457,10 @@ Cambios hechos para la Entrega 2, siguiendo
   (`UriUtils`). Antes un tipo de activo con `&` o comillas rompía el link `next` de la paginación.
 - Los ETag de versiones y revisiones son un UUID derivado del recurso, siempre válido como header.
 - Tests: `AssetApiTest.linksEncodeValuesWithReservedCharacters`, `SchemaApiTest.theETagIsAValidHeaderWhateverTheAssetType`.
+
+## E2.21. Location del recurso nuevo
+- Adjuntar evidencia, agregar una observación, suspender y verificar crean recursos con URI propia
+  (`…/evidence/{n}`, `…/observations/{n}`, `…/suspensions/{n}`, `…/verifications/{n}`), legibles con `GET`.
+  El 201 lleva su `Location` y su representación; antes apuntaba al recurso padre.
+- Tests: `InspectionApiTest.evidenceAndObservationsAreResourcesOfTheirOwn`, `CertificateApiTest.aSuspensionIsAResourceOfItsOwn`,
+  `FindingApiTest.aVerificationIsAResourceOfItsOwn`.

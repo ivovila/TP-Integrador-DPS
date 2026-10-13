@@ -92,4 +92,16 @@ class CertificateApiTest extends ApiTest {
                 .andExpect(jsonPath("$.validUntil").value(LocalDate.now().plusYears(1).toString()))
                 .andExpect(jsonPath("$.issuedBy.id").value("EMP-006"));
     }
+
+    @Test
+    void aSuspensionIsAResourceOfItsOwn() throws Exception {
+        String location = postAs("EMP-001", certificate + "/suspensions", "{\"reason\":\"Seal tampered\"}")
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith(certificate + "/suspensions/1")))
+                .andReturn().getResponse().getHeader("Location");
+
+        read(Flows.path(location)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.reason").value("Seal tampered"))
+                .andExpect(jsonPath("$._links.certificate.href").exists());
+    }
 }

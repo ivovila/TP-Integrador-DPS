@@ -24,10 +24,12 @@ import ar.edu.itba.certiflow.shared.usecase.AuditSubject;
 import ar.edu.itba.certiflow.web.support.ActingPerson;
 import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
+import ar.edu.itba.certiflow.web.support.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
@@ -95,10 +97,23 @@ public class CertificateController {
     }
 
     @PostMapping("/{number}/suspensions")
-    public ResponseEntity<CertificateResource> suspend(@PathVariable String number, @RequestBody SuspensionRequest request,
-                                                       @ActingPerson Person suspendedBy) {
+    public ResponseEntity<EntityModel<CertificateResource.SuspensionView>> suspend(@PathVariable String number,
+                                                                                   @RequestBody SuspensionRequest request,
+                                                                                   @ActingPerson Person suspendedBy) {
         suspendCertificate.execute(new SuspendCertificateCommand(new CertificateNumber(number), request.reason(), suspendedBy));
-        return created(new CertificateNumber(number));
+        EntityModel<CertificateResource.SuspensionView> suspension = suspension(number, find(number).suspensions.size());
+        return ResponseEntity.created(suspension.getRequiredLink("self").toUri()).body(suspension);
+    }
+
+    @GetMapping("/{number}/suspensions/{position}")
+    public EntityModel<CertificateResource.SuspensionView> suspension(@PathVariable String number, @PathVariable int position) {
+        CertificateResource certificate = find(number);
+        if (position < 1 || position > certificate.suspensions.size()) {
+            throw new ResourceNotFoundException("Certificate " + number + " has no suspension " + position);
+        }
+        return EntityModel.of(certificate.suspensions.get(position - 1),
+                linkTo(methodOn(CertificateController.class).suspension(number, position)).withSelfRel(),
+                linkTo(methodOn(CertificateController.class).find(number)).withRel("certificate"));
     }
 
     @PostMapping("/{number}/renewals")
