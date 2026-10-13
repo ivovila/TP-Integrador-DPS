@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.certification;
 
+import ar.edu.itba.certiflow.web.security.ReadableBy;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -55,6 +56,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ReadableBy(StaffRole.CERTIFICATION_OFFICER)
 @RequestMapping("/api/v1/certificates")
 public class CertificateController {
 

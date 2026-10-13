@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.catalog;
 
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ReadableByAnyone
 @RequestMapping("/api/v1/assets")
 public class AssetController {
 

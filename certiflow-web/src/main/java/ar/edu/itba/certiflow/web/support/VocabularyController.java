@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.web.support;
 import ar.edu.itba.certiflow.certification.usecase.ListJurisdictionsUseCase;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.hateoas.Link;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ReadableByAnyone
 @RequestMapping("/api/v1/vocabulary")
 public class VocabularyController {
 

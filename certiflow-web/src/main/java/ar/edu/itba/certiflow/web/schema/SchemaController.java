@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.schema;
 
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
 @RestController
+@ReadableByAnyone
 @RequestMapping("/api/v1/schemas")
 public class SchemaController {
 

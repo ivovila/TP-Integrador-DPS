@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.inspection;
 
+import ar.edu.itba.certiflow.web.security.ReadableBy;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ReadableBy({StaffRole.ASSET_RESPONSIBLE, StaffRole.VERIFIER})
 @RequestMapping("/api/v1")
 public class FindingController {
 

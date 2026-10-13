@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.support;
 
+import ar.edu.itba.certiflow.web.security.ReadableByAnyone;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ReadableByAnyone
 @RequestMapping("/api/v1")
 public class RootController {
 
