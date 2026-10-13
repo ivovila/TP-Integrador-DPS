@@ -1,17 +1,23 @@
 package ar.edu.itba.certiflow.web.support;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import ar.edu.itba.certiflow.web.security.StaffRole;
+import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:certiflow-web;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
@@ -22,7 +28,7 @@ public abstract class ApiTest {
 
     private static final String[] TABLES = {"certificate_backing", "audit_entry", "suspension", "certificate", "verification", "corrective_action",
             "finding_evidence", "finding", "revision", "observation", "attached_evidence", "criterion_response", "inspection",
-            "schema_version", "inspection_schema", "asset_characteristic", "asset"};
+            "schema_version", "inspection_schema", "asset_characteristic", "asset", "revoked_token", "user_account"};
 
     @Autowired
     protected MockMvc mvc;
@@ -39,15 +45,20 @@ public abstract class ApiTest {
 
     public ResultActions postAs(String personId, String uri, String json) throws Exception {
         return mvc.perform(post(uri).contentType(MediaType.APPLICATION_JSON).content(json)
-                .header("X-Person-Id", personId).header("X-Person-Name", "Person " + personId));
+                .with(as(personId)));
     }
 
     public ResultActions putAs(String personId, String uri, String json) throws Exception {
         return mvc.perform(put(uri).contentType(MediaType.APPLICATION_JSON).content(json)
-                .header("X-Person-Id", personId).header("X-Person-Name", "Person " + personId));
+                .with(as(personId)));
     }
 
     public ResultActions read(String uri) throws Exception {
-        return mvc.perform(get(uri).accept(MediaType.parseMediaType("application/hal+json")));
+        return mvc.perform(get(uri).accept(MediaType.parseMediaType("application/hal+json")).with(as("EMP-READER")));
+    }
+
+    protected static RequestPostProcessor as(String personId) {
+        return jwt().jwt(token -> token.subject(personId).claim("name", "Person " + personId))
+                .authorities(Arrays.stream(StaffRole.values()).<GrantedAuthority>map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList());
     }
 }

@@ -44,7 +44,7 @@ class SchemaApiTest extends ApiTest {
         String etag = read("/api/v1/schemas/Fire extinguisher/versions/1").andReturn().getResponse().getHeader("ETag");
 
         mvc.perform(MockMvcRequestBuilders
-                        .get("/api/v1/schemas/Fire extinguisher/versions/1").header("If-None-Match", etag))
+                        .get("/api/v1/schemas/Fire extinguisher/versions/1").header("If-None-Match", etag).with(as("EMP-001")))
                 .andExpect(status().isNotModified());
     }
 
@@ -82,7 +82,7 @@ class SchemaApiTest extends ApiTest {
         postAs("EMP-001", "/api/v1/schemas", Payloads.schema().replace("Fire extinguisher", "Caldera \\\"Vapor\\\" ñ"));
 
         mvc.perform(MockMvcRequestBuilders
-                        .get("/api/v1/schemas/{type}/versions/1", "Caldera \"Vapor\" ñ"))
+                        .get("/api/v1/schemas/{type}/versions/1", "Caldera \"Vapor\" ñ").with(as("EMP-001")))
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", Matchers.matchesPattern("\"[A-Za-z0-9-]+\"")));
     }

@@ -21,7 +21,7 @@ class RootControllerTest extends ApiTest {
 
     @Test
     void anUnsupportedMethodIs405() throws Exception {
-        mvc.perform(MockMvcRequestBuilders.delete("/api/v1"))
+        mvc.perform(MockMvcRequestBuilders.delete("/api/v1").with(as("EMP-001")))
                 .andExpect(status().isMethodNotAllowed());
     }
 }

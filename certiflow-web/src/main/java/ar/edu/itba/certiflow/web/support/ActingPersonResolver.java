@@ -1,9 +1,11 @@
 package ar.edu.itba.certiflow.web.support;
 
+import ar.edu.itba.certiflow.infrastructure.security.SpringDataUserAccountRepository;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
 import org.springframework.core.MethodParameter;
-import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -11,8 +13,11 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 public class ActingPersonResolver implements HandlerMethodArgumentResolver {
 
-    static final String ID_HEADER = "X-Person-Id";
-    static final String NAME_HEADER = "X-Person-Name";
+    private final SpringDataUserAccountRepository userAccounts;
+
+    public ActingPersonResolver(SpringDataUserAccountRepository userAccounts) {
+        this.userAccounts = userAccounts;
+    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -21,15 +26,15 @@ public class ActingPersonResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public Person resolveArgument(MethodParameter parameter, ModelAndViewContainer container, NativeWebRequest request,
-                                  WebDataBinderFactory binderFactory) throws MissingRequestHeaderException {
-        String id = request.getHeader(ID_HEADER);
-        String name = request.getHeader(NAME_HEADER);
-        if (id == null || id.isBlank()) {
-            throw new MissingRequestHeaderException(ID_HEADER, parameter);
+                                  WebDataBinderFactory binderFactory) {
+        if (request.getUserPrincipal() instanceof JwtAuthenticationToken bearer) {
+            return new Person(new PersonId(bearer.getToken().getSubject()), bearer.getToken().getClaimAsString("name"));
         }
-        if (name == null || name.isBlank()) {
-            throw new MissingRequestHeaderException(NAME_HEADER, parameter);
+        if (request.getUserPrincipal() instanceof Authentication basic) {
+            return userAccounts.findById(basic.getName())
+                    .map(account -> new Person(new PersonId(account.personId()), account.name()))
+                    .orElseThrow(() -> new IllegalStateException("No user account for " + basic.getName()));
         }
-        return new Person(new PersonId(id), name);
+        throw new IllegalStateException("The request reached a controller without an authenticated person");
     }
 }

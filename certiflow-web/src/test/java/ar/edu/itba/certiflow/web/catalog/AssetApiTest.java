@@ -49,10 +49,10 @@ class AssetApiTest extends ApiTest {
     }
 
     @Test
-    void writingWithoutTheActingPersonIs400() throws Exception {
+    void writingWithoutCredentialsIs401() throws Exception {
         mvc.perform(MockMvcRequestBuilders.post("/api/v1/assets")
                         .contentType(MediaType.APPLICATION_JSON).content(Payloads.asset()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -92,7 +92,7 @@ class AssetApiTest extends ApiTest {
         postAs("EMP-001", "/api/v1/assets", Payloads.asset().replace("EXT-0042", "EXT-0043").replace("Fire extinguisher", "Boiler & \\\"Steam\\\""));
 
         mvc.perform(MockMvcRequestBuilders.get("/api/v1/assets")
-                        .param("type", "Boiler & \"Steam\"").param("size", "1"))
+                        .param("type", "Boiler & \"Steam\"").param("size", "1").with(as("EMP-001")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.assets.length()").value(1))
                 .andExpect(jsonPath("$._links.next.href").value(Matchers.containsString("type=Boiler%20%26%20%22Steam%22")));
