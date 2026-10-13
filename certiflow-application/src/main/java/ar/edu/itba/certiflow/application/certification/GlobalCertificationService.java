@@ -6,7 +6,6 @@ import ar.edu.itba.certiflow.catalog.model.exceptions.AssetNotFoundException;
 import ar.edu.itba.certiflow.catalog.repository.AssetRepository;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
-import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.GlobalCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
@@ -14,6 +13,8 @@ import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundE
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.shared.model.StoredInstant;
 import java.time.Clock;
@@ -61,9 +62,10 @@ public final class GlobalCertificationService {
     }
 
     private SchemaVersion versionOf(Asset asset, int number) {
-        return inspectionSchemaRepository.findByAssetType(asset.type()).orElseThrow().versions().stream()
+        return inspectionSchemaRepository.findByAssetType(asset.type())
+                .orElseThrow(() -> new NoInspectionSchemaForAssetTypeException(asset.type())).versions().stream()
                 .filter(version -> version.number() == number).findFirst()
-                .orElseThrow(() -> new CertificationConflictException("Schema version not found"));
+                .orElseThrow(() -> new SchemaVersionNotFoundException(asset.type(), number));
     }
 
     private Certificate certificateWithNumber(CertificateNumber number) {

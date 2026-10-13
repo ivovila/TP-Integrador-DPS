@@ -1,7 +1,7 @@
 {
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7"
         },
         "asset": {
             "href": "/api/v1/assets/CAP-0010"
@@ -10,26 +10,26 @@
             "href": "/api/v1/schemas/Capture%20tank/versions/1"
         },
         "responses": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/responses"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/responses"
         },
         "revisions": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/revisions"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/revisions"
         },
         "certification-eligibility": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/certification-eligibility{?subsystem}",
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/certification-eligibility{?subsystem}",
             "templated": true
         },
         "audit-entries": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/audit-entries"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/audit-entries"
         },
         "closure": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/closure"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/closure"
         }
     },
     "assetCode": "CAP-0010",
     "closed": false,
     "coversWholeSchema": true,
-    "id": "7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa",
+    "id": "5a1e9307-6bd8-42fb-bce2-911b0410e7d7",
     "inspector": {
         "id": "EMP-002",
         "name": "Ines Duarte"

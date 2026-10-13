@@ -1,7 +1,8 @@
 {
     "decision": {
         "outcome": "REJECTED",
-        "ineligibilities": [
+        "eligible": false,
+        "reasons": [
             {
                 "reason": "BLOCKING_FINDINGS",
                 "detail": "Open finding LEAKS severity Major"
@@ -12,24 +13,23 @@
             }
         ],
         "conditions": [],
-        "validity": null,
+        "validFrom": null,
+        "validUntil": null,
         "policyCode": "STRICT",
-        "jurisdictionCode": {
-            "value": "DEMO-STRICT"
-        },
-        "evaluatedAt": "2026-10-13T13:44:34.128790Z",
+        "jurisdictionCode": "DEMO-STRICT",
+        "evaluatedAt": "2026-10-13T16:27:09.784275Z",
         "scope": {
-            "kind": "WHOLE_ASSET"
-        },
-        "eligible": false
+            "type": "WHOLE_ASSET",
+            "subsystemCode": null
+        }
     },
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/certification-eligibility{?subsystem}",
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7/certification-eligibility{?subsystem}",
             "templated": true
         },
         "inspection": {
-            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa"
+            "href": "http://localhost:8080/api/v1/inspections/5a1e9307-6bd8-42fb-bce2-911b0410e7d7"
         }
     },
     "eligible": false,

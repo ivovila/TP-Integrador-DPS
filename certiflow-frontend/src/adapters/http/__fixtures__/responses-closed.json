@@ -4,14 +4,14 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/EARTH"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses/EARTH"
                     },
                     "inspection": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     }
                 },
                 "answer": 2.5,
-                "answeredAt": "2026-10-13T13:44:31.686956Z",
+                "answeredAt": "2026-10-13T16:26:54.934366Z",
                 "answeredBy": {
                     "id": "EMP-002",
                     "name": "Ines Duarte"
@@ -45,7 +45,7 @@
                             "id": "EMP-002",
                             "name": "Ines Duarte"
                         },
-                        "attachedAt": "2026-10-13T13:44:31.818264Z"
+                        "attachedAt": "2026-10-13T16:26:55.939236Z"
                     }
                 ],
                 "observations": [],
@@ -54,14 +54,14 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/PANEL"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses/PANEL"
                     },
                     "inspection": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     }
                 },
                 "answer": false,
-                "answeredAt": "2026-10-13T13:44:31.701176Z",
+                "answeredAt": "2026-10-13T16:26:55.048333Z",
                 "answeredBy": {
                     "id": "EMP-002",
                     "name": "Ines Duarte"
@@ -89,7 +89,7 @@
                             "id": "EMP-002",
                             "name": "Ines Duarte"
                         },
-                        "observedAt": "2026-10-13T13:44:31.876169Z"
+                        "observedAt": "2026-10-13T16:26:56.304185Z"
                     }
                 ],
                 "outcome": "OBSERVED"
@@ -97,14 +97,14 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/VALVE"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses/VALVE"
                     },
                     "inspection": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     }
                 },
                 "answer": "Good",
-                "answeredAt": "2026-10-13T13:44:31.711904Z",
+                "answeredAt": "2026-10-13T16:26:55.162329Z",
                 "answeredBy": {
                     "id": "EMP-002",
                     "name": "Ines Duarte"
@@ -135,7 +135,7 @@
     },
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses"
+            "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses"
         }
     }
 }

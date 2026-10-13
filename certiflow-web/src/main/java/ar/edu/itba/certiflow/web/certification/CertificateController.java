@@ -147,8 +147,11 @@ public class CertificateController {
     @PostMapping("/{number}/renewals")
     public ResponseEntity<CertificateResource> renew(@PathVariable String number, @RequestBody CertificateRequest request,
                                                      @ActingPerson Person renewedBy) {
-        CertificateNumber renewed = renewCertificate.execute(new RenewCertificateCommand(new CertificateNumber(number),
-                new InspectionId(request.inspectionId()), renewedBy, request.scope()));
+        CertificateNumber current = new CertificateNumber(number);
+        InspectionId inspection = new InspectionId(request.inspectionId());
+        CertificateNumber renewed = renewCertificate.execute(request.requestedScope()
+                .map(scope -> new RenewCertificateCommand(current, inspection, renewedBy, scope))
+                .orElseGet(() -> new RenewCertificateCommand(current, inspection, renewedBy)));
         return created(renewed);
     }
 

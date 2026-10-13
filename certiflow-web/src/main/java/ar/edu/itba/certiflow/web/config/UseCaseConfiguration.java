@@ -53,9 +53,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.RegisteredJurisdictions;
 import ar.edu.itba.certiflow.certification.usecase.ListJurisdictionsUseCase;
 import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
-import ar.edu.itba.certiflow.certification.model.StrictCertificationPolicy;
-import ar.edu.itba.certiflow.certification.model.ConditionalCertificationPolicy;
-import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
@@ -173,9 +171,9 @@ public class UseCaseConfiguration {
     @Bean
     ConfiguredPolicyResolver certificationPolicies() {
         return new ConfiguredPolicyResolver(Map.of(
-                new JurisdictionCode("DEMO-STRICT"), new StrictCertificationPolicy(),
-                new JurisdictionCode("DEMO-CONDITIONAL"), new ConditionalCertificationPolicy(),
-                new JurisdictionCode("DEMO-STANDARD"), new StandardCertificationPolicy()));
+                new JurisdictionCode("DEMO-STRICT"), SeverityCertificationPolicy.strict(),
+                new JurisdictionCode("DEMO-CONDITIONAL"), SeverityCertificationPolicy.conditional(),
+                new JurisdictionCode("DEMO-STANDARD"), SeverityCertificationPolicy.standard()));
     }
 
     @Bean

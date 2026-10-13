@@ -82,12 +82,12 @@ public final class DomainSamples {
         InspectionService service = inspectionService();
         Inspection inspection = service.assign(new InspectionId("I-" + IDS.incrementAndGet()), ASSET,
                 new InspectionAssignment(INSPECTOR, LocalDate.of(2026, 3, 13), new FullScope()), schema.latestPublishedVersion(), PLANNER, T0);
-        service.recordAnswer(inspection, "EXT-01", new RawAnswer.Number(new BigDecimal(pressure)), INSPECTOR, T0.plusSeconds(60));
+        service.recordAnswer(inspection, "EXT-01", new RawAnswer(new BigDecimal(pressure)), INSPECTOR, T0.plusSeconds(60));
         service.attachEvidence(inspection, "EXT-01", new Evidence(StandardEvidenceKind.PHOTO, "photos/gauge.jpg", "Gauge"), INSPECTOR,
                 T0.plusSeconds(90));
         service.addObservation(inspection, "EXT-01", "Needle trembles", INSPECTOR, T0.plusSeconds(100));
-        service.recordAnswer(inspection, "EXT-02", new RawAnswer.YesNo(true), INSPECTOR, T0.plusSeconds(120));
-        service.recordAnswer(inspection, "EXT-03", new RawAnswer.Option("VISIBLE"), INSPECTOR, T0.plusSeconds(180));
+        service.recordAnswer(inspection, "EXT-02", new RawAnswer(true), INSPECTOR, T0.plusSeconds(120));
+        service.recordAnswer(inspection, "EXT-03", new RawAnswer("VISIBLE"), INSPECTOR, T0.plusSeconds(180));
         return inspection;
     }
 

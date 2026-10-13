@@ -39,8 +39,8 @@ class ConfiguredPolicyResolverTest {
 
     @Test void registeredJurisdictionsAreListedWithThePolicyThatDecidesForThem() {
         var resolver = new ConfiguredPolicyResolver(Map.of(
-                new JurisdictionCode("SOUTH"), new StrictCertificationPolicy(),
-                new JurisdictionCode("NORTH"), new ConditionalCertificationPolicy()));
+                new JurisdictionCode("SOUTH"), SeverityCertificationPolicy.strict(),
+                new JurisdictionCode("NORTH"), SeverityCertificationPolicy.conditional()));
         assertEquals(List.of(
                 new JurisdictionPolicy(new JurisdictionCode("NORTH"), "CONDITIONAL"),
                 new JurisdictionPolicy(new JurisdictionCode("SOUTH"), "STRICT")), resolver.all());

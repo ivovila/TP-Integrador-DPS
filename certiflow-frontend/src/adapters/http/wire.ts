@@ -203,20 +203,28 @@ export interface WireFindingsSummary extends WireResource {
   openFindings: number;
 }
 
-export type WireScope = { kind: 'WHOLE_ASSET' } | { code: { value: string } };
+export interface WireScope {
+  type: 'WHOLE_ASSET' | 'SUBSYSTEM';
+  subsystemCode: string | null;
+}
 
-export type WireBasis =
-  | { inspection: { id: { value: string }; closedAt: Instant } }
-  | { partials: { value: string }[]; globalPolicy: string; latestInspectionClosedAt: Instant };
+export interface WireBasis {
+  type: 'INSPECTION' | 'PARTIAL_CERTIFICATES';
+  inspectionId: string | null;
+  inspectionClosedAt: Instant;
+  partialCertificateNumbers: string[];
+  globalPolicy: string | null;
+}
 
 export interface WireDecision {
   outcome: CertificationOutcome;
   eligible: boolean;
-  ineligibilities: { reason: IneligibilityReason; detail: string }[];
+  reasons: { reason: IneligibilityReason; detail: string }[];
   conditions: { findingId: string; criterionCode: string; description: string; dueDate: LocalDate }[];
-  validity: { validFrom: LocalDate; validUntil: LocalDate } | null;
+  validFrom: LocalDate | null;
+  validUntil: LocalDate | null;
   policyCode: string;
-  jurisdictionCode: { value: string };
+  jurisdictionCode: string;
   evaluatedAt: Instant;
   scope: WireScope;
 }
@@ -236,7 +244,7 @@ export interface WireCertificate extends WireResource {
   assetCode: string;
   scope: WireScope;
   basis: WireBasis;
-  schemaReference: { assetType: { name: string }; number: number };
+  schemaReference: { assetType: string; number: number };
   validFrom: LocalDate;
   validUntil: LocalDate;
   issuedBy: WirePerson;

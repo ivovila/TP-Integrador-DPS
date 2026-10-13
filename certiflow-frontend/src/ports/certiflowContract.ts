@@ -1146,7 +1146,13 @@ export function describeCertiflowContract(
 
       test('an asset split into subsystems is certified whole only through its partial certificates', async () => {
         const { inspectionId } = await boilerWithClosedInspection();
-        await expectRejection(certiflow.certification.evaluateCertification(inspectionId), 'CertificationConflictException');
+        expect(await certiflow.certification.evaluateCertification(inspectionId)).toMatchObject({
+          eligible: false,
+          outcome: 'REJECTED',
+          scope: { kind: 'wholeAsset' },
+          ineligibilities: [{ reason: 'REQUIRES_PARTIAL_CERTIFICATES' }],
+        });
+        await expectRejection(issue(inspectionId), 'NotEligibleForCertificationException');
         await expectRejection(certiflow.certification.evaluateCertification(inspectionId, 'FUEL'), 'SubsystemNotFoundException');
       });
 
@@ -1201,7 +1207,7 @@ export function describeCertiflowContract(
         await expect(issueGlobal([electrical, otherPressure])).rejects.toMatchObject({
           name: 'NotEligibleForCertificationException',
           ineligibilities: [
-            { reason: 'INVALID_PARTIAL_CERTIFICATE', detail: `Invalid backing ${otherPressure}` },
+            { reason: 'INVALID_PARTIAL_CERTIFICATE', detail: expect.stringContaining(otherPressure) },
             { reason: 'MISSING_SUBSYSTEM' },
           ],
         });

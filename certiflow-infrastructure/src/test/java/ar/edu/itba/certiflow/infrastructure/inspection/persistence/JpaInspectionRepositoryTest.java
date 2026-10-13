@@ -70,7 +70,7 @@ class JpaInspectionRepositoryTest {
         assertEquals(inspection.snapshot(), restored.snapshot());
         assertTrue(restored.isClosed());
         assertThrows(InspectionAlreadyClosedException.class, () -> DomainSamples.inspectionService()
-                .recordAnswer(restored, "EXT-02", new RawAnswer.YesNo(false), DomainSamples.INSPECTOR, DomainSamples.T0));
+                .recordAnswer(restored, "EXT-02", new RawAnswer(false), DomainSamples.INSPECTOR, DomainSamples.T0));
     }
 
     @Test
@@ -107,7 +107,7 @@ class JpaInspectionRepositoryTest {
     @Test
     void aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed() {
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
-        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer.YesNo(true), DomainSamples.INSPECTOR,
+        DomainSamples.inspectionService().recordAnswer(inspection, "EXT-02", new RawAnswer(true), DomainSamples.INSPECTOR,
                 DomainSamples.T0.plusNanos(123_456_789));
         DomainSamples.close(inspection);
 
@@ -127,7 +127,7 @@ class JpaInspectionRepositoryTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer.YesNo(false), DomainSamples.INSPECTOR,
+        DomainSamples.inspectionService().recordAnswer(loaded, "EXT-02", new RawAnswer(false), DomainSamples.INSPECTOR,
                 DomainSamples.T0.plusSeconds(900));
         repository.save(loaded);
         entityManager.flush();
@@ -146,7 +146,7 @@ class JpaInspectionRepositoryTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        DomainSamples.inspectionService().rectify(loaded, "EXT-03", new RawAnswer.Option("REFLECTIVE"), "Typo", DomainSamples.PLANNER,
+        DomainSamples.inspectionService().rectify(loaded, "EXT-03", new RawAnswer("REFLECTIVE"), "Typo", DomainSamples.PLANNER,
                 DomainSamples.T0.plusSeconds(1200));
         repository.save(loaded);
         entityManager.flush();

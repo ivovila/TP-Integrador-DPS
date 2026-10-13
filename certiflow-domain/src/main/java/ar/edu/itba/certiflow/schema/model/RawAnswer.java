@@ -1,15 +1,16 @@
 package ar.edu.itba.certiflow.schema.model;
 
-import java.math.BigDecimal;
+import java.util.Objects;
+import java.util.Optional;
 
-public sealed interface RawAnswer {
+/** El valor tal como llegó, antes de que una regla lo interprete. Cada regla pide el tipo que sabe leer. */
+public record RawAnswer(Object value) {
 
-    record Number(BigDecimal value) implements RawAnswer {
+    public RawAnswer {
+        Objects.requireNonNull(value, "value");
     }
 
-    record YesNo(boolean value) implements RawAnswer {
-    }
-
-    record Option(String value) implements RawAnswer {
+    public <T> Optional<T> as(Class<T> type) {
+        return Optional.of(value).filter(type::isInstance).map(type::cast);
     }
 }

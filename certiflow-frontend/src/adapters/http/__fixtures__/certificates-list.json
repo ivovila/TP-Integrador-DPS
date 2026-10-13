@@ -16,7 +16,7 @@
                         "href": "http://localhost:8080/api/v1/certificates/CERT-00001/audit-entries"
                     },
                     "inspection": {
-                        "href": "/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     },
                     "suspensions": {
                         "href": "http://localhost:8080/api/v1/certificates/CERT-00001/suspensions"
@@ -27,57 +27,48 @@
                 },
                 "assetCode": "CAP-0001",
                 "basis": {
-                    "inspection": {
-                        "id": {
-                            "value": "997f3881-a15c-49da-b5bf-a80cff4ecf78"
-                        },
-                        "closedAt": "2026-10-13T13:44:32.052021Z"
-                    }
+                    "type": "INSPECTION",
+                    "inspectionId": "8a47c181-b4f3-45f4-8fb5-9604d00fad7c",
+                    "inspectionClosedAt": "2026-10-13T16:26:57.444706Z",
+                    "partialCertificateNumbers": [],
+                    "globalPolicy": null
                 },
                 "decision": {
                     "outcome": "CONDITIONAL",
-                    "ineligibilities": [],
+                    "eligible": true,
+                    "reasons": [],
                     "conditions": [
                         {
-                            "findingId": "f98c0954-d843-4a21-90ed-8d291d36ea0e",
+                            "findingId": "a335387c-bf22-4fc3-82bd-d3604bbfb153",
                             "criterionCode": "PANEL",
                             "description": "Resolve and verify open nonconformity",
                             "dueDate": "2026-11-11"
                         }
                     ],
-                    "validity": {
-                        "validFrom": "2026-10-13",
-                        "validUntil": "2026-11-11"
-                    },
+                    "validFrom": "2026-10-13",
+                    "validUntil": "2026-11-11",
                     "policyCode": "CONDITIONAL",
-                    "jurisdictionCode": {
-                        "value": "DEMO-CONDITIONAL"
-                    },
-                    "evaluatedAt": "2026-10-13T13:44:32.932760Z",
+                    "jurisdictionCode": "DEMO-CONDITIONAL",
+                    "evaluatedAt": "2026-10-13T16:27:01.475654Z",
                     "scope": {
-                        "code": {
-                            "value": "ELECTRICAL"
-                        }
-                    },
-                    "eligible": true
+                        "type": "SUBSYSTEM",
+                        "subsystemCode": "ELECTRICAL"
+                    }
                 },
-                "inspectionId": "997f3881-a15c-49da-b5bf-a80cff4ecf78",
-                "issuedAt": "2026-10-13T13:44:32.932760Z",
+                "inspectionId": "8a47c181-b4f3-45f4-8fb5-9604d00fad7c",
+                "issuedAt": "2026-10-13T16:27:01.475654Z",
                 "issuedBy": {
                     "id": "EMP-005",
                     "name": "Carlos Vidal"
                 },
                 "number": "CERT-00001",
                 "schemaReference": {
-                    "assetType": {
-                        "name": "Capture plant"
-                    },
+                    "assetType": "Capture plant",
                     "number": 1
                 },
                 "scope": {
-                    "code": {
-                        "value": "ELECTRICAL"
-                    }
+                    "type": "SUBSYSTEM",
+                    "subsystemCode": "ELECTRICAL"
                 },
                 "status": "ACTIVE",
                 "suspensions": [],
@@ -99,7 +90,7 @@
                         "href": "http://localhost:8080/api/v1/certificates/CERT-00002/audit-entries"
                     },
                     "inspection": {
-                        "href": "/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     },
                     "suspensions": {
                         "href": "http://localhost:8080/api/v1/certificates/CERT-00002/suspensions"
@@ -110,50 +101,41 @@
                 },
                 "assetCode": "CAP-0001",
                 "basis": {
-                    "inspection": {
-                        "id": {
-                            "value": "997f3881-a15c-49da-b5bf-a80cff4ecf78"
-                        },
-                        "closedAt": "2026-10-13T13:44:32.052021Z"
-                    }
+                    "type": "INSPECTION",
+                    "inspectionId": "8a47c181-b4f3-45f4-8fb5-9604d00fad7c",
+                    "inspectionClosedAt": "2026-10-13T16:26:57.444706Z",
+                    "partialCertificateNumbers": [],
+                    "globalPolicy": null
                 },
                 "decision": {
                     "outcome": "APPROVED",
-                    "ineligibilities": [],
+                    "eligible": true,
+                    "reasons": [],
                     "conditions": [],
-                    "validity": {
-                        "validFrom": "2026-10-13",
-                        "validUntil": "2027-04-12"
-                    },
+                    "validFrom": "2026-10-13",
+                    "validUntil": "2027-04-12",
                     "policyCode": "CONDITIONAL",
-                    "jurisdictionCode": {
-                        "value": "DEMO-CONDITIONAL"
-                    },
-                    "evaluatedAt": "2026-10-13T13:44:33.026922Z",
+                    "jurisdictionCode": "DEMO-CONDITIONAL",
+                    "evaluatedAt": "2026-10-13T16:27:02.461038Z",
                     "scope": {
-                        "code": {
-                            "value": "PRESSURE"
-                        }
-                    },
-                    "eligible": true
+                        "type": "SUBSYSTEM",
+                        "subsystemCode": "PRESSURE"
+                    }
                 },
-                "inspectionId": "997f3881-a15c-49da-b5bf-a80cff4ecf78",
-                "issuedAt": "2026-10-13T13:44:33.026922Z",
+                "inspectionId": "8a47c181-b4f3-45f4-8fb5-9604d00fad7c",
+                "issuedAt": "2026-10-13T16:27:02.461038Z",
                 "issuedBy": {
                     "id": "EMP-005",
                     "name": "Carlos Vidal"
                 },
                 "number": "CERT-00002",
                 "schemaReference": {
-                    "assetType": {
-                        "name": "Capture plant"
-                    },
+                    "assetType": "Capture plant",
                     "number": 1
                 },
                 "scope": {
-                    "code": {
-                        "value": "PRESSURE"
-                    }
+                    "type": "SUBSYSTEM",
+                    "subsystemCode": "PRESSURE"
                 },
                 "status": "ACTIVE",
                 "suspensions": [],
@@ -191,57 +173,51 @@
                 },
                 "assetCode": "CAP-0001",
                 "basis": {
-                    "partials": [
-                        {
-                            "value": "CERT-00001"
-                        },
-                        {
-                            "value": "CERT-00002"
-                        }
+                    "type": "PARTIAL_CERTIFICATES",
+                    "inspectionId": null,
+                    "inspectionClosedAt": "2026-10-13T16:26:57.444706Z",
+                    "partialCertificateNumbers": [
+                        "CERT-00001",
+                        "CERT-00002"
                     ],
-                    "globalPolicy": "ALL-REQUIRED-SUBSYSTEMS",
-                    "latestInspectionClosedAt": "2026-10-13T13:44:32.052021Z"
+                    "globalPolicy": "ALL-REQUIRED-SUBSYSTEMS"
                 },
                 "decision": {
                     "outcome": "CONDITIONAL",
-                    "ineligibilities": [],
+                    "eligible": true,
+                    "reasons": [],
                     "conditions": [
                         {
-                            "findingId": "f98c0954-d843-4a21-90ed-8d291d36ea0e",
+                            "findingId": "a335387c-bf22-4fc3-82bd-d3604bbfb153",
                             "criterionCode": "PANEL",
                             "description": "Resolve and verify open nonconformity",
                             "dueDate": "2026-11-11"
                         }
                     ],
-                    "validity": {
-                        "validFrom": "2026-10-13",
-                        "validUntil": "2026-11-11"
-                    },
+                    "validFrom": "2026-10-13",
+                    "validUntil": "2026-11-11",
                     "policyCode": "ALL-REQUIRED-SUBSYSTEMS",
-                    "jurisdictionCode": {
-                        "value": "DEMO-CONDITIONAL"
-                    },
-                    "evaluatedAt": "2026-10-13T13:44:33.256192Z",
+                    "jurisdictionCode": "DEMO-CONDITIONAL",
+                    "evaluatedAt": "2026-10-13T16:27:04.181220Z",
                     "scope": {
-                        "kind": "WHOLE_ASSET"
-                    },
-                    "eligible": true
+                        "type": "WHOLE_ASSET",
+                        "subsystemCode": null
+                    }
                 },
                 "inspectionId": null,
-                "issuedAt": "2026-10-13T13:44:33.256192Z",
+                "issuedAt": "2026-10-13T16:27:04.181220Z",
                 "issuedBy": {
                     "id": "EMP-005",
                     "name": "Carlos Vidal"
                 },
                 "number": "CERT-00003",
                 "schemaReference": {
-                    "assetType": {
-                        "name": "Capture plant"
-                    },
+                    "assetType": "Capture plant",
                     "number": 1
                 },
                 "scope": {
-                    "kind": "WHOLE_ASSET"
+                    "type": "WHOLE_ASSET",
+                    "subsystemCode": null
                 },
                 "status": "ACTIVE",
                 "suspensions": [],

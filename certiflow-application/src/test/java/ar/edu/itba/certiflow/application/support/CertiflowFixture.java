@@ -53,7 +53,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateService;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
-import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
+import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
@@ -181,7 +181,7 @@ public final class CertiflowFixture {
     private final InspectionService inspectionService = new InspectionService(new InspectionFactory(), inspectionLog);
     private final FindingService findingService = new FindingService(new FindingFactory(), findingLog);
     private final CertificateService certificateService = new CertificateService(new CertificateFactory(), certificateLog);
-    private final CertificationPolicyResolver policies = code -> Optional.of(new StandardCertificationPolicy());
+    private final CertificationPolicyResolver policies = code -> Optional.of(SeverityCertificationPolicy.standard());
     private final CertificationAssessmentService certificationAssessment =
             new CertificationAssessmentService(assetRepository, policies, clock);
     public final RegisterAssetUseCase registerAsset = new RegisterAssetUseCaseImpl(assetRepository, assetService, policies, clock);
@@ -333,7 +333,7 @@ public final class CertiflowFixture {
     }
 
     public CertificateNumber renew(CertificateNumber current, InspectionId inspection, Person by) {
-        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, by, new CertificationScope.WholeAsset()));
+        return renewCertificate.execute(new RenewCertificateCommand(current, inspection, by));
     }
 
     public void suspend(CertificateNumber number, String reason, Person by) {

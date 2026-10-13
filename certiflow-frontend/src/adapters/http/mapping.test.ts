@@ -339,9 +339,9 @@ test('each line of the findings summary identifies its finding and its subsystem
   });
 });
 
-test('a scope is told apart by the key the server sends', () => {
-  expect(scopeOf({ kind: 'WHOLE_ASSET' })).toEqual({ kind: 'wholeAsset' });
-  expect(scopeOf({ code: { value: 'ELECTRICAL' } })).toEqual({ kind: 'subsystem', subsystemCode: 'ELECTRICAL' });
+test('a scope is told apart by the type the server sends', () => {
+  expect(scopeOf({ type: 'WHOLE_ASSET', subsystemCode: null })).toEqual({ kind: 'wholeAsset' });
+  expect(scopeOf({ type: 'SUBSYSTEM', subsystemCode: 'ELECTRICAL' })).toEqual({ kind: 'subsystem', subsystemCode: 'ELECTRICAL' });
 });
 
 test('a certificate is based on an inspection or on its partial certificates', () => {
@@ -360,7 +360,7 @@ test('a conditional decision carries its conditions, the validity the policy gra
     outcome: 'CONDITIONAL',
     eligible: true,
     conditions: [{ findingId: openFinding.id, criterionCode: 'PANEL' }],
-    validity: conditionalEligibility.decision.validity,
+    validity: { validFrom: conditionalEligibility.decision.validFrom, validUntil: conditionalEligibility.decision.validUntil },
     policyCode: 'CONDITIONAL',
     jurisdictionCode: 'DEMO-CONDITIONAL',
     actions: ['issueCertificate'],

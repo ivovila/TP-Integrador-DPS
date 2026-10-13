@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.web.schema;
 
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
@@ -18,10 +19,35 @@ import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
 import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 public final class SchemaPayloads {
+
+    /** Registro tipo de regla → cómo se arma desde el request. Agregar una regla es agregar una entrada. */
+    private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();
+
+    static {
+        RULE_READERS.put("numeric-range", rule -> new NumericRangeRule(new Unit(required(rule.unit(), "unit")),
+                new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))));
+        RULE_READERS.put("yes-no", rule -> new YesNoRule(expected(rule.expected())));
+        RULE_READERS.put("option-in-list", rule -> new OptionInListRule(required(rule.options(), "options")));
+    }
+
+    /** Registro clase de regla → cómo se describe en la API. */
+    private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(
+            NumericRangeRule.class, rule -> {
+                NumericRangeRule numeric = (NumericRangeRule) rule;
+                return new RulePayload("numeric-range", numeric.unit().symbol(), numeric.range().minimum(),
+                        numeric.range().maximum(), null, null);
+            },
+            YesNoRule.class, rule -> new RulePayload("yes-no", null, null, null, ((YesNoRule) rule).expected().name(), null),
+            OptionInListRule.class, rule -> new RulePayload("option-in-list", null, null, null, null,
+                    ((OptionInListRule) rule).acceptedOptions()));
 
     private SchemaPayloads() {
     }
@@ -49,34 +75,30 @@ public final class SchemaPayloads {
         Severity severity = severity(payload.severity());
         List<EvidenceRequirement> evidence = payload.requiredEvidence().stream()
                 .map(r -> new EvidenceRequirement(evidenceKind(r.kind()), r.minimum())).toList();
-        RulePayload rule = payload.rule();
-        return switch (rule.type()) {
-            case "numeric-range" -> new Criterion<>(payload.code(), payload.text(),
-                    new NumericRangeRule(new Unit(required(rule.unit(), "unit")),
-                            new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))), severity, evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
-            case "yes-no" -> new Criterion<>(payload.code(), payload.text(), new YesNoRule(expected(rule.expected())), severity,
-                    evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
-            case "option-in-list" -> new Criterion<>(payload.code(), payload.text(),
-                    new OptionInListRule(required(rule.options(), "options")), severity, evidence, Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
-            default -> throw new InvalidRuleConfigurationException("Unknown rule type " + rule.type());
-        };
+        return criterion(payload, rule(payload.rule()), severity, evidence);
+    }
+
+    private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Severity severity,
+                                                            List<EvidenceRequirement> evidence) {
+        return new Criterion<>(payload.code(), payload.text(), rule, severity, evidence,
+                Optional.ofNullable(payload.subsystemCode()).map(SubsystemCode::new));
+    }
+
+    private static ApprovalRule<?> rule(RulePayload rule) {
+        return Optional.ofNullable(RULE_READERS.get(rule.type()))
+                .orElseThrow(() -> new InvalidRuleConfigurationException("Unknown rule type " + rule.type()))
+                .apply(rule);
     }
 
     private static RulePayload rulePayload(ApprovalRule<?> rule) {
-        return switch (rule) {
-            case NumericRangeRule numeric -> new RulePayload("numeric-range", numeric.unit().symbol(), numeric.range().minimum(),
-                    numeric.range().maximum(), null, null);
-            case YesNoRule yesNo -> new RulePayload("yes-no", null, null, null, yesNo.expected().name(), null);
-            case OptionInListRule option -> new RulePayload("option-in-list", null, null, null, null, option.acceptedOptions());
-            default -> throw new IllegalStateException("No payload for rule " + rule.getClass().getName());
-        };
+        return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))
+                .orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))
+                .apply(rule);
     }
 
     private static <T> T required(T value, String field) {
-        if (value == null) {
-            throw new InvalidRuleConfigurationException("The rule needs a " + field);
-        }
-        return value;
+        return Optional.ofNullable(value)
+                .orElseThrow(() -> new InvalidRuleConfigurationException("The rule needs a " + field));
     }
 
     private static YesNoAnswer expected(String name) {

@@ -38,6 +38,14 @@ public record CertificationDecision(CertificationOutcome outcome, List<Ineligibi
                 Optional.of(validity), policy, context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
     }
 
+    /** Concede la vigencia indicada; con condiciones pendientes la modalidad es condicional. */
+    public static CertificationDecision granted(List<CertificationCondition> conditions, ValidityPeriod validity, String policy,
+            JurisdictionCode jurisdictionCode, Instant evaluatedAt, CertificationScope scope) {
+        CertificationOutcome outcome = conditions.isEmpty() ? CertificationOutcome.APPROVED : CertificationOutcome.CONDITIONAL;
+        return new CertificationDecision(outcome, List.of(), conditions, Optional.of(validity), policy, jurisdictionCode,
+                evaluatedAt, scope);
+    }
+
     public boolean isEligible() { return outcome != CertificationOutcome.REJECTED; }
 
     public boolean isBlockedBy(IneligibilityReason reason) {

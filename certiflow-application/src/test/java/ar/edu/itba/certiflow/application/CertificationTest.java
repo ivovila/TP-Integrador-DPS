@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateStatus;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
+import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
 import ar.edu.itba.certiflow.certification.model.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.model.exceptions.AssetAlreadyCertifiedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
@@ -232,11 +233,11 @@ class CertificationTest {
     }
 
     @Test
-    void aRenewalWithAnUnknownScopeConsumesNoCertificateNumber() {
+    void aRenewalForAnotherScopeIsRejectedAndConsumesNoCertificateNumber() {
         var number = fixture.issue(fixture.closedCompliantInspection(), fixture.certifier);
         fixture.clock.advanceDays(1);
         var inspection = fixture.closedCompliantInspection();
-        assertThrows(SubsystemNotFoundException.class,
+        assertThrows(CertificationConflictException.class,
                 () -> fixture.renewCertificate.execute(new RenewCertificateCommand(
                         number, inspection, fixture.certifier, new CertificationScope.SubsystemScope(
                                 new SubsystemCode("MISSING")))));

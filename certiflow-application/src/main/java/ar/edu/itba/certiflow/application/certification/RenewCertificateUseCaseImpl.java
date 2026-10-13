@@ -3,6 +3,8 @@ package ar.edu.itba.certiflow.application.certification;
 import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.certification.model.CertificationConflictException;
+import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
 import ar.edu.itba.certiflow.certification.repository.CertificateNumbering;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
@@ -29,7 +31,11 @@ public final class RenewCertificateUseCaseImpl implements RenewCertificateUseCas
     public CertificateNumber execute(RenewCertificateCommand command) {
         Certificate currentCertificate = certificateRepository.findByNumber(command.currentNumber())
                 .orElseThrow(() -> new CertificateNotFoundException(command.currentNumber()));
-        DecidedCertification decided = certificateIssuance.decide(command.inspectionId(), command.scope());
+        CertificationScope scope = currentCertificate.scope();
+        if (command.requested().filter(requested -> !requested.equals(scope)).isPresent()) {
+            throw new CertificationConflictException("Renewal scope must match the certificate being renewed");
+        }
+        DecidedCertification decided = certificateIssuance.decide(command.inspectionId(), scope);
         certificateService.ensureRenewableWith(currentCertificate, decided.result());
         certificateIssuance.ensureScopeAvailable(decided.assetCode(), decided.scope(), decided.validFrom(),
                 Optional.of(currentCertificate.number()));

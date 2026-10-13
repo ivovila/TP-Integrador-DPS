@@ -138,7 +138,7 @@ class InspectionExecutionTest {
         int entriesBefore = fixture.inspectionLog.historyOf(inspection).size();
 
         assertThrows(CriterionNotInSchemaException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer.YesNo(true), fixture.inspector)));
+                new RecordAnswerCommand(inspection, "EXT-99", new RawAnswer(true), fixture.inspector)));
 
         assertEquals(entriesBefore, fixture.inspectionLog.historyOf(inspection).size());
     }
@@ -148,7 +148,7 @@ class InspectionExecutionTest {
         InspectionId inspection = fixture.assignedInspection();
 
         assertThrows(AnswerTypeMismatchException.class, () -> fixture.recordAnswer.execute(
-                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer.YesNo(true), fixture.inspector)));
+                new RecordAnswerCommand(inspection, "EXT-01", new RawAnswer(true), fixture.inspector)));
 
         assertEquals(Outcome.PENDING, fixture.inspection(inspection).evaluate().outcomeOf(fixture.pressureCriterion));
     }

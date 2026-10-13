@@ -10,18 +10,26 @@ import type {
 import { actionsOfferedBy, certificateActionByRel, eligibilityActionByRel } from './actions';
 import type { WireBasis, WireCertificate, WireCertificateDocument, WireDecision, WireEligibility, WireScope } from './wire';
 
+const scopeByType: Record<WireScope['type'], (wire: WireScope) => CertificationScope> = {
+  WHOLE_ASSET: () => ({ kind: 'wholeAsset' }),
+  SUBSYSTEM: (wire) => ({ kind: 'subsystem', subsystemCode: wire.subsystemCode! }),
+};
+
+const basisByType: Record<WireBasis['type'], (wire: WireBasis) => CertificateBasis> = {
+  INSPECTION: (wire) => ({ kind: 'inspection', inspectionId: wire.inspectionId! }),
+  PARTIAL_CERTIFICATES: (wire) => ({
+    kind: 'partialCertificates',
+    partialCertificateNumbers: wire.partialCertificateNumbers,
+    globalPolicy: wire.globalPolicy!,
+  }),
+};
+
 export function scopeOf(wire: WireScope): CertificationScope {
-  return 'code' in wire ? { kind: 'subsystem', subsystemCode: wire.code.value } : { kind: 'wholeAsset' };
+  return scopeByType[wire.type](wire);
 }
 
 export function basisOf(wire: WireBasis): CertificateBasis {
-  return 'inspection' in wire
-    ? { kind: 'inspection', inspectionId: wire.inspection.id.value }
-    : {
-        kind: 'partialCertificates',
-        partialCertificateNumbers: wire.partials.map((partial) => partial.value),
-        globalPolicy: wire.globalPolicy,
-      };
+  return basisByType[wire.type](wire);
 }
 
 export function decisionOf(wire: WireDecision): CertificationDecision {
@@ -29,11 +37,11 @@ export function decisionOf(wire: WireDecision): CertificationDecision {
     scope: scopeOf(wire.scope),
     outcome: wire.outcome,
     eligible: wire.eligible,
-    ineligibilities: wire.ineligibilities,
+    ineligibilities: wire.reasons,
     conditions: wire.conditions,
-    ...(wire.validity === null ? {} : { validity: wire.validity }),
+    ...(wire.validFrom === null || wire.validUntil === null ? {} : { validity: { validFrom: wire.validFrom, validUntil: wire.validUntil } }),
     policyCode: wire.policyCode,
-    jurisdictionCode: wire.jurisdictionCode.value,
+    jurisdictionCode: wire.jurisdictionCode,
     evaluatedAt: wire.evaluatedAt,
   };
 }

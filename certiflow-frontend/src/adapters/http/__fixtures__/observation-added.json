@@ -1,10 +1,10 @@
 {
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/PANEL/observations/1"
+            "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses/PANEL/observations/1"
         },
         "response": {
-            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/PANEL"
+            "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses/PANEL"
         }
     },
     "text": "Two labels missing",
@@ -12,5 +12,5 @@
         "id": "EMP-002",
         "name": "Ines Duarte"
     },
-    "observedAt": "2026-10-13T13:44:31.876169Z"
+    "observedAt": "2026-10-13T16:26:56.304185Z"
 }

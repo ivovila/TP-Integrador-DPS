@@ -6,7 +6,7 @@
                 "label": "Inspection assigned",
                 "performedById": "EMP-001",
                 "performedByName": "Paula Rios",
-                "occurredAt": "2026-10-13T13:44:31.434026Z",
+                "occurredAt": "2026-10-13T16:26:53.038184Z",
                 "detail": "Schema version 1"
             },
             {
@@ -14,7 +14,7 @@
                 "label": "Answer recorded",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:31.686956Z",
+                "occurredAt": "2026-10-13T16:26:54.934366Z",
                 "detail": "EARTH = NumericAnswer[value=2.50]"
             },
             {
@@ -22,7 +22,7 @@
                 "label": "Answer recorded",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:31.701176Z",
+                "occurredAt": "2026-10-13T16:26:55.048333Z",
                 "detail": "PANEL = NO"
             },
             {
@@ -30,7 +30,7 @@
                 "label": "Answer recorded",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:31.711904Z",
+                "occurredAt": "2026-10-13T16:26:55.162329Z",
                 "detail": "VALVE = OptionAnswer[option=Good]"
             },
             {
@@ -38,7 +38,7 @@
                 "label": "Evidence attached",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:31.818264Z",
+                "occurredAt": "2026-10-13T16:26:55.939236Z",
                 "detail": "EARTH: earth.jpg"
             },
             {
@@ -46,7 +46,7 @@
                 "label": "Observation added",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:31.876169Z",
+                "occurredAt": "2026-10-13T16:26:56.304185Z",
                 "detail": "PANEL: Two labels missing"
             },
             {
@@ -54,7 +54,7 @@
                 "label": "Inspection closed",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:32.052021Z",
+                "occurredAt": "2026-10-13T16:26:57.444706Z",
                 "detail": ""
             },
             {
@@ -62,14 +62,14 @@
                 "label": "Inspection rectified",
                 "performedById": "EMP-002",
                 "performedByName": "Ines Duarte",
-                "occurredAt": "2026-10-13T13:44:32.236008Z",
+                "occurredAt": "2026-10-13T16:26:58.223247Z",
                 "detail": "EARTH = NumericAnswer[value=3.10] (Meter misread)"
             }
         ]
     },
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/audit-entries"
+            "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/audit-entries"
         }
     }
 }

@@ -1,13 +1,13 @@
 {
     "_links": {
         "self": {
-            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/1"
+            "href": "http://localhost:8080/api/v1/findings/a335387c-bf22-4fc3-82bd-d3604bbfb153/corrective-actions/1"
         },
         "finding": {
-            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e"
+            "href": "http://localhost:8080/api/v1/findings/a335387c-bf22-4fc3-82bd-d3604bbfb153"
         },
         "verifications": {
-            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/1/verifications"
+            "href": "http://localhost:8080/api/v1/findings/a335387c-bf22-4fc3-82bd-d3604bbfb153/corrective-actions/1/verifications"
         }
     },
     "cancelled": false,
@@ -17,7 +17,7 @@
     "id": 1,
     "open": true,
     "overdue": false,
-    "plannedAt": "2026-10-13T13:44:32.714724Z",
+    "plannedAt": "2026-10-13T16:27:00.896322Z",
     "plannedBy": {
         "id": "EMP-001",
         "name": "Paula Rios"

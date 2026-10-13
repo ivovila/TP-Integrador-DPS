@@ -15,6 +15,7 @@ import ar.edu.itba.certiflow.schema.model.exceptions.CriterionNotInSchemaExcepti
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoEffectiveSchemaVersionException;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
 import ar.edu.itba.certiflow.schema.model.exceptions.SectionNotInSchemaException;
 import ar.edu.itba.certiflow.shared.model.DomainException;
 import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
@@ -34,6 +35,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_BY_EXCEPTION = Map.ofEntries(
             Map.entry(NoEffectiveSchemaVersionException.class, HttpStatus.NOT_FOUND),
             Map.entry(SubsystemNotFoundException.class, HttpStatus.NOT_FOUND),
+            Map.entry(SchemaVersionNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(AssetNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(InspectionNotFoundException.class, HttpStatus.NOT_FOUND),
             Map.entry(FindingNotFoundException.class, HttpStatus.NOT_FOUND),

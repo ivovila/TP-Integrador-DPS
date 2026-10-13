@@ -6,6 +6,6 @@ public record NumericAnswer(BigDecimal value) implements Answer {
 
     @Override
     public RawAnswer raw() {
-        return new RawAnswer.Number(value);
+        return new RawAnswer(value);
     }
 }

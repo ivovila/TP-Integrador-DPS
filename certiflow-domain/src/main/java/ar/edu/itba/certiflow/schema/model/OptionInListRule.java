@@ -18,9 +18,7 @@ public record OptionInListRule(Set<String> acceptedOptions) implements ApprovalR
 
     @Override
     public OptionAnswer answerFrom(RawAnswer raw) {
-        if (raw instanceof RawAnswer.Option(String value)) {
-            return new OptionAnswer(value);
-        }
-        throw new AnswerTypeMismatchException("option", raw);
+        return raw.as(String.class).map(OptionAnswer::new)
+                .orElseThrow(() -> new AnswerTypeMismatchException("option", raw));
     }
 }

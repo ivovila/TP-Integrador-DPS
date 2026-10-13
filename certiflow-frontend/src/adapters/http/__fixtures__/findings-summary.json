@@ -10,7 +10,7 @@
     "assetCode": "CAP-0001",
     "findings": [
         {
-            "findingId": "f98c0954-d843-4a21-90ed-8d291d36ea0e",
+            "findingId": "a335387c-bf22-4fc3-82bd-d3604bbfb153",
             "criterionCode": "PANEL",
             "description": "Panel labelled",
             "severity": "Minor",

@@ -112,12 +112,22 @@ public class DeliveryFeaturesApiTest extends ApiTest {
         read("/api/v1/certificates/" + pressure).andExpect(jsonPath("$.validUntil").value("2027-10-12"));
         postAs("ISSUER", "/api/v1/certificates/" + electrical + "/suspensions", "{\"reason\":\"Grounding damaged\"}")
                 .andExpect(status().isCreated());
-        read("/api/v1/certificates/" + global).andExpect(jsonPath("$.status").value("DEPENDENCY_INVALID"));
+        read("/api/v1/certificates/" + global).andExpect(jsonPath("$.status").value("DEPENDENCY_INVALID"))
+                .andExpect(jsonPath("$.scope.type").value("WHOLE_ASSET"))
+                .andExpect(jsonPath("$.basis.type").value("PARTIAL_CERTIFICATES"))
+                .andExpect(jsonPath("$.basis.partialCertificateNumbers[0]").value(electrical))
+                .andExpect(jsonPath("$.schemaReference.number").value(1));
+        read("/api/v1/certificates/" + electrical).andExpect(jsonPath("$.basis.type").value("INSPECTION"))
+                .andExpect(jsonPath("$.basis.inspectionId").value(inspection));
         read("/api/v1/certificates/" + global + "/document").andExpect(jsonPath("$.status").value("DEPENDENCY_INVALID"));
         String later = assign("A-1", "null"); answer(later, "C-E", true); answer(later, "C-P", true); close(later);
         String replacement = JsonPath.read(postAs("ISSUER", "/api/v1/certificates/" + electrical + "/renewals",
-                "{\"inspectionId\":\"" + later + "\",\"subsystemCode\":\"E\"}").andExpect(status().isCreated())
+                "{\"inspectionId\":\"" + later + "\"}").andExpect(status().isCreated())
+                .andExpect(jsonPath("$.scope.type").value("SUBSYSTEM"))
+                .andExpect(jsonPath("$.scope.subsystemCode").value("E"))
                 .andReturn().getResponse().getContentAsString(), "$.number");
+        postAs("ISSUER", "/api/v1/certificates/" + pressure + "/renewals",
+                "{\"inspectionId\":\"" + later + "\",\"subsystemCode\":\"E\"}").andExpect(status().isConflict());
         read("/api/v1/certificates/" + global).andExpect(jsonPath("$.status").value("DEPENDENCY_INVALID"));
         postAs("ISSUER", "/api/v1/certificates/" + global + "/global-renewals", globalRequest(replacement, pressure))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -164,6 +174,26 @@ public class DeliveryFeaturesApiTest extends ApiTest {
                 .andExpect(status().isBadRequest());
         clock.set("2026-11-11T00:00:00Z");
         read("/api/v1/certificates/" + number).andExpect(jsonPath("$.status").value("EXPIRED"));
+    }
+
+    @Test
+    void anAssetSplitIntoSubsystemsIsRejectedAsAWholeInsteadOfFailing() throws Exception {
+        setup("DEMO-STRICT");
+        String inspection = assign("A-1", "null"); answer(inspection, "C-E", true); answer(inspection, "C-P", true); close(inspection);
+        read("/api/v1/inspections/" + inspection + "/certification-eligibility")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eligible").value(false))
+                .andExpect(jsonPath("$.decision.outcome").value("REJECTED"))
+                .andExpect(jsonPath("$.decision.scope.type").value("WHOLE_ASSET"))
+                .andExpect(jsonPath("$.decision.reasons[0].reason").value("REQUIRES_PARTIAL_CERTIFICATES"));
+        postAs("ISSUER", "/api/v1/certificates", "{\"inspectionId\":\"" + inspection + "\"}").andExpect(status().isConflict());
+    }
+
+    @Test
+    void aGlobalCertificateForAMissingSchemaVersionIsNotFound() throws Exception {
+        setup("DEMO-STRICT");
+        postAs("ISSUER", "/api/v1/assets/A-1/global-certificates", "{\"schemaVersion\":9,\"partialCertificateNumbers\":[\"CERT-00001\"]}")
+                .andExpect(status().isNotFound());
     }
 
     @Test

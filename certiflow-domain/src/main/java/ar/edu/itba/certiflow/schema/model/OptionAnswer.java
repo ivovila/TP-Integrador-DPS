@@ -11,6 +11,6 @@ public record OptionAnswer(String option) implements Answer {
 
     @Override
     public RawAnswer raw() {
-        return new RawAnswer.Option(option);
+        return new RawAnswer(option);
     }
 }

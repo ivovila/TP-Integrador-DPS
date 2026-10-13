@@ -23,20 +23,20 @@ class RawAnswerTest {
 
     static Stream<Arguments> acceptedAnswers() {
         return Stream.of(
-                Arguments.of(NUMERIC, new RawAnswer.Number(new BigDecimal("7.00")), new NumericAnswer(new BigDecimal("7.00"))),
-                Arguments.of(YES_NO, new RawAnswer.YesNo(true), YesNoAnswer.YES),
-                Arguments.of(YES_NO, new RawAnswer.YesNo(false), YesNoAnswer.NO),
-                Arguments.of(OPTION, new RawAnswer.Option("VISIBLE"), new OptionAnswer("VISIBLE")));
+                Arguments.of(NUMERIC, new RawAnswer(new BigDecimal("7.00")), new NumericAnswer(new BigDecimal("7.00"))),
+                Arguments.of(YES_NO, new RawAnswer(true), YesNoAnswer.YES),
+                Arguments.of(YES_NO, new RawAnswer(false), YesNoAnswer.NO),
+                Arguments.of(OPTION, new RawAnswer("VISIBLE"), new OptionAnswer("VISIBLE")));
     }
 
     static Stream<Arguments> mismatchedAnswers() {
         return Stream.of(
-                Arguments.of(NUMERIC, new RawAnswer.YesNo(true)),
-                Arguments.of(NUMERIC, new RawAnswer.Option("7")),
-                Arguments.of(YES_NO, new RawAnswer.Number(BigDecimal.ONE)),
-                Arguments.of(YES_NO, new RawAnswer.Option("YES")),
-                Arguments.of(OPTION, new RawAnswer.Number(BigDecimal.ONE)),
-                Arguments.of(OPTION, new RawAnswer.YesNo(true)));
+                Arguments.of(NUMERIC, new RawAnswer(true)),
+                Arguments.of(NUMERIC, new RawAnswer("7")),
+                Arguments.of(YES_NO, new RawAnswer(BigDecimal.ONE)),
+                Arguments.of(YES_NO, new RawAnswer("YES")),
+                Arguments.of(OPTION, new RawAnswer(BigDecimal.ONE)),
+                Arguments.of(OPTION, new RawAnswer(true)));
     }
 
     @ParameterizedTest

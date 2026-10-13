@@ -18,5 +18,6 @@
     },
     "assetType": "Capture plant",
     "currentVersion": 1,
+    "latestPublishedVersion": 2,
     "name": "Capture plant inspection"
 }

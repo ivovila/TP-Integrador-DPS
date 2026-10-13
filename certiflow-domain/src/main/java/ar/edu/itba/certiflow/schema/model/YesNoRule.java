@@ -9,9 +9,7 @@ public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswe
 
     @Override
     public YesNoAnswer answerFrom(RawAnswer raw) {
-        if (raw instanceof RawAnswer.YesNo(boolean value)) {
-            return value ? YesNoAnswer.YES : YesNoAnswer.NO;
-        }
-        throw new AnswerTypeMismatchException("yes/no", raw);
+        return raw.as(Boolean.class).map(YesNoAnswer::of)
+                .orElseThrow(() -> new AnswerTypeMismatchException("yes/no", raw));
     }
 }

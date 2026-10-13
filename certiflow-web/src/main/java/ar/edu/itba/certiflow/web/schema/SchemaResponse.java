@@ -11,10 +11,12 @@ public class SchemaResponse extends RepresentationModel<SchemaResponse> {
     public final String name;
     public final String assetType;
     public final int currentVersion;
+    public final int latestPublishedVersion;
 
     SchemaResponse(InspectionSchema schema, Instant now) {
         this.name = schema.name();
         this.assetType = schema.assetType().name();
         this.currentVersion = schema.versionAt(now).number();
+        this.latestPublishedVersion = schema.latestPublishedVersion().number();
     }
 }

@@ -62,7 +62,7 @@ call audit-entries GET /api/v1/inspections/$INSPECTION/audit-entries "" ""
 call findings-list GET '/api/v1/findings?asset=CAP-0001' "" ""
 FINDING=$(field findings-list "['_embedded']['findings'][0]['id']")
 call findings-summary GET /api/v1/assets/CAP-0001/findings-summary "" ""
-call error-eligibility-whole-asset GET /api/v1/inspections/$INSPECTION/certification-eligibility "" ""
+call eligibility-whole-asset-rejected GET /api/v1/inspections/$INSPECTION/certification-eligibility "" ""
 call eligibility-conditional GET "/api/v1/inspections/$INSPECTION/certification-eligibility?subsystem=ELECTRICAL" "" ""
 call eligibility-approved GET "/api/v1/inspections/$INSPECTION/certification-eligibility?subsystem=PRESSURE" "" ""
 call action-planned POST /api/v1/findings/$FINDING/corrective-actions "${COORDINATOR[@]}" '{"description":"Label the panel","responsible":'"$RESPONSIBLE"',"dueDate":"2030-12-01"}'

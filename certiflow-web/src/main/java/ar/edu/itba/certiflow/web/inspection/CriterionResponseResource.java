@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
-import tools.jackson.databind.JsonNode;
 
 @Relation(collectionRelation = "responses", itemRelation = "response")
 public class CriterionResponseResource extends RepresentationModel<CriterionResponseResource> {
@@ -20,7 +19,7 @@ public class CriterionResponseResource extends RepresentationModel<CriterionResp
     }
 
     public final CriterionPayload criterion;
-    public final JsonNode answer;
+    public final Object answer;
     public final PersonPayload answeredBy;
     public final Instant answeredAt;
     public final List<EvidenceView> evidence;
@@ -29,7 +28,7 @@ public class CriterionResponseResource extends RepresentationModel<CriterionResp
 
     CriterionResponseResource(CriterionResponse<?> response) {
         this.criterion = SchemaPayloads.payload(response.criterion());
-        this.answer = response.given().map(given -> RawAnswers.toJson(given.value().raw())).orElse(null);
+        this.answer = response.given().map(given -> given.value().raw().value()).orElse(null);
         this.answeredBy = response.given().map(given -> PersonPayload.of(given.answeredBy())).orElse(null);
         this.answeredAt = response.given().map(given -> given.answeredAt()).orElse(null);
         this.evidence = response.attachments().stream()

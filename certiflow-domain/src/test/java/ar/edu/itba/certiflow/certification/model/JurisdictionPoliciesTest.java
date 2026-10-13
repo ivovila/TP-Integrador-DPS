@@ -22,7 +22,7 @@ class JurisdictionPoliciesTest {
     }
 
     private CertificationDecision evaluate(boolean strict, InspectionResult result) {
-        var policy = strict ? new StrictCertificationPolicy() : new ConditionalCertificationPolicy();
+        var policy = strict ? SeverityCertificationPolicy.strict() : SeverityCertificationPolicy.conditional();
         return policy.evaluate(
                 new CertificationAssessmentContext(result, new JurisdictionCode(strict ? "DEMO-STRICT" : "DEMO-CONDITIONAL"), now, LocalDate.of(2026, 1, 31)));
     }

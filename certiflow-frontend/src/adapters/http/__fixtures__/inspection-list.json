@@ -4,7 +4,7 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c"
                     },
                     "asset": {
                         "href": "/api/v1/assets/CAP-0001"
@@ -13,26 +13,26 @@
                         "href": "/api/v1/schemas/Capture%20plant/versions/1"
                     },
                     "responses": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/responses"
                     },
                     "revisions": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/revisions"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/revisions"
                     },
                     "certification-eligibility": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/certification-eligibility{?subsystem}",
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/certification-eligibility{?subsystem}",
                         "templated": true
                     },
                     "audit-entries": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/audit-entries"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/audit-entries"
                     },
                     "closure": {
-                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/closure"
+                        "href": "http://localhost:8080/api/v1/inspections/8a47c181-b4f3-45f4-8fb5-9604d00fad7c/closure"
                     }
                 },
                 "assetCode": "CAP-0001",
                 "closed": false,
                 "coversWholeSchema": true,
-                "id": "997f3881-a15c-49da-b5bf-a80cff4ecf78",
+                "id": "8a47c181-b4f3-45f4-8fb5-9604d00fad7c",
                 "inspector": {
                     "id": "EMP-002",
                     "name": "Ines Duarte"
@@ -44,7 +44,7 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443"
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97"
                     },
                     "asset": {
                         "href": "/api/v1/assets/CAP-0001"
@@ -53,26 +53,26 @@
                         "href": "/api/v1/schemas/Capture%20plant/versions/1"
                     },
                     "responses": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443/responses"
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97/responses"
                     },
                     "revisions": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443/revisions"
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97/revisions"
                     },
                     "certification-eligibility": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443/certification-eligibility{?subsystem}",
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97/certification-eligibility{?subsystem}",
                         "templated": true
                     },
                     "audit-entries": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443/audit-entries"
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97/audit-entries"
                     },
                     "closure": {
-                        "href": "http://localhost:8080/api/v1/inspections/74e2df7e-fc07-48b0-bf1f-26fc618e5443/closure"
+                        "href": "http://localhost:8080/api/v1/inspections/0645f54f-4cbc-4876-a952-506382ca5b97/closure"
                     }
                 },
                 "assetCode": "CAP-0001",
                 "closed": false,
                 "coversWholeSchema": false,
-                "id": "74e2df7e-fc07-48b0-bf1f-26fc618e5443",
+                "id": "0645f54f-4cbc-4876-a952-506382ca5b97",
                 "inspector": {
                     "id": "EMP-002",
                     "name": "Ines Duarte"

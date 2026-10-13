@@ -9,7 +9,8 @@ export type IneligibilityReason =
   | 'BLOCKING_FINDINGS'
   | 'UNSUPPORTED_SEVERITY'
   | 'MISSING_SUBSYSTEM'
-  | 'INVALID_PARTIAL_CERTIFICATE';
+  | 'INVALID_PARTIAL_CERTIFICATE'
+  | 'REQUIRES_PARTIAL_CERTIFICATES';
 
 export interface Ineligibility {
   reason: IneligibilityReason;

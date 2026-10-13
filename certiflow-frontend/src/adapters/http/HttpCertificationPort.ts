@@ -1,6 +1,6 @@
 import type { Certificate } from '../../domain/certification';
 import type { CertificationPort } from '../../ports/CertificationPort';
-import { certificateDocumentOf, certificateOf, eligibilityDecisionOf, scopeOf } from './certificationMapping';
+import { certificateDocumentOf, certificateOf, eligibilityDecisionOf } from './certificationMapping';
 import { type HalClient, query, segment } from './HalClient';
 import { type SchemaReader, schemaVersionPath } from './HttpSchemaPort';
 import type { WireCertificate, WireCertificateDocument, WireEligibility } from './wire';
@@ -12,7 +12,7 @@ function certificatePath(number: string): string {
 export function createHttpCertificationPort(client: HalClient, schemas: SchemaReader): CertificationPort {
   async function withRequiredSubsystems(certificate: WireCertificate): Promise<Certificate> {
     const reference = certificate.schemaReference;
-    const version = await schemas.versionAt(schemaVersionPath(reference.assetType.name, reference.number));
+    const version = await schemas.versionAt(schemaVersionPath(reference.assetType, reference.number));
     return certificateOf(certificate, version.requiredSubsystems);
   }
 
@@ -59,10 +59,8 @@ export function createHttpCertificationPort(client: HalClient, schemas: SchemaRe
     },
 
     async renewCertificate(command) {
-      const currentScope = scopeOf((await client.read<WireCertificate>(certificatePath(command.currentNumber))).scope);
       const renewed = await client.write<WireCertificate>('POST', `${certificatePath(command.currentNumber)}/renewals`, command.renewedBy, {
         inspectionId: command.inspectionId,
-        ...(currentScope.kind === 'subsystem' ? { subsystemCode: currentScope.subsystemCode } : {}),
       });
       return renewed.number;
     },

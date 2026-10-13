@@ -15,11 +15,12 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
         subsystems = List.copyOf(subsystems);
     }
 
+    /**
+     * Pedir el activo entero sobre una versión con subsistemas no es un error: la decisión lo rechaza
+     * con {@link IneligibilityReason#REQUIRES_PARTIAL_CERTIFICATES} (ver {@link #requiresPartialCertificates()}).
+     */
     public InspectionResult forScope(CertificationScope requested) {
         if (requested instanceof CertificationScope.WholeAsset) {
-            if (!subsystems.isEmpty()) {
-                throw new CertificationConflictException("Global certificates must be derived from partial certificates");
-            }
             return this;
         }
         var code = ((CertificationScope.SubsystemScope) requested).code();
@@ -27,6 +28,10 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, O
                 .orElseThrow(() -> new SubsystemNotFoundException(code));
         return new InspectionResult(inspectionId, assetCode, closedAt, subsystem.covered(), subsystem.openNonConformities(),
                 schemaReference, subsystems, requested);
+    }
+
+    public boolean requiresPartialCertificates() {
+        return scope instanceof CertificationScope.WholeAsset && !subsystems.isEmpty();
     }
 
     public boolean isClosed() {
