@@ -1,0 +1,29 @@
+{
+    "_links": {
+        "self": {
+            "href": "/api/v1"
+        },
+        "assets": {
+            "href": "/api/v1/assets"
+        },
+        "schemas": {
+            "href": "/api/v1/schemas/{assetType}",
+            "templated": true
+        },
+        "schema-list": {
+            "href": "/api/v1/schemas"
+        },
+        "vocabulary": {
+            "href": "/api/v1/vocabulary"
+        },
+        "inspections": {
+            "href": "/api/v1/inspections"
+        },
+        "findings": {
+            "href": "/api/v1/findings"
+        },
+        "certificates": {
+            "href": "/api/v1/certificates"
+        }
+    }
+}

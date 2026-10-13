@@ -1,0 +1,141 @@
+{
+    "_embedded": {
+        "responses": [
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/EARTH"
+                    },
+                    "inspection": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                    }
+                },
+                "answer": 2.5,
+                "answeredAt": "2026-10-13T13:44:31.686956Z",
+                "answeredBy": {
+                    "id": "EMP-002",
+                    "name": "Ines Duarte"
+                },
+                "criterion": {
+                    "code": "EARTH",
+                    "text": "Earthing resistance",
+                    "severity": "MAJOR",
+                    "rule": {
+                        "type": "numeric-range",
+                        "unit": "ohm",
+                        "minimum": 0.0,
+                        "maximum": 5.0,
+                        "expected": null,
+                        "options": null
+                    },
+                    "requiredEvidence": [
+                        {
+                            "kind": "PHOTO",
+                            "minimum": 1
+                        }
+                    ],
+                    "subsystemCode": null
+                },
+                "evidence": [
+                    {
+                        "kind": "Photo",
+                        "reference": "earth.jpg",
+                        "description": "Meter reading",
+                        "attachedBy": {
+                            "id": "EMP-002",
+                            "name": "Ines Duarte"
+                        },
+                        "attachedAt": "2026-10-13T13:44:31.818264Z"
+                    }
+                ],
+                "observations": [],
+                "outcome": "APPROVED"
+            },
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/PANEL"
+                    },
+                    "inspection": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                    }
+                },
+                "answer": false,
+                "answeredAt": "2026-10-13T13:44:31.701176Z",
+                "answeredBy": {
+                    "id": "EMP-002",
+                    "name": "Ines Duarte"
+                },
+                "criterion": {
+                    "code": "PANEL",
+                    "text": "Panel labelled",
+                    "severity": "MINOR",
+                    "rule": {
+                        "type": "yes-no",
+                        "unit": null,
+                        "minimum": null,
+                        "maximum": null,
+                        "expected": "YES",
+                        "options": null
+                    },
+                    "requiredEvidence": [],
+                    "subsystemCode": null
+                },
+                "evidence": [],
+                "observations": [
+                    {
+                        "text": "Two labels missing",
+                        "observedBy": {
+                            "id": "EMP-002",
+                            "name": "Ines Duarte"
+                        },
+                        "observedAt": "2026-10-13T13:44:31.876169Z"
+                    }
+                ],
+                "outcome": "OBSERVED"
+            },
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/VALVE"
+                    },
+                    "inspection": {
+                        "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+                    }
+                },
+                "answer": "Good",
+                "answeredAt": "2026-10-13T13:44:31.711904Z",
+                "answeredBy": {
+                    "id": "EMP-002",
+                    "name": "Ines Duarte"
+                },
+                "criterion": {
+                    "code": "VALVE",
+                    "text": "Relief valve state",
+                    "severity": "CRITICAL",
+                    "rule": {
+                        "type": "option-in-list",
+                        "unit": null,
+                        "minimum": null,
+                        "maximum": null,
+                        "expected": null,
+                        "options": [
+                            "Good",
+                            "Acceptable"
+                        ]
+                    },
+                    "requiredEvidence": [],
+                    "subsystemCode": "PRESSURE"
+                },
+                "evidence": [],
+                "observations": [],
+                "outcome": "APPROVED"
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses"
+        }
+    }
+}

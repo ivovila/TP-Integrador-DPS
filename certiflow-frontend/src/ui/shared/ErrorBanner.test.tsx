@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, test } from 'vitest';
 import { DomainError } from '../../ports/DomainError';
+import { RejectedRequestError } from '../../ports/RejectedRequestError';
 import { ErrorBanner } from './ErrorBanner';
 
 afterEach(cleanup);
@@ -24,4 +25,15 @@ test('a refused certificate lists every reason', () => {
 test('nothing is shown while there is no error', () => {
   const { container } = render(<ErrorBanner error={undefined} />);
   expect(container.textContent).toBe('');
+});
+
+test('a rejection that is not a business rule still shows what the server explained', () => {
+  render(<ErrorBanner error={new RejectedRequestError(400, 'Bad Request', "Required header 'X-Person-Id' is not present.")} />);
+  expect(screen.getByRole('alert').textContent).toContain("Required header 'X-Person-Id' is not present.");
+  expect(screen.getByRole('alert').textContent).toContain('Bad Request');
+});
+
+test('an unreachable server is reported as such', () => {
+  render(<ErrorBanner error={new RejectedRequestError(0, 'ServerUnreachable', 'The server could not be reached. Check that the backend is running.')} />);
+  expect(screen.getByRole('alert').textContent).toContain('The server could not be reached');
 });

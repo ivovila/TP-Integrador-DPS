@@ -1,0 +1,56 @@
+{
+    "_embedded": {
+        "assets": [
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8080/api/v1/assets/CAP-0010"
+                    },
+                    "findings-summary": {
+                        "href": "/api/v1/assets/CAP-0010/findings-summary"
+                    },
+                    "audit-entries": {
+                        "href": "http://localhost:8080/api/v1/assets/CAP-0010/audit-entries"
+                    },
+                    "certificates": {
+                        "href": "/api/v1/certificates?asset=CAP-0010"
+                    },
+                    "findings": {
+                        "href": "/api/v1/findings?asset=CAP-0010"
+                    }
+                },
+                "characteristics": [],
+                "code": "CAP-0010",
+                "jurisdictionCode": "DEMO-STRICT",
+                "location": "Yard",
+                "name": "Capture tank",
+                "responsible": {
+                    "id": "EMP-003",
+                    "name": "Raul Mendez"
+                },
+                "subsystems": [],
+                "type": "Capture tank"
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "/api/v1/assets?page=1&size=1"
+        },
+        "first": {
+            "href": "/api/v1/assets?page=0&size=1"
+        },
+        "last": {
+            "href": "/api/v1/assets?page=1&size=1"
+        },
+        "prev": {
+            "href": "/api/v1/assets?page=0&size=1"
+        }
+    },
+    "page": {
+        "number": 1,
+        "size": 1,
+        "totalElements": 2,
+        "totalPages": 2
+    }
+}

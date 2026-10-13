@@ -1,0 +1,7 @@
+{
+    "detail": "Expected numeric answer but received Option[value=abc]",
+    "instance": "/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/EARTH/answer",
+    "status": 400,
+    "title": "AnswerTypeMismatchException",
+    "type": "urn:certiflow:AnswerTypeMismatchException"
+}

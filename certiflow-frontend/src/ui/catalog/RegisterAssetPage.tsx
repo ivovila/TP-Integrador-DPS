@@ -70,7 +70,7 @@ export function RegisterAssetPage() {
                   <option value="">Choose a jurisdiction…</option>
                   {(vocabulary.data?.jurisdictions ?? []).map((jurisdiction) => (
                     <option key={jurisdiction.code} value={jurisdiction.code}>
-                      {jurisdiction.code} · {jurisdiction.description}
+                      {jurisdiction.code} · policy {jurisdiction.policyCode}
                     </option>
                   ))}
                 </select>

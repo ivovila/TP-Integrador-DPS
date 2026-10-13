@@ -1,0 +1,18 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/EARTH/evidence/1"
+        },
+        "response": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/responses/EARTH"
+        }
+    },
+    "kind": "Photo",
+    "reference": "earth.jpg",
+    "description": "Meter reading",
+    "attachedBy": {
+        "id": "EMP-002",
+        "name": "Ines Duarte"
+    },
+    "attachedAt": "2026-10-13T13:44:31.818264Z"
+}

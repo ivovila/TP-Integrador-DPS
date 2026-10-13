@@ -1,0 +1,22 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20tank"
+        },
+        "versions": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20tank/versions"
+        },
+        "current-version": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20tank/versions/1"
+        },
+        "audit-entries": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20tank/audit-entries"
+        },
+        "latest-published-version": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20tank/versions/1"
+        }
+    },
+    "assetType": "Capture tank",
+    "currentVersion": 1,
+    "name": "Capture tank inspection"
+}

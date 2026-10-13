@@ -128,9 +128,9 @@ const policyByJurisdiction: Record<string, CertificationPolicy> = {
 };
 
 export const demoJurisdictions: Jurisdiction[] = [
-  { code: 'DEMO-STRICT', policyCode: 'STRICT', description: 'Any open finding blocks · 12 months' },
-  { code: 'DEMO-CONDITIONAL', policyCode: 'CONDITIONAL', description: 'Minor or major findings give a 30-day conditional certificate · 6 months' },
-  { code: 'DEMO-STANDARD', policyCode: 'STANDARD', description: 'Major and critical findings block · 12 months' },
+  { code: 'DEMO-STRICT', policyCode: 'STRICT' },
+  { code: 'DEMO-CONDITIONAL', policyCode: 'CONDITIONAL' },
+  { code: 'DEMO-STANDARD', policyCode: 'STANDARD' },
 ];
 
 export function isKnownJurisdiction(jurisdictionCode: string): boolean {

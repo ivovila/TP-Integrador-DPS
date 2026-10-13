@@ -1,0 +1,29 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/revisions/1"
+        },
+        "inspection": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa"
+        },
+        "findings": [
+            {
+                "href": "/api/v1/findings/66f977a8-bf24-48e1-bff8-2ad9c02e8516"
+            },
+            {
+                "href": "/api/v1/findings/7fe34888-ae72-4930-8541-30ba85ed58a1"
+            }
+        ]
+    },
+    "number": 1,
+    "outcomes": {
+        "LEAKS": "REJECTED",
+        "PAINT": "OBSERVED"
+    },
+    "reason": "Inspection closed",
+    "sealedAt": "2026-10-13T13:44:34.077967Z",
+    "sealedBy": {
+        "id": "EMP-002",
+        "name": "Ines Duarte"
+    }
+}

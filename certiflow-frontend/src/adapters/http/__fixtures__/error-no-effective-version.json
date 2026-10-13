@@ -1,0 +1,7 @@
+{
+    "detail": "No schema version was effective at 2000-01-01T00:00:00Z",
+    "instance": "/api/v1/schemas/Capture%20plant/effective-version",
+    "status": 404,
+    "title": "NoEffectiveSchemaVersionException",
+    "type": "urn:certiflow:NoEffectiveSchemaVersionException"
+}

@@ -1,0 +1,131 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/act"
+        },
+        "inspection": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+        }
+    },
+    "assetCode": "CAP-0001",
+    "assetName": "Capture plant",
+    "history": [
+        {
+            "action": "ASSIGNED",
+            "label": "Inspection assigned",
+            "performedById": "EMP-001",
+            "performedByName": "Paula Rios",
+            "occurredAt": "2026-10-13T13:44:31.434026Z",
+            "detail": "Schema version 1"
+        },
+        {
+            "action": "ANSWER_RECORDED",
+            "label": "Answer recorded",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:31.686956Z",
+            "detail": "EARTH = NumericAnswer[value=2.50]"
+        },
+        {
+            "action": "ANSWER_RECORDED",
+            "label": "Answer recorded",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:31.701176Z",
+            "detail": "PANEL = NO"
+        },
+        {
+            "action": "ANSWER_RECORDED",
+            "label": "Answer recorded",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:31.711904Z",
+            "detail": "VALVE = OptionAnswer[option=Good]"
+        },
+        {
+            "action": "EVIDENCE_ATTACHED",
+            "label": "Evidence attached",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:31.818264Z",
+            "detail": "EARTH: earth.jpg"
+        },
+        {
+            "action": "OBSERVATION_ADDED",
+            "label": "Observation added",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:31.876169Z",
+            "detail": "PANEL: Two labels missing"
+        },
+        {
+            "action": "CLOSED",
+            "label": "Inspection closed",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:32.052021Z",
+            "detail": ""
+        },
+        {
+            "action": "RECTIFIED",
+            "label": "Inspection rectified",
+            "performedById": "EMP-002",
+            "performedByName": "Ines Duarte",
+            "occurredAt": "2026-10-13T13:44:32.236008Z",
+            "detail": "EARTH = NumericAnswer[value=3.10] (Meter misread)"
+        }
+    ],
+    "inspector": {
+        "id": "EMP-002",
+        "name": "Ines Duarte"
+    },
+    "lines": [
+        {
+            "criterionCode": "EARTH",
+            "criterionText": "Earthing resistance",
+            "answer": 3.1,
+            "answeredBy": {
+                "id": "EMP-002",
+                "name": "Ines Duarte"
+            },
+            "answeredAt": "2026-10-13T13:44:32.236008Z",
+            "evidenceCount": 1,
+            "observations": [],
+            "outcome": "APPROVED"
+        },
+        {
+            "criterionCode": "PANEL",
+            "criterionText": "Panel labelled",
+            "answer": false,
+            "answeredBy": {
+                "id": "EMP-002",
+                "name": "Ines Duarte"
+            },
+            "answeredAt": "2026-10-13T13:44:31.701176Z",
+            "evidenceCount": 0,
+            "observations": [
+                "Two labels missing"
+            ],
+            "outcome": "OBSERVED"
+        },
+        {
+            "criterionCode": "VALVE",
+            "criterionText": "Relief valve state",
+            "answer": "Good",
+            "answeredBy": {
+                "id": "EMP-002",
+                "name": "Ines Duarte"
+            },
+            "answeredAt": "2026-10-13T13:44:31.711904Z",
+            "evidenceCount": 0,
+            "observations": [],
+            "outcome": "APPROVED"
+        }
+    ],
+    "plannedDate": "2026-10-20",
+    "revisions": [
+        1,
+        2
+    ],
+    "schemaVersion": 1
+}

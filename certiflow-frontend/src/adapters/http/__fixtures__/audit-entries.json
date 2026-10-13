@@ -1,0 +1,75 @@
+{
+    "_embedded": {
+        "auditEntries": [
+            {
+                "action": "ASSIGNED",
+                "label": "Inspection assigned",
+                "performedById": "EMP-001",
+                "performedByName": "Paula Rios",
+                "occurredAt": "2026-10-13T13:44:31.434026Z",
+                "detail": "Schema version 1"
+            },
+            {
+                "action": "ANSWER_RECORDED",
+                "label": "Answer recorded",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:31.686956Z",
+                "detail": "EARTH = NumericAnswer[value=2.50]"
+            },
+            {
+                "action": "ANSWER_RECORDED",
+                "label": "Answer recorded",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:31.701176Z",
+                "detail": "PANEL = NO"
+            },
+            {
+                "action": "ANSWER_RECORDED",
+                "label": "Answer recorded",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:31.711904Z",
+                "detail": "VALVE = OptionAnswer[option=Good]"
+            },
+            {
+                "action": "EVIDENCE_ATTACHED",
+                "label": "Evidence attached",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:31.818264Z",
+                "detail": "EARTH: earth.jpg"
+            },
+            {
+                "action": "OBSERVATION_ADDED",
+                "label": "Observation added",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:31.876169Z",
+                "detail": "PANEL: Two labels missing"
+            },
+            {
+                "action": "CLOSED",
+                "label": "Inspection closed",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:32.052021Z",
+                "detail": ""
+            },
+            {
+                "action": "RECTIFIED",
+                "label": "Inspection rectified",
+                "performedById": "EMP-002",
+                "performedByName": "Ines Duarte",
+                "occurredAt": "2026-10-13T13:44:32.236008Z",
+                "detail": "EARTH = NumericAnswer[value=3.10] (Meter misread)"
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/audit-entries"
+        }
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "detail": "Required header 'X-Person-Id' is not present.",
+    "instance": "/api/v1/assets",
+    "status": 400,
+    "title": "Bad Request"
+}

@@ -1,0 +1,7 @@
+{
+    "detail": "Asset NOPE does not exist",
+    "instance": "/api/v1/assets/NOPE",
+    "status": 404,
+    "title": "AssetNotFoundException",
+    "type": "urn:certiflow:AssetNotFoundException"
+}

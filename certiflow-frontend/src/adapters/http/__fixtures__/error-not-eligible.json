@@ -1,0 +1,17 @@
+{
+    "detail": "Not eligible for certification: Open finding LEAKS severity Major; Open finding PAINT severity Minor",
+    "instance": "/api/v1/certificates",
+    "status": 409,
+    "title": "NotEligibleForCertificationException",
+    "type": "urn:certiflow:NotEligibleForCertificationException",
+    "ineligibilities": [
+        {
+            "reason": "BLOCKING_FINDINGS",
+            "detail": "Open finding LEAKS severity Major"
+        },
+        {
+            "reason": "BLOCKING_FINDINGS",
+            "detail": "Open finding PAINT severity Minor"
+        }
+    ]
+}

@@ -1,0 +1,27 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/assets/CAP-0001/findings-summary"
+        },
+        "asset": {
+            "href": "/api/v1/assets/CAP-0001"
+        }
+    },
+    "assetCode": "CAP-0001",
+    "findings": [
+        {
+            "findingId": "f98c0954-d843-4a21-90ed-8d291d36ea0e",
+            "criterionCode": "PANEL",
+            "description": "Panel labelled",
+            "severity": "Minor",
+            "responsible": {
+                "id": "EMP-003",
+                "name": "Raul Mendez"
+            },
+            "open": true,
+            "overdueActions": 0,
+            "subsystemCode": "ELECTRICAL"
+        }
+    ],
+    "openFindings": 1
+}

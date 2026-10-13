@@ -1,0 +1,35 @@
+{
+    "decision": {
+        "outcome": "APPROVED",
+        "ineligibilities": [],
+        "conditions": [],
+        "validity": {
+            "validFrom": "2026-10-13",
+            "validUntil": "2027-04-12"
+        },
+        "policyCode": "CONDITIONAL",
+        "jurisdictionCode": {
+            "value": "DEMO-CONDITIONAL"
+        },
+        "evaluatedAt": "2026-10-13T13:44:32.667532Z",
+        "scope": {
+            "code": {
+                "value": "PRESSURE"
+            }
+        },
+        "eligible": true
+    },
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78/certification-eligibility?subsystem=PRESSURE"
+        },
+        "inspection": {
+            "href": "http://localhost:8080/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+        },
+        "certificates": {
+            "href": "/api/v1/certificates"
+        }
+    },
+    "eligible": true,
+    "ineligibilities": []
+}

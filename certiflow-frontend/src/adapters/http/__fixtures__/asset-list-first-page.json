@@ -1,0 +1,73 @@
+{
+    "_embedded": {
+        "assets": [
+            {
+                "_links": {
+                    "self": {
+                        "href": "http://localhost:8080/api/v1/assets/CAP-0001"
+                    },
+                    "findings-summary": {
+                        "href": "/api/v1/assets/CAP-0001/findings-summary"
+                    },
+                    "audit-entries": {
+                        "href": "http://localhost:8080/api/v1/assets/CAP-0001/audit-entries"
+                    },
+                    "certificates": {
+                        "href": "/api/v1/certificates?asset=CAP-0001"
+                    },
+                    "findings": {
+                        "href": "/api/v1/findings?asset=CAP-0001"
+                    },
+                    "global-certificates": {
+                        "href": "/api/v1/assets/CAP-0001/global-certificates"
+                    }
+                },
+                "characteristics": [
+                    {
+                        "name": "Area",
+                        "value": "120 m2"
+                    }
+                ],
+                "code": "CAP-0001",
+                "jurisdictionCode": "DEMO-CONDITIONAL",
+                "location": "Plant 9",
+                "name": "Capture plant",
+                "responsible": {
+                    "id": "EMP-003",
+                    "name": "Raul Mendez"
+                },
+                "subsystems": [
+                    {
+                        "code": "ELECTRICAL",
+                        "name": "Electrical installation"
+                    },
+                    {
+                        "code": "PRESSURE",
+                        "name": "Pressure system"
+                    }
+                ],
+                "type": "Capture plant"
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "/api/v1/assets?page=0&size=1"
+        },
+        "first": {
+            "href": "/api/v1/assets?page=0&size=1"
+        },
+        "last": {
+            "href": "/api/v1/assets?page=1&size=1"
+        },
+        "next": {
+            "href": "/api/v1/assets?page=1&size=1"
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 1,
+        "totalElements": 2,
+        "totalPages": 2
+    }
+}

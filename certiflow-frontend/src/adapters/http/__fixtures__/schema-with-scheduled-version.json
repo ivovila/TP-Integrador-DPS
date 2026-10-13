@@ -1,0 +1,22 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20plant"
+        },
+        "versions": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20plant/versions"
+        },
+        "current-version": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20plant/versions/1"
+        },
+        "audit-entries": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20plant/audit-entries"
+        },
+        "latest-published-version": {
+            "href": "http://localhost:8080/api/v1/schemas/Capture%20plant/versions/2"
+        }
+    },
+    "assetType": "Capture plant",
+    "currentVersion": 1,
+    "name": "Capture plant inspection"
+}

@@ -1,0 +1,16 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/certificates/CERT-00002/suspensions/1"
+        },
+        "certificate": {
+            "href": "http://localhost:8080/api/v1/certificates/CERT-00002"
+        }
+    },
+    "reason": "Valve recall",
+    "suspendedBy": {
+        "id": "EMP-005",
+        "name": "Carlos Vidal"
+    },
+    "suspendedAt": "2026-10-13T13:44:33.463279Z"
+}

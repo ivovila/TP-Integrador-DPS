@@ -1,0 +1,117 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e"
+        },
+        "inspection": {
+            "href": "/api/v1/inspections/997f3881-a15c-49da-b5bf-a80cff4ecf78"
+        },
+        "asset": {
+            "href": "/api/v1/assets/CAP-0001"
+        },
+        "audit-entries": {
+            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/audit-entries"
+        },
+        "corrective-actions": {
+            "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions"
+        }
+    },
+    "actions": [
+        {
+            "_links": {
+                "self": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/1"
+                },
+                "finding": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e"
+                },
+                "verifications": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/1/verifications"
+                }
+            },
+            "cancelled": false,
+            "closed": false,
+            "description": "Label the panel",
+            "dueDate": "2030-12-01",
+            "id": 1,
+            "open": true,
+            "overdue": false,
+            "plannedAt": "2026-10-13T13:44:32.714724Z",
+            "plannedBy": {
+                "id": "EMP-001",
+                "name": "Paula Rios"
+            },
+            "responsible": {
+                "id": "EMP-003",
+                "name": "Raul Mendez"
+            },
+            "verifications": [
+                {
+                    "verifier": {
+                        "id": "EMP-004",
+                        "name": "Vera Soto"
+                    },
+                    "result": "REJECTED",
+                    "notes": "Still missing",
+                    "verifiedAt": "2026-10-13T13:44:32.827593Z"
+                }
+            ]
+        },
+        {
+            "_links": {
+                "self": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/2"
+                },
+                "finding": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e"
+                },
+                "verifications": {
+                    "href": "http://localhost:8080/api/v1/findings/f98c0954-d843-4a21-90ed-8d291d36ea0e/corrective-actions/2/verifications"
+                }
+            },
+            "cancelled": false,
+            "closed": false,
+            "description": "Replace the panel",
+            "dueDate": "2030-12-15",
+            "id": 2,
+            "open": true,
+            "overdue": false,
+            "plannedAt": "2026-10-13T13:44:32.769336Z",
+            "plannedBy": {
+                "id": "EMP-001",
+                "name": "Paula Rios"
+            },
+            "responsible": {
+                "id": "EMP-003",
+                "name": "Raul Mendez"
+            },
+            "verifications": []
+        }
+    ],
+    "assetCode": "CAP-0001",
+    "criterion": {
+        "code": "PANEL",
+        "text": "Panel labelled",
+        "severity": "MINOR",
+        "rule": {
+            "type": "yes-no",
+            "unit": null,
+            "minimum": null,
+            "maximum": null,
+            "expected": "YES",
+            "options": null
+        },
+        "requiredEvidence": [],
+        "subsystemCode": null
+    },
+    "evidence": [],
+    "id": "f98c0954-d843-4a21-90ed-8d291d36ea0e",
+    "inspectionId": "997f3881-a15c-49da-b5bf-a80cff4ecf78",
+    "open": true,
+    "responsible": {
+        "id": "EMP-003",
+        "name": "Raul Mendez"
+    },
+    "severity": "MINOR",
+    "subsystemCode": "ELECTRICAL"
+}

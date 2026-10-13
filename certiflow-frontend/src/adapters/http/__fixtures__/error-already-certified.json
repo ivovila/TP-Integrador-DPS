@@ -1,0 +1,7 @@
+{
+    "detail": "Asset CAP-0001 already holds certificate CERT-00002; renew it instead of issuing another",
+    "instance": "/api/v1/certificates",
+    "status": 409,
+    "title": "AssetAlreadyCertifiedException",
+    "type": "urn:certiflow:AssetAlreadyCertifiedException"
+}

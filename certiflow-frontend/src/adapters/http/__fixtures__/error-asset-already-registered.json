@@ -1,0 +1,7 @@
+{
+    "detail": "An asset with code CAP-0001 is already registered",
+    "instance": "/api/v1/assets",
+    "status": 409,
+    "title": "AssetAlreadyRegisteredException",
+    "type": "urn:certiflow:AssetAlreadyRegisteredException"
+}

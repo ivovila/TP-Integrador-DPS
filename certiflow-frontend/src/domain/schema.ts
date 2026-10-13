@@ -16,7 +16,6 @@ export interface EvidenceKind {
 export interface Jurisdiction {
   code: string;
   policyCode: string;
-  description: string;
 }
 
 export interface Vocabulary {

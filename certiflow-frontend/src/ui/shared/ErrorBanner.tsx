@@ -1,8 +1,17 @@
 import { DomainError } from '../../ports/DomainError';
+import { RejectedRequestError } from '../../ports/RejectedRequestError';
 
 export function ErrorBanner({ error }: { error: unknown }) {
   if (error === undefined) {
     return null;
+  }
+  if (error instanceof RejectedRequestError) {
+    return (
+      <div className="error-banner" role="alert">
+        <strong>{error.message}</strong>
+        <span className="error-name">{error.title}</span>
+      </div>
+    );
   }
   if (!(error instanceof DomainError)) {
     return (

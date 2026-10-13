@@ -1,0 +1,19 @@
+{
+    "_links": {
+        "self": {
+            "href": "/api/v1/findings?asset=NO-FINDINGS&page=0&size=20"
+        },
+        "first": {
+            "href": "/api/v1/findings?asset=NO-FINDINGS&page=0&size=20"
+        },
+        "last": {
+            "href": "/api/v1/findings?asset=NO-FINDINGS&page=0&size=20"
+        }
+    },
+    "page": {
+        "number": 0,
+        "size": 20,
+        "totalElements": 0,
+        "totalPages": 1
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa"
+        },
+        "asset": {
+            "href": "/api/v1/assets/CAP-0010"
+        },
+        "schema-version": {
+            "href": "/api/v1/schemas/Capture%20tank/versions/1"
+        },
+        "responses": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/responses"
+        },
+        "revisions": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/revisions"
+        },
+        "certification-eligibility": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/certification-eligibility{?subsystem}",
+            "templated": true
+        },
+        "audit-entries": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/audit-entries"
+        },
+        "closure": {
+            "href": "http://localhost:8080/api/v1/inspections/7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa/closure"
+        }
+    },
+    "assetCode": "CAP-0010",
+    "closed": false,
+    "coversWholeSchema": true,
+    "id": "7f8aac3e-a1a4-45b1-8928-59ecb2feb1fa",
+    "inspector": {
+        "id": "EMP-002",
+        "name": "Ines Duarte"
+    },
+    "plannedDate": "2026-10-22",
+    "schemaVersion": 1,
+    "sections": null
+}

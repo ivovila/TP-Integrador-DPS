@@ -1,0 +1,48 @@
+{
+    "_links": {
+        "self": {
+            "href": "/api/v1/vocabulary"
+        }
+    },
+    "evidenceKinds": [
+        {
+            "name": "PHOTO",
+            "label": "Photo"
+        },
+        {
+            "name": "DOCUMENT",
+            "label": "Document"
+        }
+    ],
+    "jurisdictions": [
+        {
+            "code": "DEMO-CONDITIONAL",
+            "policyCode": "CONDITIONAL"
+        },
+        {
+            "code": "DEMO-STANDARD",
+            "policyCode": "STANDARD"
+        },
+        {
+            "code": "DEMO-STRICT",
+            "policyCode": "STRICT"
+        }
+    ],
+    "severities": [
+        {
+            "name": "MINOR",
+            "label": "Minor",
+            "outcomeWhenUnmet": "OBSERVED"
+        },
+        {
+            "name": "MAJOR",
+            "label": "Major",
+            "outcomeWhenUnmet": "REJECTED"
+        },
+        {
+            "name": "CRITICAL",
+            "label": "Critical",
+            "outcomeWhenUnmet": "REJECTED"
+        }
+    ]
+}
