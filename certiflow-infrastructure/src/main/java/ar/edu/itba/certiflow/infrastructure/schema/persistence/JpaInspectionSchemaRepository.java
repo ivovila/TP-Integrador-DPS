@@ -5,7 +5,9 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.Instants;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -29,6 +31,11 @@ public class JpaInspectionSchemaRepository implements InspectionSchemaRepository
     @Override
     public Optional<InspectionSchema> findByAssetType(AssetType assetType) {
         return schemas.findById(assetType.name()).map(InspectionSchemaEntity::toDomain);
+    }
+
+    @Override
+    public List<InspectionSchema> findAll() {
+        return schemas.findAll(Sort.by("assetType")).stream().map(InspectionSchemaEntity::toDomain).toList();
     }
 
     @Override

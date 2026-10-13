@@ -18,6 +18,7 @@ public class FindingResource extends RepresentationModel<FindingResource> {
     public final String severity;
     public final PersonPayload responsible;
     public final boolean open;
+    public final String subsystemCode;
     public final List<CriterionResponseResource.EvidenceView> evidence;
     public final List<CorrectiveActionResource> actions;
 
@@ -29,6 +30,7 @@ public class FindingResource extends RepresentationModel<FindingResource> {
         this.severity = ((Enum<?>) finding.severity()).name();
         this.responsible = PersonPayload.of(finding.responsible());
         this.open = finding.isOpen();
+        this.subsystemCode = finding.subsystemCode().map(code -> code.value()).orElse(null);
         this.evidence = finding.evidence().stream()
                 .map(attached -> new CriterionResponseResource.EvidenceView(attached.evidence().kind().label(),
                         attached.evidence().reference(), attached.evidence().description(), PersonPayload.of(attached.attachedBy()),

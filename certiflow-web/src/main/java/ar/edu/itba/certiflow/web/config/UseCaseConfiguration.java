@@ -46,7 +46,12 @@ import ar.edu.itba.certiflow.certification.model.AllRequiredSubsystemsPolicy;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
+import ar.edu.itba.certiflow.application.certification.ListJurisdictionsUseCaseImpl;
+import ar.edu.itba.certiflow.application.schema.ListSchemasUseCaseImpl;
 import ar.edu.itba.certiflow.certification.model.CertificationPolicyResolver;
+import ar.edu.itba.certiflow.certification.model.RegisteredJurisdictions;
+import ar.edu.itba.certiflow.certification.usecase.ListJurisdictionsUseCase;
+import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
 import ar.edu.itba.certiflow.certification.model.StrictCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.ConditionalCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.StandardCertificationPolicy;
@@ -164,7 +169,7 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    CertificationPolicyResolver certificationPolicies() {
+    ConfiguredPolicyResolver certificationPolicies() {
         return new ConfiguredPolicyResolver(java.util.Map.of(
                 new JurisdictionCode("DEMO-STRICT"), new StrictCertificationPolicy(),
                 new JurisdictionCode("DEMO-CONDITIONAL"), new ConditionalCertificationPolicy(),
@@ -341,6 +346,16 @@ public class UseCaseConfiguration {
             InspectionSchemaRepository schemas) {
         return TransactionalUseCases.wrap(FindEffectiveSchemaVersionUseCase.class,
                 new FindEffectiveSchemaVersionUseCaseImpl(schemas), tx, locks);
+    }
+
+    @Bean
+    ListSchemasUseCase listSchemas(TransactionTemplate tx, InspectionSchemaRepository inspectionSchemaRepository) {
+        return TransactionalUseCases.wrap(ListSchemasUseCase.class, new ListSchemasUseCaseImpl(inspectionSchemaRepository), tx, locks);
+    }
+
+    @Bean
+    ListJurisdictionsUseCase listJurisdictions(RegisteredJurisdictions registeredJurisdictions) {
+        return new ListJurisdictionsUseCaseImpl(registeredJurisdictions);
     }
 
     @Bean

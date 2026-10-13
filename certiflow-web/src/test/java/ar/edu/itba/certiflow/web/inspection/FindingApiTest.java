@@ -84,6 +84,14 @@ class FindingApiTest extends ApiTest {
     }
 
     @Test
+    void eachSummaryLineIdentifiesItsFinding() throws Exception {
+        read("/api/v1/assets/EXT-0042/findings-summary")
+                .andExpect(jsonPath("$.findings[0].findingId").value(Flows.idOf(finding)))
+                .andExpect(jsonPath("$.findings[0].subsystemCode").doesNotExist());
+        read(finding).andExpect(jsonPath("$.subsystemCode").doesNotExist());
+    }
+
+    @Test
     void aVerificationIsAResourceOfItsOwn() throws Exception {
         String action = Flows.path(postAs("EMP-001", finding + "/corrective-actions", action("EMP-004", LocalDate.now().plusDays(5)))
                 .andReturn().getResponse().getHeader("Location"));

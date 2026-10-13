@@ -7,8 +7,8 @@ import org.springframework.hateoas.RepresentationModel;
 
 public class FindingsSummaryResource extends RepresentationModel<FindingsSummaryResource> {
 
-    public record Line(String criterionCode, String description, String severity, PersonPayload responsible, boolean open,
-                       long overdueActions) {
+    public record Line(String findingId, String criterionCode, String description, String severity, PersonPayload responsible,
+                       boolean open, long overdueActions, String subsystemCode) {
     }
 
     public final String assetCode;
@@ -18,8 +18,9 @@ public class FindingsSummaryResource extends RepresentationModel<FindingsSummary
     FindingsSummaryResource(FindingsSummary summary) {
         this.assetCode = summary.assetCode().value();
         this.findings = summary.findings().stream()
-                .map(line -> new Line(line.criterionCode(), line.description(), line.severity(), PersonPayload.of(line.responsible()),
-                        line.open(), line.overdueActions()))
+                .map(line -> new Line(line.findingId().value(), line.criterionCode(), line.description(), line.severity(),
+                        PersonPayload.of(line.responsible()), line.open(), line.overdueActions(),
+                        line.subsystemCode().map(subsystemCode -> subsystemCode.value()).orElse(null)))
                 .toList();
         this.openFindings = summary.openFindings();
     }

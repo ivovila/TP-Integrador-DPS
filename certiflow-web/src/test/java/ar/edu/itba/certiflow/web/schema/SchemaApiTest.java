@@ -86,4 +86,22 @@ class SchemaApiTest extends ApiTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", Matchers.matchesPattern("\"[A-Za-z0-9-]+\"")));
     }
+
+    @Test
+    void schemasAreListedOrderedByAssetType() throws Exception {
+        postAs("EMP-001", "/api/v1/schemas", Payloads.schema());
+        postAs("EMP-001", "/api/v1/schemas", Payloads.schema().replace("Fire extinguisher", "Boiler"));
+        read("/api/v1/schemas")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.schemas[*].assetType").value(Matchers.contains("Boiler", "Fire extinguisher")))
+                .andExpect(jsonPath("$._embedded.schemas[0].currentVersion").value(1))
+                .andExpect(jsonPath("$._embedded.schemas[0]._links.versions.href").value(endsWith("/api/v1/schemas/Boiler/versions")));
+    }
+
+    @Test
+    void withoutSchemasTheListIsEmpty() throws Exception {
+        read("/api/v1/schemas")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded").doesNotExist());
+    }
 }

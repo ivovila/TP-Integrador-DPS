@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,5 +20,10 @@ public final class InMemoryInspectionSchemaRepository implements InspectionSchem
     @Override
     public Optional<InspectionSchema> findByAssetType(AssetType assetType) {
         return Optional.ofNullable(schemas.get(assetType));
+    }
+
+    @Override
+    public List<InspectionSchema> findAll() {
+        return List.copyOf(schemas.values());
     }
 }

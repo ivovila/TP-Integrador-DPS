@@ -16,6 +16,8 @@ public class RootController {
                 Link.of("/api/v1").withSelfRel(),
                 Link.of("/api/v1/assets").withRel("assets"),
                 Link.of("/api/v1/schemas/{assetType}").withRel("schemas"),
+                Link.of("/api/v1/schemas").withRel("schema-list"),
+                Link.of("/api/v1/vocabulary").withRel("vocabulary"),
                 Link.of("/api/v1/inspections").withRel("inspections"),
                 Link.of("/api/v1/findings").withRel("findings"),
                 Link.of("/api/v1/certificates").withRel("certificates"));

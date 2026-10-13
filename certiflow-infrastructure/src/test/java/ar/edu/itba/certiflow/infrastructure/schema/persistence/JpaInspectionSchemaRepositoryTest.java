@@ -64,4 +64,15 @@ class JpaInspectionSchemaRepositoryTest {
         assertEquals(firstVersionId, repository.versionEntity(extinguisher, 1).getId());
         assertEquals(2, repository.findByAssetType(extinguisher).orElseThrow().versions().size());
     }
+
+    @Test
+    void everySchemaIsListedOrderedByAssetType() {
+        Instant createdAt = Instant.parse("2026-03-01T00:00:00Z");
+        repository.save(new InspectionSchema("Extinguisher", new AssetType("Fire extinguisher"), DomainSamples.sections(), createdAt));
+        repository.save(new InspectionSchema("Boiler", new AssetType("Boiler"), DomainSamples.sections(), createdAt));
+        entityManager.flush();
+        entityManager.clear();
+        assertEquals(List.of("Boiler", "Fire extinguisher"),
+                repository.findAll().stream().map(schema -> schema.assetType().name()).toList());
+    }
 }

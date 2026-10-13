@@ -37,7 +37,7 @@ public final class GenerateFindingsSummaryUseCaseImpl implements GenerateFinding
 
     private FindingLine lineOf(Finding finding, LocalDate today) {
         long overdueActions = finding.actions().stream().filter(correctiveAction -> correctiveAction.isOverdueOn(today)).count();
-        return new FindingLine(finding.criterion().code(), finding.criterion().text(), finding.severity().label(),
-                finding.responsible(), finding.isOpen(), overdueActions);
+        return new FindingLine(finding.id(), finding.criterion().code(), finding.criterion().text(), finding.severity().label(),
+                finding.responsible(), finding.isOpen(), overdueActions, finding.subsystemCode());
     }
 }

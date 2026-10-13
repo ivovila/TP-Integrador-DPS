@@ -225,4 +225,16 @@ public class DeliveryFeaturesApiTest extends ApiTest {
         assertEquals(2, jdbc.queryForObject("select count(*) from audit_entry where subject_type = 'schema'", Integer.class));
     }
 
+    @Test
+    void aFindingAndItsSummaryLineCarryTheSubsystemOfTheirCriterion() throws Exception {
+        setup("DEMO-STRICT");
+        String inspection = assign("A-1", "null");
+        answer(inspection, "C-E", true); answer(inspection, "C-P", false); close(inspection);
+        String finding = JsonPath.read(read("/api/v1/findings?asset=A-1").andReturn().getResponse().getContentAsString(),
+                "$._embedded.findings[0].id");
+        read("/api/v1/findings/" + finding).andExpect(jsonPath("$.subsystemCode").value("P"));
+        read("/api/v1/assets/A-1/findings-summary")
+                .andExpect(jsonPath("$.findings[0].findingId").value(finding))
+                .andExpect(jsonPath("$.findings[0].subsystemCode").value("P"));
+    }
 }

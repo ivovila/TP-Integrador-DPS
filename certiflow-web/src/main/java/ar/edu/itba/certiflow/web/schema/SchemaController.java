@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindEffectiveSchemaVersionUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
+import ar.edu.itba.certiflow.schema.usecase.ListSchemasUseCase;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.usecase.PublishSchemaVersionUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
@@ -26,6 +27,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.Link;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,15 +49,18 @@ public class SchemaController {
     private final AuditHistoryUseCase auditHistory;
     private final Clock clock;
     private final FindEffectiveSchemaVersionUseCase findEffective;
+    private final ListSchemasUseCase listSchemas;
 
     public SchemaController(CreateInspectionSchemaUseCase createInspectionSchema, PublishSchemaVersionUseCase publishSchemaVersion,
-                            FindSchemaUseCase findSchema, AuditHistoryUseCase auditHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective) {
+                            FindSchemaUseCase findSchema, AuditHistoryUseCase auditHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective,
+                            ListSchemasUseCase listSchemas) {
         this.createInspectionSchema = createInspectionSchema;
         this.publishSchemaVersion = publishSchemaVersion;
         this.findSchema = findSchema;
         this.auditHistory = auditHistory;
         this.clock = clock;
         this.findEffective = findEffective;
+        this.listSchemas = listSchemas;
     }
 
     @PostMapping
@@ -64,6 +69,13 @@ public class SchemaController {
                 new AssetType(request.assetType()), SchemaPayloads.toSections(request.sections()), createdBy, request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
         SchemaResponse response = resource(schema);
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<CollectionModel<SchemaResponse>> list() {
+        CollectionModel<SchemaResponse> schemas = CollectionModel.of(listSchemas.execute().stream().map(this::resource).toList(),
+                Link.of("/api/v1/schemas").withSelfRel());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(schemas);
     }
 
     @GetMapping("/{assetType}")

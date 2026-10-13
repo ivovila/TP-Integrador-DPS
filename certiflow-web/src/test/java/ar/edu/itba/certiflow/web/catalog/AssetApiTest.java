@@ -97,4 +97,15 @@ class AssetApiTest extends ApiTest {
                 .andExpect(jsonPath("$._embedded.assets.length()").value(1))
                 .andExpect(jsonPath("$._links.next.href").value(Matchers.containsString("type=Boiler%20%26%20%22Steam%22")));
     }
+
+    @Test
+    void onlyAnAssetWithSubsystemsOffersAGlobalCertificate() throws Exception {
+        postAs("EMP-001", "/api/v1/assets", Payloads.asset())
+                .andExpect(jsonPath("$._links.global-certificates").doesNotExist());
+        String assetWithSubsystems = Payloads.asset().replace("EXT-0042", "EXT-0043")
+                .replace("\"subsystems\":[]", "\"subsystems\":[{\"code\":\"E\",\"name\":\"Electrical\"}]");
+        postAs("EMP-001", "/api/v1/assets", assetWithSubsystems)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$._links.global-certificates.href").value("/api/v1/assets/EXT-0043/global-certificates"));
+    }
 }

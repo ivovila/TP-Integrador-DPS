@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.schema.repository;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
+import java.util.List;
 import java.util.Optional;
 
 public interface InspectionSchemaRepository {
@@ -13,4 +14,6 @@ public interface InspectionSchemaRepository {
     }
 
     Optional<InspectionSchema> findByAssetType(AssetType assetType);
+
+    List<InspectionSchema> findAll();
 }

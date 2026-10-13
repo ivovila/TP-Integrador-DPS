@@ -14,7 +14,9 @@ class RootControllerTest extends ApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.assets.href").value("/api/v1/assets"))
                 .andExpect(jsonPath("$._links.inspections.href").value("/api/v1/inspections"))
-                .andExpect(jsonPath("$._links.certificates.href").value("/api/v1/certificates"));
+                .andExpect(jsonPath("$._links.certificates.href").value("/api/v1/certificates"))
+                .andExpect(jsonPath("$._links.schema-list.href").value("/api/v1/schemas"))
+                .andExpect(jsonPath("$._links.vocabulary.href").value("/api/v1/vocabulary"));
     }
 
     @Test

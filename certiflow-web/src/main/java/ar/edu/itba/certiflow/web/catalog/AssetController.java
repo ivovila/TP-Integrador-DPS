@@ -79,6 +79,9 @@ public class AssetController {
                 linkTo(methodOn(AssetController.class).history(code)).withRel("audit-entries"),
                 Link.of("/api/v1/certificates?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("certificates"),
                 Link.of("/api/v1/findings?" + Uris.query("asset", Optional.of(code)).orElseThrow()).withRel("findings"));
+        if (!asset.subsystems().isEmpty()) {
+            response.add(Link.of(Uris.path("assets", code, "global-certificates")).withRel("global-certificates"));
+        }
         return response;
     }
 }
