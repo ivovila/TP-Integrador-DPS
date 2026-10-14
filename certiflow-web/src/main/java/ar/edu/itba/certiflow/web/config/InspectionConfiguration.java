@@ -86,20 +86,23 @@ public class InspectionConfiguration {
 
     @Bean
     RecordAnswerUseCase recordAnswer(TransactionTemplate tx, InspectionRepository inspectionRepository,
-                                     InspectionService inspectionService, Clock clock) {
-        return TransactionalUseCases.wrap(RecordAnswerUseCase.class, new RecordAnswerUseCaseImpl(inspectionRepository, inspectionService, clock), tx);
+                                     InspectionService inspectionService, AssetLock assetLock, Clock clock) {
+        return TransactionalUseCases.wrap(RecordAnswerUseCase.class,
+                new RecordAnswerUseCaseImpl(inspectionRepository, inspectionService, assetLock, clock), tx);
     }
 
     @Bean
     AttachEvidenceUseCase attachEvidence(TransactionTemplate tx, InspectionRepository inspectionRepository,
-                                         InspectionService inspectionService, Clock clock) {
-        return TransactionalUseCases.wrap(AttachEvidenceUseCase.class, new AttachEvidenceUseCaseImpl(inspectionRepository, inspectionService, clock), tx);
+                                         InspectionService inspectionService, AssetLock assetLock, Clock clock) {
+        return TransactionalUseCases.wrap(AttachEvidenceUseCase.class,
+                new AttachEvidenceUseCaseImpl(inspectionRepository, inspectionService, assetLock, clock), tx);
     }
 
     @Bean
     AddObservationUseCase addObservation(TransactionTemplate tx, InspectionRepository inspectionRepository,
-                                         InspectionService inspectionService, Clock clock) {
-        return TransactionalUseCases.wrap(AddObservationUseCase.class, new AddObservationUseCaseImpl(inspectionRepository, inspectionService, clock), tx);
+                                         InspectionService inspectionService, AssetLock assetLock, Clock clock) {
+        return TransactionalUseCases.wrap(AddObservationUseCase.class,
+                new AddObservationUseCaseImpl(inspectionRepository, inspectionService, assetLock, clock), tx);
     }
 
     @Bean
@@ -122,8 +125,10 @@ public class InspectionConfiguration {
 
     @Bean
     PlanCorrectiveActionUseCase planCorrectiveAction(TransactionTemplate tx, FindingRepository findingRepository,
-                                                     FindingService findingService, Clock clock) {
-        return TransactionalUseCases.wrap(PlanCorrectiveActionUseCase.class, new PlanCorrectiveActionUseCaseImpl(findingRepository, findingService, clock), tx);
+                                                     FindingService findingService, AssetLock assetLock,
+                                                     Clock clock) {
+        return TransactionalUseCases.wrap(PlanCorrectiveActionUseCase.class,
+                new PlanCorrectiveActionUseCaseImpl(findingRepository, findingService, assetLock, clock), tx);
     }
 
     @Bean

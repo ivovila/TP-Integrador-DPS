@@ -12,6 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Import(DeliveryFeaturesApiTest.TimeConfiguration.class)
 public class DeliveryFeaturesApiTest extends ApiTest {
@@ -37,6 +39,7 @@ public class DeliveryFeaturesApiTest extends ApiTest {
 
     @Autowired protected ControlledClock clock;
     @Autowired protected JdbcTemplate jdbc;
+    @Autowired protected TransactionTemplate transactions;
 
     @BeforeEach void resetTime() { clock.set("2026-10-12T12:00:00Z"); }
 
@@ -253,6 +256,57 @@ public class DeliveryFeaturesApiTest extends ApiTest {
         }
         assertEquals(2, jdbc.queryForObject("select count(*) from schema_version", Integer.class));
         assertEquals(2, jdbc.queryForObject("select count(*) from audit_entry where subject_type = 'schema'", Integer.class));
+    }
+
+    /**
+     * Mientras otra transacción tiene bloqueado el activo, el pedido espera; cuando lo suelta, termina.
+     * Un caso de uso que leyera antes de bloquear terminaría sin esperar, con datos que el otro pudo cambiar.
+     */
+    private void assertWaitsForWhoeverHoldsTheAsset(Callable<Integer> request, int expectedStatus) throws Exception {
+        var assetHeld = new CountDownLatch(1);
+        var releaseAsset = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var holder = executor.submit(() -> transactions.execute(status -> {
+                jdbc.queryForList("select code from asset where code = 'A-1' for update");
+                assetHeld.countDown();
+                try {
+                    return releaseAsset.await(20, TimeUnit.SECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }));
+            assertTrue(assetHeld.await(20, TimeUnit.SECONDS));
+            var waiting = executor.submit(request);
+            assertThrows(TimeoutException.class, () -> waiting.get(400, TimeUnit.MILLISECONDS));
+            releaseAsset.countDown();
+            assertEquals(expectedStatus, waiting.get(30, TimeUnit.SECONDS));
+            assertEquals(Boolean.TRUE, holder.get(30, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    void everyWriteOnAnOpenInspectionWaitsForWhoeverHoldsItsAsset() throws Exception {
+        setup("DEMO-STRICT");
+        String responses = "/api/v1/inspections/" + assign("A-1", "null") + "/responses/C-E";
+        assertWaitsForWhoeverHoldsTheAsset(() -> putAs("INSPECTOR", responses + "/answer", "{\"value\":true}")
+                .andReturn().getResponse().getStatus(), 204);
+        assertWaitsForWhoeverHoldsTheAsset(() -> postAs("INSPECTOR", responses + "/evidence",
+                "{\"kind\":\"PHOTO\",\"reference\":\"grounding.jpg\",\"description\":\"Grounding\"}")
+                .andReturn().getResponse().getStatus(), 201);
+        assertWaitsForWhoeverHoldsTheAsset(() -> postAs("INSPECTOR", responses + "/observations", "{\"text\":\"Checked twice\"}")
+                .andReturn().getResponse().getStatus(), 201);
+    }
+
+    @Test
+    void planningACorrectiveActionWaitsForWhoeverHoldsTheAssetOfItsFinding() throws Exception {
+        setup("DEMO-STRICT");
+        String inspection = assign("A-1", "null");
+        answer(inspection, "C-E", true); answer(inspection, "C-P", false); close(inspection);
+        String finding = jdbc.queryForObject("select id from finding", String.class);
+        assertWaitsForWhoeverHoldsTheAsset(() -> postAs("OWNER", "/api/v1/findings/" + finding + "/corrective-actions",
+                "{\"description\":\"Replace the valve\",\"responsible\":{\"id\":\"TECH\",\"name\":\"Technician\"},\"dueDate\":\"2027-06-01\"}")
+                .andReturn().getResponse().getStatus(), 201);
     }
 
     @Test
