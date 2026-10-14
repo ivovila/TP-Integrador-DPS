@@ -95,9 +95,21 @@ Con el backend levantado con usuarios (`mvn -pl certiflow-web spring-boot:run -D
 cd certiflow-frontend && npm install && npm run dev
 ```
 
-Abre en `http://localhost:5173` con la pantalla de login (usuarios de ejemplo arriba). El rol de quien ingresa
-(administradora, coordinadora, inspector, responsable del activo, verificador u oficial de certificación) decide
-qué secciones ve y qué acciones encuentra; la API aplica los mismos roles. "Logout" revoca el token.
+Abre en `http://localhost:5173` con la pantalla de login. El rol de quien ingresa decide qué secciones ve y qué
+acciones encuentra; la API aplica los mismos roles. "Logout" revoca el token.
+
+**Con qué usuario entrar.** Los crea el perfil `demo` o `demo-users` del backend; sin uno de esos perfiles no
+hay ninguno. **La contraseña de todos es `certiflow`.** Ninguno ve todas las secciones, así que recorrer el flujo
+completo exige cambiar de usuario.
+
+| Usuario | Rol | Qué hace |
+|---|---|---|
+| `ana.torres` | Administrator | Registra activos, crea esquemas y publica versiones |
+| `paula.rios` | Inspection coordinator | Asigna inspecciones |
+| `ines.duarte` | Inspector | Responde, adjunta evidencia, cierra y rectifica |
+| `raul.mendez` | Asset responsible | Planifica acciones correctivas |
+| `vera.soto` | Verifier | Acepta o rechaza acciones correctivas |
+| `carlos.vidal` | Certification officer | Emite, suspende y renueva certificados |
 
 Para cargar datos de demostración a través de la API (con el backend en el perfil `demo-users`, que crea los usuarios):
 

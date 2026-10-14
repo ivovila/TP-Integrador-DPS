@@ -85,17 +85,22 @@ Se ingresa con nombre de usuario y contraseña; el rol sale del token. Cada rol 
 acciones que le corresponden. Las demás secciones no se abren ("Not available for your role") y los links hacia
 ellas no se muestran.
 
-| Rol (persona de ejemplo) | Menú | Puede |
-|---|---|---|
-| Administrator (Ana Torres) | Assets, Schemas | Registrar activos, crear esquemas, publicar versiones |
-| Inspection coordinator (Paula Rios) | Inspections, Assets | Asignar inspecciones |
-| Inspector (Ines Duarte) | Inspections | Responder, adjuntar evidencia, observar, cerrar, rectificar |
-| Asset responsible (Raul Mendez) | Findings, Assets | Planificar acciones correctivas |
-| Verifier (Vera Soto) | Findings | Aceptar o rechazar acciones correctivas |
-| Certification officer (Carlos Vidal) | Certificates, Inspections, Assets | Emitir, suspender y renovar certificados, incluidos los globales |
+**Con qué usuario entrar.** Los crea `DemoUsersSeeder` cuando el backend arranca con el perfil `demo` o
+`demo-users`; sin uno de esos perfiles no hay ninguno. **La contraseña de todos es `certiflow`.** Para recorrer
+el flujo completo hay que ir cambiando de usuario, porque ninguno ve todas las secciones.
+
+| Usuario | Rol | Menú | Puede |
+|---|---|---|---|
+| `ana.torres` | Administrator | Assets, Schemas | Registrar activos, crear esquemas, publicar versiones |
+| `paula.rios` | Inspection coordinator | Inspections, Assets | Asignar inspecciones |
+| `ines.duarte` | Inspector | Inspections | Responder, adjuntar evidencia, observar, cerrar, rectificar |
+| `raul.mendez` | Asset responsible | Findings, Assets | Planificar acciones correctivas |
+| `vera.soto` | Verifier | Findings | Aceptar o rechazar acciones correctivas |
+| `carlos.vidal` | Certification officer | Certificates, Inspections, Assets | Emitir, suspender y renovar certificados, incluidos los globales |
 
 Una acción aparece si el sistema la permite en ese estado (lo dice la API) y el rol puede hacerla (lo dice
-`src/ui/app/roles.ts`). Es una separación de la interfaz: la API no tiene login y no restringe por rol.
+`src/ui/app/roles.ts`). Esconderla es una comodidad de la interfaz, no la defensa: la API autentica cada request
+y responde 403 cuando el rol no corresponde, así que llamarla directamente tampoco alcanza.
 
 ## Cómo habla con la API
 
