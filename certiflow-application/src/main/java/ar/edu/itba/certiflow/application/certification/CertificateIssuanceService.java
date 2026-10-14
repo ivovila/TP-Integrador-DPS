@@ -6,10 +6,8 @@ import ar.edu.itba.certiflow.certification.model.Certificate;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.DecidedCertification;
-import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.InspectionResult;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
-import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.time.LocalDate;
@@ -47,9 +45,7 @@ public final class CertificateIssuanceService {
     public DecidedCertification decide(InspectionId inspectionId, CertificationScope scope) {
         InspectionResult result = resultFor(inspectionId, scope);
         CertificationDecision decision = certificationAssessment.evaluate(result);
-        GrantedDecision grantedDecision = decision.granted()
-                .orElseThrow(() -> new NotEligibleForCertificationException(decision));
-        return new DecidedCertification(result, grantedDecision);
+        return new DecidedCertification(result, decision.ensureGranted());
     }
 
     public void ensureScopeAvailable(AssetCode assetCode, CertificationScope scope, LocalDate date) {

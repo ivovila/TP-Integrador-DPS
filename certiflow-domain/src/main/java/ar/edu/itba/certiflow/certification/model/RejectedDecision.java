@@ -1,9 +1,9 @@
 package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 public record RejectedDecision(List<Ineligibility> ineligibilities, PolicyCode policyCode, JurisdictionCode jurisdictionCode,
                                Instant evaluatedAt, CertificationScope scope) implements CertificationDecision {
@@ -23,13 +23,8 @@ public record RejectedDecision(List<Ineligibility> ineligibilities, PolicyCode p
     }
 
     @Override
-    public List<CertificationCondition> conditions() {
-        return List.of();
-    }
-
-    @Override
-    public Optional<GrantedDecision> granted() {
-        return Optional.empty();
+    public GrantedDecision ensureGranted() {
+        throw new NotEligibleForCertificationException(this);
     }
 
     @Override

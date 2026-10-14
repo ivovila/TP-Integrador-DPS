@@ -10,10 +10,8 @@ import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.DecidedGlobalCertification;
 import ar.edu.itba.certiflow.certification.model.GlobalAssessmentContext;
 import ar.edu.itba.certiflow.certification.model.GlobalCertificationPolicy;
-import ar.edu.itba.certiflow.certification.model.GrantedDecision;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotFoundException;
-import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoInspectionSchemaForAssetTypeException;
@@ -55,9 +53,7 @@ public final class GlobalCertificationService {
                 new SchemaReference(asset.type(), schemaVersionNumber), version.requiredSubsystems(), partials,
                 asset.jurisdictionCode(), LocalDate.ofInstant(decidedAt, clock.getZone()), decidedAt);
         CertificationDecision decision = globalCertificationPolicy.evaluate(context);
-        GrantedDecision grantedDecision = decision.granted()
-                .orElseThrow(() -> new NotEligibleForCertificationException(decision));
-        return context.decidedWith(grantedDecision, globalCertificationPolicy.code());
+        return context.decidedWith(decision.ensureGranted(), globalCertificationPolicy.code());
     }
 
     private SchemaVersion versionOf(Asset asset, int number) {

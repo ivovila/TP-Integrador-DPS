@@ -1,9 +1,8 @@
 package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 public interface CertificationDecision {
 
@@ -11,11 +10,11 @@ public interface CertificationDecision {
 
     boolean isEligible();
 
-    List<Ineligibility> ineligibilities();
-
-    List<CertificationCondition> conditions();
-
-    Optional<GrantedDecision> granted();
+    /**
+     * La decisión otorgada con la que se puede emitir un certificado. Una decisión rechazada no certifica:
+     * responde con {@link NotEligibleForCertificationException}, que lleva sus motivos.
+     */
+    GrantedDecision ensureGranted();
 
     PolicyCode policyCode();
 

@@ -5,10 +5,9 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateAlreadyRenewedException;
 import ar.edu.itba.certiflow.certification.model.exceptions.CertificateNotActiveException;
-import ar.edu.itba.certiflow.certification.model.exceptions.ReplacementForAnotherAssetException;
-import ar.edu.itba.certiflow.certification.model.exceptions.NotAGlobalCertificateException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalRequiresLaterInspectionException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
+import ar.edu.itba.certiflow.certification.model.exceptions.ReplacementForAnotherAssetException;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Person;
@@ -189,9 +188,7 @@ public final class Certificate {
 
     /** Un global solo reemplaza a otro global, y con las mismas reglas que cualquier reemplazo. */
     void ensureReplaceableByGlobal(DecidedGlobalCertification replacement) {
-        if (!basis.backsGlobalCertificate()) {
-            throw new NotAGlobalCertificateException(number);
-        }
+        basis.ensureBacksGlobalCertificate(number);
         ensureReplaceableBy(replacement.assetCode(), replacement.scope(), replacement.latestInspectionClosedAt());
     }
 

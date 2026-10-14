@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.certification.model;
 
+import ar.edu.itba.certiflow.certification.model.exceptions.NotAGlobalCertificateException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,8 +18,8 @@ public record InspectionBasis(InspectionReference inspection) implements Certifi
     }
 
     @Override
-    public boolean backsGlobalCertificate() {
-        return false;
+    public void ensureBacksGlobalCertificate(CertificateNumber certificateNumber) {
+        throw new NotAGlobalCertificateException(certificateNumber);
     }
 
     @Override

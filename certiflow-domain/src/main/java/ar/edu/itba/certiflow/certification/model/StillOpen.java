@@ -1,7 +1,7 @@
 package ar.edu.itba.certiflow.certification.model;
 
+import ar.edu.itba.certiflow.certification.model.exceptions.InspectionNotClosedForCertificationException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import java.util.Optional;
 
 public record StillOpen() implements InspectionClosure {
 
@@ -11,7 +11,7 @@ public record StillOpen() implements InspectionClosure {
     }
 
     @Override
-    public Optional<InspectionReference> referenceOf(InspectionId inspectionId) {
-        return Optional.empty();
+    public InspectionReference referenceOf(InspectionId inspectionId) {
+        throw new InspectionNotClosedForCertificationException(inspectionId);
     }
 }

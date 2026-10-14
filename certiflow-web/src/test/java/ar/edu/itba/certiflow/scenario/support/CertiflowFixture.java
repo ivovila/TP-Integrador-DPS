@@ -21,9 +21,11 @@ import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
+import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
 import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.certification.repository.CertificateRepository;
@@ -295,8 +297,13 @@ public final class CertiflowFixture {
         assertTrue(isBlockedBy(rejection.decision(), reason), rejection.getMessage());
     }
 
-    public static boolean isBlockedBy(CertificationDecision decision, IneligibilityReason reason) {
+    public static boolean isBlockedBy(RejectedDecision decision, IneligibilityReason reason) {
         return decision.ineligibilities().stream().anyMatch(ineligibility -> ineligibility.reason() == reason);
+    }
+
+    /** Los motivos de una decisión que no certifica, leídos como los lee quien intenta emitir con ella. */
+    public List<Ineligibility> ineligibilitiesOf(CertificationDecision decision) {
+        return assertThrows(NotEligibleForCertificationException.class, decision::ensureGranted).decision().ineligibilities();
     }
 
     public NumericAnswer numericAnswer(String decimalValue) {

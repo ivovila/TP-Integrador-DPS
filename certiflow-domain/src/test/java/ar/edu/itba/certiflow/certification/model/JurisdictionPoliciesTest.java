@@ -4,6 +4,7 @@ package ar.edu.itba.certiflow.certification.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ar.edu.itba.certiflow.catalog.model.*;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import java.time.*;
@@ -59,11 +60,11 @@ class JurisdictionPoliciesTest {
 
     @Test
     void inclusiveDurationsAndConditionsAreExplicit() {
-        var conditional = evaluate(false, result(true, true, StandardSeverity.MAJOR));
-        assertEquals(LocalDate.of(2026, 3, 1), conditional.granted().orElseThrow().validity().validUntil());
+        GrantedDecision conditional = evaluate(false, result(true, true, StandardSeverity.MAJOR)).ensureGranted();
+        assertEquals(LocalDate.of(2026, 3, 1), conditional.validity().validUntil());
         assertEquals("F-1", conditional.conditions().getFirst().findingId());
-        assertEquals(conditional.granted().orElseThrow().validity().validUntil(), conditional.conditions().getFirst().dueDate());
-        assertEquals(LocalDate.of(2026, 7, 30), evaluate(false, result(true, true, null)).granted().orElseThrow().validity().validUntil());
+        assertEquals(conditional.validity().validUntil(), conditional.conditions().getFirst().dueDate());
+        assertEquals(LocalDate.of(2026, 7, 30), evaluate(false, result(true, true, null)).ensureGranted().validity().validUntil());
     }
 
     private enum CustomSeverity implements ar.edu.itba.certiflow.schema.model.Severity {
@@ -92,14 +93,16 @@ class JurisdictionPoliciesTest {
         var decision = policy.evaluate(new CertificationAssessmentContext(result(true, true, CustomSeverity.ADVISORY),
                 new JurisdictionCode("CUSTOM"), now, LocalDate.of(2026, 1, 31)));
         assertEquals(CertificationOutcome.CONDITIONAL, decision.outcome());
-        assertEquals(LocalDate.of(2026, 2, 14), decision.granted().orElseThrow().validity().validUntil());
+        assertEquals(LocalDate.of(2026, 2, 14), decision.ensureGranted().validity().validUntil());
     }
 
     @Test
     void unconfiguredSeverityCannotBeCertifiedByOmission() {
         var decision = evaluate(false, result(true, true, CustomSeverity.ADVISORY));
         assertEquals(CertificationOutcome.REJECTED, decision.outcome());
-        assertTrue(decision.ineligibilities().stream()
+        NotEligibleForCertificationException notEligible =
+                assertThrows(NotEligibleForCertificationException.class, decision::ensureGranted);
+        assertTrue(notEligible.decision().ineligibilities().stream()
                 .anyMatch(ineligibility -> ineligibility.reason() == StandardIneligibilityReason.UNSUPPORTED_SEVERITY));
     }
 

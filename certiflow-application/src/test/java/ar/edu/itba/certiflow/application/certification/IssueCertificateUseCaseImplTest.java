@@ -15,7 +15,6 @@ import ar.edu.itba.certiflow.catalog.repository.AssetLock;
 import ar.edu.itba.certiflow.certification.model.CertificateFactory;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.CertificateService;
-import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.ClosedAt;
 import ar.edu.itba.certiflow.certification.model.DecidedCertification;
@@ -82,7 +81,7 @@ class IssueCertificateUseCaseImplTest {
 
     @Test
     void aRejectedDecisionConsumesNoNumberAndSavesNothing() {
-        CertificationDecision rejected = new RejectedDecision(
+        RejectedDecision rejected = new RejectedDecision(
                 List.of(new Ineligibility(StandardIneligibilityReason.BLOCKING_FINDINGS, "Open finding")),
                 new PolicyCode("STANDARD"), new JurisdictionCode("DEMO-STANDARD"), Samples.NOW, WHOLE);
         when(issuance.decide(INSPECTION, WHOLE)).thenThrow(new NotEligibleForCertificationException(rejected));

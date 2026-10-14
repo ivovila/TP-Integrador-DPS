@@ -29,10 +29,7 @@ public class DecisionDocumentMapper {
     }
 
     public String write(GrantedDecision decision) {
-        List<ReasonDocument> ineligibilities = decision.ineligibilities().stream()
-                .map(ineligibility -> new ReasonDocument(ineligibility.reason().code(), ineligibility.detail()))
-                .toList();
-        return storedJson.write(new DecisionDocument(decision.outcome(), ineligibilities, decision.conditions(),
+        return storedJson.write(new DecisionDocument(decision.outcome(), List.of(), decision.conditions(),
                 decision.validity(), decision.policyCode().value(), decision.jurisdictionCode(), decision.evaluatedAt(),
                 decision.scope().describedBy(new ScopeSubsystemColumn()).orElse(null)));
     }

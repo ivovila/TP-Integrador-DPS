@@ -1,12 +1,12 @@
 package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
-import java.util.Optional;
 
 /** Lo que la certificación sabe del cierre de la inspección que respalda la decisión. */
 public interface InspectionClosure {
 
     boolean isClosed();
 
-    Optional<InspectionReference> referenceOf(InspectionId inspectionId);
+    /** La referencia que queda en el certificado. Una inspección abierta no respalda ninguno. */
+    InspectionReference referenceOf(InspectionId inspectionId);
 }

@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.certification.model;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -10,6 +11,7 @@ import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.InSubsystem;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
+import ar.edu.itba.certiflow.certification.model.exceptions.NotAGlobalCertificateException;
 import ar.edu.itba.certiflow.certification.model.exceptions.RenewalScopeMismatchException;
 import ar.edu.itba.certiflow.certification.model.exceptions.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.certification.usecase.ExplicitRenewalScope;
@@ -87,7 +89,8 @@ class CertificationScopeTest {
 
         assertEquals(closedAt, basis.latestInspectionClosedAt());
         assertTrue(basis.isSupportedOn(LocalDate.of(2026, 2, 1), List.of()));
-        assertFalse(basis.backsGlobalCertificate());
+        assertThrows(NotAGlobalCertificateException.class,
+                () -> basis.ensureBacksGlobalCertificate(new CertificateNumber("CERT-00007")));
     }
 
     @Test
@@ -98,7 +101,7 @@ class CertificationScopeTest {
 
         assertEquals(closedAt, basis.latestInspectionClosedAt());
         assertFalse(basis.isSupportedOn(LocalDate.of(2026, 2, 1), List.of()));
-        assertTrue(basis.backsGlobalCertificate());
+        assertDoesNotThrow(() -> basis.ensureBacksGlobalCertificate(new CertificateNumber("CERT-00007")));
     }
 
     @Test

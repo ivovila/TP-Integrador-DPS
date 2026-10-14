@@ -2,7 +2,6 @@ package ar.edu.itba.certiflow.certification.model;
 
 import ar.edu.itba.certiflow.catalog.model.AssetCode;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
-import ar.edu.itba.certiflow.certification.model.exceptions.InspectionNotClosedForCertificationException;
 import ar.edu.itba.certiflow.certification.model.exceptions.SubsystemNotFoundException;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import java.util.List;
@@ -43,7 +42,6 @@ public record InspectionResult(InspectionId inspectionId, AssetCode assetCode, I
     }
 
     public InspectionReference reference() {
-        return closure.referenceOf(inspectionId)
-                .orElseThrow(() -> new InspectionNotClosedForCertificationException(inspectionId));
+        return closure.referenceOf(inspectionId);
     }
 }

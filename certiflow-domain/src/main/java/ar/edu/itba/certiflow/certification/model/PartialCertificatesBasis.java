@@ -20,8 +20,8 @@ public record PartialCertificatesBasis(List<CertificateNumber> partialCertificat
     }
 
     @Override
-    public boolean backsGlobalCertificate() {
-        return true;
+    public void ensureBacksGlobalCertificate(CertificateNumber certificateNumber) {
+        // Un certificado respaldado por parciales es un global: no hay nada que objetar.
     }
 
     @Override

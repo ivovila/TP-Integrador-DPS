@@ -10,7 +10,8 @@ public interface CertificateBasis {
 
     boolean isSupportedOn(LocalDate date, List<Certificate> assetCertificates);
 
-    boolean backsGlobalCertificate();
+    /** Solo un certificado respaldado por parciales es un global: el que se apoya en una inspección no lo es. */
+    void ensureBacksGlobalCertificate(CertificateNumber certificateNumber);
 
     <T> T describedBy(CertificateBasisDescriber<T> describer);
 }

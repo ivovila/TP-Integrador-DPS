@@ -40,16 +40,7 @@ public final class CertificationPayloads {
                                   LocalDate validFrom, LocalDate validUntil, String policyCode, String jurisdictionCode,
                                   Instant evaluatedAt, ScopePayload scope) {
         public static DecisionPayload of(CertificationDecision decision) {
-            return new DecisionPayload(decision.outcome().name(), decision.isEligible(),
-                    decision.ineligibilities().stream()
-                            .map(ineligibility -> new ReasonPayload(ineligibility.reason().code(), ineligibility.detail())).toList(),
-                    decision.conditions().stream()
-                            .map(condition -> new ConditionPayload(condition.findingId(), condition.criterionCode(),
-                                    condition.description(), condition.dueDate())).toList(),
-                    decision.granted().map(granted -> granted.validity().validFrom()).orElse(null),
-                    decision.granted().map(granted -> granted.validity().validUntil()).orElse(null),
-                    decision.policyCode().value(), decision.jurisdictionCode().value(), decision.evaluatedAt(),
-                    ScopePayload.of(decision.scope()));
+            return decision.describedBy(new DecisionPayloadDescriber());
         }
     }
 

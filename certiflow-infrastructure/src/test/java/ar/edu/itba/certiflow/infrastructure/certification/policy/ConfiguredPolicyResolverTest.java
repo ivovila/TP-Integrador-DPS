@@ -33,7 +33,7 @@ class ConfiguredPolicyResolverTest {
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));
         assertEquals(new PolicyCode("THIRD-POLICY"), decision.policyCode());
-        GrantedDecision grantedDecision = decision.granted().orElseThrow();
+        GrantedDecision grantedDecision = decision.ensureGranted();
         assertEquals(LocalDate.of(2026, 5, 27), grantedDecision.validity().validUntil());
         assertThrows(JurisdictionPolicyNotFoundException.class, () -> resolver.resolve(new JurisdictionCode("MISSING")));
         DecisionDocumentMapper decisionDocuments = new DecisionDocumentMapper(new StoredJson());
