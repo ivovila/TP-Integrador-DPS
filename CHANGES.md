@@ -691,3 +691,33 @@ No hay migración: lo guardado y las respuestas de la API conservan su forma.
 - **CI.** La sonda del job `e2e` entra como `ana.torres`.
 - `DESIGN.md`: D26 a D30 nuevas; D1, D2, D5, D7, D8, D10, D11, D12, D16, D17, D18, D19, D20 y D21 actualizadas;
   mapa de dependencias y limitaciones al día.
+
+## 2026-10-13 · Respuesta a la auditoría de `3335b26`
+
+Una auditoría externa sobre el commit publicado y dos observaciones de diseño, evaluadas punto por punto contra el
+código. Detalle en la Task 15 del [plan](docs/plans/2026-10-13-calidad-backend.md). Sin migración.
+
+- **Bloqueo por activo en todas las escrituras.** Responder, adjuntar evidencia, observar y planificar una acción
+  correctiva leían y guardaban sin bloquear: un pedido que había leído una inspección abierta podía guardar después
+  de que otro la cerrara. Ahora los doce casos de uso que cambian algo de un activo resuelven el código, bloquean y
+  recién después cargan.
+- **Alta de activo y creación de esquema como inserción real.** El `save` de Spring Data sobre un id asignado era un
+  `merge`: dos altas simultáneas respondían 201 y la segunda pisaba a la primera. Los puertos tienen `add`, que
+  inserta, y el segundo pedido recibe `AssetAlreadyRegisteredException` o `SchemaAlreadyDefinedForAssetTypeException`
+  (409). `InspectionSchemaRepository.save` queda para publicar versiones.
+- **Guardas en lugar de respuestas vacías.** `CertificationDecision` deja de declarar `conditions()`,
+  `ineligibilities()` y `granted()`. `ensureGranted()` devuelve la decisión otorgada o lanza
+  `NotEligibleForCertificationException`, que ahora lleva un `RejectedDecision`. `backsGlobalCertificate()` y el
+  `Optional` de `InspectionClosure.referenceOf` también pasan a ser guardas. El JSON de la decisión no cambia.
+- **Una regla nueva no toca el core.** Cada regla se describe con su tipo y sus parámetros con nombre
+  (`RuleDescriber`, por clase de valor) y cada tipo de regla sabe armarla de vuelta (`ApprovalRuleKind`, registrado
+  en `ApprovalRuleKindCatalog`). Se van `ApprovalRuleDescriber`, `RuleDocument` y los tres `StoredRuleReader`.
+  Una regla guardada lleva solo sus parámetros (antes llevaba además, vacíos, los de los otros tipos); las filas
+  anteriores se siguen leyendo.
+- **Queda para el plan del módulo web:** `SchemaPayloads` todavía elige por clase, así que una regla nueva sigue
+  obligando a tocarlo; el `Location` de un sub-recurso recién creado; los nombres de clase como contrato de errores.
+- Tests nuevos: `RecordAnswerUseCaseImplTest`, `InspectionClosureTest`, `ApprovalRuleKindCatalogTest`, cuatro en
+  `DeliveryFeaturesApiTest` (también sobre PostgreSQL), uno en cada test de repositorio de activos y esquemas, y
+  `SectionsDocumentMapperTest` con una regla que el código de producción no conoce.
+- `DESIGN.md`: D1, D2, D26, D27 y limitaciones.
+

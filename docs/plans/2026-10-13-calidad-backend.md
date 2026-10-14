@@ -78,7 +78,7 @@
 
 ### Task 5: Reglas, catálogos y acciones de bitácora (spec §5.5)
 
-- [x] `ApprovalRule.describedBy`; en persistencia, `RuleDocumentDescriber` para escribir y un `StoredRuleReader` por tipo de regla para leer.
+- [x] `ApprovalRule.describedBy`; en persistencia, `RuleDocumentDescriber` para escribir y un `StoredRuleReader` por tipo de regla para leer. (Reemplazado en la Task 15 por `RuleDescriber` y `ApprovalRuleKind`.)
 - [x] `SeverityCatalog`, `EvidenceKindCatalog` y `AuditActionCatalog`, armados en la composición. `IneligibilityReasonCatalog` no hace falta: un certificado solo guarda una decisión otorgada, que no tiene motivos de rechazo.
 - [x] `AuditAction` con `name()` y `code()`; se va `AuditActions` de persistencia con sus casts.
 - [ ] Diferido al plan del módulo web: un payload por tipo de regla y lectores por tipo en `SchemaPayloads`, los catálogos en `VocabularyController` y el cast a `Enum` de `AuditEntryResponse`.
@@ -104,7 +104,7 @@
 ### Task 8: Bloqueo por activo y bitácora (spec §5.8)
 
 - [x] `assetCodeOf(…)` en los repositorios de inspección, hallazgo y certificado.
-- [x] Los ocho casos de uso bloquean con `AssetLock`, en el orden resolver el código, bloquear y cargar; se van `LocksAsset`, `AssetLockKey` y `CertificationTransactionLocks`.
+- [x] Los ocho casos de uso que ya bloqueaban (doce desde la Task 15) bloquean con `AssetLock`, en el orden resolver el código, bloquear y cargar; se van `LocksAsset`, `AssetLockKey` y `CertificationTransactionLocks`.
 - [x] Un caso de uso de historial por contexto; se van `AuditSubject` y `AuditLogs`.
 - [x] Los tests de concurrencia de `DeliveryFeaturesApiTest` siguen pasando.
 - [x] `RenewCertificateUseCaseImpl` resuelve el activo desde el certificado que se renueva y no desde la inspección: así, si faltan los dos, el error sigue siendo el del certificado, como hoy. Los tests de concurrencia pasan también contra PostgreSQL real (`PostgresFeatureApiTest`).
@@ -153,6 +153,15 @@
 - [x] Lista «Pendiente del módulo web», abajo.
 - [x] Inventario final regenerado.
 
+### Task 15: Respuesta a la auditoría externa de `3335b26`
+
+Una auditoría sobre el commit publicado y dos observaciones de diseño. Se evaluó cada punto contra el código; lo que sigue es lo que se corrigió. Los hallazgos del módulo web (el `Location` de un sub-recurso, `SchemaPayloads` por clase, los nombres de clase como contrato de errores) y los del frontend y de seguridad quedan en la lista de abajo.
+
+- [x] **Escritura atrasada sobre una inspección cerrada.** Responder, adjuntar evidencia, observar y planificar una acción bloquean el activo antes de leer, como los otros ocho. Tests que retienen el activo en otra transacción.
+- [x] **Altas simultáneas que se pisaban.** `AssetRepository.add` e `InspectionSchemaRepository.add` insertan de verdad; el segundo pedido recibe la excepción de dominio (409).
+- [x] **Métodos donde una variante respondía "yo no".** `CertificationDecision` pierde `conditions()`, `ineligibilities()` y `granted()`; `ensureGranted()`, `ensureBacksGlobalCertificate(...)` y `referenceOf(...)` son guardas. El payload de la decisión se arma con el receptor, con el mismo JSON.
+- [x] **Una regla nueva obligaba a tocar el core.** `RuleDescriber` por clase de valor, `ApprovalRuleKind` y `ApprovalRuleKindCatalog`; se van `ApprovalRuleDescriber`, `RuleDocument` y los tres `StoredRuleReader`. Una regla guardada lleva solo sus parámetros; las filas anteriores se siguen leyendo.
+
 ---
 
 ## Pendiente del módulo web
@@ -190,3 +199,11 @@ Lo que no se tocó en `certiflow-web`, para el plan propio de ese módulo. Las s
 - Nombres (`GlobalRequest`, campos de `GlobalCertificateController`, lambdas de una letra), dos imports con comodín, líneas de más de 150 caracteres y cuerpos en una línea.
 - `RequestFields.requireElements` llama a `contains(null)`, que lanza `NullPointerException` sobre una lista inmutable como `List.of()`. Con las listas que arma Jackson no ocurre; apareció al escribir `VersionRequestTest`.
 - Seguridad (spec §5.11): fuera de alcance por decisión; lo encontrado en ese código está listado en la spec, §5.11.
+
+**De la auditoría externa de `3335b26` (Task 15).**
+- `SchemaPayloads` sigue eligiendo por clase al publicar una regla y por texto al recibirla: una regla nueva todavía obliga a tocarlo. Le corresponde implementar `RuleDescriber` y `RuleParameters` sobre el JSON de la API, y buscar el tipo en `ApprovalRuleKindCatalog`, como ya hace la persistencia.
+- `AnswerDescriber` tiene un método por tipo de respuesta. Sus tres métodos ya son, de hecho, clases de valor (un número, un booleano, un texto); renombrarlos así deja que una respuesta nueva use uno existente. `AnswerPayloadDescriber` depende del tipo JSON, por eso va con este módulo.
+- El `Location` de una observación, una evidencia, una revisión o una verificación recién creada se deduce de un tamaño después de una segunda lectura: con dos pedidos simultáneos puede ser el del otro. El caso de uso tiene que devolver el número que creó.
+- `ProblemDetails` usa el nombre de la clase de la excepción como título y tipo del problema, y el frontend mantiene la lista de esos nombres: renombrar una excepción cambia el contrato. Hace falta un código estable por problema.
+- `TokenController` construye entidades JPA y maneja la transacción de la revocación.
+- Frontend: `actionsOfferedBy` conserva el `rel` y descarta el `href`, y `HttpInspectionPort` arma las rutas a mano, contra lo que dice D23.

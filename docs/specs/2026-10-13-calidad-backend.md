@@ -592,6 +592,17 @@ Si no se confirma la última fila, esos tres casos quedan como espejos F1 y `cer
 14. Quedaron a criterio de quien implementa, y se resolvieron así: `RuleDocument` conserva sus seis `null`
     para que el JSON guardado sea idéntico; los constructores con cinco o seis colaboradores no se tocan; el
     detalle de bitácora de un certificado emitido describe el alcance con un texto legible.
+15. **Enmienda posterior a la implementación (Task 15 del plan).** Una auditoría externa y una corrección del
+    profesor («si en el futuro agrego otro tipo de regla tengo que cambiar muchísimos archivos del core»)
+    cambiaron dos cosas de esta spec:
+    - El punto 14 deja de valer para las reglas: una regla se describe por clase de valor (`RuleDescriber`) y
+      cada tipo de regla la arma de vuelta (`ApprovalRuleKind`), así que una regla guardada lleva solo sus
+      parámetros. Las filas anteriores, con los parámetros de los otros tipos en `null`, se siguen leyendo.
+      No hay migración y el JSON de la API no cambia.
+    - A los cinco mecanismos de §4 se suma uno: cuando solo una variante puede cumplir un pedido, el pedido es
+      una guarda que lanza la excepción de negocio (`ensureGranted()`), en lugar de un método que la otra
+      variante responde con un vacío. El receptor con un método por variante (M2) queda para las jerarquías
+      cerradas. Está explicado en `DESIGN.md` D26.
 
 ### 9.2 Derivadas de las anteriores
 

@@ -1,6 +1,6 @@
 # Calidad del backend · Inventario mecánico
 
-Generado sobre el commit `c59c13d` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
+Generado sobre el commit `5c1a64a` de `entrega-2-spec1` con una búsqueda de texto sobre el código principal (`src/main/java`) de los cuatro módulos. Es el anexo de la [spec](2026-10-13-calidad-backend.md): sirve para tildar cada ocurrencia y para no volver a buscar. No incluye tests.
 
 Las rutas son relativas a `certiflow-<módulo>/src/main/java/ar/edu/itba/certiflow/`. Los números de línea valen para ese commit: la rama se mueve, así que conviene regenerar el inventario antes de empezar cada tarea y al cerrarla:
 
@@ -12,11 +12,11 @@ python3 docs/specs/2026-10-13-calidad-backend-inventario.py . docs/specs/2026-10
 
 | Módulo | Archivos | Líneas | `sealed` | `instanceof` | `switch` | tipo por reflexión | casts | registros | estáticos | `null` | `Illegal*` | `orElseThrow()` | `if` sin `throw` | `Object` |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| domain | 291 | 5953 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| application | 42 | 1563 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| infrastructure | 62 | 2476 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 22 | 0 | 0 | 0 | 0 |
-| web | 90 | 4133 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
-| **total** | 485 | 14125 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 82 | 7 | 2 | 22 | 3 |
+| domain | 297 | 6067 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| application | 42 | 1590 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| infrastructure | 58 | 2484 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 0 |
+| web | 93 | 4217 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 60 | 7 | 2 | 21 | 3 |
+| **total** | 490 | 14358 | 0 | 5 | 0 | 5 | 6 | 3 | 39 | 72 | 7 | 2 | 22 | 3 |
 
 `instanceof` no cuenta los que están dentro de `equals` ni los del proxy de transacciones, aceptados por el equipo; figuran aparte en la sección 2. Las columnas «casts», «registros», «`if` sin `throw`» y «`Object`» salen de una heurística: pueden traer algún falso positivo y hay que leer la línea.
 
@@ -107,7 +107,7 @@ Ninguna.
 | web | `web/certification/CertificationPayloads.java:21` | `public static ScopePayload of(CertificationScope scope) {` |
 | web | `web/certification/CertificationPayloads.java:28` | `public static BasisPayload of(CertificateBasis basis) {` |
 | web | `web/certification/CertificationPayloads.java:42` | `public static DecisionPayload of(CertificationDecision decision) {` |
-| web | `web/certification/CertificationPayloads.java:57` | `public static SchemaReferencePayload of(SchemaReference reference) {` |
+| web | `web/certification/CertificationPayloads.java:48` | `public static SchemaReferencePayload of(SchemaReference reference) {` |
 | web | `web/config/DemoDataSeeder.java:159` | `private static Map<String, YesNoAnswer> answers(Object... codesAndAnswers) {` |
 | web | `web/config/DemoDataSeeder.java:188` | `private static Criterion<YesNoAnswer> yesNo(String code, String text, StandardSeverity severity) {` |
 | web | `web/config/TransactionalUseCases.java:13` | `public static <U> U wrap(Class<U> useCase, U target, TransactionTemplate transactions) {` |
@@ -145,23 +145,22 @@ Ninguna.
 
 ## 8. Literales `null`
 
-82 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
+72 ocurrencias. Tareas del plan: 1, 2, 4, 9, 10, 11, 12.
 
 | Módulo | Archivo | Líneas |
 |---|---|---|
 | infrastructure | `infrastructure/certification/persistence/CertificateEntity.java` | 99 |
-| infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 37 |
+| infrastructure | `infrastructure/certification/persistence/DecisionDocumentMapper.java` | 34 |
 | infrastructure | `infrastructure/inspection/persistence/InspectionEntity.java` | 88 |
 | infrastructure | `infrastructure/inspection/persistence/StoredAnsweringDescriber.java` | 12 |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellationDescriber.java` | 11 |
-| infrastructure | `infrastructure/schema/persistence/RuleDocumentDescriber.java` | 15, 20, 25 |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java` | 17 |
 | web | `web/certification/BasisPayloadDescriber.java` | 15, 21 |
 | web | `web/certification/CertificateController.java` | 189 |
 | web | `web/certification/CertificateResource.java` | 39 |
-| web | `web/certification/CertificationPayloads.java` | 49, 50 |
 | web | `web/certification/EligibilityController.java` | 37 |
 | web | `web/certification/ScopePayloadDescriber.java` | 11 |
+| web | `web/certification/ValidityFields.java` | 14 |
 | web | `web/inspection/AssignmentRequest.java` | 22, 29 |
 | web | `web/inspection/CriterionResponseController.java` | 139, 140, 141 |
 | web | `web/inspection/CriterionResponseResource.java` | 31, 32, 33 |
@@ -184,7 +183,7 @@ Ninguna.
 
 ## 8.1 `Optional.ofNullable`
 
-20 ocurrencias. Tareas del plan: 4, 9, 10.
+21 ocurrencias. Tareas del plan: 4, 9, 10.
 
 | Módulo | Ubicación | Línea |
 |---|---|---|
@@ -193,6 +192,7 @@ Ninguna.
 | infrastructure | `infrastructure/inspection/persistence/StoredAnswering.java:28` | `return Optional.ofNullable(answerType)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredCancellation.java:15` | `return Optional.ofNullable(cancelledAt)` |
 | infrastructure | `infrastructure/inspection/persistence/StoredInspectionScope.java:15` | `return Optional.ofNullable(scopeSections)` |
+| infrastructure | `infrastructure/schema/persistence/StoredRuleParameters.java:40` | `return Optional.ofNullable(storedRule.get(parameterName))` |
 | infrastructure | `infrastructure/shared/persistence/SubsystemColumn.java:21` | `return Optional.ofNullable(subsystemCode)` |
 | web | `web/catalog/AssetController.java:67` | `return PageLinks.page(Optional.ofNullable(type).map(value -> listAssets.execute(new AssetType(value))).orEl...` |
 | web | `web/certification/CertificateController.java:110` | `List<CertificateView> certificates = Optional.ofNullable(asset).map(code -> listCertificates.execute(new As...` |
@@ -311,12 +311,12 @@ Ninguna.
 
 ## 15. Líneas de más de 150 caracteres
 
-23 líneas en 11 archivos. Tareas del plan: 13.
+20 líneas en 11 archivos. Tareas del plan: 13.
 
 | Módulo | Archivo | Cantidad |
 |---|---|---|
-| web | `web/config/InspectionConfiguration.java` | 6 |
 | web | `web/schema/SchemaController.java` | 4 |
+| web | `web/config/InspectionConfiguration.java` | 3 |
 | web | `web/schema/SchemaPayloads.java` | 3 |
 | web | `web/config/CertificationConfiguration.java` | 2 |
 | web | `web/config/SchemaConfiguration.java` | 2 |

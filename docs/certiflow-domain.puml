@@ -159,12 +159,28 @@ package "schema.model (evaluacion)" {
   interface "ApprovalRule<A extends Answer>" as ApprovalRule {
     +isSatisfiedBy(A): boolean
     +answerFrom(RawAnswer): A
-    +describedBy(ApprovalRuleDescriber<T>): T
+    +describedBy(RuleDescriber<T>): T
   }
-  interface "ApprovalRuleDescriber<T>" as ApprovalRuleDescriber {
-    +numericRange(Unit, Range): T
-    +yesNo(YesNoAnswer): T
-    +optionInList(Set<String>): T
+  interface "RuleDescriber<T>" as RuleDescriber <<por clase de valor>> {
+    +text(parameterName, String): RuleDescriber<T>
+    +decimal(parameterName, BigDecimal): RuleDescriber<T>
+    +texts(parameterName, Set<String>): RuleDescriber<T>
+    +ofKind(ruleKindName): T
+  }
+  interface RuleParameters {
+    +text(parameterName): String
+    +decimal(parameterName): BigDecimal
+    +texts(parameterName): Set<String>
+  }
+  interface ApprovalRuleKind {
+    +isNamed(ruleKindName): boolean
+    +ruleFrom(RuleParameters): ApprovalRule<?>
+  }
+  class NumericRangeRuleKind
+  class YesNoRuleKind
+  class OptionInListRuleKind
+  class ApprovalRuleKindCatalog <<catalogo>> {
+    +named(ruleKindName): Optional<ApprovalRuleKind>
   }
   class NumericRangeRule <<regla de NumericAnswer>> {
     unit: Unit
@@ -234,7 +250,13 @@ package "schema.model (evaluacion)" {
   ApprovalRule <|.. NumericRangeRule
   ApprovalRule <|.. YesNoRule
   ApprovalRule <|.. OptionInListRule
-  ApprovalRule ..> ApprovalRuleDescriber
+  ApprovalRule ..> RuleDescriber : dice su tipo y sus parametros
+  ApprovalRuleKind ..> RuleParameters
+  ApprovalRuleKind ..> ApprovalRule : la arma de vuelta
+  ApprovalRuleKind <|.. NumericRangeRuleKind
+  ApprovalRuleKind <|.. YesNoRuleKind
+  ApprovalRuleKind <|.. OptionInListRuleKind
+  ApprovalRuleKindCatalog o-- "*" ApprovalRuleKind
   ApprovalRule ..> RawAnswer : la convierte en Answer
   NumericRangeRule --> Range
   Severity <|.. StandardSeverity
@@ -701,7 +723,7 @@ package "certification.model" {
   interface CertificateBasis {
     +latestInspectionClosedAt(): Instant
     +isSupportedOn(LocalDate, List<Certificate>): boolean
-    +backsGlobalCertificate(): boolean
+    +ensureBacksGlobalCertificate(CertificateNumber)
     +describedBy(CertificateBasisDescriber<T>): T
   }
   class InspectionBasis <<value object>> {
@@ -772,7 +794,7 @@ package "certification.model" {
 
 package "<contexto>.repository" {
   interface AssetRepository {
-    +save(Asset)
+    +add(Asset)
     +findByCode(AssetCode): Optional<Asset>
     +findAll(): List<Asset>
   }
@@ -783,6 +805,7 @@ package "<contexto>.repository" {
     +isKnown(JurisdictionCode): boolean
   }
   interface InspectionSchemaRepository {
+    +add(InspectionSchema)
     +save(InspectionSchema)
     +findForUpdate(AssetType): Optional<InspectionSchema>
     +findByAssetType(AssetType): Optional<InspectionSchema>
@@ -897,9 +920,7 @@ package "certification.model (elegibilidad)" {
   interface CertificationDecision {
     +outcome(): CertificationOutcome
     +isEligible(): boolean
-    +ineligibilities(): List<Ineligibility>
-    +conditions(): List<CertificationCondition>
-    +granted(): Optional<GrantedDecision>
+    +ensureGranted(): GrantedDecision
     +policyCode(): PolicyCode
     +jurisdictionCode(): JurisdictionCode
     +evaluatedAt(): Instant
@@ -989,7 +1010,7 @@ package "certification.model (elegibilidad)" {
   }
   interface InspectionClosure {
     +isClosed(): boolean
-    +referenceOf(InspectionId): Optional<InspectionReference>
+    +referenceOf(InspectionId): InspectionReference
   }
   class StillOpen <<value object>>
   class ClosedAt <<value object>> {
