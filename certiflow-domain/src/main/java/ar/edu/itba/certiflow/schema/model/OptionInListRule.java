@@ -23,7 +23,7 @@ public record OptionInListRule(Set<String> acceptedOptions) implements ApprovalR
     }
 
     @Override
-    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
-        return describer.optionInList(acceptedOptions);
+    public <T> T describedBy(RuleDescriber<T> describer) {
+        return describer.texts(OptionInListRuleKind.OPTIONS, acceptedOptions).ofKind(OptionInListRuleKind.NAME);
     }
 }

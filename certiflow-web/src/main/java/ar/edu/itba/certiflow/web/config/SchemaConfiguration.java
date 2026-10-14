@@ -9,11 +9,15 @@ import ar.edu.itba.certiflow.application.schema.SchemaHistoryUseCaseImpl;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.JpaAuditLog;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.SpringDataAuditEntryRepository;
+import ar.edu.itba.certiflow.schema.model.ApprovalRuleKindCatalog;
 import ar.edu.itba.certiflow.schema.model.EvidenceKindCatalog;
 import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
+import ar.edu.itba.certiflow.schema.model.NumericRangeRuleKind;
+import ar.edu.itba.certiflow.schema.model.OptionInListRuleKind;
 import ar.edu.itba.certiflow.schema.model.SeverityCatalog;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
+import ar.edu.itba.certiflow.schema.model.YesNoRuleKind;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindEffectiveSchemaVersionUseCase;
@@ -42,6 +46,13 @@ public class SchemaConfiguration {
     @Bean
     SeverityCatalog severityCatalog() {
         return new SeverityCatalog(List.of(StandardSeverity.values()));
+    }
+
+    /** Un tipo de regla nuevo se registra acá; guardarlo y leerlo no exige tocar la persistencia. */
+    @Bean
+    ApprovalRuleKindCatalog approvalRuleKindCatalog() {
+        return new ApprovalRuleKindCatalog(List.of(new NumericRangeRuleKind(), new YesNoRuleKind(),
+                new OptionInListRuleKind()));
     }
 
     @Bean

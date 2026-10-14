@@ -19,7 +19,7 @@ public record YesNoRule(YesNoAnswer expected) implements ApprovalRule<YesNoAnswe
     }
 
     @Override
-    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
-        return describer.yesNo(expected);
+    public <T> T describedBy(RuleDescriber<T> describer) {
+        return describer.text(YesNoRuleKind.EXPECTED, expected.name()).ofKind(YesNoRuleKind.NAME);
     }
 }

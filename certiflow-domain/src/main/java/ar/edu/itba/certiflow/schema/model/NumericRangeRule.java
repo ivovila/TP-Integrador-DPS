@@ -20,7 +20,10 @@ public record NumericRangeRule(Unit unit, Range range) implements ApprovalRule<N
     }
 
     @Override
-    public <T> T describedBy(ApprovalRuleDescriber<T> describer) {
-        return describer.numericRange(unit, range);
+    public <T> T describedBy(RuleDescriber<T> describer) {
+        return describer.text(NumericRangeRuleKind.UNIT, unit.symbol())
+                .decimal(NumericRangeRuleKind.MINIMUM, range.minimum())
+                .decimal(NumericRangeRuleKind.MAXIMUM, range.maximum())
+                .ofKind(NumericRangeRuleKind.NAME);
     }
 }

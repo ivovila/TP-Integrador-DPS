@@ -5,6 +5,7 @@ import ar.edu.itba.certiflow.infrastructure.shared.persistence.SubsystemColumn;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.UnreadableStoredDataException;
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
+import ar.edu.itba.certiflow.schema.model.ApprovalRuleKindCatalog;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
@@ -15,7 +16,9 @@ import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.schema.model.SeverityCatalog;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 
 /** Las secciones de una versión, y el criterio de un hallazgo, guardados como documentos JSON. */
 @Component
@@ -24,7 +27,7 @@ public class SectionsDocumentMapper {
     record SectionDocument(String title, List<CriterionDocument> criteria, String subsystemCode) {
     }
 
-    record CriterionDocument(String code, String text, RuleDocument rule, String severity,
+    record CriterionDocument(String code, String text, Map<String, JsonNode> rule, String severity,
                              List<EvidenceDocument> requiredEvidence, String subsystemCode) {
     }
 
@@ -34,14 +37,14 @@ public class SectionsDocumentMapper {
     private final StoredJson storedJson;
     private final SeverityCatalog severities;
     private final EvidenceKindCatalog evidenceKinds;
-    private final List<StoredRuleReader> storedRuleReaders;
+    private final ApprovalRuleKindCatalog ruleKinds;
 
     public SectionsDocumentMapper(StoredJson storedJson, SeverityCatalog severities, EvidenceKindCatalog evidenceKinds,
-                                  List<StoredRuleReader> storedRuleReaders) {
+                                  ApprovalRuleKindCatalog ruleKinds) {
         this.storedJson = storedJson;
         this.severities = severities;
         this.evidenceKinds = evidenceKinds;
-        this.storedRuleReaders = List.copyOf(storedRuleReaders);
+        this.ruleKinds = ruleKinds;
     }
 
     public String write(List<Section> sections) {
@@ -74,7 +77,7 @@ public class SectionsDocumentMapper {
 
     private CriterionDocument criterionDocumentOf(Criterion<?> criterion) {
         return new CriterionDocument(criterion.code().value(), criterion.text(),
-                criterion.rule().describedBy(new RuleDocumentDescriber()), criterion.severity().code(),
+                criterion.rule().describedBy(new StoredRuleDescriber()), criterion.severity().code(),
                 criterion.requiredEvidence().stream()
                         .map(requirement -> new EvidenceDocument(requirement.kind().code(), requirement.minimum()))
                         .toList(),
@@ -82,11 +85,10 @@ public class SectionsDocumentMapper {
     }
 
     private Criterion<?> criterionOf(CriterionDocument document) {
-        ApprovalRule<?> rule = storedRuleReaders.stream()
-                .filter(reader -> reader.appliesTo(document.rule().type()))
-                .findFirst()
-                .orElseThrow(() -> new UnreadableStoredDataException("rule type", document.rule().type()))
-                .read(document.rule());
+        StoredRuleParameters storedRule = new StoredRuleParameters(document.rule());
+        ApprovalRule<?> rule = ruleKinds.named(storedRule.ruleKindName())
+                .orElseThrow(() -> new UnreadableStoredDataException("rule type", storedRule.ruleKindName()))
+                .ruleFrom(storedRule);
         return criterionOf(document, rule);
     }
 

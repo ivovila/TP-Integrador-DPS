@@ -6,5 +6,5 @@ public interface ApprovalRule<A extends Answer> {
 
     A answerFrom(RawAnswer raw);
 
-    <T> T describedBy(ApprovalRuleDescriber<T> describer);
+    <T> T describedBy(RuleDescriber<T> describer);
 }
