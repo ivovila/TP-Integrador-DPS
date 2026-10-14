@@ -1,0 +1,2014 @@
+openapi: 3.1.0
+
+info:
+  title: Certiflow API
+  version: "1.0.0"
+  description: |
+    API de la plataforma de inspección, habilitación y certificación de activos.
+
+    **Hipermedia.** Es una API de nivel 3: cada representación trae `_links` y lo que se puede hacer con un
+    recurso sale de sus links, no de su estado. `GET /api/v1` es el único punto de entrada que un cliente
+    necesita conocer; desde ahí se llega a todas las colecciones. Los enlaces de transición (`closure`,
+    `rectifications`, `suspensions`, `renewals`, `global-renewals`, `corrective-actions`, `verifications`)
+    aparecen solo cuando la operación es posible, así que un cliente que los sigue no necesita replicar las
+    reglas del dominio. Las representaciones se devuelven en `application/hal+json`.
+
+    **Autenticación.** Todo request se autentica. Se ingresa por cualquier path con `Authorization: Basic`;
+    la respuesta trae `Authorization: Bearer …` y `Token-Expires`, y ese token se usa en los requests
+    siguientes. `DELETE /api/v1/tokens/current` revoca el token.
+
+    **Roles.** Cada escritura exige el rol que le corresponde y cada rol lee solo las secciones con las que
+    trabaja; activos, esquemas, vocabulario y raíz los lee cualquier usuario autenticado. Un rol que no
+    corresponde recibe 403.
+
+    **Errores.** Siempre `application/problem+json`. Las excepciones de dominio pertenecen a una de tres
+    categorías y la categoría decide el estado: valor inválido 400, recurso inexistente 404, regla de negocio
+    violada 409. El `title` del problema es el nombre de la excepción.
+
+    **Fechas.** Los instantes son ISO-8601 con offset y se guardan con precisión de microsegundos; las fechas
+    de calendario viajan como `AAAA-MM-DD`.
+  license:
+    name: Trabajo práctico académico (ITBA, Diseño de Sistemas)
+
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+
+security:
+  - bearerAuth: []
+  - basicAuth: []
+
+tags:
+  - name: Raíz
+    description: Punto de entrada y vocabulario
+  - name: Autenticación
+    description: Ingreso y revocación de tokens
+  - name: Catálogo
+    description: Activos bajo inspección
+  - name: Esquemas
+    description: Plantillas de inspección y sus versiones
+  - name: Inspecciones
+    description: Asignación, ejecución, cierre y rectificación
+  - name: Hallazgos
+    description: No conformidades y sus acciones correctivas
+  - name: Certificación
+    description: Elegibilidad, emisión, suspensión y renovación
+
+paths:
+  /api/v1:
+    get:
+      tags: [Raíz]
+      summary: Punto de entrada
+      description: Devuelve los links a todas las colecciones. Es lo único que un cliente necesita conocer.
+      responses:
+        "200":
+          description: Links de la API
+          content:
+            application/hal+json:
+              schema:
+                type: object
+                properties:
+                  _links:
+                    $ref: "#/components/schemas/Links"
+              example:
+                _links:
+                  self: { href: "/api/v1" }
+                  assets: { href: "/api/v1/assets" }
+                  schemas: { href: "/api/v1/schemas/{assetType}", templated: true }
+                  schema-list: { href: "/api/v1/schemas" }
+                  vocabulary: { href: "/api/v1/vocabulary" }
+                  inspections: { href: "/api/v1/inspections" }
+                  findings: { href: "/api/v1/findings" }
+                  certificates: { href: "/api/v1/certificates" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/vocabulary:
+    get:
+      tags: [Raíz]
+      summary: Vocabularios configurados
+      description: |
+        Severidades, tipos de evidencia y jurisdicciones con política registrada. Un cliente arma sus
+        desplegables con esto en vez de con constantes propias. No se cachea: el registro de jurisdicciones
+        depende de la configuración del proceso.
+      responses:
+        "200":
+          description: Vocabulario
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Vocabulary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/tokens/current:
+    delete:
+      tags: [Autenticación]
+      summary: Cerrar sesión
+      description: Revoca el token con el que viene el request. Un token revocado no vuelve a servir aunque no haya vencido.
+      responses:
+        "204":
+          description: Token revocado
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/assets:
+    post:
+      tags: [Catálogo]
+      summary: Dar de alta un activo
+      description: |
+        Rol: `ADMINISTRATOR`. La jurisdicción tiene que tener una política de certificación registrada; si no,
+        el alta se rechaza con 400. Un activo sin subsistemas se certifica como un todo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssetRequest" }
+      responses:
+        "201":
+          description: Activo registrado
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Ya existe un activo con ese código
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+    get:
+      tags: [Catálogo]
+      summary: Listar activos
+      parameters:
+        - { name: type, in: query, required: false, schema: { type: string }, description: Filtra por tipo de activo }
+        - { $ref: "#/components/parameters/page" }
+        - { $ref: "#/components/parameters/size" }
+      responses:
+        "200":
+          description: Página de activos
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssetPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/assets/{code}:
+    parameters:
+      - { $ref: "#/components/parameters/assetCode" }
+    get:
+      tags: [Catálogo]
+      summary: Ver un activo
+      description: |
+        El link `global-certificates` aparece solo si el activo declara subsistemas, porque solo entonces
+        existe un certificado global derivado de parciales.
+      responses:
+        "200":
+          description: Activo
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assets/{code}/audit-entries:
+    parameters:
+      - { $ref: "#/components/parameters/assetCode" }
+    get:
+      tags: [Catálogo]
+      summary: Historial de auditoría del activo
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assets/{code}/findings-summary:
+    parameters:
+      - { $ref: "#/components/parameters/assetCode" }
+    get:
+      tags: [Hallazgos]
+      summary: Resumen de hallazgos del activo
+      description: "Roles: `ASSET_RESPONSIBLE`, `VERIFIER`."
+      responses:
+        "200":
+          description: Resumen
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/FindingsSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assets/{code}/global-certificates:
+    parameters:
+      - { $ref: "#/components/parameters/assetCode" }
+    post:
+      tags: [Certificación]
+      summary: Emitir el certificado global del activo
+      description: |
+        Rol: `CERTIFICATION_OFFICER`. El global se deriva de los certificados parciales que se nombran: hace
+        falta uno activo por cada subsistema que la versión de esquema declara obligatorio, todos del mismo
+        activo, de la misma versión y de la misma jurisdicción. Vence con el parcial más corto y hereda sus
+        condiciones. Si algún respaldo no sirve, la respuesta 409 explica cuál y por qué.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GlobalCertificateRequest" }
+      responses:
+        "201":
+          description: Certificado global emitido
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NotEligible" }
+
+  /api/v1/schemas:
+    post:
+      tags: [Esquemas]
+      summary: Crear un esquema de inspección
+      description: |
+        Rol: `ADMINISTRATOR`. Crea el esquema de un tipo de activo con su primera versión, vigente desde que
+        se publica. Un tipo de activo tiene un solo esquema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SchemaRequest" }
+      responses:
+        "201":
+          description: Esquema creado
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Schema" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: El tipo de activo ya tiene esquema
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+    get:
+      tags: [Esquemas]
+      summary: Listar esquemas
+      parameters:
+        - { $ref: "#/components/parameters/page" }
+        - { $ref: "#/components/parameters/size" }
+      responses:
+        "200":
+          description: Página de esquemas
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/schemas/{assetType}:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+    get:
+      tags: [Esquemas]
+      summary: Ver el esquema de un tipo de activo
+      description: |
+        `currentVersion` es la versión vigente ahora y `latestPublishedVersion` la última publicada, que
+        pueden no coincidir si hay una versión programada. Por eso la respuesta no se cachea.
+      responses:
+        "200":
+          description: Esquema
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Schema" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/schemas/{assetType}/versions:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+    post:
+      tags: [Esquemas]
+      summary: Publicar una versión nueva
+      description: |
+        Rol: `ADMINISTRATOR`. Sin `effectiveFrom` la versión rige desde que se publica. Con una fecha futura
+        queda programada: hasta ese instante las inspecciones nuevas siguen usando la versión anterior. La
+        vigencia tiene que ser posterior a la de la última versión publicada y no puede ser retroactiva.
+        La respuesta es la versión recién publicada, aunque todavía no rija.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VersionRequest" }
+      responses:
+        "201":
+          description: Versión publicada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaVersion" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La vigencia empata o se adelanta a una versión ya publicada
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+    get:
+      tags: [Esquemas]
+      summary: Listar las versiones del esquema
+      responses:
+        "200":
+          description: Versiones
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaVersions" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/schemas/{assetType}/versions/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Esquemas]
+      summary: Ver una versión por número
+      description: Una versión publicada es inmutable, así que esta representación sí se cachea y trae `ETag`.
+      responses:
+        "200":
+          description: Versión
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaVersion" }
+        "304":
+          description: Sin cambios respecto del `If-None-Match` recibido
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/schemas/{assetType}/effective-version:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+    get:
+      tags: [Esquemas]
+      summary: Qué versión regía en un instante
+      description: |
+        Responde la versión aplicable en `at`. Cada versión rige en el intervalo semiabierto que va desde su
+        vigencia hasta la de la siguiente; la última no tiene límite superior. Un instante anterior a la
+        primera versión es 404, no devuelve la última como reemplazo.
+      parameters:
+        - name: at
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+          description: Instante ISO-8601 con offset
+          example: "2026-11-01T00:00:00-03:00"
+      responses:
+        "200":
+          description: Versión vigente en ese instante, con `resolvedAt`
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaVersion" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: No hay esquema, o el instante es anterior a toda versión
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/schemas/{assetType}/audit-entries:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+    get:
+      tags: [Esquemas]
+      summary: Historial de auditoría del esquema
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections:
+    post:
+      tags: [Inspecciones]
+      summary: Asignar una inspección
+      description: |
+        Rol: `INSPECTION_COORDINATOR`. La inspección captura la versión de esquema vigente **al asignarse**,
+        no la de la fecha prevista, y no cambia de versión después. Separación de responsabilidades: quien
+        asigna no puede inspeccionar, y el responsable del activo no puede asignar ni inspeccionar su propio
+        activo. Sin `sections` el alcance es el esquema completo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentRequest" }
+      responses:
+        "201":
+          description: Inspección asignada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Inspection" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+    get:
+      tags: [Inspecciones]
+      summary: Listar inspecciones
+      parameters:
+        - { name: asset, in: query, required: false, schema: { type: string }, description: Filtra por código de activo }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [open, closed] }
+        - { $ref: "#/components/parameters/page" }
+        - { $ref: "#/components/parameters/size" }
+      responses:
+        "200":
+          description: Página de inspecciones
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/InspectionPage" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/inspections/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Inspecciones]
+      summary: Ver una inspección
+      responses:
+        "200":
+          description: Inspección
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Inspection" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/audit-entries:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Inspecciones]
+      summary: Historial de auditoría de la inspección
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/responses:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Inspecciones]
+      summary: Listar las respuestas de la inspección
+      description: Una respuesta por criterio dentro del alcance capturado.
+      responses:
+        "200":
+          description: Respuestas
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CriterionResponses" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/responses/{code}:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+    get:
+      tags: [Inspecciones]
+      summary: Ver la respuesta de un criterio
+      description: |
+        Los links `answer`, `evidence` y `observations` aparecen mientras la inspección siga abierta; una
+        inspección cerrada solo se corrige por rectificación.
+      responses:
+        "200":
+          description: Respuesta del criterio
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CriterionResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: No existe la inspección, o el criterio no está en el alcance
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/inspections/{id}/responses/{code}/answer:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+    put:
+      tags: [Inspecciones]
+      summary: Registrar la respuesta de un criterio
+      description: |
+        Rol: `INSPECTOR`. Es `PUT` porque responder de nuevo reemplaza la respuesta anterior. El valor se
+        interpreta según la regla del criterio: número para una regla de rango, booleano para una de sí/no,
+        texto para una de opciones. Un tipo que la regla no acepta es 400.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnswerRequest" }
+      responses:
+        "204":
+          description: Respuesta registrada
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La inspección ya está cerrada
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/inspections/{id}/responses/{code}/evidence:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+    post:
+      tags: [Inspecciones]
+      summary: Adjuntar evidencia
+      description: Rol `INSPECTOR`. No se admite dos veces la misma referencia en el mismo criterio.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvidenceRequest" }
+      responses:
+        "201":
+          description: Evidencia adjuntada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Evidence" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /api/v1/inspections/{id}/responses/{code}/evidence/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Inspecciones]
+      summary: Ver una evidencia adjunta
+      responses:
+        "200":
+          description: Evidencia
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Evidence" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/responses/{code}/observations:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+    post:
+      tags: [Inspecciones]
+      summary: Agregar una observación
+      description: Rol `INSPECTOR`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ObservationRequest" }
+      responses:
+        "201":
+          description: Observación agregada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Observation" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /api/v1/inspections/{id}/responses/{code}/observations/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { $ref: "#/components/parameters/criterionCode" }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Inspecciones]
+      summary: Ver una observación
+      responses:
+        "200":
+          description: Observación
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Observation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/closure:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    post:
+      tags: [Inspecciones]
+      summary: Cerrar la inspección
+      description: |
+        Rol: `INSPECTOR`. Sin cuerpo. Exige que todos los criterios del alcance estén respondidos y con su
+        evidencia obligatoria completa. El cierre sella la revisión original y levanta un hallazgo por cada
+        no conformidad. Una inspección cerrada no se modifica: se rectifica.
+      responses:
+        "201":
+          description: Inspección cerrada; la revisión sellada y los hallazgos levantados
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Revision" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Faltan respuestas o evidencias, o ya estaba cerrada
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/inspections/{id}/rectifications:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    post:
+      tags: [Inspecciones]
+      summary: Rectificar una inspección cerrada
+      description: |
+        Rol: `INSPECTOR`. Corrige la respuesta de un criterio sobre una inspección ya cerrada, con un motivo
+        obligatorio. Sella una revisión nueva sin tocar la original y levanta hallazgo por cada no conformidad
+        que introduce y que no tenga ya uno abierto. Usa la versión de esquema capturada, no la vigente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RectificationRequest" }
+      responses:
+        "201":
+          description: Revisión sellada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Revision" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La inspección no está cerrada
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/inspections/{id}/revisions:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Inspecciones]
+      summary: Listar las revisiones
+      responses:
+        "200":
+          description: Revisiones, numeradas desde 1 en orden
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Revisions" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/revisions/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Inspecciones]
+      summary: Ver una revisión
+      description: Una revisión sellada es inmutable, así que esta representación se cachea y trae `ETag`.
+      responses:
+        "200":
+          description: Revisión
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Revision" }
+        "304":
+          description: Sin cambios respecto del `If-None-Match` recibido
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/inspections/{id}/act:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Inspecciones]
+      summary: Acta de inspección
+      description: Informe con una línea por criterio, las revisiones y el historial de auditoría.
+      responses:
+        "200":
+          description: Acta
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/InspectionAct" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La inspección todavía no se cerró
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/inspections/{id}/certification-eligibility:
+    parameters:
+      - { $ref: "#/components/parameters/inspectionId" }
+    get:
+      tags: [Certificación]
+      summary: Evaluar si la inspección habilita a certificar
+      description: |
+        Roles: `INSPECTION_COORDINATOR`, `INSPECTOR`, `CERTIFICATION_OFFICER`. Es una previsualización: no
+        reserva número ni deja auditoría. Aplica la política de la jurisdicción del activo, así que el mismo
+        resultado de inspección puede dar decisiones distintas según el activo. Una inspección abierta o
+        incompleta responde 200 con una decisión rechazada, no un error. Con `subsystem` se evalúa el alcance
+        de ese subsistema.
+      parameters:
+        - name: subsystem
+          in: query
+          required: false
+          schema: { type: string }
+          description: Código de subsistema; sin él se evalúa el activo completo
+      responses:
+        "200":
+          description: Decisión de certificación
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Eligibility" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: No existe la inspección o el subsistema
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Se pidió el activo completo sobre un esquema con subsistemas
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/findings:
+    get:
+      tags: [Hallazgos]
+      summary: Listar hallazgos
+      description: "Roles: `ASSET_RESPONSIBLE`, `VERIFIER`."
+      parameters:
+        - { name: asset, in: query, required: false, schema: { type: string }, description: Filtra por código de activo }
+        - { $ref: "#/components/parameters/page" }
+        - { $ref: "#/components/parameters/size" }
+      responses:
+        "200":
+          description: Página de hallazgos
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/FindingPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/findings/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+    get:
+      tags: [Hallazgos]
+      summary: Ver un hallazgo
+      description: |
+        `subsystemCode` es el subsistema que el hallazgo resolvió contra **su** versión de origen; un hallazgo
+        sin subsistema afecta a todos.
+      responses:
+        "200":
+          description: Hallazgo
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Finding" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/findings/{id}/audit-entries:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+    get:
+      tags: [Hallazgos]
+      summary: Historial de auditoría del hallazgo
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/findings/{id}/corrective-actions:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+    post:
+      tags: [Hallazgos]
+      summary: Planificar una acción correctiva
+      description: |
+        Rol: `ASSET_RESPONSIBLE`. La fecha de vencimiento no puede ser anterior a hoy. Un hallazgo cerrado no
+        admite acciones nuevas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CorrectiveActionRequest" }
+      responses:
+        "201":
+          description: Acción planificada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CorrectiveAction" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /api/v1/findings/{id}/corrective-actions/{actionId}:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+      - { name: actionId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Hallazgos]
+      summary: Ver una acción correctiva
+      responses:
+        "200":
+          description: Acción correctiva
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CorrectiveAction" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/findings/{id}/corrective-actions/{actionId}/verifications:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+      - { name: actionId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      tags: [Hallazgos]
+      summary: Verificar una acción correctiva
+      description: |
+        Rol: `VERIFIER`. El verificador no puede ser el responsable de la acción. Una verificación rechazada
+        exige notas. Aceptar una acción cierra el hallazgo y cancela las demás acciones abiertas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VerificationRequest" }
+      responses:
+        "201":
+          description: Verificación registrada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Verification" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /api/v1/findings/{id}/corrective-actions/{actionId}/verifications/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/findingId" }
+      - { name: actionId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Hallazgos]
+      summary: Ver una verificación
+      responses:
+        "200":
+          description: Verificación
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Verification" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/certificates:
+    post:
+      tags: [Certificación]
+      summary: Emitir un certificado
+      description: |
+        Rol: `CERTIFICATION_OFFICER`. El plazo lo calcula el servidor con la política de la jurisdicción del
+        activo: el cliente no puede pedir una vigencia. Con `subsystemCode` se emite el parcial de ese
+        subsistema, que exige que la inspección lo cubra entero. Sin él se certifica el activo completo, lo
+        cual solo vale para esquemas sin subsistemas. Se valida antes de pedir número, así que una emisión
+        rechazada no consume ninguno.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CertificateRequest" }
+      responses:
+        "201":
+          description: Certificado emitido
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NotEligible" }
+    get:
+      tags: [Certificación]
+      summary: Listar certificados
+      description: "Rol: `CERTIFICATION_OFFICER`."
+      parameters:
+        - { name: asset, in: query, required: false, schema: { type: string } }
+        - { name: subsystem, in: query, required: false, schema: { type: string } }
+        - { $ref: "#/components/parameters/page" }
+        - { $ref: "#/components/parameters/size" }
+      responses:
+        "200":
+          description: Página de certificados
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CertificatePage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/certificates/{number}:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    get:
+      tags: [Certificación]
+      summary: Ver un certificado
+      description: |
+        `status` se deriva en cada consulta: primero el ciclo de vida propio del certificado y, si fuera
+        activo pero es un global cuyo respaldo dejó de estar activo, `DEPENDENCY_INVALID`.
+      responses:
+        "200":
+          description: Certificado
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/certificates/{number}/document:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    get:
+      tags: [Certificación]
+      summary: Documento del certificado
+      description: Informe emitible, con la decisión tal como se guardó al emitir y el estado a hoy.
+      responses:
+        "200":
+          description: Documento
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/CertificateDocument" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/certificates/{number}/audit-entries:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    get:
+      tags: [Certificación]
+      summary: Historial de auditoría del certificado
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/certificates/{number}/suspensions:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    post:
+      tags: [Certificación]
+      summary: Suspender un certificado
+      description: |
+        Rol: `CERTIFICATION_OFFICER`. Solo se suspende un certificado activo. Un suspendido dentro de su
+        vigencia sigue ocupando su alcance: no se evade la suspensión emitiendo otro.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuspensionRequest" }
+      responses:
+        "201":
+          description: Suspensión registrada
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Suspension" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: El certificado no está activo
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/certificates/{number}/suspensions/{position}:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+      - { name: position, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [Certificación]
+      summary: Ver una suspensión
+      responses:
+        "200":
+          description: Suspensión
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Suspension" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/certificates/{number}/renewals:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    post:
+      tags: [Certificación]
+      summary: Renovar un certificado
+      description: |
+        Rol: `CERTIFICATION_OFFICER`. Exige una inspección cerrada del mismo activo, posterior a la que
+        respalda el certificado actual, y vuelve a decidir con la política vigente. Sin `subsystemCode` se
+        conserva el alcance del certificado que se renueva. El anterior queda en estado `RENEWED`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CertificateRequest" }
+      responses:
+        "201":
+          description: Certificado renovado
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NotEligible" }
+
+  /api/v1/certificates/{number}/global-renewals:
+    parameters:
+      - { $ref: "#/components/parameters/certificateNumber" }
+    post:
+      tags: [Certificación]
+      summary: Renovar un certificado global
+      description: |
+        Rol: `CERTIFICATION_OFFICER`. Un global se renueva con un conjunto nuevo de parciales, no con una
+        inspección, y exige que su base de inspección sea posterior a la del global anterior. Renovar un
+        parcial no reemplaza silenciosamente el respaldo del global: hay que renovar el global.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GlobalCertificateRequest" }
+      responses:
+        "201":
+          description: Global renovado
+          headers:
+            Location: { $ref: "#/components/headers/Location" }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NotEligible" }
+
+components:
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Ingreso con usuario y contraseña por cualquier path. La respuesta trae el token.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token obtenido al ingresar. Vence a la hora y se revoca con `DELETE /api/v1/tokens/current`.
+
+  parameters:
+    page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 0, default: 0 }
+    size:
+      name: size
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 20 }
+    assetCode:
+      name: code
+      in: path
+      required: true
+      schema: { type: string }
+      example: EXT-0042
+    assetType:
+      name: assetType
+      in: path
+      required: true
+      schema: { type: string }
+      description: Nombre del tipo de activo, tal cual se registró
+      example: Fire extinguisher
+    inspectionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    criterionCode:
+      name: code
+      in: path
+      required: true
+      schema: { type: string }
+      example: EXT-01
+    findingId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    certificateNumber:
+      name: number
+      in: path
+      required: true
+      schema: { type: string }
+
+  headers:
+    Location:
+      description: URI del recurso creado
+      schema: { type: string, format: uri-reference }
+    ETag:
+      description: Validador para pedidos condicionales con `If-None-Match`
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Falta autenticación, o el token venció o fue revocado
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: El rol del usuario no alcanza para esta operación
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: El recurso no existe
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InvalidValue:
+      description: Un valor del request es inválido por sí mismo, o falta un campo obligatorio
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RuleViolation:
+      description: Una regla de negocio impide la operación
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotEligible:
+      description: |
+        La decisión de certificación no habilita a emitir, o el alcance ya está ocupado. El problema incluye
+        `ineligibilities` con un motivo por cada impedimento.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/NotEligibleProblem" }
+
+  schemas:
+
+    Link:
+      type: object
+      required: [href]
+      properties:
+        href: { type: string }
+        templated: { type: boolean }
+
+    Links:
+      type: object
+      additionalProperties: { $ref: "#/components/schemas/Link" }
+      description: |
+        Links de la representación. Las transiciones disponibles salen de acá: `closure` para cerrar,
+        `rectifications` para rectificar, `suspensions` para suspender, `renewals` y `global-renewals` para
+        renovar, `corrective-actions` para planificar, `verifications` para verificar, `answer`, `evidence` y
+        `observations` para ejecutar la inspección. Las colecciones agregan `first`, `prev`, `next` y `last`.
+
+    PageMetadata:
+      type: object
+      properties:
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }
+        number: { type: integer }
+
+    Problem:
+      type: object
+      description: RFC 7807. El `title` es el nombre de la excepción de dominio.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string, example: InspectionNotClosedException }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+
+    NotEligibleProblem:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          properties:
+            ineligibilities:
+              type: array
+              items: { $ref: "#/components/schemas/Reason" }
+
+    Reason:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Código estable del motivo
+          examples: [BLOCKING_FINDINGS, INSPECTION_NOT_CLOSED, PARTIAL_INSPECTION, UNSUPPORTED_SEVERITY, MISSING_SUBSYSTEM, INVALID_PARTIAL_CERTIFICATE]
+        detail: { type: string }
+
+    Person:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, example: EMP-001 }
+        name: { type: string, example: Ana Torres }
+
+    AuditEntry:
+      type: object
+      properties:
+        action: { type: string, example: CLOSED }
+        label: { type: string }
+        performedById: { type: string }
+        performedByName: { type: string }
+        occurredAt: { type: string, format: date-time }
+        detail: { type: string }
+
+    AuditEntries:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            auditEntries:
+              type: array
+              items: { $ref: "#/components/schemas/AuditEntry" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Vocabulary:
+      type: object
+      properties:
+        severities:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, examples: [MINOR, MAJOR, CRITICAL] }
+              label: { type: string }
+              outcomeWhenUnmet: { type: string, examples: [OBSERVED, REJECTED] }
+        evidenceKinds:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, examples: [PHOTO, DOCUMENT] }
+              label: { type: string }
+        jurisdictions:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string, examples: [DEMO-STRICT, DEMO-STANDARD, DEMO-CONDITIONAL] }
+              policyCode: { type: string }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Subsystem:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, example: ELECTRICAL }
+        name: { type: string }
+
+    Characteristic:
+      type: object
+      required: [name, value]
+      properties:
+        name: { type: string }
+        value: { type: string }
+
+    AssetRequest:
+      type: object
+      required: [code, name, type, location, responsible, jurisdictionCode]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        type:
+          type: string
+          description: Ata el activo con su esquema de inspección; se compara exacto
+        location: { type: string }
+        responsible:
+          allOf: [{ $ref: "#/components/schemas/Person" }]
+          description: |
+            Responde por el activo. No puede asignar ni inspeccionar su propio activo, y los hallazgos nacen
+            a su nombre.
+        jurisdictionCode:
+          type: string
+          description: Decide la política de certificación; tiene que estar registrada
+        characteristics:
+          type: array
+          items: { $ref: "#/components/schemas/Characteristic" }
+        subsystems:
+          type: array
+          description: Vacío para un activo que se certifica como un todo
+          items: { $ref: "#/components/schemas/Subsystem" }
+      example:
+        code: EXT-0042
+        name: Lobby extinguisher
+        type: Fire extinguisher
+        location: Lobby
+        jurisdictionCode: DEMO-STANDARD
+        responsible: { id: EMP-003, name: Raul Mendez }
+        characteristics: []
+        subsystems: []
+
+    Asset:
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        type: { type: string }
+        location: { type: string }
+        jurisdictionCode: { type: string }
+        responsible: { $ref: "#/components/schemas/Person" }
+        characteristics:
+          type: array
+          items: { $ref: "#/components/schemas/Characteristic" }
+        subsystems:
+          type: array
+          items: { $ref: "#/components/schemas/Subsystem" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AssetPage:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            assets:
+              type: array
+              items: { $ref: "#/components/schemas/Asset" }
+        page: { $ref: "#/components/schemas/PageMetadata" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Rule:
+      type: object
+      required: [type]
+      description: |
+        Regla de aprobación del criterio. `numeric-range` usa `unit`, `minimum` y `maximum`; `yes-no` usa
+        `expected`; `option-in-list` usa `options`. Un tipo desconocido es 400.
+      properties:
+        type: { type: string, enum: [numeric-range, yes-no, option-in-list] }
+        unit: { type: string, example: bar }
+        minimum: { type: number }
+        maximum: { type: number }
+        expected: { type: string, enum: [YES, NO] }
+        options:
+          type: array
+          items: { type: string }
+
+    EvidenceRequirement:
+      type: object
+      required: [kind, minimum]
+      properties:
+        kind: { type: string, description: Tipo de evidencia del vocabulario }
+        minimum: { type: integer, minimum: 0 }
+
+    Criterion:
+      type: object
+      required: [code, text, severity, rule]
+      properties:
+        code: { type: string }
+        text: { type: string }
+        severity: { type: string, description: Severidad del vocabulario }
+        rule: { $ref: "#/components/schemas/Rule" }
+        requiredEvidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRequirement" }
+        subsystemCode:
+          type: string
+          description: Si está, prevalece sobre el de la sección
+
+    Section:
+      type: object
+      required: [title, criteria]
+      properties:
+        title: { type: string }
+        criteria:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Criterion" }
+        subsystemCode:
+          type: string
+          description: Subsistema por defecto de los criterios de la sección
+
+    SchemaRequest:
+      type: object
+      required: [name, assetType, sections]
+      properties:
+        name: { type: string }
+        assetType: { type: string }
+        sections:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Section" }
+        requiredSubsystems:
+          type: array
+          description: |
+            Subsistemas obligatorios de la versión. En un esquema con subsistemas, todo criterio tiene que
+            resolver a uno y todo subsistema obligatorio necesita al menos un criterio.
+          items: { type: string }
+
+    VersionRequest:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Section" }
+        effectiveFrom:
+          type: string
+          format: date-time
+          description: Instante de entrada en vigencia; sin él, rige desde que se publica
+        requiredSubsystems:
+          type: array
+          items: { type: string }
+
+    Schema:
+      type: object
+      properties:
+        name: { type: string }
+        assetType: { type: string }
+        currentVersion: { type: integer, description: Vigente ahora }
+        latestPublishedVersion: { type: integer, description: Última publicada, que puede no regir todavía }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    SchemaPage:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            schemas:
+              type: array
+              items: { $ref: "#/components/schemas/Schema" }
+        page: { $ref: "#/components/schemas/PageMetadata" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    SchemaVersion:
+      type: object
+      properties:
+        number: { type: integer }
+        publishedAt: { type: string, format: date-time }
+        effectiveFrom: { type: string, format: date-time }
+        resolvedAt:
+          type: string
+          format: date-time
+          description: Instante con el que se resolvió la consulta; solo en `effective-version`
+        requiredSubsystems:
+          type: array
+          items: { type: string }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/Section" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    SchemaVersions:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            versions:
+              type: array
+              items: { $ref: "#/components/schemas/SchemaVersion" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AssignmentRequest:
+      type: object
+      required: [assetCode, inspector, plannedDate]
+      properties:
+        assetCode: { type: string }
+        inspector: { $ref: "#/components/schemas/Person" }
+        plannedDate: { type: string, format: date }
+        sections:
+          type: array
+          description: |
+            Títulos de las secciones a inspeccionar. Sin este campo el alcance es el esquema completo. Una
+            inspección parcial solo puede respaldar certificados de los subsistemas que cubra enteros.
+          items: { type: string }
+
+    Inspection:
+      type: object
+      properties:
+        id: { type: string }
+        assetCode: { type: string }
+        inspector: { $ref: "#/components/schemas/Person" }
+        plannedDate: { type: string, format: date }
+        schemaVersion: { type: integer, description: Versión capturada al asignar }
+        sections:
+          type: array
+          items: { type: string }
+        closed: { type: boolean }
+        coversWholeSchema: { type: boolean }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    InspectionPage:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            inspections:
+              type: array
+              items: { $ref: "#/components/schemas/Inspection" }
+        page: { $ref: "#/components/schemas/PageMetadata" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AnswerRequest:
+      type: object
+      required: [value]
+      properties:
+        value:
+          description: Número, booleano o texto, según la regla del criterio
+          oneOf:
+            - { type: number }
+            - { type: boolean }
+            - { type: string }
+      example:
+        value: 7.5
+
+    CriterionResponse:
+      type: object
+      properties:
+        criterion: { $ref: "#/components/schemas/Criterion" }
+        answer:
+          description: La respuesta registrada, con la forma que pide la regla
+          oneOf:
+            - { type: number }
+            - { type: boolean }
+            - { type: string }
+        answeredBy: { $ref: "#/components/schemas/Person" }
+        answeredAt: { type: string, format: date-time }
+        outcome: { type: string, examples: [APPROVED, OBSERVED, REJECTED, PENDING] }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/Evidence" }
+        observations:
+          type: array
+          items: { $ref: "#/components/schemas/Observation" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    CriterionResponses:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            responses:
+              type: array
+              items: { $ref: "#/components/schemas/CriterionResponse" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    EvidenceRequest:
+      type: object
+      required: [kind, reference]
+      properties:
+        kind: { type: string, description: Tipo de evidencia del vocabulario }
+        reference: { type: string, description: Dónde está la evidencia }
+        description: { type: string }
+
+    Evidence:
+      type: object
+      properties:
+        kind: { type: string }
+        reference: { type: string }
+        description: { type: string }
+        attachedBy: { $ref: "#/components/schemas/Person" }
+        attachedAt: { type: string, format: date-time }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    ObservationRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+
+    Observation:
+      type: object
+      properties:
+        text: { type: string }
+        observedBy: { $ref: "#/components/schemas/Person" }
+        observedAt: { type: string, format: date-time }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    RectificationRequest:
+      type: object
+      required: [criterionCode, value, reason]
+      properties:
+        criterionCode: { type: string }
+        value:
+          oneOf:
+            - { type: number }
+            - { type: boolean }
+            - { type: string }
+        reason: { type: string, description: Por qué se rectifica; queda en la revisión y en la auditoría }
+
+    Revision:
+      type: object
+      properties:
+        number: { type: integer, description: Desde 1; la 1 es el cierre original }
+        reason: { type: string }
+        sealedBy: { $ref: "#/components/schemas/Person" }
+        sealedAt: { type: string, format: date-time }
+        outcomes:
+          type: object
+          additionalProperties: { type: string }
+          description: Resultado por código de criterio en el momento de sellar
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Revisions:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            revisions:
+              type: array
+              items: { $ref: "#/components/schemas/Revision" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    InspectionAct:
+      type: object
+      properties:
+        assetCode: { type: string }
+        assetName: { type: string }
+        inspector: { $ref: "#/components/schemas/Person" }
+        plannedDate: { type: string, format: date }
+        schemaVersion: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              criterionCode: { type: string }
+              criterionText: { type: string }
+              answer:
+                oneOf:
+                  - { type: number }
+                  - { type: boolean }
+                  - { type: string }
+              answeredBy: { $ref: "#/components/schemas/Person" }
+              answeredAt: { type: string, format: date-time }
+              evidenceCount: { type: integer }
+              observations:
+                type: array
+                items: { type: string }
+              outcome: { type: string }
+        revisions:
+          type: array
+          items: { type: integer }
+        history:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEntry" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Finding:
+      type: object
+      properties:
+        id: { type: string }
+        inspectionId: { type: string }
+        assetCode: { type: string }
+        criterion: { $ref: "#/components/schemas/Criterion" }
+        severity: { type: string }
+        responsible: { $ref: "#/components/schemas/Person" }
+        open: { type: boolean }
+        subsystemCode:
+          type: string
+          description: Subsistema resuelto contra la versión de origen; ausente si afecta a todos
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/Evidence" }
+        actions:
+          type: array
+          items: { $ref: "#/components/schemas/CorrectiveAction" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    FindingPage:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            findings:
+              type: array
+              items: { $ref: "#/components/schemas/Finding" }
+        page: { $ref: "#/components/schemas/PageMetadata" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    FindingsSummary:
+      type: object
+      properties:
+        assetCode: { type: string }
+        openFindings: { type: integer }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              findingId: { type: string }
+              criterionCode: { type: string }
+              description: { type: string }
+              severity: { type: string }
+              responsible: { $ref: "#/components/schemas/Person" }
+              open: { type: boolean }
+              overdueActions: { type: integer }
+              subsystemCode: { type: string }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    CorrectiveActionRequest:
+      type: object
+      required: [description, responsible, dueDate]
+      properties:
+        description: { type: string }
+        responsible:
+          allOf: [{ $ref: "#/components/schemas/Person" }]
+          description: Quien tiene que ejecutarla; no puede ser también quien la verifique
+        dueDate: { type: string, format: date, description: No puede ser anterior a hoy }
+
+    CorrectiveAction:
+      type: object
+      properties:
+        id: { type: integer }
+        description: { type: string }
+        responsible: { $ref: "#/components/schemas/Person" }
+        dueDate: { type: string, format: date }
+        plannedBy: { $ref: "#/components/schemas/Person" }
+        plannedAt: { type: string, format: date-time }
+        open: { type: boolean }
+        closed: { type: boolean }
+        cancelled: { type: boolean }
+        overdue: { type: boolean }
+        verifications:
+          type: array
+          items: { $ref: "#/components/schemas/Verification" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    VerificationRequest:
+      type: object
+      required: [result]
+      properties:
+        result: { type: string, enum: [ACCEPTED, REJECTED] }
+        notes: { type: string, description: Obligatorias cuando se rechaza }
+
+    Verification:
+      type: object
+      properties:
+        verifier: { $ref: "#/components/schemas/Person" }
+        result: { type: string, enum: [ACCEPTED, REJECTED] }
+        notes: { type: string }
+        verifiedAt: { type: string, format: date-time }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    CertificateRequest:
+      type: object
+      required: [inspectionId]
+      properties:
+        inspectionId: { type: string }
+        subsystemCode:
+          type: string
+          description: |
+            Emite el parcial de ese subsistema. Al emitir, sin este campo se certifica el activo completo; al
+            renovar, sin este campo se conserva el alcance del certificado actual.
+
+    GlobalCertificateRequest:
+      type: object
+      required: [schemaVersion, partialCertificateNumbers]
+      properties:
+        schemaVersion: { type: integer, description: Versión de esquema de la que se derivan los obligatorios }
+        partialCertificateNumbers:
+          type: array
+          minItems: 1
+          items: { type: string }
+
+    Scope:
+      type: object
+      description: Alcance certificado. `type` distingue la variante.
+      properties:
+        type: { type: string, examples: [WHOLE_ASSET, SUBSYSTEM] }
+        subsystemCode: { type: string, description: Solo en un alcance de subsistema }
+
+    Basis:
+      type: object
+      description: Sobre qué se emitió. `type` distingue si viene de una inspección o de certificados parciales.
+      properties:
+        type: { type: string, examples: [INSPECTION, PARTIAL_CERTIFICATES] }
+        inspectionId: { type: string }
+        inspectionClosedAt: { type: string, format: date-time }
+        partialCertificateNumbers:
+          type: array
+          items: { type: string }
+        globalPolicy: { type: string }
+
+    Condition:
+      type: object
+      properties:
+        findingId: { type: string }
+        criterionCode: { type: string }
+        description: { type: string }
+        dueDate: { type: string, format: date, description: Nunca más allá del vencimiento del certificado }
+
+    Decision:
+      type: object
+      description: |
+        La decisión que tomó la política de la jurisdicción. Se guarda tal cual en el certificado: cambiar la
+        política después no reescribe decisiones ya emitidas.
+      properties:
+        outcome: { type: string, enum: [APPROVED, CONDITIONAL, REJECTED] }
+        eligible: { type: boolean, description: Verdadero para APPROVED y CONDITIONAL }
+        reasons:
+          type: array
+          items: { $ref: "#/components/schemas/Reason" }
+        conditions:
+          type: array
+          description: Qué hay que resolver cuando la certificación es condicional
+          items: { $ref: "#/components/schemas/Condition" }
+        validFrom: { type: string, format: date }
+        validUntil: { type: string, format: date }
+        policyCode: { type: string }
+        jurisdictionCode: { type: string }
+        evaluatedAt: { type: string, format: date-time }
+        scope: { $ref: "#/components/schemas/Scope" }
+
+    Eligibility:
+      type: object
+      properties:
+        eligible: { type: boolean }
+        decision: { $ref: "#/components/schemas/Decision" }
+        ineligibilities:
+          type: array
+          items: { $ref: "#/components/schemas/Reason" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    SuspensionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, description: Por qué se suspende; queda en el certificado y en la auditoría }
+
+    Suspension:
+      type: object
+      properties:
+        reason: { type: string }
+        suspendedBy: { $ref: "#/components/schemas/Person" }
+        suspendedAt: { type: string, format: date-time }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    Certificate:
+      type: object
+      properties:
+        number: { type: string }
+        assetCode: { type: string }
+        inspectionId: { type: string, description: Solo si la base es una inspección }
+        scope: { $ref: "#/components/schemas/Scope" }
+        basis: { $ref: "#/components/schemas/Basis" }
+        schemaReference:
+          type: object
+          properties:
+            assetType: { type: string }
+            number: { type: integer }
+        validFrom: { type: string, format: date }
+        validUntil: { type: string, format: date }
+        issuedBy: { $ref: "#/components/schemas/Person" }
+        issuedAt: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, EXPIRED, RENEWED, DEPENDENCY_INVALID]
+          description: |
+            Derivado en cada consulta. `DEPENDENCY_INVALID` es un global que sería activo pero perdió un
+            respaldo. La modalidad condicional vive en `decision.outcome`, no acá.
+        decision: { $ref: "#/components/schemas/Decision" }
+        suspensions:
+          type: array
+          items: { $ref: "#/components/schemas/Suspension" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    CertificatePage:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            certificates:
+              type: array
+              items: { $ref: "#/components/schemas/Certificate" }
+        page: { $ref: "#/components/schemas/PageMetadata" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    CertificateDocument:
+      type: object
+      properties:
+        number: { type: string }
+        assetCode: { type: string }
+        assetName: { type: string }
+        validFrom: { type: string, format: date }
+        validUntil: { type: string, format: date }
+        statusDate: { type: string, format: date }
+        status: { type: string }
+        scope: { $ref: "#/components/schemas/Scope" }
+        basis: { $ref: "#/components/schemas/Basis" }
+        decision: { $ref: "#/components/schemas/Decision" }
+        issuedBy: { $ref: "#/components/schemas/Person" }
+        issuedAt: { type: string, format: date-time }
+        suspensions:
+          type: array
+          items: { $ref: "#/components/schemas/Suspension" }
+        _links: { $ref: "#/components/schemas/Links" }

@@ -2,6 +2,7 @@ package ar.edu.itba.certiflow.scenario.support;
 
 import ar.edu.itba.certiflow.web.support.TestDatabase;
 import java.time.Instant;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -45,5 +46,14 @@ public abstract class ScenarioTest {
         TestDatabase.empty(jdbcTemplate);
         clock.reset(START);
         fixture = new CertiflowFixture(context, clock);
+    }
+
+    /**
+     * También al terminar: los tests de API comparten esta misma base H2 y la vacían después de cada uno,
+     * así que un escenario que dejara sus filas rompería el primer test de la clase de API que siguiera.
+     */
+    @AfterEach
+    void leaveTheApplicationEmpty() {
+        TestDatabase.empty(jdbcTemplate);
     }
 }

@@ -132,6 +132,8 @@ gh api -X PUT repos/ivovila/TP-Integrador-DPS/branches/main/protection \
 
 - [DESIGN.md](DESIGN.md): supuestos, arquitectura (contextos, context map, capas, glosario), decisiones con
   sus alternativas descartadas, patrones no aplicados, tabla riesgo → test y limitaciones.
+- [docs/openapi.yaml](docs/openapi.yaml): contrato de la API en OpenAPI 3.1 — rutas, cuerpos, códigos de
+  estado, el rol que exige cada operación y qué significa cada `rel` de los links.
 - [docs/specs](docs/specs): especificaciones de cada fase.
 - [docs/plans](docs/plans): planes de implementación.
 - [docs/consigna](docs/consigna): enunciado de la entrega.

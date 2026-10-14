@@ -321,7 +321,7 @@ determinista y los tests usan un reloj controlable.
 
 - **Principio:** DDD, Context Mapping (ACL); DIP.
 - **Dónde:** `certification.model.InspectionResult`, `OpenNonConformity`, puerto `InspectionResultTranslator`; implementación `application.certification.InspectionResultTranslatorImpl`. `CertificationPolicy.evaluate(InspectionResult)`; `Certificate` recibe un `InspectionResult` para validar su base.
-- **Por qué:** `las políticas Strict, Conditional y Standard` y `Certificate` importaban `Finding` e `InspectionView`, así que cualquier cambio en cómo se modela una inspección o un hallazgo llegaba a Certificación. Ahora Certificación tiene su propio modelo de lo que necesita saber (cierre, alcance completo, no conformidades abiertas con su severidad), y el traductor es el único lugar que conoce los dos modelos. Es la base de F1 y F3: los resultados por subsistema y las políticas por jurisdicción se agregan sobre `InspectionResult` sin tocar Inspección.
+- **Por qué:** la regla de elegibilidad de entonces y `Certificate` importaban `Finding` e `InspectionView`, así que cualquier cambio en cómo se modela una inspección o un hallazgo llegaba a Certificación. Ahora Certificación tiene su propio modelo de lo que necesita saber (cierre, alcance completo, no conformidades abiertas con su severidad), y el traductor es el único lugar que conoce los dos modelos. Es la base de F1 y F3: los resultados por subsistema y las políticas por jurisdicción se agregan sobre `InspectionResult` sin tocar Inspección.
 - **Alternativas descartadas:** *que Certificación siga leyendo `Finding`:* más corto, pero mantiene el acoplamiento que la arquitectura pedía cortar; *un evento `InspectionClosed` que Certificación escuche y guarde:* sumaría una proyección persistida sin un caso de uso que la necesite.
 - **Desde la revisión de calidad:** `InspectionResult` lleva un `InspectionClosure` (`StillOpen` o `ClosedAt`) en lugar de un instante que podía faltar, y lanza su propia `InspectionNotClosedForCertificationException`: ya no importa excepciones de Inspección. El puerto ofrece además `assetCodeOf(InspectionId)`, que emitir usa para bloquear el activo (D27) sin leer el repositorio de inspecciones.
 - **Costo:** el traductor carga la inspección y los hallazgos del activo en cada decisión. `InspectionResult` repite datos que ya están en Inspección, a propósito.
@@ -369,7 +369,8 @@ determinista y los tests usan un reloj controlable.
   - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`.
   - `ETag` y `Cache-Control` en lo inmutable (versiones de esquema y revisiones); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
   - Sin estado: cada request se autentica (Basic o Bearer) y la persona que actúa sale de esa credencial (D25).
-- **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula.
+  - El contrato está descrito en [docs/openapi.yaml](docs/openapi.yaml) (OpenAPI 3.1, 50 operaciones): rutas, cuerpos, códigos de estado, roles por operación y qué significa cada `rel`. Se escribe a mano y no se genera: un generador documenta los cuerpos JSON pero no las transiciones, que son la parte que un cliente necesita entender.
+- **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula; *generar el contrato con springdoc:* una dependencia más y un documento que describe formas pero no afordancias.
 - **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
 ### D22. Frontend sobre puertos
@@ -394,7 +395,7 @@ determinista y los tests usan un reloj controlable.
 - **Por qué:**
   - **Las URLs se arman, los links se siguen.** El adaptador construye la URL de un recurso con su identificador, porque las rutas del navegador llevan identificadores, y sigue los links de la respuesta para las acciones disponibles, la paginación y los recursos relacionados. Las acciones nunca se deducen del estado.
   - **Todo `href` se reduce a ruta y query.** La API mezcla links absolutos y relativos; seguido tal cual, un link absoluto saltearía el proxy del frontend y fallaría por origen cruzado.
-  - **La traducción está en un solo lugar y es pura.** La API serializa tipos del dominio tal cual (`{value}`, tipos sellados sin discriminador), devuelve la severidad como nombre o como etiqueta según el recurso y la inspección en tres recursos. Las funciones de `*Mapping.ts` absorben eso y se prueban contra respuestas reales guardadas, sin levantar nada.
+  - **La traducción está en un solo lugar y es pura.** La API ya no serializa tipos del dominio (alcance y base llevan su `type`), pero devuelve la severidad como nombre o como etiqueta según el recurso y la inspección en tres recursos. Las funciones de `*Mapping.ts` absorben eso y se prueban contra respuestas reales guardadas, sin levantar nada.
   - **Las jurisdicciones salen del registro de políticas.** `ConfiguredPolicyResolver` implementa `RegisteredJurisdictions`, así la lista que ofrece el alta de activos es la misma que resuelve las políticas: registrar una jurisdicción en `CertificationConfiguration` alcanza.
   - **Dos niveles de test.** Los rápidos (cliente, mapeos, pantallas con puertos sustitutos) corren sin backend en el job `frontend`. La suite de contrato y los flujos por pantallas corren contra el backend real en el job `e2e`; cada test usa códigos y tipos de activo propios porque la base es compartida.
   - **Solo se agregó a la API.** Lista de esquemas, vocabulario, subsistema del hallazgo, identificador en el resumen y un link: ninguna respuesta existente cambió de forma.
@@ -573,7 +574,7 @@ determinista y los tests usan un reloj controlable.
 
 | Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
 | Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
-| Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `las políticas Strict, Conditional y StandardTest` (parametrizado), `InspectionResultTranslatorImplTest` |
+| Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `JurisdictionPoliciesTest` (parametrizado), `InspectionResultTranslatorImplTest` |
 | Un agregado reconstruido se comporta distinto o repite su auditoría de nacimiento | `SnapshotTest` |
 | La bitácora no se encuentra para un agregado leído de la base | `AggregateIdentityTest.historyIsFoundByIdentityEvenFromAnotherInstanceOfTheSameAggregate`, `JpaAuditLogTest` |
 | Un agregado leído de la base pierde estado o la escala de un decimal | `JpaAssetRepositoryTest`, `JpaInspectionSchemaRepositoryTest`, `JpaInspectionRepositoryTest` (incluye `decimalScaleSurvivesTheDatabase`), `JpaFindingRepositoryTest`, `JpaCertificateRepositoryTest`, `SectionsDocumentMapperTest` (incluye que una regla guardada conserva su forma y que un tipo de regla desconocido es ilegible) |
@@ -625,7 +626,6 @@ Total: 396 tests (98 de dominio, 18 de aplicación, 27 de infraestructura y 253 
 - **Un token por pestaña.** El frontend guarda el token en `sessionStorage`: un script inyectado en la página podría leerlo, aunque vence en una hora y el logout lo revoca. Al vencer hay que volver a ingresar; no hay refresh token.
 - **Los roles no filtran por persona.** Un rol lee todas las inspecciones, hallazgos o certificados de su sección, no solo los suyos (el inspector ve inspecciones asignadas a otros).
 - **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
-- **La API serializa tipos del dominio.** Certificados y decisiones de elegibilidad viajan como los records del dominio (`jurisdictionCode: {value}`, alcance y base sin discriminador). Contradice lo que D21 dice de los DTOs propios y ata al adaptador del frontend a esos nombres.
 - **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.
 - **Escala decimal en la API.** Una medición enviada como `2.50` se guarda con su escala pero la API la devuelve como `2.5`.
 - **Políticas sin descripción.** `CertificationPolicy` expone solo su código, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
@@ -692,7 +692,7 @@ y carreras de publicación/emisión. CI ejecuta las mismas pruebas de funcionali
 
 `CertificationAssessmentService` obtiene el contexto y `CertificationEligibility` comprueba cierre/cobertura (D10). La Strategy
 `CertificationPolicy` expone solo `code()` y `evaluate(context)` y devuelve una decisión completa.
-`las políticas Strict, Conditional y Standard` encapsula un mapa privado de severidad a bloqueo, la admisión de
+`SeverityCertificationPolicy` encapsula un mapa privado de severidad a bloqueo, la admisión de
 condicionales y los plazos. Sus tres políticas demo se arman en la composición, que es también la que registra
 jurisdicción → política. Una Strategy con otro algoritmo no necesita exponer ese mapa.
 
