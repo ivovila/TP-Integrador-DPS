@@ -309,6 +309,49 @@ public class DeliveryFeaturesApiTest extends ApiTest {
                 .andReturn().getResponse().getStatus(), 201);
     }
 
+    /** Dos altas simultáneas con el mismo código: una gana y la otra recibe el conflicto; nunca dos 201 ni datos pisados. */
+    @Test
+    void simultaneousRegistrationOfTheSameAssetHasOneWinnerAndKeepsItsData() throws Exception {
+        var start = new CountDownLatch(1);
+        var ready = new CountDownLatch(2);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            Callable<Integer> first = () -> {
+                ready.countDown(); start.await();
+                return postAs("PLANNER", "/api/v1/assets", asset("A-1", "DEMO-STRICT").replace("\"Boiler\",\"type\"", "\"FIRST\",\"type\""))
+                        .andReturn().getResponse().getStatus();
+            };
+            Callable<Integer> second = () -> {
+                ready.countDown(); start.await();
+                return postAs("PLANNER", "/api/v1/assets", asset("A-1", "DEMO-STRICT").replace("\"Boiler\",\"type\"", "\"SECOND\",\"type\""))
+                        .andReturn().getResponse().getStatus();
+            };
+            var firstStatus = executor.submit(first); var secondStatus = executor.submit(second);
+            assertTrue(ready.await(20, TimeUnit.SECONDS)); start.countDown();
+            int statusOfFirst = firstStatus.get(30, TimeUnit.SECONDS);
+            assertEquals(Set.of(201, 409), Set.of(statusOfFirst, secondStatus.get(30, TimeUnit.SECONDS)));
+            assertEquals(statusOfFirst == 201 ? "FIRST" : "SECOND", jdbc.queryForObject("select name from asset", String.class));
+        }
+        assertEquals(1, jdbc.queryForObject("select count(*) from audit_entry where subject_type = 'asset'", Integer.class));
+    }
+
+    @Test
+    void simultaneousCreationOfTheSchemaOfAnAssetTypeHasOneWinner() throws Exception {
+        String body = "{\"name\":\"Boiler safety\",\"assetType\":\"Boiler\",\"requiredSubsystems\":[\"E\",\"P\"],\"sections\":" + sections("P") + "}";
+        var start = new CountDownLatch(1);
+        var ready = new CountDownLatch(2);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            Callable<Integer> request = () -> {
+                ready.countDown(); start.await();
+                return postAs("PLANNER", "/api/v1/schemas", body).andReturn().getResponse().getStatus();
+            };
+            var first = executor.submit(request); var second = executor.submit(request);
+            assertTrue(ready.await(20, TimeUnit.SECONDS)); start.countDown();
+            assertEquals(Set.of(201, 409), Set.of(first.get(30, TimeUnit.SECONDS), second.get(30, TimeUnit.SECONDS)));
+        }
+        assertEquals(1, jdbc.queryForObject("select count(*) from schema_version", Integer.class));
+        assertEquals(1, jdbc.queryForObject("select count(*) from audit_entry where subject_type = 'schema'", Integer.class));
+    }
+
     @Test
     void aFindingAndItsSummaryLineCarryTheSubsystemOfTheirCriterion() throws Exception {
         setup("DEMO-STRICT");

@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.infrastructure.catalog.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.catalog.model.Asset;
@@ -10,6 +11,8 @@ import ar.edu.itba.certiflow.catalog.model.Characteristic;
 import ar.edu.itba.certiflow.catalog.model.Characteristics;
 import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import ar.edu.itba.certiflow.catalog.model.Location;
+import ar.edu.itba.certiflow.catalog.model.exceptions.AssetAlreadyRegisteredException;
+import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
 import jakarta.persistence.EntityManager;
@@ -17,7 +20,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
@@ -33,7 +35,7 @@ class JpaAssetRepositoryTest {
 
     @Test
     void anAssetIsReadBackEqualToWhatWasSaved() {
-        repository.save(extinguisher);
+        repository.add(extinguisher);
         entityManager.flush();
         entityManager.clear();
 
@@ -42,9 +44,25 @@ class JpaAssetRepositoryTest {
                 repository.findByCode(extinguisher.code()).orElseThrow().responsible().name());
     }
 
+    /** Guardar un activo es darlo de alta: si el código ya existe falla, no pisa al que estaba. */
+    @Test
+    void aSecondAssetWithACodeThatIsAlreadyStoredIsRejectedAndTheFirstOneIsKept() {
+        repository.add(extinguisher);
+        entityManager.flush();
+        entityManager.clear();
+        Asset sameCodeOtherName = new Asset(extinguisher.code(), "Another extinguisher", extinguisher.type(),
+                extinguisher.location(), extinguisher.responsible(), new Characteristics(), extinguisher.jurisdictionCode(),
+                List.of());
+
+        assertThrows(AssetAlreadyRegisteredException.class, () -> repository.add(sameCodeOtherName));
+
+        entityManager.clear();
+        assertEquals("Lobby extinguisher", repository.findByCode(extinguisher.code()).orElseThrow().name());
+    }
+
     @Test
     void anUnknownCodeFindsNothingAndAllListsWhatWasSaved() {
-        repository.save(extinguisher);
+        repository.add(extinguisher);
 
         assertTrue(repository.findByCode(new AssetCode("NOPE")).isEmpty());
         assertEquals(List.of(extinguisher), repository.findAll());

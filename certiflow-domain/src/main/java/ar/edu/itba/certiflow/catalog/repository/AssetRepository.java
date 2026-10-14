@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface AssetRepository {
 
-    void save(Asset asset);
+    /** Da de alta un activo. Si ya hay uno con ese código falla: nunca pisa al que estaba. */
+    void add(Asset asset);
 
     Optional<Asset> findByCode(AssetCode code);
 

@@ -8,6 +8,10 @@ import ar.edu.itba.certiflow.shared.model.PageRequest;
 
 public interface InspectionSchemaRepository {
 
+    /** Da de alta un esquema. Si su tipo de activo ya tiene uno falla: nunca pisa al que estaba. */
+    void add(InspectionSchema schema);
+
+    /** Guarda las versiones que se le publicaron a un esquema que ya existe. */
     void save(InspectionSchema schema);
 
     /** Lee el esquema y lo deja bloqueado hasta el fin de la transacción: dos publicaciones no se pisan. */

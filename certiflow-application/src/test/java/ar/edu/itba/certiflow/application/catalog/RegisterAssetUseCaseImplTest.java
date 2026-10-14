@@ -42,13 +42,13 @@ class RegisterAssetUseCaseImplTest {
 
         registerAsset(jurisdictionCode -> true).execute(COMMAND);
 
-        verify(assetRepository).save(any());
+        verify(assetRepository).add(any());
     }
 
     @Test
     void anAssetUnderAJurisdictionWithoutPolicyIsRejectedAndNotSaved() {
         assertThrows(UnknownJurisdictionException.class, () -> registerAsset(jurisdictionCode -> false).execute(COMMAND));
-        verify(assetRepository, never()).save(any());
+        verify(assetRepository, never()).add(any());
     }
 
     @Test
@@ -57,6 +57,6 @@ class RegisterAssetUseCaseImplTest {
 
         assertThrows(AssetAlreadyRegisteredException.class,
                 () -> registerAsset(jurisdictionCode -> true).execute(COMMAND));
-        verify(assetRepository, never()).save(any());
+        verify(assetRepository, never()).add(any());
     }
 }

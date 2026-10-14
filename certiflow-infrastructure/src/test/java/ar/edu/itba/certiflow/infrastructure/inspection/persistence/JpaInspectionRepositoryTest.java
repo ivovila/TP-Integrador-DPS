@@ -48,7 +48,7 @@ class JpaInspectionRepositoryTest {
     @BeforeEach
     void publishSchema() {
         schema = DomainSamples.schema();
-        schemas.save(schema);
+        schemas.add(schema);
     }
 
     private Inspection reloaded(Inspection inspection) {
@@ -101,7 +101,7 @@ class JpaInspectionRepositoryTest {
     void aSectionTitleWithALineBreakSurvivesTheScope() {
         InspectionSchema lined = DomainSamples.schemaWith("Lined", new AssetType("Lined boiler"),
                 List.of(new Section(new SectionTitle("Signage\nand lights"), DomainSamples.sections().get(1).criteria())), DomainSamples.T0);
-        schemas.save(lined);
+        schemas.add(lined);
         Asset sample = DomainSamples.ASSET;
         Asset linedBoiler = new Asset(sample.code(), sample.name(), lined.assetType(), sample.location(), sample.responsible(),
                 sample.characteristics(), sample.jurisdictionCode(), sample.subsystems());

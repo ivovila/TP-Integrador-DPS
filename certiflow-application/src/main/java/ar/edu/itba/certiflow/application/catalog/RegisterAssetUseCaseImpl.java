@@ -25,7 +25,7 @@ public final class RegisterAssetUseCaseImpl implements RegisterAssetUseCase {
         Asset asset = new Asset(command.code(), command.name(), command.type(), command.location(), command.responsible(),
                 command.characteristics(), command.jurisdictionCode(), command.subsystems());
         Asset registeredAsset = assetService.register(asset, new Stamp(command.registeredBy(), clock.instant()));
-        assetRepository.save(registeredAsset);
+        assetRepository.add(registeredAsset);
         return registeredAsset;
     }
 }

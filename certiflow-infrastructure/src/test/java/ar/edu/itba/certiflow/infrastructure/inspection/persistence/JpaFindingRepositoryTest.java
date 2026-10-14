@@ -32,7 +32,7 @@ class JpaFindingRepositoryTest {
 
     private Finding savedFinding() {
         InspectionSchema schema = DomainSamples.schema();
-        schemas.save(schema);
+        schemas.add(schema);
         Inspection inspection = DomainSamples.answeredInspection(schema, "5.00");
         var closure = DomainSamples.close(inspection);
         inspections.save(inspection);

@@ -29,7 +29,7 @@ public final class CreateInspectionSchemaUseCaseImpl implements CreateInspection
         }
         InspectionSchema schema = inspectionSchemaService.create(command.name(), command.assetType(), command.sections(),
                 new Stamp(command.createdBy(), clock.instant()), command.requiredSubsystems());
-        inspectionSchemaRepository.save(schema);
+        inspectionSchemaRepository.add(schema);
         return schema;
     }
 }

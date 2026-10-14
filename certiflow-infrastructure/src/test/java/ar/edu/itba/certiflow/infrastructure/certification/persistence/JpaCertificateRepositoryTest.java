@@ -51,7 +51,7 @@ class JpaCertificateRepositoryTest {
 
     private Certificate issued() {
         var schema = DomainSamples.schema();
-        schemas.save(schema);
+        schemas.add(schema);
         Inspection inspection = DomainSamples.answeredInspection(schema, "7.00");
         DomainSamples.close(inspection);
         inspections.save(inspection);
