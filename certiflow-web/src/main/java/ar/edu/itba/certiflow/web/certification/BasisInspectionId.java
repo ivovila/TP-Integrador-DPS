@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.web.certification;
 import ar.edu.itba.certiflow.certification.model.CertificateBasisDescriber;
 import ar.edu.itba.certiflow.certification.model.CertificateNumber;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
-import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +17,7 @@ final class BasisInspectionId implements CertificateBasisDescriber<Optional<Stri
     }
 
     @Override
-    public Optional<String> partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
+    public Optional<String> partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyReference globalPolicy,
                                                 Instant latestInspectionClosedAt) {
         return Optional.empty();
     }

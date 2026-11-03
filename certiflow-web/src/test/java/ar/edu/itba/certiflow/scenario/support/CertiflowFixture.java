@@ -24,7 +24,7 @@ import ar.edu.itba.certiflow.certification.model.CertificationScope;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.IneligibilityReason;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
-import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import ar.edu.itba.certiflow.certification.model.RejectedDecision;
 import ar.edu.itba.certiflow.certification.model.WholeAssetScope;
 import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertificationException;
@@ -274,7 +274,7 @@ public final class CertiflowFixture {
 
             @Override
             public Optional<InspectionId> partialCertificates(List<CertificateNumber> partialCertificateNumbers,
-                                                              PolicyCode globalPolicyCode, Instant latestInspectionClosedAt) {
+                                                              PolicyReference globalPolicy, Instant latestInspectionClosedAt) {
                 return Optional.empty();
             }
         }).orElseThrow();

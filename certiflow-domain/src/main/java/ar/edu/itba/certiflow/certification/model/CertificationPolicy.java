@@ -1,6 +1,6 @@
 package ar.edu.itba.certiflow.certification.model;
 
 public interface CertificationPolicy {
-    PolicyCode code();
+    PolicyReference reference();
     CertificationDecision evaluate(CertificationAssessmentContext context);
 }

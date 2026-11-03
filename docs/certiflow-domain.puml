@@ -274,6 +274,7 @@ package "schema.model" {
     assetType: AssetType
     versionLog: SchemaVersionLog
     +withNewVersion(List<Section>, Instant publishedAt, Instant effectiveFrom, Set<SubsystemCode>): InspectionSchema
+    ~withCancelledVersion(int, Stamp, String reason): InspectionSchema
     +versionAt(Instant): SchemaVersion
     +version(int): SchemaVersion
     +latestPublishedVersion(): SchemaVersion
@@ -283,6 +284,7 @@ package "schema.model" {
     versions: List<SchemaVersion>
     +SchemaVersionLog(List<Section>, Instant publishedAt, Set<SubsystemCode>)
     +append(List<Section>, Instant publishedAt, Instant effectiveFrom, Set<SubsystemCode>): SchemaVersionLog
+    ~cancel(AssetType, int, Stamp, String reason): SchemaVersionLog
     +versionAt(Instant): SchemaVersion
     +latestPublished(): SchemaVersion
   }
@@ -291,6 +293,11 @@ package "schema.model" {
     sections: SchemaSections
     publishedAt: Instant
     effectiveFrom: Instant
+    cancellation: VersionCancellationState
+    +isCancelled(): boolean
+    +isInForceAt(Instant): boolean
+    +isCancellableAt(Instant): boolean
+    ~cancelled(Stamp, String reason): SchemaVersion
     +requiredSubsystems(): Set<SubsystemCode>
     +ensureRequires(Set<SubsystemCode>)
     +associationOf(Criterion<?>): SubsystemAssociation
@@ -299,6 +306,15 @@ package "schema.model" {
     +section(SectionTitle): Section
     +criterion(CriterionCode): Criterion<?>
     +ensureContains(Criterion<?>)
+  }
+  interface VersionCancellationState {
+    +isCancelled(): boolean
+    +describedBy(VersionCancellationDescriber<T>): T
+  }
+  class VersionNotCancelled <<value object>>
+  class VersionCancellation <<value object>> {
+    cancelled: Stamp
+    reason: String
   }
   class SchemaSections <<coleccion de primera clase>> {
     all: List<Section>
@@ -333,16 +349,21 @@ package "schema.model" {
     -auditLog: AuditLog<AssetType>
     +create(name, AssetType, List<Section>, Stamp, Set<SubsystemCode>): InspectionSchema
     +publishVersion(InspectionSchema, List<Section>, Stamp, Instant effectiveFrom, Set<SubsystemCode>): InspectionSchema
+    +cancelVersion(InspectionSchema, int, Stamp, String reason): InspectionSchema
   }
   enum SchemaAudit {
     CREATED
     VERSION_ADDED
+    VERSION_CANCELLED
   }
   AuditAction <|.. SchemaAudit
   InspectionSchemaService ..> InspectionSchema : crea versiones y audita
   InspectionSchema *-- SchemaVersionLog
   SchemaVersionLog "1" *-- "1..*" SchemaVersion
   SchemaVersion *-- SchemaSections
+  SchemaVersion *-- VersionCancellationState
+  VersionCancellationState <|.. VersionNotCancelled
+  VersionCancellationState <|.. VersionCancellation
   SchemaSections *-- "1..*" Section
   Section *-- "1..*" Criterion
   Section --> SectionTitle
@@ -731,12 +752,12 @@ package "certification.model" {
   }
   class PartialCertificatesBasis <<value object>> {
     partialCertificateNumbers: List<CertificateNumber>
-    globalPolicyCode: PolicyCode
+    globalPolicy: PolicyReference
     latestInspectionClosedAt: Instant
   }
   interface "CertificateBasisDescriber<T>" as CertificateBasisDescriber {
     +inspection(InspectionReference): T
-    +partialCertificates(List<CertificateNumber>, PolicyCode, Instant): T
+    +partialCertificates(List<CertificateNumber>, PolicyReference, Instant): T
   }
   class InspectionReference <<value object>> {
     id: InspectionId
@@ -873,15 +894,20 @@ package "certification.model (elegibilidad)" {
   }
   class JurisdictionPolicy <<value object>> {
     jurisdictionCode: JurisdictionCode
-    policyCode: PolicyCode
+    policy: PolicyReference
   }
   class PolicyCode <<value object>>
+  class PolicyReference <<value object>> {
+    code: PolicyCode
+    version: int
+    +label(): String
+  }
   interface CertificationPolicy <<politica intercambiable>> {
-    +code(): PolicyCode
+    +reference(): PolicyReference
     +evaluate(CertificationAssessmentContext): CertificationDecision
   }
   class SeverityCertificationPolicy {
-    -code: PolicyCode
+    -reference: PolicyReference
     -treatments: Map<Severity, FindingTreatment>
     -approvedTerm: ValidityTerm
   }
@@ -902,7 +928,7 @@ package "certification.model (elegibilidad)" {
     conditionalTerm: ValidityTerm
   }
   interface GlobalCertificationPolicy <<politica intercambiable>> {
-    +code(): PolicyCode
+    +reference(): PolicyReference
     +evaluate(GlobalAssessmentContext): CertificationDecision
   }
   class AllRequiredSubsystemsPolicy
@@ -915,13 +941,13 @@ package "certification.model (elegibilidad)" {
     issuanceDate: LocalDate
     evaluatedAt: Instant
     +latestInspectionClosedAt(): Instant
-    +decidedWith(GrantedDecision, PolicyCode): DecidedGlobalCertification
+    +decidedWith(GrantedDecision, PolicyReference): DecidedGlobalCertification
   }
   interface CertificationDecision {
     +outcome(): CertificationOutcome
     +isEligible(): boolean
     +ensureGranted(): GrantedDecision
-    +policyCode(): PolicyCode
+    +policy(): PolicyReference
     +jurisdictionCode(): JurisdictionCode
     +evaluatedAt(): Instant
     +scope(): CertificationScope
@@ -930,14 +956,14 @@ package "certification.model (elegibilidad)" {
   class GrantedDecision <<value object>> {
     conditions: List<CertificationCondition>
     validity: ValidityPeriod
-    policyCode: PolicyCode
+    policy: PolicyReference
     jurisdictionCode: JurisdictionCode
     evaluatedAt: Instant
     scope: CertificationScope
   }
   class RejectedDecision <<value object>> {
     ineligibilities: List<Ineligibility>
-    policyCode: PolicyCode
+    policy: PolicyReference
     jurisdictionCode: JurisdictionCode
     evaluatedAt: Instant
     scope: CertificationScope
@@ -986,7 +1012,7 @@ package "certification.model (elegibilidad)" {
     schemaReference: SchemaReference
     requiredSubsystems: Set<SubsystemCode>
     partialNumbers: List<CertificateNumber>
-    globalPolicyCode: PolicyCode
+    globalPolicy: PolicyReference
     latestInspectionClosedAt: Instant
     decision: GrantedDecision
     +scope(): CertificationScope
@@ -1068,14 +1094,15 @@ package "certification.model (elegibilidad)" {
   CertificationDecision ..> CertificationDecisionDescriber
   CertificationDecision ..> CertificationOutcome
   CertificationDecision --> CertificationScope
-  CertificationDecision --> PolicyCode
+  CertificationDecision --> PolicyReference
+  PolicyReference --> PolicyCode
   GrantedDecision *-- "*" CertificationCondition
   GrantedDecision --> ValidityPeriod
   RejectedDecision *-- "*" Ineligibility
   Ineligibility --> IneligibilityReason
   IneligibilityReason <|.. StandardIneligibilityReason
   Certificate --> GrantedDecision : decision
-  PartialCertificatesBasis --> PolicyCode
+  PartialCertificatesBasis --> PolicyReference
   DecidedCertification --> InspectionResult
   DecidedCertification --> GrantedDecision
   DecidedGlobalCertification --> GrantedDecision

@@ -19,10 +19,10 @@ class ConfiguredPolicyResolverTest {
     @Test void aNewJurisdictionChangesDecisionWithoutChangingCertificationService() {
         var third = new JurisdictionCode("THIRD");
         CertificationPolicy policy = new CertificationPolicy() {
-            @Override public PolicyCode code() { return new PolicyCode("THIRD-POLICY"); }
+            @Override public PolicyReference reference() { return new PolicyReference(new PolicyCode("THIRD-POLICY"), 1); }
             @Override public CertificationDecision evaluate(CertificationAssessmentContext context) {
                 var from = context.issuanceDate();
-                return new GrantedDecision(List.of(), new ValidityPeriod(from, from.plusMonths(3).minusDays(1)), code(),
+                return new GrantedDecision(List.of(), new ValidityPeriod(from, from.plusMonths(3).minusDays(1)), reference(),
                         context.jurisdictionCode(), context.evaluatedAt(), context.result().scope());
             }
         };
@@ -32,7 +32,7 @@ class ConfiguredPolicyResolverTest {
                 new SchemaReference(new AssetType("Equipment"), 1), List.of(), new WholeAssetScope());
         var decision = resolver.resolve(third).evaluate(
                 new CertificationAssessmentContext(result, third, at, LocalDate.of(2026, 2, 28)));
-        assertEquals(new PolicyCode("THIRD-POLICY"), decision.policyCode());
+        assertEquals(new PolicyReference(new PolicyCode("THIRD-POLICY"), 1), decision.policy());
         GrantedDecision grantedDecision = decision.ensureGranted();
         assertEquals(LocalDate.of(2026, 5, 27), grantedDecision.validity().validUntil());
         assertThrows(JurisdictionPolicyNotFoundException.class, () -> resolver.resolve(new JurisdictionCode("MISSING")));
@@ -45,7 +45,7 @@ class ConfiguredPolicyResolverTest {
                 new JurisdictionCode("SOUTH"), DomainSamples.strictPolicy(),
                 new JurisdictionCode("NORTH"), DomainSamples.conditionalPolicy()));
         assertEquals(List.of(
-                new JurisdictionPolicy(new JurisdictionCode("NORTH"), new PolicyCode("CONDITIONAL")),
-                new JurisdictionPolicy(new JurisdictionCode("SOUTH"), new PolicyCode("STRICT"))), resolver.all());
+                new JurisdictionPolicy(new JurisdictionCode("NORTH"), new PolicyReference(new PolicyCode("CONDITIONAL"), 1)),
+                new JurisdictionPolicy(new JurisdictionCode("SOUTH"), new PolicyReference(new PolicyCode("STRICT"), 1))), resolver.all());
     }
 }

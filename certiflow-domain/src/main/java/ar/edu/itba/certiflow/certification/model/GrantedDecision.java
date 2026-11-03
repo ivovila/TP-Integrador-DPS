@@ -4,7 +4,7 @@ import ar.edu.itba.certiflow.catalog.model.JurisdictionCode;
 import java.time.Instant;
 import java.util.List;
 
-public record GrantedDecision(List<CertificationCondition> conditions, ValidityPeriod validity, PolicyCode policyCode,
+public record GrantedDecision(List<CertificationCondition> conditions, ValidityPeriod validity, PolicyReference policy,
                               JurisdictionCode jurisdictionCode, Instant evaluatedAt, CertificationScope scope)
         implements CertificationDecision {
 

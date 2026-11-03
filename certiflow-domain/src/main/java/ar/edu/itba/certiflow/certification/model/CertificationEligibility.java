@@ -29,7 +29,7 @@ public final class CertificationEligibility {
         List<Ineligibility> unmetRequirements = commonRequirements.unmetBy(context.result());
         return unmetRequirements.isEmpty()
                 ? policy.evaluate(context)
-                : new RejectedDecision(unmetRequirements, policy.code(), context.jurisdictionCode(),
+                : new RejectedDecision(unmetRequirements, policy.reference(), context.jurisdictionCode(),
                         context.evaluatedAt(), context.result().scope());
     }
 }

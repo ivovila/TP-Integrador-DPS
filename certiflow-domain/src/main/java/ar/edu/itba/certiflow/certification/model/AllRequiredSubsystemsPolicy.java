@@ -24,8 +24,8 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                     requiredSubsystems -> "Schema has no required subsystems")));
 
     @Override
-    public PolicyCode code() {
-        return new PolicyCode("ALL-REQUIRED-SUBSYSTEMS");
+    public PolicyReference reference() {
+        return new PolicyReference(new PolicyCode("ALL-REQUIRED-SUBSYSTEMS"), 1);
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
     }
 
     private CertificationDecision rejected(List<Ineligibility> reasons, GlobalAssessmentContext context) {
-        return new RejectedDecision(reasons, code(), context.jurisdictionCode(), context.evaluatedAt(),
+        return new RejectedDecision(reasons, reference(), context.jurisdictionCode(), context.evaluatedAt(),
                 new WholeAssetScope());
     }
 
@@ -94,7 +94,7 @@ public final class AllRequiredSubsystemsPolicy implements GlobalCertificationPol
                         condition.description(), Collections.min(List.of(condition.dueDate(), validUntil))))
                 .distinct()
                 .toList();
-        return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), validUntil), code(),
+        return new GrantedDecision(conditions, new ValidityPeriod(context.issuanceDate(), validUntil), reference(),
                 context.jurisdictionCode(), context.evaluatedAt(), new WholeAssetScope());
     }
 }

@@ -14,7 +14,7 @@ import java.util.Set;
  */
 public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference schemaReference,
                                          Set<SubsystemCode> requiredSubsystems, List<CertificateNumber> partialNumbers,
-                                         PolicyCode globalPolicyCode, Instant latestInspectionClosedAt,
+                                         PolicyReference globalPolicy, Instant latestInspectionClosedAt,
                                          GrantedDecision decision) {
 
     public DecidedGlobalCertification {
@@ -35,6 +35,6 @@ public record DecidedGlobalCertification(AssetCode assetCode, SchemaReference sc
     }
 
     public CertificateBasis certificateBasis() {
-        return new PartialCertificatesBasis(partialNumbers, globalPolicyCode, latestInspectionClosedAt);
+        return new PartialCertificatesBasis(partialNumbers, globalPolicy, latestInspectionClosedAt);
     }
 }

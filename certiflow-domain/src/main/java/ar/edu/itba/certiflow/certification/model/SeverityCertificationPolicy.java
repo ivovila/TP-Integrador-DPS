@@ -10,25 +10,25 @@ import java.util.Map;
  */
 public final class SeverityCertificationPolicy implements CertificationPolicy {
 
-    private final PolicyCode code;
+    private final PolicyReference reference;
     private final Map<Severity, FindingTreatment> treatments;
     private final ValidityTerm approvedTerm;
 
-    public SeverityCertificationPolicy(PolicyCode code, Map<Severity, FindingTreatment> treatments,
+    public SeverityCertificationPolicy(PolicyReference reference, Map<Severity, FindingTreatment> treatments,
                                        ValidityTerm approvedTerm) {
-        this.code = code;
+        this.reference = reference;
         this.treatments = Map.copyOf(treatments);
         this.approvedTerm = approvedTerm;
     }
 
     @Override
-    public PolicyCode code() {
-        return code;
+    public PolicyReference reference() {
+        return reference;
     }
 
     @Override
     public CertificationDecision evaluate(CertificationAssessmentContext context) {
-        PolicyAssessment assessment = new PolicyAssessment(context, code, approvedTerm);
+        PolicyAssessment assessment = new PolicyAssessment(context, reference, approvedTerm);
         context.result().openNonConformities().forEach(finding ->
                 treatments.getOrDefault(finding.severity(), StandardFindingTreatment.UNSUPPORTED).applyTo(finding, assessment));
         return assessment.decision();

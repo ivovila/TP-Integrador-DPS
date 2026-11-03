@@ -12,16 +12,16 @@ import java.util.List;
 public final class PolicyAssessment {
 
     private final CertificationAssessmentContext context;
-    private final PolicyCode policyCode;
+    private final PolicyReference policy;
     private final ValidityTerm approvedTerm;
     private final List<Ineligibility> reasons = new ArrayList<>();
     private final List<OpenNonConformity> conditioned = new ArrayList<>();
     private final List<ValidityTerm> conditionalTerms = new ArrayList<>();
     private State state = State.APPROVED;
 
-    PolicyAssessment(CertificationAssessmentContext context, PolicyCode policyCode, ValidityTerm approvedTerm) {
+    PolicyAssessment(CertificationAssessmentContext context, PolicyReference policy, ValidityTerm approvedTerm) {
         this.context = context;
-        this.policyCode = policyCode;
+        this.policy = policy;
         this.approvedTerm = approvedTerm;
     }
 
@@ -53,7 +53,7 @@ public final class PolicyAssessment {
             @Override
             CertificationDecision decide(PolicyAssessment assessment) {
                 return new GrantedDecision(List.of(), assessment.approvedTerm.startingOn(assessment.context.issuanceDate()),
-                        assessment.policyCode, assessment.context.jurisdictionCode(), assessment.context.evaluatedAt(),
+                        assessment.policy, assessment.context.jurisdictionCode(), assessment.context.evaluatedAt(),
                         assessment.context.result().scope());
             }
         },
@@ -65,7 +65,7 @@ public final class PolicyAssessment {
                         .map(finding -> new CertificationCondition(finding.findingId(), finding.criterionCode(),
                                 "Resolve and verify open nonconformity", validity.validUntil()))
                         .toList();
-                return new GrantedDecision(conditions, validity, assessment.policyCode, assessment.context.jurisdictionCode(),
+                return new GrantedDecision(conditions, validity, assessment.policy, assessment.context.jurisdictionCode(),
                         assessment.context.evaluatedAt(), assessment.context.result().scope());
             }
         },
@@ -77,7 +77,7 @@ public final class PolicyAssessment {
 
             @Override
             CertificationDecision decide(PolicyAssessment assessment) {
-                return new RejectedDecision(assessment.reasons, assessment.policyCode, assessment.context.jurisdictionCode(),
+                return new RejectedDecision(assessment.reasons, assessment.policy, assessment.context.jurisdictionCode(),
                         assessment.context.evaluatedAt(), assessment.context.result().scope());
             }
         };

@@ -29,6 +29,7 @@ import ar.edu.itba.certiflow.certification.model.DaysTerm;
 import ar.edu.itba.certiflow.certification.model.InspectionResultTranslator;
 import ar.edu.itba.certiflow.certification.model.MonthsTerm;
 import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import ar.edu.itba.certiflow.certification.model.RegisteredJurisdictions;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.StandardFindingTreatment;
@@ -86,7 +87,7 @@ public class CertificationConfiguration {
 
     /** Cualquier hallazgo abierto rechaza; aprueba por 12 meses. */
     private SeverityCertificationPolicy strictPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("STRICT"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STRICT"), 1),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
@@ -95,7 +96,7 @@ public class CertificationConfiguration {
 
     /** MAJOR y CRITICAL rechazan, MINOR se tolera; aprueba por 12 meses. */
     private SeverityCertificationPolicy standardPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("STANDARD"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STANDARD"), 1),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED,
                         StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
@@ -104,7 +105,7 @@ public class CertificationConfiguration {
 
     /** CRITICAL rechaza; MINOR o MAJOR dan un certificado condicional por 30 días; sin hallazgos aprueba por 6 meses. */
     private SeverityCertificationPolicy conditionalPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("CONDITIONAL"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("CONDITIONAL"), 1),
                 Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),

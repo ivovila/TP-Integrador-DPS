@@ -33,7 +33,8 @@ final class DecisionPayloadDescriber implements CertificationDecisionDescriber<D
     private DecisionPayload payload(CertificationDecision decision, List<ReasonPayload> reasons,
                                     List<ConditionPayload> conditions, ValidityFields validity) {
         return new DecisionPayload(decision.outcome().name(), decision.isEligible(), reasons, conditions,
-                validity.validFrom(), validity.validUntil(), decision.policyCode().value(),
+                validity.validFrom(), validity.validUntil(), decision.policy().code().value(),
+                decision.policy().version(),
                 decision.jurisdictionCode().value(), decision.evaluatedAt(), ScopePayload.of(decision.scope()));
     }
 }

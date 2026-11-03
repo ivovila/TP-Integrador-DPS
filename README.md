@@ -178,7 +178,8 @@ de prueba certiflow-test: `mvn -q -Dcertiflow.postgres=true clean verify`.
 CI levanta esa base como servicio efímero. `DeliveryFeaturesApiTest` documenta la demostración paso a paso.
 
 
-Las políticas exponen únicamente `code()` y `evaluate(context)`. Sus reglas son privadas;
-la decisión conserva resultado, motivos, condiciones, vigencia y código de política.
+Las políticas exponen únicamente `reference()` (código y versión) y `evaluate(context)`. Sus reglas son privadas;
+la decisión conserva resultado, motivos, condiciones, vigencia y la referencia de la política que la tomó, así que
+dos decisiones de `STANDARD` con plazos distintos dicen bajo qué versión se tomó cada una.
 El resumen general de hallazgos muestra severidad y resolución. Los impedimentos de certificación
 se consultan en la evaluación de una inspección y alcance, no como propiedad absoluta de un hallazgo.

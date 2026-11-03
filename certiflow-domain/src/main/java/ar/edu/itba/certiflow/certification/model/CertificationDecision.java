@@ -16,7 +16,7 @@ public interface CertificationDecision {
      */
     GrantedDecision ensureGranted();
 
-    PolicyCode policyCode();
+    PolicyReference policy();
 
     JurisdictionCode jurisdictionCode();
 

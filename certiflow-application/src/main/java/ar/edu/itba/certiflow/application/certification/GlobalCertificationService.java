@@ -53,7 +53,7 @@ public final class GlobalCertificationService {
                 new SchemaReference(asset.type(), schemaVersionNumber), version.requiredSubsystems(), partials,
                 asset.jurisdictionCode(), LocalDate.ofInstant(decidedAt, clock.getZone()), decidedAt);
         CertificationDecision decision = globalCertificationPolicy.evaluate(context);
-        return context.decidedWith(decision.ensureGranted(), globalCertificationPolicy.code());
+        return context.decidedWith(decision.ensureGranted(), globalCertificationPolicy.reference());
     }
 
     private SchemaVersion versionOf(Asset asset, int number) {

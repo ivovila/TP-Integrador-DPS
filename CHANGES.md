@@ -756,3 +756,31 @@ la futura desaparecería como efecto lateral, sin motivo propio en la bitácora.
   PostgreSQL) y la ruta nueva en `RoleAccessApiTest`.
 - `DESIGN.md`: S2, D21, D31 nueva, tabla de riesgos y deuda de F2. `docs/openapi.yaml`: operación nueva y campos
   de la versión.
+
+### F3 · La decisión no guardaba la versión de la política
+
+**Corrección:** la decisión guardaba el código de la política pero no su versión. Si DEMO-STANDARD pasaba de 12
+a 6 meses, las decisiones viejas y las nuevas decían "DEMO-STANDARD" con plazos distintos: los datos explicaban el
+resultado, pero no qué regla estaba vigente.
+
+**Decisión:** toda política se identifica con `PolicyReference(code, version)`, y la decisión guarda esa
+referencia. Cambiar las reglas de una política es registrarla con la versión siguiente. Esto revierte la decisión
+del 2026-10-13 de no versionar políticas, que es justamente lo que señala la corrección.
+
+**Cambios:**
+- Dominio: `PolicyReference` (versión desde 1, `InvalidPolicyVersionException`, `label()` → `STANDARD v1`).
+  `CertificationPolicy` y `GlobalCertificationPolicy` exponen `reference()` en lugar de `code()`;
+  `GrantedDecision`, `RejectedDecision`, `JurisdictionPolicy`, `DecidedGlobalCertification` y
+  `PartialCertificatesBasis` guardan la referencia. La bitácora del certificado escribe la versión.
+- Composición: las tres políticas de ejemplo son versión 1; `AllRequiredSubsystemsPolicy` también.
+- Persistencia: el documento de la decisión suma `policyVersion`; migración `V6__policy_versions.sql` con
+  `global_policy_version` y versión 1 para lo ya guardado.
+- API: `policyVersion` en la decisión y en el vocabulario de jurisdicciones; `globalPolicyVersion` en la base de un
+  certificado global. Los campos que ya existían no cambian.
+- Tests: `JurisdictionPoliciesTest.decisionsTakenUnderEachVersionOfAPolicySayWhichRuleWasInForce` y
+  `aPolicyVersionStartsAtOne`, `JpaCertificateRepositoryTest.theDecisionIsReadBackWithTheVersionOfThePolicyThatTookIt`,
+  aserciones nuevas en `DeliveryFeaturesApiTest` y `VocabularyApiTest`; los tests que armaban políticas o
+  decisiones usan `PolicyReference`.
+- `DESIGN.md`: D10, D32 nueva, tabla de riesgos, deuda de F3, flujo de certificación y limitaciones.
+  `README.md` y `docs/openapi.yaml` al día. `docs/certiflow-domain.puml` dibuja `PolicyReference` y, de F2, el
+  estado de cancelación de `SchemaVersion`.

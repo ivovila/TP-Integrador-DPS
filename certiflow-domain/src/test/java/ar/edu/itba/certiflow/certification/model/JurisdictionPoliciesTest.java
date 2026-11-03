@@ -23,14 +23,14 @@ class JurisdictionPoliciesTest {
     }
 
     private SeverityCertificationPolicy strictPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("STRICT"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STRICT"), 1),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     private SeverityCertificationPolicy conditionalPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("CONDITIONAL"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("CONDITIONAL"), 1),
                 Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
@@ -53,9 +53,38 @@ class JurisdictionPoliciesTest {
     @Test
     void assessmentPreservesTheAppliedPolicyAndJurisdiction() {
         var decision = evaluate(false, result(true, true, null));
-        assertEquals(new PolicyCode("CONDITIONAL"), decision.policyCode());
+        assertEquals(new PolicyReference(new PolicyCode("CONDITIONAL"), 1), decision.policy());
         assertEquals(new JurisdictionCode("DEMO-CONDITIONAL"), decision.jurisdictionCode());
         assertEquals(new WholeAssetScope(), decision.scope());
+    }
+
+    private SeverityCertificationPolicy standardPolicy(int version, int approvedMonths) {
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STANDARD"), version),
+                Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
+                        StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
+                new MonthsTerm(approvedMonths));
+    }
+
+    @Test
+    void decisionsTakenUnderEachVersionOfAPolicySayWhichRuleWasInForce() {
+        var context = new CertificationAssessmentContext(result(true, true, null), new JurisdictionCode("DEMO-STANDARD"), now,
+                LocalDate.of(2026, 1, 31));
+
+        GrantedDecision before = standardPolicy(1, 12).evaluate(context).ensureGranted();
+        GrantedDecision after = standardPolicy(2, 6).evaluate(context).ensureGranted();
+
+        assertEquals(new PolicyReference(new PolicyCode("STANDARD"), 1), before.policy());
+        assertEquals(LocalDate.of(2027, 1, 30), before.validity().validUntil());
+        assertEquals(new PolicyReference(new PolicyCode("STANDARD"), 2), after.policy());
+        assertEquals(LocalDate.of(2026, 7, 30), after.validity().validUntil());
+        assertEquals(before.policy().code(), after.policy().code());
+    }
+
+    @Test
+    void aPolicyVersionStartsAtOne() {
+        assertThrows(ar.edu.itba.certiflow.certification.model.exceptions.InvalidPolicyVersionException.class,
+                () -> new PolicyReference(new PolicyCode("STANDARD"), 0));
+        assertEquals("STANDARD v3", new PolicyReference(new PolicyCode("STANDARD"), 3).label());
     }
 
     @Test
@@ -79,14 +108,14 @@ class JurisdictionPoliciesTest {
     @Test
     void classifiesCustomSeverityWithoutKnowingItsImplementation() {
         CertificationPolicy policy = new CertificationPolicy() {
-            @Override public PolicyCode code() { return new PolicyCode("CUSTOM"); }
+            @Override public PolicyReference reference() { return new PolicyReference(new PolicyCode("CUSTOM"), 1); }
             @Override public CertificationDecision evaluate(CertificationAssessmentContext context) {
                 var from = context.issuanceDate();
                 var until = from.plusDays(14);
                 var conditions = context.result().openNonConformities().stream()
                         .map(finding -> new CertificationCondition(finding.findingId(), finding.criterionCode(),
                                 "Verify advisory", until)).toList();
-                return new GrantedDecision(conditions, new ValidityPeriod(from, until), code(), context.jurisdictionCode(),
+                return new GrantedDecision(conditions, new ValidityPeriod(from, until), reference(), context.jurisdictionCode(),
                         context.evaluatedAt(), context.result().scope());
             }
         };

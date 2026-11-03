@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ar.edu.itba.certiflow.certification.model.CertificationDecision;
 import ar.edu.itba.certiflow.certification.model.Ineligibility;
 import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import ar.edu.itba.certiflow.certification.model.StandardIneligibilityReason;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.SectionsScope;
@@ -34,7 +35,7 @@ class CertificationDecisionTest extends ScenarioTest {
         CertificationDecision decision = fixture.evaluate(partialInProgress);
 
         assertFalse(decision.isEligible());
-        assertEquals(new PolicyCode("STANDARD"), decision.policyCode());
+        assertEquals(new PolicyReference(new PolicyCode("STANDARD"), 1), decision.policy());
         List<Ineligibility> ineligibilities = fixture.ineligibilitiesOf(decision);
         assertEquals(List.of(StandardIneligibilityReason.INSPECTION_NOT_CLOSED, StandardIneligibilityReason.PARTIAL_INSPECTION),
                 ineligibilities.stream().map(Ineligibility::reason).toList());

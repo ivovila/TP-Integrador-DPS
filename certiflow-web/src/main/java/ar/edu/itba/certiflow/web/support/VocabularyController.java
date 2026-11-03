@@ -25,7 +25,7 @@ public class VocabularyController {
     public record EvidenceKindView(String name, String label) {
     }
 
-    public record JurisdictionView(String code, String policyCode) {
+    public record JurisdictionView(String code, String policyCode, int policyVersion) {
     }
 
     public static class VocabularyResource extends RepresentationModel<VocabularyResource> {
@@ -58,7 +58,7 @@ public class VocabularyController {
                         .toList(),
                 listJurisdictions.execute().stream()
                         .map(registered -> new JurisdictionView(registered.jurisdictionCode().value(),
-                                registered.policyCode().value()))
+                                registered.policy().code().value(), registered.policy().version()))
                         .toList());
         vocabulary.add(Link.of("/api/v1/vocabulary").withSelfRel());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(vocabulary);

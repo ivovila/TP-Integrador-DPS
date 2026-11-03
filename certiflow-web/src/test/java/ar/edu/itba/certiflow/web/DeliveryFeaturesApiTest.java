@@ -118,6 +118,8 @@ public class DeliveryFeaturesApiTest extends ApiTest {
         read("/api/v1/certificates/" + global).andExpect(jsonPath("$.status").value("DEPENDENCY_INVALID"))
                 .andExpect(jsonPath("$.scope.type").value("WHOLE_ASSET"))
                 .andExpect(jsonPath("$.basis.type").value("PARTIAL_CERTIFICATES"))
+                .andExpect(jsonPath("$.basis.globalPolicy").value("ALL-REQUIRED-SUBSYSTEMS"))
+                .andExpect(jsonPath("$.basis.globalPolicyVersion").value(1))
                 .andExpect(jsonPath("$.basis.partialCertificateNumbers[0]").value(electrical))
                 .andExpect(jsonPath("$.schemaReference.number").value(1));
         read("/api/v1/certificates/" + electrical).andExpect(jsonPath("$.basis.type").value("INSPECTION"))
@@ -202,6 +204,7 @@ public class DeliveryFeaturesApiTest extends ApiTest {
         String number = partial(permissive, "E");
         read("/api/v1/certificates/" + number + "/document")
                 .andExpect(jsonPath("$.decision.policyCode").value("CONDITIONAL"))
+                .andExpect(jsonPath("$.decision.policyVersion").value(1))
                 .andExpect(jsonPath("$.decision.conditions[0].dueDate").value("2026-11-10"))
                 .andExpect(jsonPath("$.validUntil").value("2026-11-10"));
         postAs("ISSUER", "/api/v1/certificates", "{\"inspectionId\":\"" + permissive + "\",\"subsystemCode\":\"E\",\"validUntil\":\"2099-01-01\"}")

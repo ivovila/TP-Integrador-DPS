@@ -24,7 +24,7 @@ public final class CertificationPayloads {
     }
 
     public record BasisPayload(String type, String inspectionId, Instant inspectionClosedAt,
-                               List<String> partialCertificateNumbers, String globalPolicy) {
+                               List<String> partialCertificateNumbers, String globalPolicy, Integer globalPolicyVersion) {
         public static BasisPayload of(CertificateBasis basis) {
             return basis.describedBy(new BasisPayloadDescriber());
         }
@@ -37,7 +37,8 @@ public final class CertificationPayloads {
     }
 
     public record DecisionPayload(String outcome, boolean eligible, List<ReasonPayload> reasons, List<ConditionPayload> conditions,
-                                  LocalDate validFrom, LocalDate validUntil, String policyCode, String jurisdictionCode,
+                                  LocalDate validFrom, LocalDate validUntil, String policyCode, int policyVersion,
+                                  String jurisdictionCode,
                                   Instant evaluatedAt, ScopePayload scope) {
         public static DecisionPayload of(CertificationDecision decision) {
             return decision.describedBy(new DecisionPayloadDescriber());

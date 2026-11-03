@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.certification.model.ConditionalTreatment;
 import ar.edu.itba.certiflow.certification.model.DaysTerm;
 import ar.edu.itba.certiflow.certification.model.MonthsTerm;
 import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import ar.edu.itba.certiflow.certification.model.SeverityCertificationPolicy;
 import ar.edu.itba.certiflow.certification.model.StandardFindingTreatment;
 import ar.edu.itba.certiflow.inspection.model.ActionPlan;
@@ -84,21 +85,21 @@ public final class DomainSamples {
     }
 
     public static SeverityCertificationPolicy strictPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("STRICT"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STRICT"), 1),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.BLOCKS, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     public static SeverityCertificationPolicy standardPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("STANDARD"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("STANDARD"), 1),
                 Map.of(StandardSeverity.MINOR, StandardFindingTreatment.TOLERATED, StandardSeverity.MAJOR, StandardFindingTreatment.BLOCKS,
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),
                 new MonthsTerm(12));
     }
 
     public static SeverityCertificationPolicy conditionalPolicy() {
-        return new SeverityCertificationPolicy(new PolicyCode("CONDITIONAL"),
+        return new SeverityCertificationPolicy(new PolicyReference(new PolicyCode("CONDITIONAL"), 1),
                 Map.of(StandardSeverity.MINOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.MAJOR, new ConditionalTreatment(new DaysTerm(30)),
                         StandardSeverity.CRITICAL, StandardFindingTreatment.BLOCKS),

@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.certification.model.InspectionBasis;
 import ar.edu.itba.certiflow.certification.model.InspectionReference;
 import ar.edu.itba.certiflow.certification.model.PartialCertificatesBasis;
 import ar.edu.itba.certiflow.certification.model.PolicyCode;
+import ar.edu.itba.certiflow.certification.model.PolicyReference;
 import ar.edu.itba.certiflow.certification.model.SchemaReference;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.CodesDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.shared.persistence.PersonColumns;
@@ -70,6 +71,7 @@ public class CertificateEntity {
     @Column(name = "schema_number") private int schemaNumber;
     @Column(name = "required_subsystems") private String requiredSubsystems;
     @Column(name = "global_policy_code") private String globalPolicyCode;
+    @Column(name = "global_policy_version") private Integer globalPolicyVersion;
     @Column(name = "latest_inspection_closed_at") private Instant latestInspectionClosedAt;
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "certificate_backing", joinColumns = @JoinColumn(name = "global_number"))
@@ -132,10 +134,11 @@ public class CertificateEntity {
         }
 
         @Override
-        public String partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode policyCode,
+        public String partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyReference globalPolicy,
                                           Instant closedAt) {
             partials.addAll(partialCertificateNumbers.stream().map(CertificateNumber::value).toList());
-            globalPolicyCode = policyCode.value();
+            globalPolicyCode = globalPolicy.code().value();
+            globalPolicyVersion = globalPolicy.version();
             latestInspectionClosedAt = closedAt;
             return PARTIAL_CERTIFICATES_BASIS;
         }
@@ -171,7 +174,7 @@ public class CertificateEntity {
         @Override
         public CertificateBasis basis() {
             return new PartialCertificatesBasis(partials.stream().map(CertificateNumber::new).toList(),
-                    new PolicyCode(globalPolicyCode), latestInspectionClosedAt);
+                    new PolicyReference(new PolicyCode(globalPolicyCode), globalPolicyVersion), latestInspectionClosedAt);
         }
     }
 

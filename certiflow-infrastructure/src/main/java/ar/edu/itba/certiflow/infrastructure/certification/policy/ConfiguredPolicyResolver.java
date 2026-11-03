@@ -39,7 +39,7 @@ public final class ConfiguredPolicyResolver implements CertificationPolicyResolv
     @Override
     public List<JurisdictionPolicy> all() {
         return policies.entrySet().stream()
-                .map(registered -> new JurisdictionPolicy(registered.getKey(), registered.getValue().code()))
+                .map(registered -> new JurisdictionPolicy(registered.getKey(), registered.getValue().reference()))
                 .sorted(Comparator.comparing(registered -> registered.jurisdictionCode().value()))
                 .toList();
     }

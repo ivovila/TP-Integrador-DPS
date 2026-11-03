@@ -7,6 +7,6 @@ public interface CertificateBasisDescriber<T> {
 
     T inspection(InspectionReference inspection);
 
-    T partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
+    T partialCertificates(List<CertificateNumber> partialCertificateNumbers, PolicyReference globalPolicy,
                           Instant latestInspectionClosedAt);
 }

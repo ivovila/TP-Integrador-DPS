@@ -5,7 +5,7 @@ import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertif
 import java.time.Instant;
 import java.util.List;
 
-public record RejectedDecision(List<Ineligibility> ineligibilities, PolicyCode policyCode, JurisdictionCode jurisdictionCode,
+public record RejectedDecision(List<Ineligibility> ineligibilities, PolicyReference policy, JurisdictionCode jurisdictionCode,
                                Instant evaluatedAt, CertificationScope scope) implements CertificationDecision {
 
     public RejectedDecision {

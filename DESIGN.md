@@ -275,7 +275,7 @@ determinista y los tests usan un reloj controlable.
   modelo de certificación no nombra las severidades estándar. La decisión es `GrantedDecision` o `RejectedDecision`
   (D26): un certificado solo puede construirse con la primera.
 - **Alternativas:** switch por jurisdicción, una clase por combinación de plazos y motor de reglas; descartados
-  por acoplamiento o complejidad innecesaria. Se guardan la decisión completa y código de política para explicar cada certificado.
+  por acoplamiento o complejidad innecesaria. Se guardan la decisión completa y la referencia de la política (código y versión, D32) para explicar cada certificado.
 
 ### D11. Errores explícitos
 
@@ -510,6 +510,14 @@ determinista y los tests usan un reloj controlable.
 - **Descartadas:** *publicar una versión inmediata que "absorba" la pendiente*: la versión futura desaparecería como efecto lateral de otra operación, sin un motivo propio en la bitácora, y quien publica no necesariamente sabe que había una programada. *Reprogramar la fecha de una versión*: la versión dejaría de ser inmutable y el historial perdería la fecha original; cancelar y volver a publicar deja las dos cosas a la vista.
 - **Verificación:** `CancelledSchemaVersionTest`, `CancelSchemaVersionUseCaseImplTest`, `JpaInspectionSchemaRepositoryTest.aCancelledVersionIsReadBackCancelledAndAnotherOneCanTakeItsDate`, `DeliveryFeaturesApiTest.anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway`.
 
+### D32. La decisión guarda la versión de la política que la tomó
+
+- **Problema:** la decisión guardaba el código de la política pero no su versión. Si `STANDARD` pasaba de 12 a 6 meses, las decisiones viejas y las nuevas decían "STANDARD" con plazos distintos: alcanzaba para explicar el resultado, pero no para saber qué regla estaba vigente.
+- **Decisión:** `PolicyReference(code, version)` reemplaza a `PolicyCode` en todo lo que identifica a una política: `CertificationPolicy.reference()`, `GlobalCertificationPolicy.reference()`, `GrantedDecision.policy()`, `RejectedDecision.policy()`, `JurisdictionPolicy` y la política global de `PartialCertificatesBasis`. La versión empieza en 1 (`InvalidPolicyVersionException`). Cambiar las reglas de una política (lo que bloquea, lo que condiciona o los plazos) es armarla con la versión siguiente en `CertificationConfiguration`; el código no cambia, así que la jurisdicción y su historia siguen siendo las mismas. La bitácora del certificado escribe `policy STANDARD v1`.
+- **Persistencia y API:** el documento de la decisión suma `policyVersion` y el certificado global `global_policy_version` (migración V6, que marca con versión 1 lo ya guardado, porque es la única que existió). La decisión, la base de un global y el vocabulario de jurisdicciones informan la versión.
+- **Descartadas:** *guardar los parámetros de la política en cada decisión*: sirve para `SeverityCertificationPolicy`, pero obligaría a toda Strategy a serializar su implementación y la decisión ya guarda lo que resultó (condiciones y vigencia). *Una versión por fecha de vigencia, como los esquemas*: sumaría un calendario de políticas que nadie administra todavía, porque las políticas se definen en código (F3).
+- **Verificación:** `JurisdictionPoliciesTest.decisionsTakenUnderEachVersionOfAPolicySayWhichRuleWasInForce`, `aPolicyVersionStartsAtOne`, `JpaCertificateRepositoryTest.theDecisionIsReadBackWithTheVersionOfThePolicyThatTookIt`, `DeliveryFeaturesApiTest` y `VocabularyApiTest`.
+
 ---
 
 ## 4. Patrones que se decidió no aplicar
@@ -550,6 +558,7 @@ determinista y los tests usan un reloj controlable.
 | Ids repetidos, referencias por objeto entre agregados o ids inexistentes | `AggregateIdentityTest` |
 | Quien asigna o el responsable del activo realizan la inspección | `InspectionAssignmentTest` |
 | La creación de un esquema o de una versión no queda auditada | `SchemaVersioningTest.creatingTheSchemaAndAddingVersionsIsAudited` |
+| Dos decisiones de la misma política con reglas distintas no se pueden distinguir | `JurisdictionPoliciesTest.decisionsTakenUnderEachVersionOfAPolicySayWhichRuleWasInForce`, `JpaCertificateRepositoryTest.theDecisionIsReadBackWithTheVersionOfThePolicyThatTookIt` |
 | Una versión programada bloquea una corrección urgente | `CancelledSchemaVersionTest.cancellingThePendingVersionLetsAnUrgentVersionRuleRightAway`, `DeliveryFeaturesApiTest.anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway` |
 | Se cancela una versión que ya rige, o una cancelada llega a regir | `CancelledSchemaVersionTest.aVersionAlreadyInForceCannotBeCancelled`, `aCancelledVersionNeverComesIntoForceAndStaysInTheHistory` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
@@ -646,7 +655,7 @@ Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261
 - **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
 - **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.
 - **Escala decimal en la API.** Una medición enviada como `2.50` se guarda con su escala pero la API la devuelve como `2.5`.
-- **Políticas sin descripción.** `CertificationPolicy` expone solo su código, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
+- **Políticas sin descripción.** `CertificationPolicy` expone solo su código y versión, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
 - **Elegibilidad del activo entero con subsistemas.** `GET …/certification-eligibility` sin `?subsystem` responde 409 en un esquema con subsistemas, en lugar de la decisión rechazada que preveía la spec de F3.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
 
@@ -674,7 +683,9 @@ Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261
 - **Refactorización:** las guardas comunes preceden a Strategy; modalidad se separa del estado de ciclo de vida;
   decisión completa y referencia de política permanecen en el certificado. `validUntil` desaparece de commands/requests.
 - **Descartadas:** switch, tabla mutable administrable y motor de reglas; las políticas se definen en código de dominio y se registran en la composición. Una regla singular puede aportar otra Strategy.
-- **Deuda:** no hay administración REST, cambio de jurisdicción ni resolución automática de condiciones.
+- **Deuda:** no hay administración REST, cambio de jurisdicción ni resolución automática de condiciones. Las
+  versiones anteriores de una política no quedan registradas en la composición: la referencia guardada dice qué
+  versión decidió, y su definición está en la historia del código (D32).
 
 ### F1 · Alcances, parciales y globales
 
@@ -709,14 +720,14 @@ y carreras de publicación/emisión. CI ejecuta las mismas pruebas de funcionali
 ### Flujo simplificado de certificación
 
 `CertificationAssessmentService` obtiene el contexto y `CertificationEligibility` comprueba cierre/cobertura (D10). La Strategy
-`CertificationPolicy` expone solo `code()` y `evaluate(context)` y devuelve una decisión completa.
+`CertificationPolicy` expone solo `reference()` y `evaluate(context)` y devuelve una decisión completa.
 `SeverityCertificationPolicy` encapsula un mapa privado de severidad a bloqueo, la admisión de
 condicionales y los plazos. Sus tres políticas demo se arman en la composición, que es también la que registra
 jurisdicción → política. Una Strategy con otro algoritmo no necesita exponer ese mapa.
 
 Se eliminan CertificationRules, CertificationEffect, RuleBasedCertificationPolicy y CertificationPrerequisites.
 No hay reglas de negocio en application.properties. La decisión conserva resultado, motivos, condiciones,
-vigencia, jurisdicción, alcance y código de política; no serializa la implementación.
+vigencia, jurisdicción, alcance y referencia de la política (código y versión, D32); no serializa la implementación.
 
 El resumen general de hallazgos conserva severidad y resolución, sin booleano ni contador de bloqueo.
 La evaluación de certificación por inspección/alcance es la fuente de impedimentos y condiciones.

@@ -28,6 +28,7 @@ class VocabularyApiTest extends ApiTest {
     void theVocabularyListsEveryJurisdictionWithARegisteredPolicy() throws Exception {
         read("/api/v1/vocabulary")
                 .andExpect(jsonPath("$.jurisdictions[*].code").value(contains("DEMO-CONDITIONAL", "DEMO-STANDARD", "DEMO-STRICT")))
-                .andExpect(jsonPath("$.jurisdictions[*].policyCode").value(contains("CONDITIONAL", "STANDARD", "STRICT")));
+                .andExpect(jsonPath("$.jurisdictions[*].policyCode").value(contains("CONDITIONAL", "STANDARD", "STRICT")))
+                .andExpect(jsonPath("$.jurisdictions[*].policyVersion").value(contains(1, 1, 1)));
     }
 }

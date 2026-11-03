@@ -1397,6 +1397,7 @@ components:
             properties:
               code: { type: string, examples: [DEMO-STRICT, DEMO-STANDARD, DEMO-CONDITIONAL] }
               policyCode: { type: string }
+              policyVersion: { type: integer, minimum: 1, description: Versión de la política que rige hoy en la jurisdicción }
         _links: { $ref: "#/components/schemas/Links" }
 
     Subsystem:
@@ -1951,6 +1952,7 @@ components:
           type: array
           items: { type: string }
         globalPolicy: { type: string }
+        globalPolicyVersion: { type: integer, minimum: 1 }
 
     Condition:
       type: object
@@ -1964,7 +1966,8 @@ components:
       type: object
       description: |
         La decisión que tomó la política de la jurisdicción. Se guarda tal cual en el certificado: cambiar la
-        política después no reescribe decisiones ya emitidas.
+        política después no reescribe decisiones ya emitidas. `policyCode` y `policyVersion` juntos dicen qué
+        regla estaba vigente: si una política cambia sus plazos o lo que bloquea, cambia de versión.
       properties:
         outcome: { type: string, enum: [APPROVED, CONDITIONAL, REJECTED] }
         eligible: { type: boolean, description: Verdadero para APPROVED y CONDITIONAL }
@@ -1978,6 +1981,7 @@ components:
         validFrom: { type: string, format: date }
         validUntil: { type: string, format: date }
         policyCode: { type: string }
+        policyVersion: { type: integer, minimum: 1 }
         jurisdictionCode: { type: string }
         evaluatedAt: { type: string, format: date-time }
         scope: { $ref: "#/components/schemas/Scope" }

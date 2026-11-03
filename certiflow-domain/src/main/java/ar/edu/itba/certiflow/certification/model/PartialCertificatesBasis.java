@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-public record PartialCertificatesBasis(List<CertificateNumber> partialCertificateNumbers, PolicyCode globalPolicyCode,
+public record PartialCertificatesBasis(List<CertificateNumber> partialCertificateNumbers, PolicyReference globalPolicy,
                                        Instant latestInspectionClosedAt) implements CertificateBasis {
 
     public PartialCertificatesBasis {
@@ -26,6 +26,6 @@ public record PartialCertificatesBasis(List<CertificateNumber> partialCertificat
 
     @Override
     public <T> T describedBy(CertificateBasisDescriber<T> describer) {
-        return describer.partialCertificates(partialCertificateNumbers, globalPolicyCode, latestInspectionClosedAt);
+        return describer.partialCertificates(partialCertificateNumbers, globalPolicy, latestInspectionClosedAt);
     }
 }
