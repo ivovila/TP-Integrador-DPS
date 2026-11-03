@@ -77,3 +77,22 @@ El módulo de usecases tiene dependencias del módulo de aplicación, cuando deb
 Luego, como se vio en la clase de arquitectura, el módulo de dominio comprende toda la lógica de negocio (models, services, exceptions, etc.), incluyendo las interfaces de ports, usecases, etc. Serán las implementaciones concretas, ubicadas fuera del módulo del dominio, las que implementen estas interfaces.
 Los casos de uso son clases concretas sin interfaz de entrada, y todo está en un único módulo Maven, así que nada impide que un paquete importe a otro.
 los agregados no tienen id y los repositorios no tienen findById (InspectionRepository.findByAsset no lo usa nadie). No siempre DDD fuerza a que los agregados tengan IDs, pero si comprenden entidades del dominio y se usarán como medio de interacción entre subdominios, es usual que lo necesiten.
+
+---
+
+# Correcciones Entrega 2
+
+Aplican todas las correcciones de la entrega pasada.
+
+Funcionalidades nuevas:
+
+Implementan correctamente la funcionalidades
+Para todas las nuevas funcionalidades se registran cambios del codigo fuente. Es importante notar que en un entorno productivo cada modificacion de codigo fuente implica un nuevo deployment, que puede introducir fallas sobre codigo funcional y poner en produccion un fallo que antes no existia.
+
+Funcionalidad 2: Versiones con vigencia futura
+
+Con una versión futura pendiente no se puede publicar nada más que tenga vigencia anterior, porque las fechas tienen que crecer estrictamente. Una corrección urgente (por ejemplo, un criterio mal cargado que tiene que regir ya) queda bloqueada hasta que entre en vigencia la futura. El DESIGN lo reconoce ("no se cancelan ni reprograman versiones"), pero no dice qué hace el negocio en ese caso. Un camino posible: permitir cancelar una versión futura que no rige todavía (con auditoría), o publicar una versión inmediata que "absorba" la pendiente.
+
+Funcionalidad 3: Políticas de certificación por jurisdicción
+
+La decisión guarda el código de la política pero no su versión. Si mañana DEMO-STANDARD cambia de 12 a 6 meses, las decisiones viejas y las nuevas dicen "DEMO-STANDARD" con plazos distintos. Los datos guardados alcanzan para explicar el resultado, pero no para saber qué regla estaba vigente.
