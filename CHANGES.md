@@ -721,3 +721,38 @@ código. Detalle en la Task 15 del [plan](docs/plans/2026-10-13-calidad-backend.
   `SectionsDocumentMapperTest` con una regla que el código de producción no conoce.
 - `DESIGN.md`: D1, D2, D26, D27 y limitaciones.
 
+
+## 2026-11-03 · Correcciones de la Entrega 2
+
+Siguiendo la sección "Correcciones Entrega 2" de `Corrections.md`.
+
+### F2 · Una versión futura pendiente bloqueaba una corrección urgente
+
+**Corrección:** con una versión futura pendiente no se podía publicar nada con vigencia anterior, porque las
+fechas tienen que crecer estrictamente. Un criterio mal cargado que tiene que regir ya quedaba bloqueado hasta
+que entrara en vigencia la futura, y el DESIGN no decía qué hace el negocio en ese caso.
+
+**Decisión:** se puede cancelar una versión que todavía no rige, con motivo y auditoría. La corrección urgente
+se publica después sin fecha y rige en el momento. Se descartó que una versión inmediata "absorba" la pendiente:
+la futura desaparecería como efecto lateral, sin motivo propio en la bitácora.
+
+**Cambios:**
+- Dominio: `SchemaVersion` lleva un `VersionCancellationState` (`VersionNotCancelled`, `VersionCancellation(stamp,
+  reason)`, con `VersionCancellationDescriber`). `SchemaVersionLog` exige vigencias crecientes solo entre las
+  versiones no canceladas; `versionAt` y `latestPublished` saltean las canceladas; la numeración sigue siendo
+  consecutiva. `InspectionSchemaService.cancelVersion` registra `SchemaAudit.VERSION_CANCELLED`. Excepciones
+  nuevas: `SchemaVersionAlreadyInForceException` y `SchemaVersionAlreadyCancelledException` (409).
+- Caso de uso `CancelSchemaVersionUseCase`/`Impl` con `CancelSchemaVersionCommand`: bloquea el esquema como la
+  publicación, cancela y guarda.
+- Persistencia: migración `V5__schema_version_cancellation.sql` (quién, cuándo y motivo en `schema_version`; se
+  elimina el índice único por fecha de vigencia, porque la versión que reemplaza a una cancelada puede tener su
+  misma fecha). `InspectionSchemaEntity` anota la cancelación de las versiones ya guardadas.
+- API: `POST /api/v1/schemas/{assetType}/versions/{number}/cancellation` (rol `ADMINISTRATOR`, cuerpo
+  `{"reason"}`); la versión informa `cancelled` y `cancellation`, y ofrece el link `cancellation` solo mientras se
+  puede cancelar. `GET …/versions/{number}` pasa de `max-age` de un día a `no-cache` con `ETag`.
+- Tests: `CancelledSchemaVersionTest`, `CancelSchemaVersionUseCaseImplTest`,
+  `JpaInspectionSchemaRepositoryTest.aCancelledVersionIsReadBackCancelledAndAnotherOneCanTakeItsDate`,
+  `DeliveryFeaturesApiTest.anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway` (también sobre
+  PostgreSQL) y la ruta nueva en `RoleAccessApiTest`.
+- `DESIGN.md`: S2, D21, D31 nueva, tabla de riesgos y deuda de F2. `docs/openapi.yaml`: operación nueva y campos
+  de la versión.

@@ -19,7 +19,7 @@ La interfaz web vive en `certiflow-frontend/` (React y TypeScript), fuera del bu
 | # | Tema | Decisión | Consecuencia |
 |---|---|---|---|
 | S1 | Inspección iniciada | La asignación captura `schema.versionAt(startedAt)` con un único instante normalizado a microsegundos. La fecha prevista no selecciona versión. | Publicar o activar otra versión nunca modifica la captura. |
-| S2 | Esquema y calendario | Un esquema por tipo; versiones consecutivas e inmutables, con publicación y vigencia separadas. Vigencias estrictamente crecientes e intervalos `[desde, próxima)`. | `latestPublishedVersion` puede diferir de `versionAt(now)`; publicación serializada por esquema. |
+| S2 | Esquema y calendario | Un esquema por tipo; versiones consecutivas e inmutables, con publicación y vigencia separadas. Vigencias estrictamente crecientes entre las versiones no canceladas e intervalos `[desde, próxima)`. Una versión que todavía no rige se puede cancelar con un motivo (D31). | `latestPublishedVersion` puede diferir de `versionAt(now)`; publicación y cancelación serializadas por esquema. Una versión cancelada queda en el historial y nunca rige. |
 | S3 | Aprobado, observado, rechazado | La regla solo dice si la respuesta cumple. Si no cumple, la severidad del criterio decide: `MINOR` → `OBSERVED`; `MAJOR` y `CRITICAL` → `REJECTED`. Sin respuesta o sin la evidencia exigida: `PENDING`. | La decisión es un dato de `Severity`, no un condicional repartido por el código. |
 | S4 | Hallazgos | Se levantan al cerrar la inspección, uno por criterio observado o rechazado, con la severidad del criterio, la evidencia adjunta y el responsable del activo. `close()` devuelve el evento `InspectionClosed` con las no conformidades, y `FindingService` genera los hallazgos a partir de él. Cerrar sin generarlos no es posible: el comando es de paquete y solo `InspectionService` lo expone (ver D14). | `Finding` es un agregado propio cuyo ciclo de vida sobrevive a la inspección. |
 | S5 | Qué bloquea certificar | Lo decide `CertificationPolicy` según jurisdicción. La severidad solo determina la evaluación del criterio. | Políticas demo STRICT, CONDITIONAL y STANDARD; no hay fallback ni LEGACY. |
@@ -367,10 +367,10 @@ determinista y los tests usan un reloj controlable.
   - Las rutas son sustantivos; ninguna lleva un verbo. Cada operación de negocio crea el recurso que produce: cerrar crea el **cierre** (`POST /inspections/{id}/closure`, revisión 1), rectificar una **rectificación**, suspender una **suspensión**, renovar una **renovación**, verificar una **verificación**. Los nombres coinciden con las clases del dominio (`Revision`, `Suspension`, `Verification`).
   - Semántica de métodos: `GET` sin efectos, `PUT` idempotente para la respuesta de un criterio, `POST` para crear. El único `DELETE` es el logout (`/tokens/current`, D25): el dominio no borra nada.
   - `201 Created` con `Location`; `204` en el `PUT`; errores en `application/problem+json` (RFC 9457) según la categoría de la excepción (D28): no encontrado → 404, valor inválido → 400, regla violada → 409, no certificable → 409 con las razones.
-  - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`.
-  - `ETag` y `Cache-Control` en lo inmutable (versiones de esquema y revisiones); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
+  - HAL con hipermedia según el estado: una inspección abierta ofrece `closure` y una cerrada `rectifications` y `act`; un certificado activo ofrece `suspensions` y `renewals` y uno renovado ninguno; un hallazgo cerrado deja de ofrecer `corrective-actions`; una versión de esquema que todavía no rige ofrece `cancellation` (D31).
+  - `ETag` y `Cache-Control` en lo inmutable (revisiones, con `max-age`; versiones de esquema, con `no-cache` porque se pueden cancelar mientras no rigen); colecciones paginadas con `first`, `prev`, `next` y `last`; `GET /api/v1` como punto de entrada.
   - Sin estado: cada request se autentica (Basic o Bearer) y la persona que actúa sale de esa credencial (D25).
-  - El contrato está descrito en [docs/openapi.yaml](docs/openapi.yaml) (OpenAPI 3.1, 50 operaciones): rutas, cuerpos, códigos de estado, roles por operación y qué significa cada `rel`. Se escribe a mano y no se genera: un generador documenta los cuerpos JSON pero no las transiciones, que son la parte que un cliente necesita entender.
+  - El contrato está descrito en [docs/openapi.yaml](docs/openapi.yaml) (OpenAPI 3.1, 51 operaciones): rutas, cuerpos, códigos de estado, roles por operación y qué significa cada `rel`. Se escribe a mano y no se genera: un generador documenta los cuerpos JSON pero no las transiciones, que son la parte que un cliente necesita entender.
 - **Alternativas descartadas:** *endpoints con verbos (`/close`, `/renew`):* es RPC sobre HTTP; *un solo DTO por agregado para leer y escribir:* mezcla lo que el cliente manda con lo que el servidor calcula; *generar el contrato con springdoc:* una dependencia más y un documento que describe formas pero no afordancias.
 - **Costo:** un request y un recurso por operación; los links se arman a mano según el estado.
 
@@ -501,6 +501,15 @@ determinista y los tests usan un reloj controlable.
 - **Por qué:** las fronteras entre capas las impone el compilador porque son módulos, pero las fronteras entre contextos eran una convención que se revisaba con `grep`.
 - **Costo:** una dependencia de test más.
 
+### D31. Una versión programada se cancela; la corrección urgente se publica después
+
+- **Problema:** las vigencias tienen que crecer estrictamente, así que con una versión futura pendiente no se podía publicar nada que rigiera antes. Una corrección urgente (un criterio mal cargado que tiene que regir ya) quedaba bloqueada hasta que entrara en vigencia la futura, y el negocio no tenía salida.
+- **Decisión:** una versión que todavía no rige se cancela (`POST /api/v1/schemas/{assetType}/versions/{number}/cancellation`, rol `ADMINISTRATOR`, con motivo obligatorio). `SchemaVersion` lleva un `VersionCancellationState` (`VersionNotCancelled` o `VersionCancellation(stamp, reason)`); `SchemaVersionLog` exige vigencias crecientes solo entre las no canceladas, `versionAt` y `latestPublished` las saltean, y la numeración sigue siendo consecutiva sobre todas. `InspectionSchemaService.cancelVersion` cancela y registra `SchemaAudit.VERSION_CANCELLED` con la vigencia que tenía y el motivo. El flujo urgente es: cancelar la futura, publicar la corrección sin fecha (rige ya) y, si hace falta, volver a publicar la futura con la corrección incorporada, en la misma fecha que tenía.
+- **Por qué es seguro:** una versión que no rige no la pudo capturar ninguna inspección, porque la asignación toma `versionAt(ahora)` (S1). Cancelar una versión que ya rige se rechaza (`SchemaVersionAlreadyInForceException`, 409), igual que cancelarla dos veces (`SchemaVersionAlreadyCancelledException`, 409). La cancelación toma el mismo bloqueo del esquema que la publicación.
+- **Persistencia:** migración V5: quién, cuándo y por qué en `schema_version`; se elimina el índice único `(asset_type, effective_from)`, porque una versión cancelada y la que la reemplaza pueden tener la misma fecha. La regla la protege el dominio bajo el bloqueo del esquema. La representación de una versión deja de cachearse un día: lleva `ETag` y `no-cache`, porque su link `cancellation` y su estado pueden cambiar.
+- **Descartadas:** *publicar una versión inmediata que "absorba" la pendiente*: la versión futura desaparecería como efecto lateral de otra operación, sin un motivo propio en la bitácora, y quien publica no necesariamente sabe que había una programada. *Reprogramar la fecha de una versión*: la versión dejaría de ser inmutable y el historial perdería la fecha original; cancelar y volver a publicar deja las dos cosas a la vista.
+- **Verificación:** `CancelledSchemaVersionTest`, `CancelSchemaVersionUseCaseImplTest`, `JpaInspectionSchemaRepositoryTest.aCancelledVersionIsReadBackCancelledAndAnotherOneCanTakeItsDate`, `DeliveryFeaturesApiTest.anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway`.
+
 ---
 
 ## 4. Patrones que se decidió no aplicar
@@ -541,6 +550,8 @@ determinista y los tests usan un reloj controlable.
 | Ids repetidos, referencias por objeto entre agregados o ids inexistentes | `AggregateIdentityTest` |
 | Quien asigna o el responsable del activo realizan la inspección | `InspectionAssignmentTest` |
 | La creación de un esquema o de una versión no queda auditada | `SchemaVersioningTest.creatingTheSchemaAndAddingVersionsIsAudited` |
+| Una versión programada bloquea una corrección urgente | `CancelledSchemaVersionTest.cancellingThePendingVersionLetsAnUrgentVersionRuleRightAway`, `DeliveryFeaturesApiTest.anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway` |
+| Se cancela una versión que ya rige, o una cancelada llega a regir | `CancelledSchemaVersionTest.aVersionAlreadyInForceCannotBeCancelled`, `aCancelledVersionNeverComesIntoForceAndStaysInTheHistory` |
 | El responsable de la acción se verifica a sí mismo | `CorrectiveActionTest.whoeverIsResponsibleForTheActionCannotVerifyIt` |
 | Se certifica con un hallazgo bloqueante abierto | `CertificationTest.assetWithAnOpenBlockingFindingIsNotEligible` |
 | Se cierra la inspección sin levantar sus hallazgos y se certifica | No compila: `close()` es de paquete y solo `InspectionService` lo expone. Ver D14. |
@@ -651,7 +662,7 @@ Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261
 - **Refactorización:** «última publicada» deja de llamarse «actual»; la vigente se resuelve con un instante explícito.
 - **Descartadas:** scheduler, bandera active, intervalos con fin editable y bitemporalidad. Resolver al leer es
   determinista, permite historia y no depende de procesos de activación.
-- **Deuda:** no se cancelan ni reprograman versiones; no hay publicaciones retroactivas.
+- **Deuda:** no hay publicaciones retroactivas. Una versión programada no se reprograma: se cancela y se vuelve a publicar (D31).
 
 ### F3 · Estrategias jurisdiccionales y decisiones históricas
 

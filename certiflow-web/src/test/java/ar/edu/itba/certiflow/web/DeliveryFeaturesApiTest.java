@@ -159,6 +159,37 @@ public class DeliveryFeaturesApiTest extends ApiTest {
     }
 
     @Test
+    void anUrgentCorrectionCancelsThePendingVersionAndRulesRightAway() throws Exception {
+        setup("DEMO-STRICT");
+        clock.set("2026-10-13T12:00:00Z");
+        String version = "{\"requiredSubsystems\":[\"E\",\"P\"],\"sections\":" + sections("P") + "}";
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions", "{\"effectiveFrom\":\"2026-11-01T03:00:00Z\"," + version.substring(1))
+                .andExpect(status().isCreated());
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions", version).andExpect(status().isConflict());
+        read("/api/v1/schemas/Boiler/versions/1").andExpect(jsonPath("$._links.cancellation").doesNotExist());
+        read("/api/v1/schemas/Boiler/versions/2").andExpect(jsonPath("$._links.cancellation.href").exists());
+
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions/2/cancellation", "{}").andExpect(status().isBadRequest());
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions/2/cancellation", "{\"reason\":\"Criterion C-P loaded with the wrong rule\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cancelled").value(true))
+                .andExpect(jsonPath("$.cancellation.reason").value("Criterion C-P loaded with the wrong rule"))
+                .andExpect(jsonPath("$.cancellation.cancelledBy.id").value("PLANNER"))
+                .andExpect(jsonPath("$._links.cancellation").doesNotExist());
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions/2/cancellation", "{\"reason\":\"Again\"}")
+                .andExpect(status().isConflict());
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions/1/cancellation", "{\"reason\":\"In force\"}")
+                .andExpect(status().isConflict());
+
+        postAs("PLANNER", "/api/v1/schemas/Boiler/versions", version)
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.number").value(3));
+        read("/api/v1/schemas/Boiler/effective-version?at=2026-11-02T00:00:00Z").andExpect(jsonPath("$.number").value(3));
+        read("/api/v1/inspections/" + assign("A-1", "null")).andExpect(jsonPath("$.schemaVersion").value(3));
+        read("/api/v1/schemas/Boiler/audit-entries")
+                .andExpect(jsonPath("$._embedded.auditEntries[*].action").value(org.hamcrest.Matchers.hasItem("VERSION_CANCELLED")));
+    }
+
+    @Test
     void sameResultProducesConditionalOrRejectedDecisionsAndKeepsPolicyInDocument() throws Exception {
         setup("DEMO-CONDITIONAL");
         postAs("PLANNER", "/api/v1/assets", asset("A-2", "DEMO-STRICT")).andExpect(status().isCreated());

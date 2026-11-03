@@ -15,6 +15,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Entity
 @Table(name = "inspection_schema")
@@ -39,9 +40,11 @@ public class InspectionSchemaEntity {
         appendVersionsOf(schema, sectionsDocuments, codeDocuments);
     }
 
-    /** Las versiones publicadas no cambian: solo se agregan las que todavía no están guardadas. */
+    /** El contenido de una versión publicada no cambia: se agregan las nuevas y se anota la cancelación de las guardadas. */
     void appendVersionsOf(InspectionSchema schema, SectionsDocumentMapper sectionsDocuments,
                           CodesDocumentMapper codeDocuments) {
+        IntStream.range(0, versions.size())
+                .forEach(index -> versions.get(index).recordCancellationOf(schema.versions().get(index)));
         schema.versions().stream()
                 .skip(versions.size())
                 .forEach(version -> versions.add(

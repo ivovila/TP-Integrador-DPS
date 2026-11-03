@@ -28,6 +28,14 @@ public class SchemaVersionEntity {
     private Instant effectiveFrom;
     @Column(name = "required_subsystems")
     private String requiredSubsystems;
+    @Column(name = "cancelled_by_id")
+    private String cancelledById;
+    @Column(name = "cancelled_by_name")
+    private String cancelledByName;
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
 
     protected SchemaVersionEntity() {
     }
@@ -40,6 +48,15 @@ public class SchemaVersionEntity {
         this.effectiveFrom = version.effectiveFrom();
         this.requiredSubsystems = codeDocuments.writeSubsystemCodes(version.requiredSubsystems());
         this.sections = sectionsDocuments.write(version.sections().all());
+        recordCancellationOf(version);
+    }
+
+    void recordCancellationOf(SchemaVersion version) {
+        StoredVersionCancellation cancellation = version.cancellation().describedBy(new StoredVersionCancellationDescriber());
+        cancelledById = cancellation.cancelledById();
+        cancelledByName = cancellation.cancelledByName();
+        cancelledAt = cancellation.cancelledAt();
+        cancellationReason = cancellation.reason();
     }
 
     public String assetType() {
@@ -48,6 +65,7 @@ public class SchemaVersionEntity {
 
     SchemaVersion toDomain(SectionsDocumentMapper sectionsDocuments) {
         return new SchemaVersion(number, new SchemaSections(sectionsDocuments.read(sections)), publishedAt,
-                effectiveFrom);
+                effectiveFrom, new StoredVersionCancellation(cancelledById, cancelledByName, cancelledAt,
+                        cancellationReason).state());
     }
 }

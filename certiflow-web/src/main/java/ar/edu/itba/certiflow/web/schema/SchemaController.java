@@ -7,6 +7,8 @@ import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
+import ar.edu.itba.certiflow.schema.usecase.CancelSchemaVersionCommand;
+import ar.edu.itba.certiflow.schema.usecase.CancelSchemaVersionUseCase;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaCommand;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindEffectiveSchemaVersionUseCase;
@@ -24,7 +26,6 @@ import ar.edu.itba.certiflow.web.support.AuditEntryResponse;
 import ar.edu.itba.certiflow.web.support.PageLinks;
 import ar.edu.itba.certiflow.web.support.Uris;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.stream.Collectors;
 import org.springframework.hateoas.CollectionModel;
@@ -52,10 +53,11 @@ public class SchemaController {
     private final Clock clock;
     private final FindEffectiveSchemaVersionUseCase findEffective;
     private final ListSchemasUseCase listSchemas;
+    private final CancelSchemaVersionUseCase cancelSchemaVersion;
 
     public SchemaController(CreateInspectionSchemaUseCase createInspectionSchema, PublishSchemaVersionUseCase publishSchemaVersion,
                             FindSchemaUseCase findSchema, SchemaHistoryUseCase schemaHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective,
-                            ListSchemasUseCase listSchemas) {
+                            ListSchemasUseCase listSchemas, CancelSchemaVersionUseCase cancelSchemaVersion) {
         this.createInspectionSchema = createInspectionSchema;
         this.publishSchemaVersion = publishSchemaVersion;
         this.findSchema = findSchema;
@@ -63,6 +65,7 @@ public class SchemaController {
         this.clock = clock;
         this.findEffective = findEffective;
         this.listSchemas = listSchemas;
+        this.cancelSchemaVersion = cancelSchemaVersion;
     }
 
     @AllowedRole(StaffRole.ADMINISTRATOR)
@@ -97,6 +100,16 @@ public class SchemaController {
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
     }
 
+    @AllowedRole(StaffRole.ADMINISTRATOR)
+    @PostMapping("/{assetType}/versions/{number}/cancellation")
+    public ResponseEntity<VersionResponse> cancel(@PathVariable String assetType, @PathVariable int number,
+                                                  @RequestBody VersionCancellationRequest request,
+                                                  @ActingPerson Person cancelledBy) {
+        SchemaVersion version = cancelSchemaVersion.execute(new CancelSchemaVersionCommand(new AssetType(assetType),
+                number, request.reason(), cancelledBy));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(versionResource(assetType, version));
+    }
+
     @GetMapping("/{assetType}/effective-version")
     public ResponseEntity<VersionResponse> effective(@PathVariable String assetType,
             @RequestParam Instant at) {
@@ -116,11 +129,13 @@ public class SchemaController {
     @GetMapping("/{assetType}/versions/{number}")
     public ResponseEntity<VersionResponse> version(@PathVariable String assetType, @PathVariable int number, WebRequest request) {
         InspectionSchema schema = findSchema.execute(new AssetType(assetType));
-        String etag = Uris.etag("schema", assetType, String.valueOf(number));
         SchemaVersion version = schema.version(number);
+        Instant now = clock.instant();
+        String etag = Uris.etag("schema", assetType, String.valueOf(number), String.valueOf(version.isCancelled()),
+                String.valueOf(version.isCancellableAt(now)));
         return request.checkNotModified(etag)
                 ? ResponseEntity.status(304).eTag(etag).<VersionResponse>build()
-                : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.maxAge(Duration.ofDays(1)))
+                : ResponseEntity.ok().eTag(etag).cacheControl(CacheControl.noCache())
                         .body(versionResource(assetType, version));
     }
 
@@ -148,6 +163,10 @@ public class SchemaController {
         VersionResponse response = new VersionResponse(version);
         response.add(linkTo(methodOn(SchemaController.class).version(assetType, version.number(), null)).withSelfRel(),
                 linkTo(methodOn(SchemaController.class).find(assetType)).withRel("schema"));
+        if (version.isCancellableAt(clock.instant())) {
+            response.add(linkTo(methodOn(SchemaController.class).cancel(assetType, version.number(), null, null))
+                    .withRel("cancellation"));
+        }
         return response;
     }
 }

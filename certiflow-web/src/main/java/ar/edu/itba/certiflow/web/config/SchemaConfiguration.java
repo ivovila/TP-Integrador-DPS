@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.config;
 
+import ar.edu.itba.certiflow.application.schema.CancelSchemaVersionUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.CreateInspectionSchemaUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.FindEffectiveSchemaVersionUseCaseImpl;
 import ar.edu.itba.certiflow.application.schema.FindSchemaUseCaseImpl;
@@ -19,6 +20,7 @@ import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
 import ar.edu.itba.certiflow.schema.model.YesNoRuleKind;
 import ar.edu.itba.certiflow.schema.repository.InspectionSchemaRepository;
+import ar.edu.itba.certiflow.schema.usecase.CancelSchemaVersionUseCase;
 import ar.edu.itba.certiflow.schema.usecase.CreateInspectionSchemaUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindEffectiveSchemaVersionUseCase;
 import ar.edu.itba.certiflow.schema.usecase.FindSchemaUseCase;
@@ -82,6 +84,14 @@ public class SchemaConfiguration {
                                                      InspectionSchemaRepository inspectionSchemaRepository,
                                                      InspectionSchemaService inspectionSchemaService, Clock clock) {
         return TransactionalUseCases.wrap(PublishSchemaVersionUseCase.class, new PublishSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx);
+    }
+
+    @Bean
+    CancelSchemaVersionUseCase cancelSchemaVersion(TransactionTemplate tx,
+                                                   InspectionSchemaRepository inspectionSchemaRepository,
+                                                   InspectionSchemaService inspectionSchemaService, Clock clock) {
+        return TransactionalUseCases.wrap(CancelSchemaVersionUseCase.class,
+                new CancelSchemaVersionUseCaseImpl(inspectionSchemaRepository, inspectionSchemaService, clock), tx);
     }
 
     @Bean

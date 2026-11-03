@@ -57,6 +57,7 @@ class RoleAccessApiTest extends ApiTest {
                 Arguments.of(POST, "/api/v1/assets", ADMINISTRATOR),
                 Arguments.of(POST, "/api/v1/schemas", ADMINISTRATOR),
                 Arguments.of(POST, "/api/v1/schemas/T/versions", ADMINISTRATOR),
+                Arguments.of(POST, "/api/v1/schemas/T/versions/2/cancellation", ADMINISTRATOR),
                 Arguments.of(POST, "/api/v1/inspections", INSPECTION_COORDINATOR),
                 Arguments.of(PUT, "/api/v1/inspections/I/responses/C/answer", INSPECTOR),
                 Arguments.of(POST, "/api/v1/inspections/I/responses/C/evidence", INSPECTOR),

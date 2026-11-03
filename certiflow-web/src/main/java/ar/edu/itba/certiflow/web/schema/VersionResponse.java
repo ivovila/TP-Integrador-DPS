@@ -15,6 +15,8 @@ public class VersionResponse extends RepresentationModel<VersionResponse> {
     public final Instant publishedAt;
     public final Instant effectiveFrom;
     public final Set<String> requiredSubsystems;
+    public final boolean cancelled;
+    public final VersionCancellationView cancellation;
     public Instant resolvedAt;
     public final List<SectionPayload> sections;
 
@@ -24,5 +26,7 @@ public class VersionResponse extends RepresentationModel<VersionResponse> {
         this.effectiveFrom = version.effectiveFrom();
         this.requiredSubsystems = version.requiredSubsystems().stream().map(code -> code.value()).collect(Collectors.toSet());
         this.sections = SchemaPayloads.fromSections(version.sections().all());
+        this.cancelled = version.isCancelled();
+        this.cancellation = version.cancellation().describedBy(new VersionCancellationPayloadDescriber()).orElse(null);
     }
 }

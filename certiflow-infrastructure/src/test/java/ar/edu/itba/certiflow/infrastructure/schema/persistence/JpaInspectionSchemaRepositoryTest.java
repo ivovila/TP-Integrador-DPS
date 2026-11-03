@@ -2,14 +2,20 @@ package ar.edu.itba.certiflow.infrastructure.schema.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.infrastructure.support.DomainSamples;
 import ar.edu.itba.certiflow.infrastructure.support.PersistenceMappers;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
+import ar.edu.itba.certiflow.schema.model.InspectionSchemaService;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaAlreadyDefinedForAssetTypeException;
+import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Page;
 import ar.edu.itba.certiflow.shared.model.PageRequest;
+import ar.edu.itba.certiflow.shared.model.Person;
+import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
@@ -58,6 +64,28 @@ class JpaInspectionSchemaRepositoryTest {
 
         assertEquals(firstVersionId, rowIdOf(storedSchemaVersions.entityOf(extinguisher, 1)));
         assertEquals(2, repository.findByAssetType(extinguisher).orElseThrow().versions().size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aCancelledVersionIsReadBackCancelledAndAnotherOneCanTakeItsDate() {
+        AssetType extinguisher = new AssetType("Fire extinguisher");
+        Instant pendingFrom = Instant.parse("2026-04-01T00:00:00Z");
+        InspectionSchema pending = DomainSamples.schemaWith("Extinguisher", extinguisher, DomainSamples.sections(), Instant.parse("2026-03-01T00:00:00Z"))
+                .withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-05T00:00:00Z"), pendingFrom, Set.of());
+        repository.add(pending);
+        entityManager.flush();
+        InspectionSchemaService service = new InspectionSchemaService(mock(AuditLog.class));
+        InspectionSchema cancelled = service.cancelVersion(pending, 2,
+                new Stamp(new Person(new PersonId("EMP-006"), "Ada Admin"), Instant.parse("2026-03-06T00:00:00Z")), "Wrong severity");
+
+        repository.save(cancelled.withNewVersion(DomainSamples.sections(), Instant.parse("2026-03-07T00:00:00Z"), pendingFrom, Set.of()));
+        entityManager.flush();
+        entityManager.clear();
+
+        InspectionSchema stored = repository.findByAssetType(extinguisher).orElseThrow();
+        assertEquals(cancelled.version(2), stored.version(2));
+        assertEquals(3, stored.versionAt(pendingFrom).number());
     }
 
     private Object rowIdOf(SchemaVersionEntity versionEntity) {

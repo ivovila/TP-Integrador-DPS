@@ -300,8 +300,10 @@ paths:
       description: |
         Rol: `ADMINISTRATOR`. Sin `effectiveFrom` la versión rige desde que se publica. Con una fecha futura
         queda programada: hasta ese instante las inspecciones nuevas siguen usando la versión anterior. La
-        vigencia tiene que ser posterior a la de la última versión publicada y no puede ser retroactiva.
-        La respuesta es la versión recién publicada, aunque todavía no rija.
+        vigencia tiene que ser posterior a la de la última versión publicada que no esté cancelada y no puede
+        ser retroactiva. Si una versión programada impide publicar una corrección urgente, primero se cancela
+        (`POST …/versions/{number}/cancellation`). La respuesta es la versión recién publicada, aunque todavía
+        no rija.
       requestBody:
         required: true
         content:
@@ -343,7 +345,10 @@ paths:
     get:
       tags: [Esquemas]
       summary: Ver una versión por número
-      description: Una versión publicada es inmutable, así que esta representación sí se cachea y trae `ETag`.
+      description: |
+        El contenido de una versión publicada no cambia, pero una versión programada se puede cancelar y su
+        link `cancellation` desaparece cuando empieza a regir. Por eso trae `ETag` y `Cache-Control: no-cache`:
+        el cliente revalida y recibe 304 mientras nada cambió.
       responses:
         "200":
           description: Versión
@@ -356,6 +361,40 @@ paths:
           description: Sin cambios respecto del `If-None-Match` recibido
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/schemas/{assetType}/versions/{number}/cancellation:
+    parameters:
+      - { $ref: "#/components/parameters/assetType" }
+      - { name: number, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      tags: [Esquemas]
+      summary: Cancelar una versión programada
+      description: |
+        Rol: `ADMINISTRATOR`. Solo se cancela una versión que todavía no rige; ninguna inspección la pudo
+        capturar. La versión queda en el historial con quién, cuándo y por qué se canceló, nunca rige, y su
+        fecha de vigencia deja de bloquear publicaciones: una corrección urgente se publica después sin fecha
+        y rige ya. Queda registrada en la bitácora del esquema (`VERSION_CANCELLED`). El link `cancellation`
+        de una versión aparece solo mientras se puede cancelar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VersionCancellationRequest" }
+      responses:
+        "200":
+          description: Versión cancelada
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/SchemaVersion" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La versión ya rige o ya estaba cancelada
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
 
   /api/v1/schemas/{assetType}/effective-version:
     parameters:
@@ -1559,7 +1598,22 @@ components:
         sections:
           type: array
           items: { $ref: "#/components/schemas/Section" }
+        cancelled: { type: boolean }
+        cancellation:
+          type: object
+          nullable: true
+          description: Quién, cuándo y por qué se canceló; `null` si no se canceló
+          properties:
+            cancelledBy: { $ref: "#/components/schemas/Person" }
+            cancelledAt: { type: string, format: date-time }
+            reason: { type: string }
         _links: { $ref: "#/components/schemas/Links" }
+
+    VersionCancellationRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
 
     SchemaVersions:
       type: object
