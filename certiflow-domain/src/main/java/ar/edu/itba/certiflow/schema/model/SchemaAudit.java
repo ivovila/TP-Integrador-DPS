@@ -4,7 +4,8 @@ import ar.edu.itba.certiflow.shared.model.AuditAction;
 
 public enum SchemaAudit implements AuditAction {
     CREATED("Inspection schema created"),
-    VERSION_ADDED("Schema version added");
+    VERSION_ADDED("Schema version added"),
+    VERSION_CANCELLED("Schema version cancelled");
 
     private final String label;
 

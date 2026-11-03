@@ -3,7 +3,7 @@ package ar.edu.itba.certiflow.schema.model;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
-import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -21,19 +21,21 @@ public record InspectionSchema(String name, AssetType assetType, SchemaVersionLo
         return new InspectionSchema(name, assetType, versionLog.append(sections, publishedAt, effectiveFrom, requiredSubsystems));
     }
 
+    InspectionSchema withCancelledVersion(int number, Stamp cancelled, String reason) {
+        return new InspectionSchema(name, assetType, versionLog.cancel(assetType, number, cancelled, reason));
+    }
+
     public SchemaVersion versionAt(Instant instant) {
         return versionLog.versionAt(instant);
     }
 
     public SchemaVersion version(int number) {
-        return versions().stream().filter(version -> version.number() == number).findFirst()
-                .orElseThrow(() -> new SchemaVersionNotFoundException(assetType, number));
+        return versionLog.version(assetType, number);
     }
 
     public SchemaVersion latestPublishedVersion() {
         return versionLog.latestPublished();
     }
-
 
     public List<SchemaVersion> versions() {
         return versionLog.versions();

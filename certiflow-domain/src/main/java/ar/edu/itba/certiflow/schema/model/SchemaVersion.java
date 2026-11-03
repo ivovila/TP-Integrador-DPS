@@ -3,16 +3,46 @@ package ar.edu.itba.certiflow.schema.model;
 import ar.edu.itba.certiflow.catalog.model.SubsystemAssociation;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionAlreadyCancelledException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionAlreadyInForceException;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
-public record SchemaVersion(int number, SchemaSections sections, Instant publishedAt, Instant effectiveFrom) {
+public record SchemaVersion(int number, SchemaSections sections, Instant publishedAt, Instant effectiveFrom,
+                            VersionCancellationState cancellation) {
 
     public SchemaVersion {
         if (effectiveFrom.isBefore(publishedAt)) {
             throw new InvalidSchemaException("Effective date cannot precede publication");
         }
+    }
+
+    public SchemaVersion(int number, SchemaSections sections, Instant publishedAt, Instant effectiveFrom) {
+        this(number, sections, publishedAt, effectiveFrom, new VersionNotCancelled());
+    }
+
+    public boolean isCancelled() {
+        return cancellation.isCancelled();
+    }
+
+    public boolean isInForceAt(Instant instant) {
+        return !isCancelled() && !effectiveFrom.isAfter(instant);
+    }
+
+    public boolean isCancellableAt(Instant instant) {
+        return !isCancelled() && effectiveFrom.isAfter(instant);
+    }
+
+    SchemaVersion cancelled(Stamp cancelled, String reason) {
+        if (isCancelled()) {
+            throw new SchemaVersionAlreadyCancelledException(number);
+        }
+        if (!effectiveFrom.isAfter(cancelled.instant())) {
+            throw new SchemaVersionAlreadyInForceException(number, effectiveFrom);
+        }
+        return new SchemaVersion(number, sections, publishedAt, effectiveFrom, new VersionCancellation(cancelled, reason));
     }
 
     /** Los subsistemas que la versión exige son los que sus criterios tienen asignados. */

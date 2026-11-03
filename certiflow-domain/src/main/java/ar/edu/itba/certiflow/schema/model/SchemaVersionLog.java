@@ -1,9 +1,12 @@
 package ar.edu.itba.certiflow.schema.model;
 
+import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.schema.model.exceptions.NoEffectiveSchemaVersionException;
 import ar.edu.itba.certiflow.schema.model.exceptions.SchemaEffectiveDateConflictException;
+import ar.edu.itba.certiflow.schema.model.exceptions.SchemaVersionNotFoundException;
+import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -18,8 +21,12 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
         if (versions.isEmpty()) {
             throw new InvalidSchemaException("A schema needs at least one version");
         }
-        for (int index = 1; index < versions.size(); index++) {
-            if (!versions.get(index).effectiveFrom().isAfter(versions.get(index - 1).effectiveFrom())) {
+        List<SchemaVersion> activeVersions = versions.stream().filter(version -> !version.isCancelled()).toList();
+        if (activeVersions.isEmpty()) {
+            throw new InvalidSchemaException("A schema needs at least one version that is not cancelled");
+        }
+        for (int index = 1; index < activeVersions.size(); index++) {
+            if (!activeVersions.get(index).effectiveFrom().isAfter(activeVersions.get(index - 1).effectiveFrom())) {
                 throw new SchemaEffectiveDateConflictException();
             }
         }
@@ -43,13 +50,27 @@ public record SchemaVersionLog(List<SchemaVersion> versions) {
         return new SchemaVersionLog(Stream.concat(versions.stream(), Stream.of(nextVersion)).toList());
     }
 
+    SchemaVersionLog cancel(AssetType assetType, int number, Stamp cancelled, String reason) {
+        SchemaVersion cancelledVersion = version(assetType, number).cancelled(cancelled, reason);
+        return new SchemaVersionLog(versions.stream()
+                .map(version -> version.number() == number ? cancelledVersion : version)
+                .toList());
+    }
+
+    SchemaVersion version(AssetType assetType, int number) {
+        return versions.stream().filter(version -> version.number() == number).findFirst()
+                .orElseThrow(() -> new SchemaVersionNotFoundException(assetType, number));
+    }
+
     public SchemaVersion versionAt(Instant instant) {
-        return versions.stream().filter(version -> !version.effectiveFrom().isAfter(instant))
+        return versions.stream().filter(version -> version.isInForceAt(instant))
                 .reduce((previous, next) -> next)
                 .orElseThrow(() -> new NoEffectiveSchemaVersionException(instant));
     }
 
     public SchemaVersion latestPublished() {
-        return versions.getLast();
+        return versions.stream().filter(version -> !version.isCancelled())
+                .reduce((previous, next) -> next)
+                .orElseThrow();
     }
 }

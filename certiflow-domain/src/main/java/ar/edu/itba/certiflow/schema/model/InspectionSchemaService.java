@@ -34,4 +34,12 @@ public final class InspectionSchemaService {
                         + ", effectiveFrom " + effectiveFrom));
         return updatedSchema;
     }
+
+    public InspectionSchema cancelVersion(InspectionSchema schema, int number, Stamp cancelled, String reason) {
+        InspectionSchema updatedSchema = schema.withCancelledVersion(number, cancelled, reason);
+        auditLog.record(schema.assetType(), new AuditEntry(SchemaAudit.VERSION_CANCELLED, cancelled,
+                "Version " + number + ", effectiveFrom " + updatedSchema.version(number).effectiveFrom()
+                        + ", reason " + reason));
+        return updatedSchema;
+    }
 }
