@@ -1,0 +1,20 @@
+{
+  "id": "case-10",
+  "kind": "hidden",
+  "description": "Dos no conformidades: el informe de banco contradice la presión de apertura cargada, y faltan rótulos en el tablero",
+  "assetType": "Pressure vessel",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "RELIEF-VALVE", "answer": "8.0", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar"}]},
+    {"code": "LEAKS", "answer": "true", "observations": [], "evidence": []},
+    {"code": "INSULATION", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "GROUNDING", "answer": "true", "observations": [], "evidence": []},
+    {"code": "PANEL", "answer": "true",
+     "observations": ["Faltan las etiquetas de los interruptores del tablero de control"], "evidence": []}
+  ],
+  "expected": [
+    {"criterion": "RELIEF-VALVE", "severity": "CRITICAL"},
+    {"criterion": "PANEL", "severity": "MINOR"}
+  ]
+}

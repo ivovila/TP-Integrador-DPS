@@ -1,0 +1,16 @@
+{
+  "id": "case-08",
+  "kind": "hidden",
+  "description": "Las fugas se respondieron ausentes, pero en la observación de la aislación se anota un goteo",
+  "assetType": "Pressure vessel",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "RELIEF-VALVE", "answer": "8.0", "observations": [], "evidence": []},
+    {"code": "LEAKS", "answer": "true", "observations": [], "evidence": []},
+    {"code": "INSULATION", "answer": "Good",
+     "observations": ["Goteo de agua constante bajo la brida de salida"], "evidence": []},
+    {"code": "GROUNDING", "answer": "true", "observations": [], "evidence": []},
+    {"code": "PANEL", "answer": "true", "observations": [], "evidence": []}
+  ],
+  "expected": [{"criterion": "LEAKS", "severity": "MAJOR"}]
+}

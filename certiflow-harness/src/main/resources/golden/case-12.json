@@ -1,0 +1,16 @@
+{
+  "id": "case-12",
+  "kind": "clean",
+  "description": "Recipiente a presión en orden; las observaciones describen verificaciones que salieron bien",
+  "assetType": "Pressure vessel",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "RELIEF-VALVE", "answer": "8.1", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Informe de la prueba en banco: apertura a 8,1 bar"}]},
+    {"code": "LEAKS", "answer": "true", "observations": [], "evidence": []},
+    {"code": "INSULATION", "answer": "Good", "observations": ["Aislación seca y completa en todo el recorrido"], "evidence": []},
+    {"code": "GROUNDING", "answer": "true", "observations": ["Continuidad medida con telurímetro"], "evidence": []},
+    {"code": "PANEL", "answer": "true", "observations": ["Rótulos legibles en todos los interruptores"], "evidence": []}
+  ],
+  "expected": []
+}

@@ -61,11 +61,14 @@ puede aceptar.
 |---|---|
 | El criterio no existe o no está en el alcance de la inspección | `OUT_OF_SCOPE` |
 | El criterio ya es no conforme: la regla ya levanta ese hallazgo | `ALREADY_NONCONFORMING` |
-| Alguna cita no aparece literal en una observación o descripción de evidencia de ese criterio | `UNSUPPORTED_QUOTE` |
+| Alguna cita no aparece literal en las observaciones o descripciones de evidencia de la inspección | `UNSUPPORTED_QUOTE` |
 
 El tercero es la red principal contra hallazgos inventados: una sugerencia tiene que apoyarse en algo que el
 inspector escribió. "Literal" se compara después de normalizar mayúsculas y espacios, para no rechazar una cita
-correcta por un cambio de formato; una paráfrasis no pasa. El harness mide cuántas sugerencias atrapa cada control.
+correcta por un cambio de formato; una paráfrasis no pasa. La cita puede venir de **otro criterio**: un inspector
+escribe donde le queda cómodo, y "una estantería tapa el cartel" anotado en la altura de montaje es un problema de
+señalización. Exigir que la cita sea del mismo criterio rechazaría justo esas detecciones. El harness mide cuántas
+sugerencias atrapa cada control.
 
 ### 2.4 Severidad
 
@@ -242,7 +245,8 @@ Formato de un caso:
   "description": "Presión en rango pero la observación describe la manguera agrietada",
   "assetType": "Fire extinguisher",
   "criteria": [
-    {"code": "PRESSURE", "answer": "12.5", "observations": [], "evidence": ["Foto del manómetro en zona verde"]},
+    {"code": "PRESSURE", "answer": "12.5", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro con la aguja en la zona verde"}]},
     {"code": "HOSE", "answer": "Good", "observations": ["La manguera tiene una grieta cerca del acople"], "evidence": []}
   ],
   "expected": [{"criterion": "HOSE", "severity": "MINOR"}]
@@ -250,7 +254,10 @@ Formato de un caso:
 ```
 
 El harness completa texto, regla y resultado de cada criterio a partir del esquema, así un caso solo escribe lo
-que el inspector cargó.
+que el inspector cargó. Las respuestas usan el texto que la regla sabe leer (`AnswerText`): un número con punto
+decimal, `true` o `false`, o el nombre de la opción. Cada caso responde **todos** los criterios de su esquema, con
+la evidencia obligatoria, para que ninguno quede pendiente por omisión. La severidad esperada es la configurada en
+el criterio, que es la que tendría el hallazgo.
 
 ### 7.2 Métricas
 

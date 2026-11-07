@@ -197,7 +197,10 @@ que una versión de prompt no empeore las métricas respecto de la anterior.
 - [x] Spec [`docs/specs/2026-11-07-asistente-ia.md`](../specs/2026-11-07-asistente-ia.md): contrato del puerto,
       formato de entrada y salida, guardrails, endpoints, matriz riesgo → test y definición de terminado. Cierra la
       severidad (§2.4), las transacciones (§3.4) y la respuesta a una falla del proveedor (§3.5).
-- [ ] Redactar los 15 casos del conjunto dorado y revisarlos en equipo: tienen que sonar a inspecciones reales.
+- [x] Redactar los 15 casos del conjunto dorado
+      ([`certiflow-harness/src/main/resources/golden`](../../certiflow-harness/src/main/resources/golden/README.md)):
+      10 escondidos, 3 limpios y 2 trampas sobre los esquemas de la demo, validados contra sus reglas.
+- [ ] Revisarlos en equipo: tienen que sonar a inspecciones reales (guía en el README del conjunto).
 
 ### Fase 1 · Dominio
 - [ ] Contexto `assistance`: puerto, `InspectionUnderReview`, `AssistantReview`, `Suggestion`, decisiones,

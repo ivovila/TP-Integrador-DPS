@@ -1,0 +1,21 @@
+{
+  "id": "case-02",
+  "kind": "hidden",
+  "description": "El precinto se respondió intacto, pero la foto del cabezal lo muestra cortado",
+  "assetType": "Fire extinguisher",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "PRESSURE", "answer": "13.0", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro en zona verde, lectura estable"}]},
+    {"code": "WEIGHT", "answer": "5.9", "observations": [], "evidence": []},
+    {"code": "SEAL", "answer": "true", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Foto del cabezal: el precinto está cortado, solo queda el alambre"}]},
+    {"code": "HOSE", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "CORROSION", "answer": "true", "observations": [], "evidence": []},
+    {"code": "SIGNAGE", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HEIGHT", "answer": "1.1", "observations": [], "evidence": []},
+    {"code": "TAG", "answer": "Current", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Tarjeta de mantenimiento vigente"}]}
+  ],
+  "expected": [{"criterion": "SEAL", "severity": "MAJOR"}]
+}
