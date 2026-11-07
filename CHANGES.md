@@ -784,3 +784,22 @@ del 2026-10-13 de no versionar políticas, que es justamente lo que señala la c
 - `DESIGN.md`: D10, D32 nueva, tabla de riesgos, deuda de F3, flujo de certificación y limitaciones.
   `README.md` y `docs/openapi.yaml` al día. `docs/certiflow-domain.puml` dibuja `PolicyReference` y, de F2, el
   estado de cancelación de `SchemaVersion`.
+
+### Observación general · Cada funcionalidad nueva cambió código fuente
+
+**Corrección:** para todas las funcionalidades nuevas se registran cambios de código fuente, y en producción cada
+cambio de código es un deployment que puede introducir fallas en código que funcionaba.
+
+**Respuesta:** se documentó qué cambia con datos y qué exige un deploy, en lugar de dejarlo implícito. Lo que
+varía con la operación (activos, esquemas y sus versiones, inspecciones, hallazgos, certificados) entra por la API
+sin desplegar. Las políticas de certificación, el mapa de jurisdicciones, los catálogos de severidad y evidencia y
+los tipos de regla viven en código y exigen un deploy: se aceptó porque una política es comportamiento y en código
+queda tipada, probada y pasa por CI, y porque cada certificado conserva la decisión con la que se emitió. El costo
+y el camino para evitar el deploy (llevar los parámetros de las políticas a configuración externa validada al
+arrancar) quedan escritos.
+
+**Cambios:**
+- `DESIGN.md`: D33 nueva. D32 decía que cambiar una política no cambiaba el código; se corrigió, porque
+  `CertificationConfiguration` es código y el cambio exige un deploy. D10 aclara lo mismo sobre registrar una
+  jurisdicción. Limitación nueva: las reglas de certificación están en código y la versión de una política se
+  sube a mano, sin un test que verifique que se subió.
