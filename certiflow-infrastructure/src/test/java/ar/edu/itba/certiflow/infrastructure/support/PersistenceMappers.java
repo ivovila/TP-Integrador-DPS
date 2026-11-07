@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.infrastructure.support;
 
+import ar.edu.itba.certiflow.infrastructure.assistance.persistence.ProposalsDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.certification.persistence.DecisionDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.inspection.persistence.EvaluationDocumentMapper;
 import ar.edu.itba.certiflow.infrastructure.schema.persistence.SectionsDocumentMapper;
@@ -22,7 +23,7 @@ import org.springframework.context.annotation.Import;
 /** Los colaboradores que los repositorios JPA reciben y que {@code @DataJpaTest} no registra por sí solo. */
 @TestConfiguration
 @Import({StoredJson.class, CodesDocumentMapper.class, SectionsDocumentMapper.class, EvaluationDocumentMapper.class,
-        DecisionDocumentMapper.class, StoredSchemaVersions.class})
+        DecisionDocumentMapper.class, StoredSchemaVersions.class, ProposalsDocumentMapper.class})
 public class PersistenceMappers {
 
     @Bean

@@ -3,6 +3,7 @@ package ar.edu.itba.certiflow.assistance.model;
 import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Outcome;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Un criterio tal como lo lee el asistente: la regla y la respuesta ya escritas en palabras, el resultado que
@@ -26,7 +27,11 @@ public record CriterionUnderReview(CriterionCode code, String text, String rule,
     }
 
     public boolean mentions(Quote quote) {
-        return observations.stream().anyMatch(quote::appearsIn)
-                || evidence.stream().map(EvidenceUnderReview::description).anyMatch(quote::appearsIn);
+        return freeText().stream().anyMatch(quote::appearsIn);
+    }
+
+    /** Lo que el inspector escribió y la regla no lee: las observaciones y las descripciones de evidencia. */
+    public List<String> freeText() {
+        return Stream.concat(observations.stream(), evidence.stream().map(EvidenceUnderReview::description)).toList();
     }
 }
