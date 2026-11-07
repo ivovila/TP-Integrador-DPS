@@ -203,27 +203,30 @@ que una versión de prompt no empeore las métricas respecto de la anterior.
 - [ ] Revisarlos en equipo: tienen que sonar a inspecciones reales (guía en el README del conjunto).
 
 ### Fase 1 · Dominio
-- [ ] Contexto `assistance`: puerto, `InspectionUnderReview`, `AssistantReview`, `Suggestion`, decisiones,
+- [x] Contexto `assistance`: puerto, `InspectionUnderReview`, `AssistantReview`, `Suggestion`, decisiones,
       `ReviewId`, excepciones (revisión de inspección cerrada, sugerencia ya decidida, índice inexistente).
-- [ ] Guardrails de §2.2 en el agregado y en su fábrica, con tests unitarios parametrizados.
-- [ ] Regla de ArchUnit: `assistance` no importa el modelo de inspección salvo ids, y nadie fuera de infraestructura
+- [x] Guardrails de §2.2 en el agregado y en su fábrica, con tests unitarios parametrizados.
+- [x] Regla de ArchUnit: `assistance` no importa el modelo de inspección salvo ids, y nadie fuera de infraestructura
       importa el proveedor.
 
 ### Fase 2 · Aplicación
-- [ ] `RequestAssistantReviewUseCase`: carga la inspección y la traduce, llama al puerto **fuera de la
+- [x] `RequestAssistantReviewUseCase`: carga la inspección y la traduce, llama al puerto **fuera de la
       transacción**, aplica los guardrails, guarda y audita (§2.5).
-- [ ] `DecideSuggestionUseCase`: aceptar o descartar, con autor y momento, auditado.
-- [ ] Consultas: revisiones de una inspección y una revisión por número.
-- [ ] `InspectionReviewTranslatorImpl` y sus tests; tests de casos de uso con el stub.
+- [x] Aceptar y descartar, con autor y momento, auditados: dos casos de uso, `AcceptSuggestionUseCase` y
+      `DismissSuggestionUseCase`, uno por comando (D17), como fija la spec.
+- [x] Consultas: revisiones de una inspección, una revisión por id y su bitácora.
+- [x] `InspectionReviewTranslatorImpl` y sus tests; tests de casos de uso con dobles de los puertos.
 
 ### Fase 3 · Infraestructura
-- [ ] Migración `V7__assistant_reviews.sql`, entidades, mapper y repositorio JPA, con tests de repositorio
-      (H2 y PostgreSQL).
-- [ ] `StubInspectionAssistant`, carga de prompts versionados y selección del proveedor por configuración.
-- [ ] Dependencia de Spring AI 2.0 solo en `certiflow-infrastructure` y regla de ArchUnit que lo impide en dominio
-      y aplicación.
-- [ ] `SpringAiInspectionAssistant` con salida estructurada validada; timeout y error explícito si el proveedor
-      falla (§2.5).
+- [x] Migración `V7__assistant_reviews.sql`, entidades, mapper y repositorio JPA, con tests de repositorio sobre
+      H2. Sobre PostgreSQL la migración corre en CI, que ahora también dispara en `entrega-3*`.
+- [x] `StubInspectionAssistant` y carga de prompts versionados (`PromptCatalog`, con suma de verificación).
+- [x] Dependencia de Spring AI 2.0 (`spring-ai-client-chat` 2.0.2) solo en `certiflow-infrastructure` y regla de
+      ArchUnit que lo impide fuera de ella.
+- [x] `SpringAiInspectionAssistant` con salida estructurada validada y error explícito si el proveedor falla o
+      responde algo que no cumple el formato, probado con un `ChatModel` falso.
+- [ ] **Bloqueado por el proveedor (§5.4):** agregar el *starter*, sus properties (modelo y timeout) y la
+      selección `certiflow.assistant.provider=stub|spring-ai` en la composición, que se arma en la fase 4.
 
 ### Fase 4 · API
 - [ ] `POST /api/v1/inspections/{id}/assistant-reviews` (201), `GET` de colección e ítem, y

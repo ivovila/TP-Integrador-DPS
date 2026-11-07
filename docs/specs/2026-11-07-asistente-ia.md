@@ -124,16 +124,20 @@ public interface InspectionAssistant {
 }
 ```
 
-- `InspectionUnderReview(InspectionId, AssetType, int schemaVersion, List<CriterionUnderReview> criteria)`.
+- `InspectionUnderReview(InspectionId, AssetType, int schemaVersion, boolean closed,
+  List<CriterionUnderReview> criteria)`: sabe si está abierta (`ensureOpen`) y responde a los guardrails.
 - `CriterionUnderReview(CriterionCode, String text, String rule, String answer, Outcome outcome,
-  List<String> observations, List<String> evidence)`: la regla y la respuesta ya escritas en palabras; la
-  respuesta la escribe `AnswerText`, que ya existe, y la regla un `RuleDescriber` nuevo.
+  List<String> observations, List<EvidenceUnderReview> evidence)`: la regla y la respuesta ya escritas en
+  palabras; la respuesta la escribe `AnswerText`, que ya existe, y la regla un `RuleDescriber` nuevo
+  (`RuleInWords`). `EvidenceUnderReview(kind, description)`.
 - `AssistantReply(PromptVersion, ModelId, List<ProposedFinding>)`; `ProposedFinding(CriterionCode, Severity
-  estimated, String rationale, List<String> quotes)`. Es lo que dijo el modelo, antes de los guardrails.
+  estimated, String rationale, List<Quote> quotes)`. Es lo que dijo el modelo, antes de los guardrails.
 - Si el proveedor falla o su respuesta no cumple el esquema, el adaptador lanza `AssistantUnavailableException`.
 
 `InspectionReviewTranslator` es otro puerto de `assistance.model`, con su implementación en la aplicación: el
 único lugar que conoce a la vez la inspección y lo que el asistente lee, como `InspectionResultTranslator` (D16).
+Tiene dos operaciones: `translate(InspectionId)` y `assetCodeOf(InspectionId)`, que es lo que se bloquea antes de
+guardar (D27).
 
 ### 3.3 Casos de uso
 
@@ -152,17 +156,17 @@ Una llamada al modelo tarda segundos, y `TransactionalUseCases` (D20) envuelve e
 revisión se escribe en tres pasos visibles:
 
 ```java
-InspectionUnderReview inspection = transactions.within(() -> translator.translateOpen(command.inspectionId()));
+InspectionUnderReview inspection = transactions.within(() -> openInspection(command.inspectionId()));
 AssistantReply reply = assistant.review(inspection);
-return transactions.within(() -> record(command, inspection, reply));
+return transactions.within(() -> record(command, reply));
 ```
 
 - `Transactions` es un puerto del shared kernel (`<T> T within(Supplier<T> work)`), implementado con
   `TransactionTemplate` en infraestructura. Es el mismo principio que `AssetLock` (D27): **lo que un caso de uso
   necesita para ser correcto se lee en el caso de uso**. Este caso de uso es el único que la composición no
   envuelve con `TransactionalUseCases`; aceptar, descartar y las consultas sí, como todos los demás.
-- El tercer paso vuelve a verificar que la inspección siga abierta: si la cerraron mientras respondía el modelo, el
-  pedido se rechaza con 409 y no se guarda la revisión.
+- El tercer paso bloquea el activo, vuelve a traducir la inspección y aplica los guardrails sobre esa lectura: si
+  la cerraron mientras respondía el modelo, el pedido se rechaza con 409 y no se guarda la revisión.
 
 **Descartadas:** *dejar la llamada dentro de la transacción*: una conexión de la base ocupada durante segundos
 por cada pedido. *Dos casos de uso que orquesta el controller*: el flujo de negocio pasaría a la capa web.

@@ -803,3 +803,37 @@ arrancar) quedan escritos.
   `CertificationConfiguration` es código y el cambio exige un deploy. D10 aclara lo mismo sobre registrar una
   jurisdicción. Limitación nueva: las reglas de certificación están en código y la versión de una política se
   sube a mano, sin un test que verifique que se subió.
+
+---
+
+# Entrega 3 · Revisión asistida con IA
+
+Plan: `docs/plans/2026-11-07-entrega-3-asistente-ia.md`. Spec: `docs/specs/2026-11-07-asistente-ia.md`.
+
+## 2026-11-07 · Fases 1 a 3: dominio, aplicación e infraestructura
+
+- **Dominio:** contexto nuevo `assistance` (D34). Puertos `InspectionAssistant` e `InspectionReviewTranslator`;
+  agregado `AssistantReview` con `Suggestion`, las decisiones `PendingDecision`, `Acceptance` y `Dismissal`, las
+  propuestas rechazadas con su motivo y su bitácora `AssistanceAudit`; guardrails `GuardrailRejection` (D35);
+  `AssistantReviewService`, `AssistantReviewFactory` y `AssistantReviewSnapshot`; repositorio
+  `AssistantReviewRepository`; seis casos de uso con sus comandos. En el shared kernel, el puerto `Transactions`
+  (D36) y la cuarta categoría de excepciones, `UnavailableException` (D28), que `ApiExceptionHandler` responde
+  con 503.
+- **Aplicación:** `RequestAssistantReviewUseCaseImpl` en tres pasos, con el modelo fuera de la transacción (D36);
+  aceptar y descartar bloquean el activo antes de leer la revisión (D27); consultas por id, por inspección y
+  bitácora. `InspectionReviewTranslatorImpl` y `RuleInWords`.
+- **Infraestructura:** migración `V7__assistant_reviews.sql` (`assistant_review`, con las sugerencias y las
+  rechazadas como JSON, D19, y `suggestion_decision`); `JpaAssistantReviewRepository`; `SpringTransactions`;
+  `StubInspectionAssistant` y `SpringAiInspectionAssistant` (D38); prompt `v1` con `PromptCatalog` y su suma de
+  verificación (D37); dependencia `spring-ai-client-chat` 2.0.2, sin proveedor (D39).
+- **Arquitectura:** `ArchitectureRulesTest` suma Asistencia a las reglas de capas y frameworks, comprueba que
+  conoce la inspección solo por su id, que solo su traductor lee Inspección, que nadie la conoce, que no conoce a
+  Certificación, y que solo la infraestructura depende de Spring AI.
+- **CI:** el workflow corre también en los push a `entrega-3*`, así la rama se prueba contra PostgreSQL antes del
+  pull request.
+- **Tests:** `AssistantReviewTest`, `InspectionReviewTranslatorImplTest`, `RequestAssistantReviewUseCaseImplTest`,
+  `JpaAssistantReviewRepositoryTest`, `PromptCatalogTest`, `StubInspectionAssistantTest`,
+  `SpringAiInspectionAssistantTest`. Total: 482.
+- **Pendiente:** el proveedor y su API key (plan, §5.4). Con eso se agrega el *starter* y se compone
+  `SpringAiInspectionAssistant`; mientras tanto la composición usará el stub.
+

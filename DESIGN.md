@@ -1,4 +1,4 @@
-# Certiflow · Decisiones de diseño (Entrega 2)
+# Certiflow · Decisiones de diseño (Entrega 3)
 
 Plataforma de inspección, habilitación y certificación de activos. Java 25, Maven, Spring Boot 4.1,
 Spring Data JPA, Flyway, PostgreSQL (H2 en los tests), JUnit 6. Arquitectura DDD: el dominio y la
@@ -56,7 +56,8 @@ los repositorios y `web` con los controladores.
 | **Esquemas** | `schema` | esquema, versión, sección, criterio, regla de aprobación, severidad, evidencia exigida | `InspectionSchema`, `SchemaVersion`, `SchemaSections`, `Section`, `Criterion`, `CriterionCode`, `SectionTitle`, reglas, `Severity`, `EvidenceKind`, `RawAnswer` |
 | **Inspección** | `inspection` | inspección, alcance, respuesta, evidencia, observación, revisión, rectificación, hallazgo, acción correctiva, verificación | `Inspection`, `Evaluation`, `Revisions`, `Finding`, `CorrectiveActions` |
 | **Certificación** | `certification` | certificado, vigencia, suspensión, renovación, elegibilidad, resultado de inspección | `Certificate`, `AssetCertificates`, `CertificationPolicy`, `CertificationEligibility`, `CertificationDecision`, `InspectionResult` |
-| *Shared kernel* | `shared` | persona, auditoría | `Person`, `PersonId`, `Stamp`, `DomainException` y sus tres categorías (D28), `RequiredValueMissingException`, `AuditTrail`, `AuditEntry`, `AuditAction`, `AuditActionCatalog`, `AuditLog` |
+| **Asistencia** | `assistance` | revisión asistida, propuesta, sugerencia, guardrail, decisión del inspector, versión de prompt, modelo | `AssistantReview`, `Suggestion`, `SuggestionDecision`, `InspectionUnderReview`, `InspectionAssistant`, `GuardrailRejection` |
+| *Shared kernel* | `shared` | persona, auditoría, unidad de trabajo | `Person`, `PersonId`, `Stamp`, `DomainException` y sus cuatro categorías (D28), `Transactions` (D36), `RequiredValueMissingException`, `AuditTrail`, `AuditEntry`, `AuditAction`, `AuditActionCatalog`, `AuditLog` |
 
 Hallazgos y acciones correctivas quedan en **Inspección**: nacen del cierre y de la rectificación (S4, S6)
 y comparten el lenguaje de la no conformidad (D15). Los informes son modelos de lectura del contexto que
@@ -70,6 +71,7 @@ flowchart LR
     schema["Esquemas"] -- "Conformist<br/>SchemaVersion inmutable" --> inspection
     inspection -- "ACL<br/>InspectionResult" --> certification["Certificación"]
     catalog -- "Customer/Supplier<br/>AssetCode" --> certification
+    inspection -- "ACL<br/>InspectionUnderReview" --> assistance["Asistencia"]
 ```
 
 | Relación | Tipo | Cómo se implementa |
@@ -78,6 +80,7 @@ flowchart LR
 | Catálogo → Inspección | **Customer/Supplier** | La inspección guarda `AssetCode` y una foto del responsable (D3). |
 | Catálogo → Certificación | **Customer/Supplier** | El certificado guarda `AssetCode`. |
 | Inspección → Certificación | **Anticorruption Layer** | Certificación decide sobre su propio `InspectionResult`, que arma `InspectionResultTranslatorImpl` (D16). No importa `Finding` ni `InspectionView`: de Inspección solo conoce `InspectionId`, y lo verifica `ArchitectureRulesTest`. |
+| Inspección → Asistencia | **Anticorruption Layer** | El asistente lee su propio `InspectionUnderReview`, que arma `InspectionReviewTranslatorImpl` (D34). Inspección no conoce a Asistencia: la revisión nunca cambia la inspección y el acta no la incluye. |
 
 ### 2.3 Módulos y capas
 
@@ -96,7 +99,7 @@ flowchart TD
 | | `<ctx>.repository` | interfaces de repositorio y `CertificateNumbering` | `model` |
 | | `<ctx>.usecase` | una interfaz `XxxUseCase` por caso de uso, su `XxxCommand` (entrada) y sus modelos de lectura (salida) | `model` |
 | `certiflow-application` | `application.<ctx>` | `XxxUseCaseImpl implements XxxUseCase`, el traductor del ACL | `domain` |
-| `certiflow-infrastructure` | `infrastructure.<ctx>.persistence` | entidades JPA, Spring Data, adaptadores `JpaXxxRepository`, mappers de documentos JSON (`XxxDocumentMapper`), espejos de columnas | `domain`, Spring Data JPA, Flyway, Jackson |
+| `certiflow-infrastructure` | `infrastructure.<ctx>.persistence`, `infrastructure.assistance` | entidades JPA, Spring Data, adaptadores `JpaXxxRepository`, mappers de documentos JSON (`XxxDocumentMapper`), espejos de columnas; los asistentes y los prompts versionados (D37, D38) | `domain`, Spring Data JPA, Flyway, Jackson, cliente de Spring AI |
 | `certiflow-web` | `web.<ctx>`, `web.config`, `web.support` | controladores REST, DTOs, recursos HAL, composición, errores | todos, Spring Web, Spring HATEOAS |
 
 La dirección de dependencias la impone el compilador: un módulo solo ve lo que declara. `certiflow-domain`
@@ -127,7 +130,10 @@ catalog        ->  shared
 schema         ->  shared, catalog
 inspection     ->  shared, catalog, schema
 certification  ->  shared, catalog, schema, inspection           (de inspection solo InspectionId)
+assistance     ->  shared, catalog, schema, inspection           (de inspection solo InspectionId)
 ```
+
+Certificación y Asistencia no se conocen entre sí, y ningún contexto conoce a Asistencia.
 
 **Dónde vive cada validación.** Una regla vive dentro del agregado cuando puede decidirse con su propio
 estado y debe cumplirse siempre, sin importar desde qué caso de uso se lo manipule. Por ejemplo, una
@@ -485,6 +491,7 @@ determinista y los tests usan un reloj controlable.
 - **Criterio:** 404 cuando un identificador del request no nombra nada; 400 cuando un valor está mal por sí mismo, sin importar el estado del sistema; 409 cuando el estado de algo que existe impide la operación.
 - **Qué cambió al aplicar el criterio:** pasaron de 409 a 400 `AssignerCannotInspectException`, `DueDateInThePastException`, `InvalidValidityPeriodException`, `RectificationReasonRequiredException` y `VerificationNotesRequiredException`. Ninguna pasó a 404. El frontend lee el título de un error de dominio y nunca su estado, así que no cambió.
 - **Excepciones que se renombraron o nacieron** (cambia el `title` del problema): `AssetLacksRequiredSubsystemsException`, `DuplicateSubsystemCodeException`, `UnknownJurisdictionException`, `RenewalScopeMismatchException`, `NotAGlobalCertificateException`, `ReplacementForAnotherAssetException`, `InspectionNotClosedForCertificationException`, `InvalidPageRequestException`. El frontend las conoce en `DomainError.ts`.
+- **Cuarta categoría (Entrega 3):** `UnavailableException` (503) es para un servicio del que depende la operación y que no respondió. Que el proveedor del modelo falle no es un valor inválido ni un estado que impida la operación, así que no entraba en ninguna de las tres. Su única subclase es `AssistantUnavailableException`, y el mecanismo es el mismo: un método más en `ApiExceptionHandler` y nada que registrar.
 - **Costo:** una excepción que hoy es 409 y mañana se quiere 400 exige cambiar de quién hereda.
 
 ### D29. El reloj entrega la precisión que se guarda
@@ -497,7 +504,7 @@ determinista y los tests usan un reloj controlable.
 ### D30. Reglas de arquitectura ejecutables
 
 - **Dónde:** `ArchitectureRulesTest` (ArchUnit) en los tests de `certiflow-web`, que es el módulo que ve a todos.
-- **Qué comprueba:** el dominio no depende de otra capa; la aplicación no depende de infraestructura ni de web; dominio y aplicación no usan Spring, JPA ni Jackson; el shared kernel no importa ningún contexto; cada contexto solo conoce a los anteriores (sección 2.3); Certificación conoce una inspección solo por su id, y solo su traductor lee el contexto de Inspección; toda excepción de dominio pertenece a una de las tres categorías (D28).
+- **Qué comprueba:** el dominio no depende de otra capa; la aplicación no depende de infraestructura ni de web; dominio y aplicación no usan Spring, JPA ni Jackson; el shared kernel no importa ningún contexto; cada contexto solo conoce a los anteriores (sección 2.3); Certificación y Asistencia conocen una inspección solo por su id, y en cada una solo su traductor lee el contexto de Inspección; Certificación y Asistencia no se conocen y ningún contexto conoce a Asistencia; solo la infraestructura depende de Spring AI (D39); toda excepción de dominio pertenece a una de las cuatro categorías (D28).
 - **Por qué:** las fronteras entre capas las impone el compilador porque son módulos, pero las fronteras entre contextos eran una convención que se revisaba con `grep`.
 - **Costo:** una dependencia de test más.
 
@@ -526,6 +533,53 @@ determinista y los tests usan un reloj controlable.
 - **Por qué se aceptó:** una política es comportamiento, no solo parámetros (Strategy, D10). En código queda tipada y probada por `JurisdictionPoliciesTest` y los tests de escenario y de API, y CI corre la suite completa en cada push y en cada pull request antes de integrarla. El riesgo del deploy queda acotado: un cambio de política toca solo la raíz de composición, no el dominio ni los casos de uso, y no reescribe nada emitido, porque cada certificado guarda su decisión y la referencia de la política que la tomó (D32).
 - **Costo:** cambiar un plazo o sumar una jurisdicción no lo puede hacer el negocio por su cuenta; necesita un desarrollador, un pull request y un despliegue. Además, la versión de una política se sube a mano: si alguien cambia sus reglas sin pasar a la versión siguiente, decisiones tomadas con reglas distintas vuelven a quedar con la misma referencia, que es justo lo que corrigió D32. Hoy ningún test lo impide: los tests de políticas arman sus propias copias y no verifican las de `CertificationConfiguration`.
 - **Qué haría falta para no desplegar:** llevar los parámetros de las políticas basadas en severidad y el mapa de jurisdicciones a configuración externa (`@ConfigurationProperties` validadas al arrancar, que fallen si una jurisdicción no tiene política o si se repite una versión). Cambiarlos sería editar configuración y reiniciar, sin compilar. Una tabla administrable evitaría incluso el reinicio, pero exige alta, validación, auditoría y un calendario de versiones de políticas que la consigna no pide (spec de F3, §7). Las Strategies con un algoritmo propio seguirían siendo código.
+
+### D34. El asistente vive en su propio contexto, detrás de un puerto propio
+
+- **Problema:** la consigna pide un asistente basado en un modelo de lenguaje que ayude al inspector, integrado detrás de un contrato propio y sin que el dominio dependa del proveedor. El valor en este dominio está en lo que la regla no lee: un criterio puede salir aprobado mientras una observación o la descripción de una foto dice que está mal. El asistente revisa una inspección abierta antes de cerrarla y señala esas no conformidades, para que el inspector corrija la respuesta y la regla levante el hallazgo.
+- **Decisión:** contexto nuevo `assistance`, después de `inspection` en el orden de contextos. El puerto es `InspectionAssistant` (`AssistantReply review(InspectionUnderReview)`). El asistente lee un `InspectionUnderReview` que arma `InspectionReviewTranslatorImpl`, como `InspectionResultTranslatorImpl` en Certificación (D16): por criterio, el texto, la regla en palabras (`RuleInWords`, un `RuleDescriber` que no conoce ningún tipo de regla), la respuesta (`AnswerText`), el resultado y el texto libre. El agregado `AssistantReview` guarda la versión de prompt, el modelo, quién la pidió, las sugerencias, las propuestas que rechazaron los guardrails (D35) y cada decisión del inspector (`PendingDecision`, `Acceptance`, `Dismissal` con motivo obligatorio, D26), con su bitácora (`AssistanceAudit`, D7).
+- **Lo que el asistente no ve:** la severidad configurada de cada criterio, quién escribió cada cosa y cuándo. La severidad la estima el modelo; si la recibiera, la métrica "severidades acertadas" del harness sería trivial.
+- **Lo que el asistente no hace:** una sugerencia nunca responde, cierra, rectifica, levanta hallazgos ni certifica. Aceptarla solo registra la decisión: para que haya hallazgo, el inspector corrige la respuesta por el flujo de siempre y la regla lo levanta al cerrar. Así la decisión sigue siendo humana y la lógica de negocio no se duplica en la capa nueva.
+- **Descartadas:** *las revisiones dentro del agregado `Inspection`*: Inspección tendría que conocer al asistente y cada cambio del asistente tocaría el agregado central. *Que aceptar aplique la sugerencia*: el asistente estaría cambiando la inspección, y una sugerencia equivocada aceptada por inercia se convertiría en un hallazgo. *Redactar el borrador del acta*: la consigna acepta cualquiera de las dos, pero el acta es un texto sin una métrica simple, y las de la consigna (hallazgos correctos, severidades acertadas, inventados) miden hallazgos.
+- **Verificación:** `AssistantReviewTest`, `InspectionReviewTranslatorImplTest`; `ArchitectureRulesTest` comprueba que Asistencia conoce la inspección solo por su id y que nadie conoce a Asistencia.
+
+### D35. Guardrails deterministas antes de que una propuesta llegue al inspector
+
+- **Dónde:** `GuardrailRejection`, un enum con comportamiento: `OUT_OF_SCOPE` (el criterio no está en la inspección), `ALREADY_NONCONFORMING` (la regla ya levanta ese hallazgo) y `UNSUPPORTED_QUOTE` (sin citas, o con una que no aparece en el texto de la inspección). Se aplican en el orden en que están declarados y el primero que rechaza es el motivo. Los aplica el constructor de `AssistantReview`, así que no hay forma de armar una revisión sin pasarlos.
+- **La cita es la red contra hallazgos inventados:** una sugerencia tiene que apoyarse en algo que el inspector escribió. `Quote.appearsIn` compara después de normalizar mayúsculas y espacios: un cambio de formato no la invalida, una paráfrasis sí. La cita puede venir de otro criterio, porque un inspector escribe donde le queda cómodo ("una estantería tapa el cartel" anotado en la altura de montaje es un problema de señalización).
+- **Lo rechazado se guarda, con su motivo:** nunca se muestra como sugerencia ni se puede aceptar, pero queda en la revisión. Es lo que permite contar en el harness cuántas propuestas atrapa cada control.
+- **Descartadas:** *mostrarle todo al inspector y que él filtre*: un inspector que descarta cinco sugerencias inventadas deja de leer la sexta. *Validar en el adaptador del modelo*: cada adaptador tendría que repetirlo y el stub de CI no lo probaría.
+- **Verificación:** `AssistantReviewTest` (un test por control, citas con otro formato, citas de otro criterio, el orden de los controles, la numeración que saltea las rechazadas).
+
+### D36. La llamada al modelo va fuera de la transacción
+
+- **Problema:** una llamada a un modelo tarda segundos, y `TransactionalUseCases` (D20) envuelve el caso de uso entero: cada pedido tendría una conexión de la base ocupada mientras espera al proveedor.
+- **Decisión:** puerto `Transactions` en el shared kernel (`<T> T within(Supplier<T>)`), implementado con `TransactionTemplate` en `SpringTransactions`. `RequestAssistantReviewUseCaseImpl` se escribe en tres pasos visibles: traducir la inspección abierta dentro de una transacción, llamar al modelo fuera de toda transacción, y guardar la revisión dentro de otra. Es el mismo principio de D27: lo que un caso de uso necesita para ser correcto se lee en el caso de uso. Es el único caso de uso que la composición no envuelve con `TransactionalUseCases`.
+- **El tercer paso vuelve a leer:** bloquea el activo de la inspección (D27) y la traduce otra vez, así el control de que siga abierta y los guardrails se aplican sobre lo que hay al guardar. Si la cerraron mientras respondía el modelo, el pedido se rechaza con 409 y no se guarda nada. Aceptar y descartar también bloquean el activo antes de leer la revisión (`AssistantReviewRepository.inspectionOf`), así dos decisiones sobre la misma sugerencia se ejecutan de a una.
+- **Descartadas:** *dejar la llamada dentro de la transacción*. *Dos casos de uso que orquesta el controller*: el flujo de negocio pasaría a la capa web. *Envolver colaboradores internos con el proxy de D20*: funciona, pero el límite de la transacción quedaría escondido en la configuración, que es lo que D27 corrigió.
+- **Verificación:** `RequestAssistantReviewUseCaseImplTest` (el modelo se llama con cero transacciones abiertas y una terminada; una inspección cerrada antes de llamar o mientras respondía; un modelo que no responde no guarda nada; los guardrails juzgan la inspección releída).
+
+### D37. Los prompts son configuración versionada e inmutable
+
+- **Dónde:** `certiflow-infrastructure/src/main/resources/prompts/inspection-review/v1.st`; `PublishedPrompt` (versión y suma SHA-256 de cada versión publicada) y `PromptCatalog`, que carga una versión y falla si no está publicada o si su texto ya no coincide con la suma. Cada revisión guarda la versión con la que se pidió.
+- **Por qué:** una revisión guardada con "v1" tiene que seguir significando el mismo texto, y comparar dos prompts en el harness exige que cada uno tenga nombre fijo. Cambiar el prompt es agregar un archivo y una constante, como una versión de esquema (F2) o una migración; editar uno publicado es la misma clase de error que editar una migración aplicada, y por eso falla igual.
+- **Detalle:** la suma se calcula sobre el texto con fin de línea LF, para que un checkout en Windows no la rompa.
+- **Descartada:** *el prompt como texto en el código o en properties*: cambiarlo no dejaría rastro en las revisiones, y nada impediría editar una versión ya usada.
+- **Verificación:** `PromptCatalogTest`. Si falla porque cambió la suma, no se corrige la suma: se deshace la edición y se publica una versión nueva.
+
+### D38. Un stub determinista para CI y un adaptador real que no conoce al proveedor
+
+- **Stub:** `StubInspectionAssistant` propone un hallazgo en el criterio donde está escrito un texto que nombra una falla ("grieta", "fuga", "vencido"…), citándolo entero. No tiene red ni azar, así que CI, los tests de escenario y el desarrollo sin API key dan siempre lo mismo. Es deliberadamente ingenuo: no entiende negaciones ni sabe a qué criterio corresponde lo que lee. Esa ingenuidad es útil: es la línea de base contra la que el harness compara al modelo real, y el conjunto dorado tiene casos (negaciones, problemas anotados en otro criterio) que el stub falla a propósito.
+- **Adaptador real:** `SpringAiInspectionAssistant` manda la plantilla de la versión activa con la inspección en JSON y pide la respuesta con salida estructurada (`ModelReview`). Registra el modelo que informa el proveedor, o el configurado si no lo informa. Cualquier falla, del proveedor o de una respuesta que no cumple el formato (campos que faltan, una cita vacía, una severidad que no existe), se traduce a `AssistantUnavailableException`: una respuesta a medias no es una revisión.
+- **Verificación:** `StubInspectionAssistantTest`; `SpringAiInspectionAssistantTest` con un `ChatModel` que responde un texto fijo, sin red.
+
+### D39. Spring AI solo en el adaptador, nunca como puerto
+
+- **Decisión:** el puerto es nuestro (`InspectionAssistant`, como `CertificateRepository`) y Spring AI vive solo en el adaptador (`SpringAiInspectionAssistant`, como `JpaCertificateRepository`). Infraestructura depende de `spring-ai-client-chat` 2.0.2, que no depende de ningún proveedor: el proveedor es un *starter* y unas properties que agrega la composición.
+- **Lo que aporta:** el proveedor pasa a ser configuración, así que se pudo construir todo sin haberlo elegido; el harness compara modelos con el mismo adaptador; salida estructurada y plantillas sin escribirlas a mano.
+- **Lo que no aporta:** no hace el harness. Sus *evaluators* son "un modelo juzga a otro"; las métricas de la consigna son nuestras.
+- **Descartadas:** *el SDK oficial de un proveedor*: más simple, pero ata el adaptador a ese proveedor y obliga a escribir otro para comparar modelos. *HTTP directo con Jackson*: sin dependencias nuevas, pero hay que escribir a mano el cliente, la salida estructurada y los reintentos de cada proveedor.
+- **Costo:** una dependencia más y una segunda abstracción sobre la que ya da el puerto. **Condición:** Spring AI no sale de infraestructura; `ArchitectureRulesTest.onlyTheInfrastructureKnowsSpringAi` lo verifica.
 
 ---
 
@@ -605,6 +659,15 @@ determinista y los tests usan un reloj controlable.
 | Se pierde quién registró una respuesta, adjuntó una evidencia o planificó una acción | `InspectionExecutionTest.answersAndEvidenceRememberWhoGaveThemAndWhen`, `CorrectiveActionTest.actionRemembersWhoPlannedItAndWhen` |
 | La bitácora pendiente se pierde o se duplica | `AuditTrailTest` |
 | Extender severidades o tipos de evidencia obliga a tocar el dominio | `CriterionTest.customSeverityScaleIsHonouredWithoutChangingTheDomain`, `EvidenceRequirementTest.schemaDefinedEvidenceKindsWorkWithoutTouchingTheStandardOnes` |
+| El asistente inventa un hallazgo que el inspector no escribió | `AssistantReviewTest.aQuoteTheInspectorNeverWroteIsRejected`, `aProposalWithoutQuotesIsRejected` |
+| Una sugerencia repite un hallazgo que la regla ya levanta, o nombra un criterio fuera del alcance | `AssistantReviewTest.aCriterionTheRuleAlreadyRejectsIsNotSuggestedAgain`, `aCriterionOutsideTheInspectionIsRejectedAsOutOfScope` |
+| Una cita correcta se rechaza por un cambio de formato o por estar en otro criterio | `AssistantReviewTest.aQuoteMatchesIgnoringCaseAndSpacing`, `aQuoteMayComeFromAnotherCriterion` |
+| Una sugerencia se decide dos veces o se descarta sin motivo | `AssistantReviewTest.aDecidedSuggestionCannotBeDecidedAgain`, `dismissingWithoutAReasonIsRejected` |
+| Se revisa una inspección cerrada, o se guarda la revisión de una que se cerró mientras respondía el modelo | `RequestAssistantReviewUseCaseImplTest.aClosedInspectionIsRejectedBeforeCallingTheModel`, `anInspectionClosedWhileTheModelAnsweredIsRejectedAndNothingIsSaved` |
+| La llamada al modelo retiene una conexión de la base | `RequestAssistantReviewUseCaseImplTest.theModelIsCalledBetweenTwoTransactionsAndTheReviewIsSavedInTheSecond` |
+| Una falla o una respuesta mal formada del proveedor se guarda como revisión | `SpringAiInspectionAssistantTest.anAnswerThatIsNotTheAgreedFormatIsUnavailable`, `RequestAssistantReviewUseCaseImplTest.anUnavailableModelSavesNothing` |
+| Se edita un prompt publicado y las revisiones viejas cambian de significado | `PromptCatalogTest.thePublishedVersionLoadsUnchangedAndReceivesTheInspection` |
+| Lo que decidió el inspector se pierde al guardar | `JpaAssistantReviewRepositoryTest.decisionsAreKeptAndPendingSuggestionsStayPending` |
 
 | Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
 | Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
@@ -643,7 +706,7 @@ Tipos de test:
 
 - **De arquitectura** en `certiflow-web`: `ArchitectureRulesTest` (ArchUnit).
 
-Total: 435 tests (114 de dominio, 23 de aplicación, 34 de infraestructura y 264 de web; 15 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total: 482 tests (132 de dominio, 33 de aplicación, 49 de infraestructura y 268 de web; 15 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
