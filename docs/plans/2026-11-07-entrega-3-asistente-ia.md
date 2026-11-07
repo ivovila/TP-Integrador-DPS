@@ -75,20 +75,22 @@ necesita saber y nunca ve el agregado `Inspection`.
 |---|---|
 | La IA nunca cierra, rectifica ni certifica | Estructural: el asistente solo devuelve datos; no tiene referencia a ningún caso de uso ni comando |
 | Un humano acepta o descarta | `AssistantReviewService.accept/dismiss`, rol `INSPECTOR`, con `Stamp`; descartar exige motivo |
-| Queda trazado qué sugirió la IA y qué decidió el inspector | El agregado guarda la sugerencia completa con prompt y modelo, y cada decisión; `AuditLog<ReviewId>`; el acta lista las revisiones |
-| Solo inspecciones abiertas | Guarda al pedir la revisión (cerrada → 409) |
-| Sugerencia sobre un criterio fuera del alcance | Se descarta al armar la revisión y queda registrada como rechazada por guardrail (red contra hallazgos inventados) |
-| Sugerencia sobre un criterio que ya es no conforme | Se descarta: la regla ya levanta ese hallazgo |
+| Queda trazado qué sugirió la IA y qué decidió el inspector | El agregado guarda la sugerencia completa con prompt y modelo, las rechazadas por guardrail y cada decisión; `AuditLog<ReviewId>`; la inspección enlaza sus revisiones. El acta no cambia: haría que Inspección conozca a Asistencia, al revés del orden de contextos de D30 |
+| Solo inspecciones abiertas | Guarda al pedir la revisión y otra vez al guardarla, por si la cerraron mientras respondía el modelo (409) |
+| Sugerencia sobre un criterio fuera del alcance | Rechazada por guardrail con su motivo; no se muestra ni se puede aceptar |
+| Sugerencia sobre un criterio que ya es no conforme | Rechazada por guardrail: la regla ya levanta ese hallazgo |
+| Sugerencia cuyas citas no aparecen en el texto de la inspección | Rechazada por guardrail: es la red principal contra hallazgos inventados |
 | Texto de una observación que intenta dar órdenes al modelo (prompt injection) | Inofensivo por diseño: aunque el modelo obedezca, solo puede devolver sugerencias que un humano decide |
 
-**Severidad (decisión propuesta, revisable en la spec):** el prompt no recibe la severidad configurada de cada
+**Severidad (cerrada en la spec, §2.4):** el prompt no recibe la severidad configurada de cada
 criterio; el modelo estima la gravedad de lo que lee. La pantalla muestra la del criterio, que es la que valdrá si
 hay hallazgo, y avisa cuando el modelo estimó otra. Así la métrica "severidad acertada" mide algo real.
 
 ### 2.3 Prompts como configuración versionada
 
-- Archivos inmutables en `prompts/inspection-review/v1.md`, `v2.md`… Cambiar el prompt es agregar una versión,
-  nunca editar una existente: el mismo criterio que las versiones de esquema (F2).
+- Archivos inmutables en `certiflow-infrastructure/src/main/resources/prompts/inspection-review/v1.st`, `v2.st`…
+  Cambiar el prompt es agregar una versión, nunca editar una existente: el mismo criterio que las versiones de
+  esquema (F2). Un test con la suma de verificación de cada versión publicada lo hace cumplir (spec §6).
 - La versión activa sale de `certiflow.assistant.prompt-version`. Cada `AssistantReview` guarda la versión y el
   modelo con que se generó.
 - Responde de paso a la observación general de la entrega 2 (D33): mejorar el asistente es configuración, no código.
@@ -131,10 +133,11 @@ impide Spring, JPA y Jackson en dominio y aplicación.
 - **La llamada al modelo va fuera de la transacción.** `TransactionalUseCases` (D20) envuelve el caso de uso
   entero, y una llamada al modelo tarda segundos: con la base abierta y locks tomados durante ese tiempo. Pedir una
   revisión se arma en tres pasos: leer y traducir la inspección (transacción), llamar al modelo (sin transacción),
-  guardar la revisión (transacción). La spec decide si son dos casos de uso o uno con dos transacciones explícitas.
+  guardar la revisión (transacción). **Cerrada en la spec (§3.4):** un solo caso de uso con un puerto
+  `Transactions` que hace explícito el límite, con el mismo principio que `AssetLock` (D27).
 - **Que el proveedor falle no es una regla de negocio.** No cae en ninguna de las tres categorías de D28 (404, 400,
-  409). Una excepción de infraestructura propia, que la API responde con 503 y `problem+json`. Nunca se guarda una
-  revisión a medias.
+  409). **Cerrada en la spec (§3.5):** una cuarta categoría, `UnavailableException`, que la API responde con 503 y
+  `problem+json`; la categoría sigue decidiendo el estado, como en D28. Nunca se guarda una revisión a medias.
 
 ### 2.6 Reglas de código que se mantienen
 
@@ -172,7 +175,7 @@ aunque no forme parte de la aplicación:
 que una versión de prompt no empeore las métricas respecto de la anterior.
 
 - **Módulo** `certiflow-harness`, que depende de dominio e infraestructura y no forma parte de la aplicación.
-- **Conjunto dorado** en `harness/golden/*.json`, 15 casos sobre los esquemas de la demo (matafuego y caldera con
+- **Conjunto dorado** en `certiflow-harness/src/main/resources/golden/case-NN.json`, 15 casos sobre los esquemas de la demo (matafuego y caldera con
   subsistemas):
   - unos 10 con no conformidades escondidas en observaciones o evidencia, con criterio y severidad esperados;
   - 3 inspecciones limpias, para medir hallazgos inventados;
@@ -184,16 +187,16 @@ que una versión de prompt no empeore las métricas respecto de la anterior.
   para que el cambio de un prompt muestre su comparación en el pull request.
 - **CI determinista:** un test del módulo corre el harness contra el stub y verifica que las métricas se calculen
   bien sobre salidas conocidas.
-- **Modelo real, por separado:** workflow `harness.yml`, disparado al cambiar `prompts/**` y a mano, con la API key
+- **Modelo real, por separado:** workflow `harness.yml`, disparado al cambiar los prompts y a mano, con la API key
   como secreto. Corre el harness, compara con la versión anterior y publica el resultado.
 
 ## 4. Fases y tareas
 
 ### Fase 0 · Spec y conjunto dorado
 - [x] Copiar la consigna a `docs/consigna/certiflow-entrega-3.md`.
-- [ ] Spec `docs/specs/2026-11-07-asistente-ia.md`: contrato del puerto, formato de entrada y salida, guardrails,
-      endpoints, matriz riesgo → test y definición de terminado. Cerrar ahí la decisión de severidad (§2.2) y la forma
-      de las transacciones alrededor de la llamada al modelo (§2.5).
+- [x] Spec [`docs/specs/2026-11-07-asistente-ia.md`](../specs/2026-11-07-asistente-ia.md): contrato del puerto,
+      formato de entrada y salida, guardrails, endpoints, matriz riesgo → test y definición de terminado. Cierra la
+      severidad (§2.4), las transacciones (§3.4) y la respuesta a una falla del proveedor (§3.5).
 - [ ] Redactar los 15 casos del conjunto dorado y revisarlos en equipo: tienen que sonar a inspecciones reales.
 
 ### Fase 1 · Dominio
