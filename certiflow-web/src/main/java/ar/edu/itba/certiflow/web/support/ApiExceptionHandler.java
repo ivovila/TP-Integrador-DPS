@@ -4,6 +4,7 @@ import ar.edu.itba.certiflow.certification.model.exceptions.NotEligibleForCertif
 import ar.edu.itba.certiflow.shared.model.InvalidValueException;
 import ar.edu.itba.certiflow.shared.model.NotFoundException;
 import ar.edu.itba.certiflow.shared.model.RuleViolationException;
+import ar.edu.itba.certiflow.shared.model.UnavailableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Cada excepción de dominio pertenece a una de tres categorías y la categoría decide el estado HTTP.
+ * Cada excepción de dominio pertenece a una de cuatro categorías y la categoría decide el estado HTTP.
  * Una excepción nueva no necesita registrarse acá: alcanza con que extienda la categoría que le corresponde.
  */
 @RestControllerAdvice
@@ -41,6 +42,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RuleViolationException.class)
     ProblemDetail handle(RuleViolationException exception) {
         return problems.of(HttpStatus.CONFLICT, exception);
+    }
+
+    @ExceptionHandler(UnavailableException.class)
+    ProblemDetail handle(UnavailableException exception) {
+        return problems.of(HttpStatus.SERVICE_UNAVAILABLE, exception);
     }
 
     @ExceptionHandler(NotEligibleForCertificationException.class)
