@@ -643,7 +643,7 @@ Tipos de test:
 
 - **De arquitectura** en `certiflow-web`: `ArchitectureRulesTest` (ArchUnit).
 
-Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261 de web; 14 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total: 435 tests (114 de dominio, 23 de aplicación, 34 de infraestructura y 264 de web; 15 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
