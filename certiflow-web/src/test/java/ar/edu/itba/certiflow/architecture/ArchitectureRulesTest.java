@@ -128,7 +128,6 @@ class ArchitectureRulesTest {
         noClasses().that().resideInAPackage("ar.edu.itba.certiflow.application.assistance..")
                 .and().doNotHaveSimpleName("InspectionReviewTranslatorImpl")
                 .should().dependOnClassesThat(resideInAPackage(INSPECTION).and(not(equivalentTo(InspectionId.class))))
-                .allowEmptyShould(true)
                 .check(productionClasses);
     }
 
