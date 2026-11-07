@@ -270,7 +270,7 @@ determinista y los tests usan un reloj controlable.
   carga el activo y lee el reloj.
 - **Dónde:** evaluación, emisión y renovación usan el mismo colaborador. Los informes generales no clasifican el bloqueo;
   la evaluación por inspección/alcance muestra los impedimentos y condiciones; se eliminó el bloqueo universal de `Severity` y `Finding`.
-- **Por qué:** nuevas jurisdicciones se registran en configuración sin cambiar el servicio central. Las tres políticas
+- **Por qué:** nuevas jurisdicciones se registran en la raíz de composición sin cambiar el servicio central (sigue siendo código, así que exige un deploy: D33). Las tres políticas
   de ejemplo se arman en `CertificationConfiguration`, el único lugar que asocia jurisdicción con política, así el
   modelo de certificación no nombra las severidades estándar. La decisión es `GrantedDecision` o `RejectedDecision`
   (D26): un certificado solo puede construirse con la primera.
@@ -513,10 +513,19 @@ determinista y los tests usan un reloj controlable.
 ### D32. La decisión guarda la versión de la política que la tomó
 
 - **Problema:** la decisión guardaba el código de la política pero no su versión. Si `STANDARD` pasaba de 12 a 6 meses, las decisiones viejas y las nuevas decían "STANDARD" con plazos distintos: alcanzaba para explicar el resultado, pero no para saber qué regla estaba vigente.
-- **Decisión:** `PolicyReference(code, version)` reemplaza a `PolicyCode` en todo lo que identifica a una política: `CertificationPolicy.reference()`, `GlobalCertificationPolicy.reference()`, `GrantedDecision.policy()`, `RejectedDecision.policy()`, `JurisdictionPolicy` y la política global de `PartialCertificatesBasis`. La versión empieza en 1 (`InvalidPolicyVersionException`). Cambiar las reglas de una política (lo que bloquea, lo que condiciona o los plazos) es armarla con la versión siguiente en `CertificationConfiguration`; el código no cambia, así que la jurisdicción y su historia siguen siendo las mismas. La bitácora del certificado escribe `policy STANDARD v1`.
+- **Decisión:** `PolicyReference(code, version)` reemplaza a `PolicyCode` en todo lo que identifica a una política: `CertificationPolicy.reference()`, `GlobalCertificationPolicy.reference()`, `GrantedDecision.policy()`, `RejectedDecision.policy()`, `JurisdictionPolicy` y la política global de `PartialCertificatesBasis`. La versión empieza en 1 (`InvalidPolicyVersionException`). Cambiar las reglas de una política (lo que bloquea, lo que condiciona o los plazos) es armarla con la versión siguiente en `CertificationConfiguration`. Esa clase es código de la raíz de composición, así que el cambio exige un deploy (D33); lo que no cambia es el dominio ni los casos de uso, y la jurisdicción conserva su historia. La bitácora del certificado escribe `policy STANDARD v1`.
 - **Persistencia y API:** el documento de la decisión suma `policyVersion` y el certificado global `global_policy_version` (migración V6, que marca con versión 1 lo ya guardado, porque es la única que existió). La decisión, la base de un global y el vocabulario de jurisdicciones informan la versión.
 - **Descartadas:** *guardar los parámetros de la política en cada decisión*: sirve para `SeverityCertificationPolicy`, pero obligaría a toda Strategy a serializar su implementación y la decisión ya guarda lo que resultó (condiciones y vigencia). *Una versión por fecha de vigencia, como los esquemas*: sumaría un calendario de políticas que nadie administra todavía, porque las políticas se definen en código (F3).
 - **Verificación:** `JurisdictionPoliciesTest.decisionsTakenUnderEachVersionOfAPolicySayWhichRuleWasInForce`, `aPolicyVersionStartsAtOne`, `JpaCertificateRepositoryTest.theDecisionIsReadBackWithTheVersionOfThePolicyThatTookIt`, `DeliveryFeaturesApiTest` y `VocabularyApiTest`.
+
+### D33. Qué cambios exigen un deploy, y por qué se aceptó
+
+- **Problema:** F1, F2 y F3 se implementaron modificando código fuente, y lo mismo pasa con cada cambio de regla de certificación. En producción cada cambio de código es un deployment, y un deployment puede romper algo que funcionaba.
+- **Qué cambia sin tocar código:** todo lo que varía con la operación diaria es dato, entra por la API y queda auditado: activos, esquemas y sus versiones (incluidas las programadas a futuro y su cancelación, D31), inspecciones, hallazgos, acciones correctivas y certificados. Publicar un esquema nuevo o corregir uno no requiere desplegar.
+- **Qué exige un deploy:** las políticas de certificación (qué severidades bloquean o condicionan, los plazos y la versión de cada una) y el mapa jurisdicción → política, que viven en `CertificationConfiguration`; las escalas de severidad y los tipos de evidencia, que son catálogos que arma la composición (D2); y los tipos de regla de aprobación, que son clases (D1).
+- **Por qué se aceptó:** una política es comportamiento, no solo parámetros (Strategy, D10). En código queda tipada y probada por `JurisdictionPoliciesTest` y los tests de escenario y de API, y CI corre la suite completa en cada push y en cada pull request antes de integrarla. El riesgo del deploy queda acotado: un cambio de política toca solo la raíz de composición, no el dominio ni los casos de uso, y no reescribe nada emitido, porque cada certificado guarda su decisión y la referencia de la política que la tomó (D32).
+- **Costo:** cambiar un plazo o sumar una jurisdicción no lo puede hacer el negocio por su cuenta; necesita un desarrollador, un pull request y un despliegue. Además, la versión de una política se sube a mano: si alguien cambia sus reglas sin pasar a la versión siguiente, decisiones tomadas con reglas distintas vuelven a quedar con la misma referencia, que es justo lo que corrigió D32. Hoy ningún test lo impide: los tests de políticas arman sus propias copias y no verifican las de `CertificationConfiguration`.
+- **Qué haría falta para no desplegar:** llevar los parámetros de las políticas basadas en severidad y el mapa de jurisdicciones a configuración externa (`@ConfigurationProperties` validadas al arrancar, que fallen si una jurisdicción no tiene política o si se repite una versión). Cambiarlos sería editar configuración y reiniciar, sin compilar. Una tabla administrable evitaría incluso el reinicio, pero exige alta, validación, auditoría y un calendario de versiones de políticas que la consigna no pide (spec de F3, §7). Las Strategies con un algoritmo propio seguirían siendo código.
 
 ---
 
@@ -634,7 +643,7 @@ Tipos de test:
 
 - **De arquitectura** en `certiflow-web`: `ArchitectureRulesTest` (ArchUnit).
 
-Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261 de web; 14 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total: 435 tests (114 de dominio, 23 de aplicación, 34 de infraestructura y 264 de web; 15 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
@@ -655,6 +664,7 @@ Total: 417 tests (104 de dominio, 20 de aplicación, 32 de infraestructura y 261
 - **Frontend atado al reloj del servidor.** Desde la interfaz no se puede mostrar una acción vencida ni un certificado expirado sin esperar a que pasen los días (D23).
 - **Detalle de la bitácora con `toString`.** El detalle de una respuesta registrada o rectificada sale como `EARTH = NumericAnswer[value=2.50]`; se ve en el historial de la inspección y en el acta.
 - **Escala decimal en la API.** Una medición enviada como `2.50` se guarda con su escala pero la API la devuelve como `2.5`.
+- **Reglas de certificación en código.** Cambiar una política o sumar una jurisdicción exige un deploy, y la versión de una política se sube a mano sin que nada verifique que se subió (D33).
 - **Políticas sin descripción.** `CertificationPolicy` expone solo su código y versión, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
 - **Elegibilidad del activo entero con subsistemas.** `GET …/certification-eligibility` sin `?subsystem` responde 409 en un esquema con subsistemas, en lugar de la decisión rechazada que preveía la spec de F3.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
