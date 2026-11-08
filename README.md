@@ -187,11 +187,8 @@ se consultan en la evaluación de una inspección y alcance, no como propiedad a
 
 ## Entrega 3 · API de revisión asistida
 
-> **Integración real SIN VALIDAR.** La fase 4 está implementada y probada con stub y HTTP local, pero
-> no hubo ninguna generación exitosa con NVIDIA ni una prueba de extremo a extremo con IA real.
-> Los intentos externos agotaron timeout/devolvieron 504. El harness y el panel de frontend siguen pendientes.
-> **Próximo agente: empezar por el [traspaso de fase 4](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md)**,
-> que detalla evidencia, archivos, comandos y condiciones para darla por funcionando. La key no está guardada.
+> La revisión funciona de punta a punta con el modelo real (Nemotron 3.5 Super en NVIDIA NIM). El harness y el
+> panel de frontend siguen pendientes.
 
 La rama `entrega-3` incorpora el contexto Asistencia. Un inspector pide una revisión sin cuerpo con
 `POST /api/v1/inspections/{id}/assistant-reviews`; recibe 201 con la URL de la revisión. Se consulta desde
@@ -208,8 +205,8 @@ pedir una revisión de una inspección cerrada devuelve 409.
 ### NVIDIA NIM (opcional, sin cambiar el modo por defecto)
 
 El perfil `nvidia` selecciona el adaptador Spring AI con la API compatible de NVIDIA. Conseguir una key en
-[NVIDIA Build](https://build.nvidia.com/settings/api-keys), según la
-[guía oficial](https://docs.api.nvidia.com/nim/docs/api-quickstart), y cargarla en la misma terminal WSL:
+[NVIDIA Build](https://build.nvidia.com/settings/api-keys) y cargarla en la misma terminal WSL, sin que quede en
+el historial:
 
 ```bash
 read -rsp 'NVIDIA API key: ' NVIDIA_API_KEY
@@ -219,21 +216,18 @@ mvn -q -DskipTests install
 mvn -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo,nvidia
 ```
 
-La clave no se muestra al escribirla ni se guarda en el historial o el repositorio. El endpoint por defecto es
-`https://integrate.api.nvidia.com/v1`; el modelo es `google/gemma-4-31b-it`, configurable con `NVIDIA_MODEL`.
-Los Llama 3.3 70B y 3.1 8B inicialmente propuestos tienen su endpoint gratuito retirado en NVIDIA; no usarlos
-como valores para esta demo. La comparación pequeña queda pendiente de verificar otro endpoint activo.
-Gemma usa respuesta directa por defecto (`CERTIFLOW_ASSISTANT_ENABLE_THINKING=false`), para reservar la salida
-al JSON. Se puede activar explícitamente su razonamiento con `true`; su calidad y latencia deben medirse.
+El modelo por defecto es Nemotron 3.5 Super (`nvidia/nemotron-3.5-super-vl-120b-a12b`). Se cambia con
+`NVIDIA_MODEL`, y lo que ese modelo necesite de más en el cuerpo del pedido con `CERTIFLOW_ASSISTANT_EXTRA_BODY`
+(por ejemplo `{"reasoning_effort":"none"}` para Mistral Large 4). `CERTIFLOW_ASSISTANT_TIMEOUT` cambia el timeout
+(por defecto `PT300S`, porque el endpoint gratuito encola pedidos) y `CERTIFLOW_ASSISTANT_PROMPT_VERSION` el prompt
+publicado (por defecto `v1`). No hay reintentos ni fallback al stub: una falla del proveedor es un 503 y su causa
+queda en el log. Seleccionar el perfil sin key hace fallar el arranque.
 
-`CERTIFLOW_ASSISTANT_TIMEOUT` cambia el timeout (por defecto `PT60S`) y `CERTIFLOW_ASSISTANT_PROMPT_VERSION`
-selecciona un prompt publicado (por defecto `v1`). No hay reintentos automáticos; el cliente no repite revisiones
-ante un error ni cae al stub. Seleccionar el perfil sin key hace fallar el arranque con un mensaje explícito.
-Al terminar, `unset NVIDIA_API_KEY` quita la clave del entorno de esa terminal.
+Para probar la integración sin levantar la aplicación, con la key en el entorno:
 
-El proveedor recibe únicamente los criterios, reglas, respuestas y texto libre que arma el traductor;
-no los autores, fechas ni referencias de los archivos. El texto libre puede contener datos escritos por el inspector.
-NVIDIA ofrece acceso para prototipos sujeto a sus condiciones y disponibilidad; no se configuró una suscripción paga.
-La configuración se prueba contra un endpoint HTTP local. La prueba real usa una key ingresada de forma oculta,
-solo en memoria; los resultados se registran por separado sin credenciales. Una prueba de conexión no reemplaza
-el harness completo ni sus métricas de calidad.
+```bash
+mvn -pl certiflow-web -am test -Dtest=NvidiaAssistantSmokeApiTest -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+El proveedor recibe solo criterios, reglas, respuestas y texto libre, sin autores ni fechas. NVIDIA registra lo
+que recibe su API de prueba: no mandarle datos reales.

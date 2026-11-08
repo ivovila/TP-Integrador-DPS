@@ -1,5 +1,6 @@
 package ar.edu.itba.certiflow.web.assistance;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,8 +45,8 @@ class AssistantUnavailableApiTest extends ApiTest {
         postAs("INSPECTOR", inspection + "/assistant-reviews", "").andExpect(status().isServiceUnavailable())
                 .andExpect(content().contentType("application/problem+json"));
         read(inspection + "/assistant-reviews").andExpect(status().isOk());
-        org.junit.jupiter.api.Assertions.assertEquals(0, jdbc.queryForObject("select count(*) from assistant_review", Integer.class));
-        org.junit.jupiter.api.Assertions.assertEquals(0,
+        assertEquals(0, jdbc.queryForObject("select count(*) from assistant_review", Integer.class));
+        assertEquals(0,
                 jdbc.queryForObject("select count(*) from audit_entry where subject_type = 'assistance'", Integer.class));
     }
 }

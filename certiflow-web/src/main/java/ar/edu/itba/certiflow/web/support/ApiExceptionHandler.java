@@ -46,6 +46,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(UnavailableException.class)
     ProblemDetail handle(UnavailableException exception) {
+        // El cliente recibe un problema genérico; quien opera necesita saber qué contestó el proveedor.
+        logger.warn(exception.getMessage(), exception);
         return problems.of(HttpStatus.SERVICE_UNAVAILABLE, exception);
     }
 

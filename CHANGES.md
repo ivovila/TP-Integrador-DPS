@@ -862,3 +862,16 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
 - La key no se guarda ni se publica; no hubo persistencia local porque el usuario la condicionó a que funcionara.
   Falta una inferencia válida, recorrer API/guardrails/persistencia con ella y registrar evidencia real.
   Harness ejecutable, métricas, comparación de prompts/modelos y frontend del asistente siguen pendientes.
+
+## 2026-11-08 · Integración real validada con Nemotron 3.5 Super
+
+- **Modelo:** el perfil `nvidia` usa Nemotron 3.5 Super, que contestó el prompt real en 5 s. Gemma 4 no respondió
+  y Mistral Large 4 tardó minutos en cola y devolvió 400. Se saca del plan la comparación de modelos: la consigna
+  pide comparar versiones de prompt.
+- **Configuración por modelo:** `certiflow.assistant.extra-body` y `certiflow.assistant.headers` reciben JSON, en
+  lugar del parámetro fijo de Gemma; el perfil manda `NVCF-POLL-SECONDS: 300` y espera hasta 300 s.
+- **Diagnóstico:** el 503 registra la causa con un `warn`; antes se perdía.
+- **Tests:** `NvidiaAssistantSmokeApiTest` recorre la API de punta a punta contra NVIDIA cuando hay
+  `NVIDIA_API_KEY` (omitido en CI); `NvidiaAssistantConfigurationTest` verifica el cuerpo extra y los headers.
+  Evidencia en `docs/validation/2026-11-08-nvidia-first-review.json`. Total: 506 tests, 20 omitidos.
+

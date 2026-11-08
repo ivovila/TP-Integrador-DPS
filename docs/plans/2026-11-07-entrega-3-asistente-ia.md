@@ -1,9 +1,8 @@
 # ENTREGA-3 · Asistente con IA y harness de evaluación · Plan
 
-> **Estado al 2026-11-08: fase 4 implementada, integración real NO validada.** Los checks marcados son
-> implementación y tests con stub/servidor local, no una prueba exitosa con NVIDIA. No hubo una generación
-> real: timeouts y HTTP 504. Para retomar ahora, leer el
-> [traspaso con pasos pendientes](../handoffs/2026-11-08-fase-4-asistencia-pendiente.md).
+> **Estado al 2026-11-08: fases 1 a 4 terminadas y validadas con el modelo real.** La revisión recorre la API de
+> punta a punta con Nemotron 3.5 Super en NVIDIA NIM (`docs/validation/2026-11-08-nvidia-first-review.json`).
+> Sigue la fase 5, el harness.
 
 **Consigna:** [CertiFlow · Entrega 3](../consigna/certiflow-entrega-3.md), con las indicaciones de entrega de la cátedra al final.
 
@@ -26,7 +25,9 @@ cada uno hablando de al menos una parte distinta del sistema. Sin el video no se
 decisiones de dominio, implementación de los endpoints, refactors entre entregas y propuesta de valor; **para cada
 uno, las alternativas exploradas y por qué se eligió la que se eligió.**
 
-**Proveedor elegido (2026-11-08):** NVIDIA NIM, a pedido del usuario, con `google/gemma-4-31b-it`. La key fue aportada para la prueba, sin persistirla. El harness completo sigue pendiente (§5.4).
+**Proveedor elegido (2026-11-08):** NVIDIA NIM, a pedido del usuario, con Nemotron 3.5 Super
+(`nvidia/nemotron-3.5-super-vl-120b-a12b`), el único de los modelos probados que respondió el prompt real (§5.4).
+**No se comparan modelos:** la consigna pide comparar versiones de prompt; para eso alcanza un modelo que responda.
 
 ---
 
@@ -118,7 +119,8 @@ como `JpaCertificateRepository`). Lo que aporta:
 
 - **El proveedor pasa a ser configuración.** Cambiar de proveedor es cambiar un *starter* y unas properties, así
   que se puede empezar sin haberlo decidido.
-- **El harness compara modelos** con el mismo adaptador, de uno o de distintos proveedores.
+- **El modelo se cambia por configuración**, con el mismo adaptador; así se probaron cuatro hasta dar con uno que
+  respondiera.
 - **Salida estructurada y plantillas de prompt desde archivos**, que este plan necesita igual.
 - Es compatible con el proyecto: Spring AI 2.0 está hecho para Spring Boot 4.0 y 4.1, y usa Jackson 3.
 
@@ -126,7 +128,7 @@ Lo que no aporta: **no hace el harness**. Sus *evaluators* son de tipo "un model
 la consigna (hallazgos correctos, severidades acertadas, hallazgos inventados) las escribimos nosotros.
 
 **Alternativas descartadas:** *el SDK oficial de un proveedor*: más simple y transparente, pero ata el adaptador a
-ese proveedor y obliga a escribir otro para comparar modelos en el harness. *HTTP directo con Jackson*: sin
+ese proveedor y obliga a reescribirlo si ese proveedor no sirve. *HTTP directo con Jackson*: sin
 dependencias nuevas, pero hay que escribir a mano el cliente, la salida estructurada y los reintentos de cada
 proveedor.
 
@@ -243,7 +245,7 @@ HTTP local, más las regresiones y ArchUnit. Esa suite no llama a NVIDIA ni prue
 los intentos externos posteriores fallaron (ver traspaso).
 
 
-### Fase 4 · API implementada; integración real pendiente
+### Fase 4 · API
 - [x] `POST /api/v1/inspections/{id}/assistant-reviews` (201), `GET` de colección e ítem, y
       dos transiciones como recursos propios, igual que `closure` o `cancellation` (D21):
       `POST …/assistant-reviews/{n}/suggestions/{k}/acceptance` y `POST …/suggestions/{k}/dismissal` con
@@ -252,14 +254,11 @@ los intentos externos posteriores fallaron (ver traspaso).
       `dismissal`, y una ya decidida ninguno de los dos.
 - [x] Rol `INSPECTOR` para pedir y decidir; problem+json; `docs/openapi.yaml`; tests de API y de roles.
 
-**Implementada y probada con stub el 2026-11-08; NO validada de extremo a extremo con NVIDIA.** Las decisiones creadas tienen GET en su
-`Location`. El link `assistant-reviews` permanece al cerrar la inspección para consultar la traza; pedir otra
-revisión cerrada sigue devolviendo 409. Aceptar y descartar solo trazan decisiones, incluso después del cierre.
-Tests: `AssistantReviewApiTest`, `AssistantUnavailableApiTest`, roles y `PostgresAssistantReviewApiTest`.
-La composición NVIDIA de fase 3 se agregó después. Se aportó una key temporal, pero no se guardó
-y ninguna inferencia tuvo éxito; la primera revisión real sigue pendiente (§5.4).
-Verificación local: `mvn -q -Dcertiflow.postgres=true clean verify` pasó sobre H2 y PostgreSQL 17;
-OpenAPI validado como YAML sin claves duplicadas y con todas sus referencias internas resueltas.
+**Terminada el 2026-11-08.** Las decisiones creadas tienen GET en su `Location`. El link `assistant-reviews`
+permanece al cerrar la inspección para consultar la traza; pedir otra revisión cerrada sigue devolviendo 409.
+Aceptar y descartar solo trazan decisiones, incluso después del cierre. Tests: `AssistantReviewApiTest`,
+`AssistantUnavailableApiTest`, roles y `PostgresAssistantReviewApiTest`. Con el modelo real:
+`NvidiaAssistantSmokeApiTest`, que solo corre con `NVIDIA_API_KEY` y pasó con Nemotron 3.5 Super.
 
 ### Fase 5 · Harness
 - [ ] Módulo `certiflow-harness`: carga del conjunto dorado, ejecución repetida, métricas, reporte y comparación
@@ -318,18 +317,11 @@ La propuesta de valor es la parte más densa: si el tiempo no alcanza, le cede m
    antes de grabar, no ajustarse en la edición.
 3. **Latencia y costo.** Una revisión es una llamada de pocos segundos; el harness completo, unas decenas de
    llamadas. Se documentan los números reales después de la primera corrida.
-4. **Proveedor NVIDIA; modelo corregido (2026-11-08).** Los endpoints gratuitos de los Llama inicialmente
-   elegidos están retirados. Se usa `google/gemma-4-31b-it`, cuyo catálogo muestra endpoint gratuito activo.
-   La comparación pequeña queda pendiente de comprobar disponibilidad actual. Se desactiva el razonamiento
-   opcional de Gemma mediante `chat_template_kwargs.enable_thinking=false`, configurable en el perfil.
-   El usuario aportó una key para probar la conexión; solo se usa en memoria y no se registra aquí.
-   No hay resultados del harness completo todavía. La primera consulta HTTP agotó el timeout de 45 segundos;
-   no se considera una validación de credencial ni de calidad. El adaptador Java también agotó 120 segundos;
-   una consulta mínima de 32 tokens devolvió 504 con una ventana de polling de 5 segundos. El listado de modelos
-   es público y no valida la key. Evidencia sin secretos: `docs/validation/2026-11-08-nvidia-gemma-connectivity.json`.
-   La primera generación, los guardrails externos y el harness siguen sin validar.
-   Fuentes: https://build.nvidia.com/google/gemma-4-31b-it y
-   https://docs.api.nvidia.com/nim/reference/google-gemma-4-31b-it-infer .
+4. **Proveedor NVIDIA (2026-11-08).** El endpoint gratuito no garantiza disponibilidad: los Llama propuestos
+   están retirados, Gemma 4 no respondió y Mistral Large 4 tardó minutos en cola y devolvió 400 con el prompt
+   real. Nemotron 3.5 Super responde en segundos y es el modelo del harness. Si deja de responder, cambiar de
+   modelo es configuración (`NVIDIA_MODEL`, `CERTIFLOW_ASSISTANT_EXTRA_BODY`), pero las corridas del harness
+   quedan atadas al modelo con que se hicieron. NVIDIA registra lo que recibe: solo datos sintéticos.
 
 ## 6. Definición de terminado
 

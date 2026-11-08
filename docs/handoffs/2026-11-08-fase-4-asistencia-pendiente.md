@@ -1,5 +1,9 @@
 # Traspaso: fase 4 de Asistencia, integración real SIN VALIDAR
 
+> **Resuelto el 2026-11-08.** La integración quedó validada de punta a punta con Nemotron 3.5 Super
+> (`docs/validation/2026-11-08-nvidia-first-review.json`, `NvidiaAssistantSmokeApiTest`). Gemma y Mistral
+> Large 4 no respondían en el endpoint gratuito. Este documento queda como registro de lo que se intentó.
+
 **Rama: `entrega-3`. Estado: API implementada y probada con stub; NO probada con éxito de extremo a extremo
 con NVIDIA. No hay ninguna generación real exitosa ni resultados del harness. No presentar esta fase como
 una integración de IA operativa.**

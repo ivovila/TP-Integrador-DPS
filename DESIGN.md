@@ -576,9 +576,9 @@ determinista y los tests usan un reloj controlable.
 ### D39. Spring AI solo en el adaptador, nunca como puerto
 
 - **Decisión:** el puerto es nuestro (`InspectionAssistant`, como `CertificateRepository`) y Spring AI vive solo en el adaptador (`SpringAiInspectionAssistant`, como `JpaCertificateRepository`). Infraestructura depende de `spring-ai-client-chat` y `spring-ai-openai` 2.0.2; este último conecta a NVIDIA NIM mediante su API compatible. La composición explícita en infraestructura se activa solo con `certiflow.assistant.provider=spring-ai`.
-- **Lo que aporta:** el proveedor pasa a ser configuración, así que se pudo construir todo sin haberlo elegido; el harness compara modelos con el mismo adaptador; salida estructurada y plantillas sin escribirlas a mano.
+- **Lo que aporta:** el proveedor pasa a ser configuración, así que se pudo construir todo sin haberlo elegido; cambiar de modelo es configuración, con el mismo adaptador; salida estructurada y plantillas sin escribirlas a mano.
 - **Lo que no aporta:** no hace el harness. Sus *evaluators* son "un modelo juzga a otro"; las métricas de la consigna son nuestras.
-- **Descartadas:** *el SDK oficial de un proveedor*: más simple, pero ata el adaptador a ese proveedor y obliga a escribir otro para comparar modelos. *HTTP directo con Jackson*: sin dependencias nuevas, pero hay que escribir a mano el cliente, la salida estructurada y los reintentos de cada proveedor.
+- **Descartadas:** *el SDK oficial de un proveedor*: más simple, pero ata el adaptador a ese proveedor y obliga a reescribirlo si ese proveedor no sirve. *HTTP directo con Jackson*: sin dependencias nuevas, pero hay que escribir a mano el cliente, la salida estructurada y los reintentos de cada proveedor.
 - **Costo:** una dependencia más y una segunda abstracción sobre la que ya da el puerto. **Condición:** Spring AI no sale de infraestructura; `ArchitectureRulesTest.onlyTheInfrastructureKnowsSpringAi` lo verifica.
 
 ---
@@ -831,51 +831,35 @@ sin red, verifica que no haya transacción activa al llamarlo y que 503 no guard
 Los tests de roles cubren las rutas nuevas; `PostgresAssistantReviewApiTest` repite el contrato sobre PostgreSQL.
 
 
-### NVIDIA NIM como proveedor de prototipos (2026-11-08)
+### NVIDIA NIM como proveedor y modelo del harness (2026-11-08)
 
-El usuario propuso NVIDIA Build para conseguir acceso gratuito. `SpringAiAssistantConfiguration` vive en
-infraestructura para preservar D39 y compone `OpenAiChatModel` con el endpoint compatible de NVIDIA NIM.
-Se usa el módulo `spring-ai-openai`, con configuración manual en lugar del starter: evita activar otros tipos
-de modelo y exigir credenciales cuando se trabaja con el stub. El perfil `nvidia` selecciona esta configuración;
-la key se lee de `NVIDIA_API_KEY`, sin persistirla. Modelo, URL, prompt y timeout son configuración.
+**Decisión.** El asistente real usa la API compatible con OpenAI de NVIDIA NIM, que tiene endpoints gratuitos para
+prototipos, con **Nemotron 3.5 Super** (`nvidia/nemotron-3.5-super-vl-120b-a12b`). `SpringAiAssistantConfiguration`
+vive en infraestructura (D39) y compone `OpenAiChatModel` a mano con `spring-ai-openai`, sin el starter: así el stub
+sigue sin pedir credenciales y no se activan clientes de embeddings, audio o imágenes. El perfil `nvidia` la
+selecciona; la key sale de `NVIDIA_API_KEY` y nunca se guarda en el repositorio.
 
-No se fuerza una extensión de salida estructurada propia de otro proveedor: el adaptador conserva su formato
-de respuesta y su validación de dominio. Timeout por defecto de 60 segundos y cero reintentos automáticos;
-una falla se traduce a 503 sin repetir una operación costosa ni hacer fallback al stub. La key vacía o un timeout
-no positivo impiden el arranque. `NvidiaAssistantConfigurationTest` ejerce el cliente real contra un servidor
-HTTP local, verificando URL, autenticación, modelo, parseo, error 401 y ausencia de reintentos. Los demás tests
-siguen sin credenciales ni red externa.
+**Lo propio de cada modelo es configuración, no código.** Cada modelo apaga su razonamiento de una forma distinta
+(Mistral con `reasoning_effort`, Gemma con `chat_template_kwargs`, Nemotron lo devuelve aparte y no necesita
+nada), y el endpoint gratuito encola los pedidos. Por eso la configuración recibe dos JSON genéricos:
+`certiflow.assistant.extra-body`, que se suma al cuerpo del pedido, y `certiflow.assistant.headers`, que en el
+perfil lleva `NVCF-POLL-SECONDS: 300` para que NVIDIA espere la respuesta en lugar de devolver 202, que el cliente
+no sigue. Timeout de 300 s y cero reintentos: una falla es un 503, sin repetir una operación costosa ni caer al
+stub. El 503 registra la causa con un `warn`; el cliente solo ve el problema genérico.
 
-Fuentes: [API de NVIDIA](https://docs.api.nvidia.com/nim/reference/meta-llama-3_3-70b-instruct-infer) y
-[configuración manual de Spring AI](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html#_manual_configuration).
-Limitación: aún no hay una llamada real a NVIDIA ni métricas; generar la key exige acceso al portal y el navegador
-de la sesión estaba deshabilitado. La primera corrida real queda pendiente; los tests locales no prueban calidad
-del modelo, cuota disponible ni que la cuenta tenga habilitado un modelo concreto.
+**Alternativas probadas.** Los Llama 3.3 70B y 3.1 8B que proponía el plan están retirados del catálogo
+gratuito. Gemma 4 31B no respondió (timeouts y 504). Mistral Large 4, que se eligió primero, contestó un saludo
+después de 208 s de cola y con el prompt real devolvió `400 Invalid request`. Nemotron 3.5 Super contestó el mismo
+prompt en 5 s, con la cita literal y el fundamento en español. **No se comparan modelos:** la consigna pide comparar
+versiones de prompt con el harness, y para eso alcanza un modelo que responda.
 
+**Cómo se verificó.** `NvidiaAssistantConfigurationTest` ejerce el cliente real contra un servidor HTTP local
+(modelo, key, cuerpo extra, headers, error 401 sin reintentos). `NvidiaAssistantSmokeApiTest` recorre la API de
+punta a punta contra NVIDIA: pide la revisión, pasa por la salida estructurada y los guardrails y guarda la
+sugerencia; solo corre con `NVIDIA_API_KEY` en el entorno, así CI sigue determinista. La evidencia, sin
+credenciales, está en `docs/validation/2026-11-08-nvidia-first-review.json` (y los intentos con Gemma en
+`docs/validation/2026-11-08-nvidia-gemma-connectivity.json`).
 
-### Corrección de disponibilidad del modelo (2026-11-08)
-
-Una API documentada no garantiza que el endpoint gratuito siga activo. Los Llama 3.3 70B y 3.1 8B
-inicialmente propuestos figuran como retirados en el catálogo de NVIDIA. El perfil cambia a Gemma 4 31B IT
-(`google/gemma-4-31b-it`), con endpoint gratuito activo al verificarlo; todavía se debe comprobar otro
-modelo para la comparación pequeña. La elección no afirma que sea el mejor modelo para el conjunto dorado.
-
-Gemma admite `chat_template_kwargs.enable_thinking`; por defecto se desactiva para que el presupuesto
-de salida se dedique al JSON. La opción vive en infraestructura y se configura con
-`certiflow.assistant.enable-thinking` (`CERTIFLOW_ASSISTANT_ENABLE_THINKING` en el perfil NVIDIA).
-El test HTTP comprueba que el parámetro sale en el cuerpo. Cambiar a otro modelo requiere revisar
-qué parámetros admite su endpoint, además de verificar que continúe disponible.
-
-El usuario aportó una key para la prueba: se pasa en memoria por entrada oculta y entorno del proceso,
-sin escribirla en archivos o registrar sus valores. Los resultados de conexión y del harness, cuando
-existan, deben contener solo datos sintéticos y medidas, nunca la credencial.
-
-### Estado de validación de fase 4 y traspaso (2026-11-08)
-
-La API está implementada y probada con stub/HTTP local. **No está validada con una generación real de NVIDIA**:
-los intentos directos y el adaptador Java agotaron tiempos de espera o devolvieron 504. No se estableció la
-causa, ni se validó la autenticación mediante el listado público de modelos. No hay una revisión real persistida,
-ni evidencia del flujo de extremo a extremo ni métricas del harness. La key no se persistió porque el usuario
-condicionó guardarla a que funcionara. El punto de entrada para el próximo agente es
-[el traspaso de fase 4](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md), con archivos, comandos,
-evidencia sanitizada y criterios de cierre. Los registros anteriores de implementación no implican validación real.
+**Costo y límites.** El endpoint gratuito no tiene garantías de disponibilidad ni de latencia, y NVIDIA registra
+entradas y salidas de la API de prueba: solo se le mandan datos sintéticos. Cambiar de modelo es cambiar
+`NVIDIA_MODEL` y, si hace falta, `CERTIFLOW_ASSISTANT_EXTRA_BODY`.
