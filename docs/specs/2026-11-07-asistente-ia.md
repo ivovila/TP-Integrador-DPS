@@ -212,10 +212,11 @@ que es el mecanismo de D28.
 | `GET /api/v1/assistant-reviews/{reviewId}/audit-entries` | lectores de inspecciones | bitácora |
 
 - La revisión vive en su propio recurso, como un hallazgo (`/findings/{id}`) aunque nazca de una inspección.
-- HAL: una inspección abierta ofrece `assistant-reviews`; una sugerencia pendiente ofrece `acceptance` y
+- HAL: una inspección ofrece `assistant-reviews` también después del cierre, para consultar la traza; una sugerencia pendiente ofrece `acceptance` y
   `dismissal`, y una decidida ninguno; una sugerencia ofrece `criterion` hacia la respuesta del criterio, que es
   donde el inspector la corrige.
 - La sugerencia informa `criterionSeverity` y `estimatedSeverity` por separado, nunca solo una.
+- Cada transición creada ofrece un `Location` consultable por GET (404 mientras no exista esa decisión).
 - Se actualiza `docs/openapi.yaml`.
 
 ## 6. Prompts versionados

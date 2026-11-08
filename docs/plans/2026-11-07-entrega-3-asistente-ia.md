@@ -1,5 +1,10 @@
 # ENTREGA-3 · Asistente con IA y harness de evaluación · Plan
 
+> **Estado al 2026-11-08: fase 4 implementada, integración real NO validada.** Los checks marcados son
+> implementación y tests con stub/servidor local, no una prueba exitosa con NVIDIA. No hubo una generación
+> real: timeouts y HTTP 504. Para retomar ahora, leer el
+> [traspaso con pasos pendientes](../handoffs/2026-11-08-fase-4-asistencia-pendiente.md).
+
 **Consigna:** [CertiFlow · Entrega 3](../consigna/certiflow-entrega-3.md), con las indicaciones de entrega de la cátedra al final.
 
 **Arquitectura:** los cuatro módulos DDD existentes, más un módulo `certiflow-harness` fuera de la aplicación.
@@ -21,7 +26,7 @@ cada uno hablando de al menos una parte distinta del sistema. Sin el video no se
 decisiones de dominio, implementación de los endpoints, refactors entre entregas y propuesta de valor; **para cada
 uno, las alternativas exploradas y por qué se eligió la que se eligió.**
 
-**Pendiente:** con qué proveedor corre el harness real y quién aporta la API key (§5). No bloquea las fases 0 a 2.
+**Proveedor elegido (2026-11-08):** NVIDIA NIM, a pedido del usuario, con `google/gemma-4-31b-it`. La key fue aportada para la prueba, sin persistirla. El harness completo sigue pendiente (§5.4).
 
 ---
 
@@ -102,8 +107,9 @@ hay hallazgo, y avisa cuando el modelo estimó otra. Así la métrica "severidad
 - `SpringAiInspectionAssistant` (infraestructura): el adaptador real, sobre **Spring AI 2.0**. Usa `ChatClient`,
   carga la plantilla de la versión de prompt activa y convierte la respuesta a un record de Java con salida
   estructurada; una respuesta que no cumple el esquema es un error, no una sugerencia.
-- Se elige por `certiflow.assistant.provider=stub|spring-ai`; con `spring-ai`, el proveedor concreto (Anthropic,
-  OpenAI, Ollama) es el *starter* que se agrega y sus properties.
+- Se elige por `certiflow.assistant.provider=stub|spring-ai`. El perfil `nvidia` compone el cliente compatible con
+  NVIDIA NIM (`spring-ai-openai` 2.0.2), con URL, modelo, timeout y key externos. No se usa un starter global:
+  la configuración explícita mantiene el stub sin credenciales y evita activar clientes de embeddings, audio o imágenes.
 
 **Decisión: Spring AI en el adaptador, nunca como puerto (2026-11-07).** Spring AI es a los modelos de lenguaje lo
 que Spring Data JPA es a la base de datos, y se usa igual: el puerto es nuestro (`InspectionAssistant`, como
@@ -225,17 +231,35 @@ que una versión de prompt no empeore las métricas respecto de la anterior.
       ArchUnit que lo impide fuera de ella.
 - [x] `SpringAiInspectionAssistant` con salida estructurada validada y error explícito si el proveedor falla o
       responde algo que no cumple el formato, probado con un `ChatModel` falso.
-- [ ] **Bloqueado por el proveedor (§5.4):** agregar el *starter*, sus properties (modelo y timeout) y la
-      selección `certiflow.assistant.provider=stub|spring-ai` en la composición, que se arma en la fase 4.
+- [x] Proveedor seleccionado: NVIDIA NIM, configurado con `spring-ai-openai` y composición explícita en
+      infraestructura (en lugar de un starter global). Perfil `nvidia`, key por entorno, modelo y timeout
+      configurables; selección `certiflow.assistant.provider=stub|spring-ai`, sin fallback silencioso.
+- [x] API key aportada por el usuario para las pruebas, sin guardarla en el repositorio.
+- [ ] Comprobar la primera revisión real y registrar su resultado. Las pruebas locales del cliente usan
+      un servidor HTTP; no reemplazan esta verificación externa.
 
-### Fase 4 · API
-- [ ] `POST /api/v1/inspections/{id}/assistant-reviews` (201), `GET` de colección e ítem, y
-      y dos transiciones como recursos propios, igual que `closure` o `cancellation` (D21):
+Verificación de la composición NVIDIA: `mvn -q clean verify` pasó; cinco pruebas nuevas del cliente
+HTTP local, más las regresiones y ArchUnit. Esa suite no llama a NVIDIA ni prueba calidad del modelo;
+los intentos externos posteriores fallaron (ver traspaso).
+
+
+### Fase 4 · API implementada; integración real pendiente
+- [x] `POST /api/v1/inspections/{id}/assistant-reviews` (201), `GET` de colección e ítem, y
+      dos transiciones como recursos propios, igual que `closure` o `cancellation` (D21):
       `POST …/assistant-reviews/{n}/suggestions/{k}/acceptance` y `POST …/suggestions/{k}/dismissal` con
       `{"reason"}`. No un `{"accepted": true|false}`: sería un booleano que elige comportamiento.
-- [ ] HAL: la inspección abierta ofrece `assistant-reviews`; una sugerencia pendiente ofrece `acceptance` y
+- [x] HAL: la inspección abierta ofrece `assistant-reviews`; una sugerencia pendiente ofrece `acceptance` y
       `dismissal`, y una ya decidida ninguno de los dos.
-- [ ] Rol `INSPECTOR` para pedir y decidir; problem+json; `docs/openapi.yaml`; tests de API y de roles.
+- [x] Rol `INSPECTOR` para pedir y decidir; problem+json; `docs/openapi.yaml`; tests de API y de roles.
+
+**Implementada y probada con stub el 2026-11-08; NO validada de extremo a extremo con NVIDIA.** Las decisiones creadas tienen GET en su
+`Location`. El link `assistant-reviews` permanece al cerrar la inspección para consultar la traza; pedir otra
+revisión cerrada sigue devolviendo 409. Aceptar y descartar solo trazan decisiones, incluso después del cierre.
+Tests: `AssistantReviewApiTest`, `AssistantUnavailableApiTest`, roles y `PostgresAssistantReviewApiTest`.
+La composición NVIDIA de fase 3 se agregó después. Se aportó una key temporal, pero no se guardó
+y ninguna inferencia tuvo éxito; la primera revisión real sigue pendiente (§5.4).
+Verificación local: `mvn -q -Dcertiflow.postgres=true clean verify` pasó sobre H2 y PostgreSQL 17;
+OpenAPI validado como YAML sin claves duplicadas y con todas sus referencias internas resueltas.
 
 ### Fase 5 · Harness
 - [ ] Módulo `certiflow-harness`: carga del conjunto dorado, ejecución repetida, métricas, reporte y comparación
@@ -294,9 +318,18 @@ La propuesta de valor es la parte más densa: si el tiempo no alcanza, le cede m
    antes de grabar, no ajustarse en la edición.
 3. **Latencia y costo.** Una revisión es una llamada de pocos segundos; el harness completo, unas decenas de
    llamadas. Se documentan los números reales después de la primera corrida.
-4. **Proveedor y API key (pendiente).** Con Spring AI el proveedor es configuración, así que no bloquea el
-   desarrollo, pero el harness real necesita uno. Recomendación: Claude, con Sonnet 5.5 como modelo principal y
-   Haiku 5.5 como comparación de costo en el mismo harness. Hace falta definir quién aporta la key con crédito.
+4. **Proveedor NVIDIA; modelo corregido (2026-11-08).** Los endpoints gratuitos de los Llama inicialmente
+   elegidos están retirados. Se usa `google/gemma-4-31b-it`, cuyo catálogo muestra endpoint gratuito activo.
+   La comparación pequeña queda pendiente de comprobar disponibilidad actual. Se desactiva el razonamiento
+   opcional de Gemma mediante `chat_template_kwargs.enable_thinking=false`, configurable en el perfil.
+   El usuario aportó una key para probar la conexión; solo se usa en memoria y no se registra aquí.
+   No hay resultados del harness completo todavía. La primera consulta HTTP agotó el timeout de 45 segundos;
+   no se considera una validación de credencial ni de calidad. El adaptador Java también agotó 120 segundos;
+   una consulta mínima de 32 tokens devolvió 504 con una ventana de polling de 5 segundos. El listado de modelos
+   es público y no valida la key. Evidencia sin secretos: `docs/validation/2026-11-08-nvidia-gemma-connectivity.json`.
+   La primera generación, los guardrails externos y el harness siguen sin validar.
+   Fuentes: https://build.nvidia.com/google/gemma-4-31b-it y
+   https://docs.api.nvidia.com/nim/reference/google-gemma-4-31b-it-infer .
 
 ## 6. Definición de terminado
 

@@ -183,3 +183,57 @@ la decisión conserva resultado, motivos, condiciones, vigencia y la referencia 
 dos decisiones de `STANDARD` con plazos distintos dicen bajo qué versión se tomó cada una.
 El resumen general de hallazgos muestra severidad y resolución. Los impedimentos de certificación
 se consultan en la evaluación de una inspección y alcance, no como propiedad absoluta de un hallazgo.
+
+
+## Entrega 3 · API de revisión asistida
+
+> **Integración real SIN VALIDAR.** La fase 4 está implementada y probada con stub y HTTP local, pero
+> no hubo ninguna generación exitosa con NVIDIA ni una prueba de extremo a extremo con IA real.
+> Los intentos externos agotaron timeout/devolvieron 504. El harness y el panel de frontend siguen pendientes.
+> **Próximo agente: empezar por el [traspaso de fase 4](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md)**,
+> que detalla evidencia, archivos, comandos y condiciones para darla por funcionando. La key no está guardada.
+
+La rama `entrega-3` incorpora el contexto Asistencia. Un inspector pide una revisión sin cuerpo con
+`POST /api/v1/inspections/{id}/assistant-reviews`; recibe 201 con la URL de la revisión. Se consulta desde
+el link `assistant-reviews` de la inspección, incluso después del cierre. Los lectores son los mismos que
+los de inspecciones. Cada sugerencia informa severidad configurada, estimación del asistente, fundamento y citas.
+Una sugerencia pendiente ofrece `acceptance` y `dismissal`; solo el inspector puede usarlos. Descartar exige
+`{"reason":"..."}`. Cada decisión devuelve 201 con un `Location` consultable y queda en `audit-entries`.
+Aceptar solo registra la decisión: el inspector corrige la respuesta por el flujo habitual.
+
+Por defecto `certiflow.assistant.provider=stub`: usa un asistente determinista sin red ni API key, que informa
+prompt `stub` y modelo `keyword-stub`. Un error del proveedor devuelve 503 sin guardar una revisión;
+pedir una revisión de una inspección cerrada devuelve 409.
+
+### NVIDIA NIM (opcional, sin cambiar el modo por defecto)
+
+El perfil `nvidia` selecciona el adaptador Spring AI con la API compatible de NVIDIA. Conseguir una key en
+[NVIDIA Build](https://build.nvidia.com/settings/api-keys), según la
+[guía oficial](https://docs.api.nvidia.com/nim/docs/api-quickstart), y cargarla en la misma terminal WSL:
+
+```bash
+read -rsp 'NVIDIA API key: ' NVIDIA_API_KEY
+export NVIDIA_API_KEY
+printf '\n'
+mvn -q -DskipTests install
+mvn -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo,nvidia
+```
+
+La clave no se muestra al escribirla ni se guarda en el historial o el repositorio. El endpoint por defecto es
+`https://integrate.api.nvidia.com/v1`; el modelo es `google/gemma-4-31b-it`, configurable con `NVIDIA_MODEL`.
+Los Llama 3.3 70B y 3.1 8B inicialmente propuestos tienen su endpoint gratuito retirado en NVIDIA; no usarlos
+como valores para esta demo. La comparación pequeña queda pendiente de verificar otro endpoint activo.
+Gemma usa respuesta directa por defecto (`CERTIFLOW_ASSISTANT_ENABLE_THINKING=false`), para reservar la salida
+al JSON. Se puede activar explícitamente su razonamiento con `true`; su calidad y latencia deben medirse.
+
+`CERTIFLOW_ASSISTANT_TIMEOUT` cambia el timeout (por defecto `PT60S`) y `CERTIFLOW_ASSISTANT_PROMPT_VERSION`
+selecciona un prompt publicado (por defecto `v1`). No hay reintentos automáticos; el cliente no repite revisiones
+ante un error ni cae al stub. Seleccionar el perfil sin key hace fallar el arranque con un mensaje explícito.
+Al terminar, `unset NVIDIA_API_KEY` quita la clave del entorno de esa terminal.
+
+El proveedor recibe únicamente los criterios, reglas, respuestas y texto libre que arma el traductor;
+no los autores, fechas ni referencias de los archivos. El texto libre puede contener datos escritos por el inspector.
+NVIDIA ofrece acceso para prototipos sujeto a sus condiciones y disponibilidad; no se configuró una suscripción paga.
+La configuración se prueba contra un endpoint HTTP local. La prueba real usa una key ingresada de forma oculta,
+solo en memoria; los resultados se registran por separado sin credenciales. Una prueba de conexión no reemplaza
+el harness completo ni sus métricas de calidad.

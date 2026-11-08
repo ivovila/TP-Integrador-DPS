@@ -837,3 +837,28 @@ Plan: `docs/plans/2026-11-07-entrega-3-asistente-ia.md`. Spec: `docs/specs/2026-
 - **Pendiente:** el proveedor y su API key (plan, §5.4). Con eso se agrega el *starter* y se compone
   `SpringAiInspectionAssistant`; mientras tanto la composición usará el stub.
 
+
+## 2026-11-08 · Fase 4 implementada; integración real SIN VALIDAR
+
+**No hubo ninguna revisión exitosa con NVIDIA.** Este cambio permite trabajar con el stub; el proveedor
+real queda como preparación experimental. No afirmar que la IA funciona de extremo a extremo.
+El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el punto de entrada del próximo agente.
+
+- Composición de seis casos de uso, traductor, servicio y bitácora. Pedir mantiene sus límites transaccionales
+  explícitos y llama al proveedor afuera; decidir y consultar usan el proxy habitual.
+- API HAL de revisiones, sugerencias, aceptación/descarte, GET de decisiones creadas y auditoría. Permisos por
+  rol, DTOs propios y severidad configurada/estimada separadas. Aceptar solo traza y no cambia la inspección.
+- El link `assistant-reviews` permanece al cerrar para conservar historia; pedir otra revisión cerrada da 409.
+- `AssistanceAudit` registrado y limpieza de tablas nuevas entre tests. OpenAPI, README, spec y plan al día.
+- Preparación NVIDIA en infraestructura con `spring-ai-openai` 2.0.2, selección condicional y perfil opt-in.
+  Modelo `google/gemma-4-31b-it`, key por entorno y razonamiento opcional desactivado. Los Llama inicialmente
+  propuestos tienen retirado su endpoint gratuito. Falta verificar otro modelo para la comparación pequeña.
+- Tests locales actuales: `mvn -q clean verify`, 486 aprobados y 19 omitidos, sin fallas/errores. Incluye API con
+  stub, HTTP contra servidor local y ArchUnit. Una corrida previa de la API con PostgreSQL 17 aprobó 500 tests,
+  antes de seleccionar Gemma; la configuración final con PostgreSQL y el CI del nuevo push deben comprobarse.
+- Intentos externos: timeout directo de 45 segundos, timeout del adaptador Java de 120 segundos, consulta
+  mínima 504 y repetición 504 en 35.62 segundos. `GET /v1/models` es público: su 200 no valida autenticación.
+  Evidencia sanitizada en `docs/validation/2026-11-08-nvidia-gemma-connectivity.json`.
+- La key no se guarda ni se publica; no hubo persistencia local porque el usuario la condicionó a que funcionara.
+  Falta una inferencia válida, recorrer API/guardrails/persistencia con ella y registrar evidencia real.
+  Harness ejecutable, métricas, comparación de prompts/modelos y frontend del asistente siguen pendientes.

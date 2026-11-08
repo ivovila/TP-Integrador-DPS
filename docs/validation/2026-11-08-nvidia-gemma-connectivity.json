@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-08",
+  "endpoint": "https://integrate.api.nvidia.com/v1/chat/completions",
+  "model": "google/gemma-4-31b-it",
+  "input": "synthetic data only",
+  "credentialStorage": "not persisted",
+  "checks": [
+    {
+      "kind": "model-discovery",
+      "status": 200,
+      "gemmaListed": true,
+      "authenticationVerified": false,
+      "note": "GET /v1/models also returned 200 without a key."
+    },
+    {
+      "kind": "direct-completion",
+      "timeoutSeconds": 45,
+      "result": "read timeout",
+      "structuredOutputValidated": false
+    },
+    {
+      "kind": "java-adapter-and-guardrails",
+      "timeoutSeconds": 120,
+      "thinkingEnabled": false,
+      "result": "AssistantUnavailableException caused by I/O timeout",
+      "structuredOutputValidated": false,
+      "guardrailsReached": false
+    },
+    {
+      "kind": "minimal-completion",
+      "thinkingEnabled": false,
+      "maxTokens": 32,
+      "pollSeconds": 5,
+      "status": 504,
+      "result": "NVIDIA returned an empty gateway-timeout response",
+      "structuredOutputValidated": false
+    },
+    {
+      "kind": "conditional-save-retry",
+      "thinkingEnabled": false,
+      "maxTokens": 512,
+      "pollSeconds": 30,
+      "status": 504,
+      "seconds": 35.62,
+      "structuredOutputValidated": false,
+      "credentialSaved": false
+    }
+  ],
+  "conclusion": "External inference has not been validated. Discovery is not proof of authentication or generation.",
+  "notMeasured": [
+    "accuracy",
+    "hallucinations",
+    "severity agreement",
+    "latency of successful inference"
+  ],
+  "nextStep": "Retry a bounded inference when NVIDIA is responsive; run the harness only after a successful completion.",
+  "handoff": "docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md"
+}

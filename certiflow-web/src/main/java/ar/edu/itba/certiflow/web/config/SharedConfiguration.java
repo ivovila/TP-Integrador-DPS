@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.web.config;
 
 import ar.edu.itba.certiflow.catalog.model.AssetAudit;
+import ar.edu.itba.certiflow.assistance.model.AssistanceAudit;
 import ar.edu.itba.certiflow.certification.model.CertificateAudit;
 import ar.edu.itba.certiflow.inspection.model.FindingAudit;
 import ar.edu.itba.certiflow.inspection.model.InspectionAudit;
@@ -28,7 +29,7 @@ public class SharedConfiguration {
     @Bean
     AuditActionCatalog auditActionCatalog() {
         return new AuditActionCatalog(Stream.<AuditAction[]>of(AssetAudit.values(), SchemaAudit.values(),
-                        InspectionAudit.values(), FindingAudit.values(), CertificateAudit.values())
+                        InspectionAudit.values(), FindingAudit.values(), CertificateAudit.values(), AssistanceAudit.values())
                 .flatMap(Arrays::stream)
                 .toList());
     }
