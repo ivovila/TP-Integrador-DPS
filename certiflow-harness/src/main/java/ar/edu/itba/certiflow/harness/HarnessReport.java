@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * El resultado de correr el conjunto dorado con una versión de prompt y un modelo. Los totales suman los casos de
@@ -27,7 +26,7 @@ public record HarnessReport(String promptVersion, String model, int runsPerCase,
     }
 
     public HarnessReport(String promptVersion, String model, int runsPerCase, Instant ranAt, List<CaseResult> cases) {
-        List<Integer> complete = completeRuns(cases, runsPerCase);
+        List<Integer> complete = new CompleteRepetitions(cases, runsPerCase).numbers();
         Map<Metric, Statistic> totals = Arrays.stream(Metric.values())
                 .filter(metric -> !complete.isEmpty())
                 .collect(Collectors.toMap(Function.identity(),
@@ -41,15 +40,21 @@ public record HarnessReport(String promptVersion, String model, int runsPerCase,
         this(promptVersion, model, runsPerCase, ranAt, totals, rejected, cases);
     }
 
-    private static List<Integer> completeRuns(List<CaseResult> cases, int runsPerCase) {
-        return IntStream.rangeClosed(1, runsPerCase)
-                .filter(run -> !cases.isEmpty() && cases.stream()
-                        .allMatch(result -> result.runs().stream().anyMatch(measured -> measured.run() == run)))
-                .boxed().toList();
+    public int completeRuns() {
+        return new CompleteRepetitions(cases, runsPerCase).numbers().size();
     }
 
-    public int completeRuns() {
-        return completeRuns(cases, runsPerCase).size();
+    /**
+     * Solo se compara un reporte sin fallas, con todas sus repeticiones completas y con la huella de cada caso: uno
+     * anterior a las huellas no dice con qué entradas se midió.
+     */
+    public boolean isComparable() {
+        return failures() == 0 && !cases.isEmpty() && completeRuns() == runsPerCase
+                && cases.stream().allMatch(result -> result.isComparable(runsPerCase));
+    }
+
+    public Map<String, String> inputFingerprints() {
+        return cases.stream().collect(Collectors.toMap(CaseResult::id, CaseResult::inputFingerprint));
     }
 
     public int failures() {

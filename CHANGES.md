@@ -951,5 +951,5 @@ Detalle y evidencia en `docs/AUDIT_FIXES.md`.
   inspección una sola vez.
 - **Frontend:** la suite de contrato se separó en catorce archivos por contexto en `test-support/contract/`; el
   adaptador rechaza decisiones incompletas; las tablas no ensanchan la página en el celular.
-- **Tests:** 560 del backend, 165 rápidos del frontend.
+- **Tests:** 560 del backend, 165 rápidos del frontend (561 después de las correcciones de estilo).
 

@@ -2,19 +2,25 @@ package ar.edu.itba.certiflow.web.assistance;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 import ar.edu.itba.certiflow.assistance.model.AssistantReview;
 import ar.edu.itba.certiflow.assistance.model.Suggestion;
 import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.inspection.model.InspectionView;
 import ar.edu.itba.certiflow.inspection.usecase.FindInspectionUseCase;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.web.inspection.CriterionResponseController;
 import ar.edu.itba.certiflow.web.inspection.InspectionController;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import org.springframework.stereotype.Component;
 
+/**
+ * Arma los recursos HAL de las revisiones. La severidad configurada de cada criterio sale de la versión del esquema de
+ * la inspección, leída una sola vez por pedido aunque el listado tenga varias revisiones.
+ */
 @Component
 public class AssistantReviewResources {
     private final FindInspectionUseCase findInspection;
@@ -53,8 +59,8 @@ public class AssistantReviewResources {
     private SuggestionResponse suggestionResource(AssistantReview review, Suggestion suggestion, Map<CriterionCode, String> severities) {
         String id = review.id().value();
         int position = suggestion.position();
-        String severity = java.util.Objects.requireNonNull(severities.get(suggestion.proposal().criterion()),
-                "Suggestion criterion missing from its inspection schema");
+        String severity = Optional.ofNullable(severities.get(suggestion.proposal().criterion()))
+                .orElseThrow(() -> new IllegalStateException("Suggestion criterion missing from its inspection schema"));
         SuggestionResponse response = new SuggestionResponse(suggestion, severity);
         response.add(linkTo(methodOn(AssistantReviewController.class).suggestion(id, position)).withSelfRel(),
                 linkTo(methodOn(AssistantReviewController.class).find(id)).withRel("review"),

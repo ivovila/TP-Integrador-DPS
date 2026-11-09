@@ -1,11 +1,8 @@
 package ar.edu.itba.certiflow.assistance.model;
 
-import java.util.Objects;
-
+/** La inspección traducida que se le mandó al modelo, tal como estaba al pedir la revisión. */
 public record CapturedReviewInput(InspectionUnderReview inspection) implements ReviewInput {
-    public CapturedReviewInput {
-        Objects.requireNonNull(inspection, "inspection");
-    }
+
     @Override
     public <T> T describedBy(ReviewInputDescriber<T> describer) {
         return describer.captured(inspection);

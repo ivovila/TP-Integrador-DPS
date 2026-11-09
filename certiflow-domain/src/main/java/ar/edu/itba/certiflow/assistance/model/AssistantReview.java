@@ -5,13 +5,15 @@ import ar.edu.itba.certiflow.inspection.model.InspectionId;
 import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Stamp;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import ar.edu.itba.certiflow.schema.model.CriterionCode;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -42,20 +44,20 @@ public final class AssistantReview {
         this.promptVersion = reply.promptVersion();
         this.modelId = reply.modelId();
         this.requested = requested;
-        List<RejectedProposal> rejected = new ArrayList<>();
-        List<ProposedFinding> admitted = new ArrayList<>();
-        Set<CriterionCode> admittedCriteria = new HashSet<>();
-        for (ProposedFinding proposal : reply.proposals()) {
-            Optional<GuardrailRejection> rejection = firstRejectionOf(proposal, inspection, admittedCriteria);
-            if (rejection.isPresent()) {
-                rejected.add(new RejectedProposal(proposal, rejection.orElseThrow()));
-            } else {
-                admittedCriteria.add(proposal.criterion());
-                admitted.add(proposal);
-            }
-        }
-        this.rejectedProposals = List.copyOf(rejected);
-        this.suggestions = numbered(admitted);
+        List<ProposedFinding> proposals = reply.proposals();
+        Map<Integer, GuardrailRejection> rejections = IntStream.range(0, proposals.size()).boxed()
+                .flatMap(index -> firstRejectionOf(proposals.get(index), inspection,
+                        criteriaAdmittedBefore(index, proposals, inspection))
+                        .map(reason -> Map.entry(index, reason)).stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first,
+                        LinkedHashMap::new));
+        this.rejectedProposals = rejections.entrySet().stream()
+                .map(rejection -> new RejectedProposal(proposals.get(rejection.getKey()), rejection.getValue()))
+                .toList();
+        this.suggestions = numbered(IntStream.range(0, proposals.size())
+                .filter(index -> !rejections.containsKey(index))
+                .mapToObj(proposals::get)
+                .toList());
         auditTrail.record(AssistanceAudit.REVIEW_REQUESTED, requested, suggestions.size() + " suggestions, "
                 + rejectedProposals.size() + " rejected by guardrails, prompt " + promptVersion.value()
                 + ", model " + modelId.value());
@@ -132,10 +134,23 @@ public final class AssistantReview {
     }
 
     /** Los guardrails se aplican en el orden en que están declarados; el primero que rechaza es el motivo. */
-    private Optional<GuardrailRejection> firstRejectionOf(ProposedFinding proposal, InspectionUnderReview inspection, Set<CriterionCode> admitted) {
+    private Optional<GuardrailRejection> firstRejectionOf(ProposedFinding proposal, InspectionUnderReview inspection,
+                                                          Set<CriterionCode> admitted) {
         return Arrays.stream(GuardrailRejection.values())
                 .filter(guardrail -> guardrail.rejects(proposal, inspection, admitted))
                 .findFirst();
+    }
+
+    /**
+     * Los criterios ya admitidos antes de una propuesta: los de las anteriores que pasan los controles sobre su
+     * contenido. La primera de cada criterio queda admitida, así que solo las siguientes son un duplicado.
+     */
+    private Set<CriterionCode> criteriaAdmittedBefore(int index, List<ProposedFinding> proposals,
+                                                      InspectionUnderReview inspection) {
+        return proposals.subList(0, index).stream()
+                .filter(earlier -> firstRejectionOf(earlier, inspection, Set.of()).isEmpty())
+                .map(ProposedFinding::criterion)
+                .collect(Collectors.toSet());
     }
 
     private List<Suggestion> numbered(List<ProposedFinding> admitted) {

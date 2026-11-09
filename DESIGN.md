@@ -552,7 +552,7 @@ determinista y los tests usan un reloj controlable.
 - **Una propuesta sin fundamento no existe:** `ProposedFinding` exige el fundamento; si el modelo no lo manda, la respuesta no cumple el formato y es un 503.
 - **Lo rechazado se guarda, con su motivo:** nunca se muestra como sugerencia ni se puede aceptar, pero queda en la revisión. Es lo que permite contar en el harness cuántas propuestas atrapa cada control.
 - **Descartadas:** *mostrarle todo al inspector y que él filtre*: un inspector que descarta cinco sugerencias inventadas deja de leer la sexta. *Validar en el adaptador del modelo*: cada adaptador tendría que repetirlo y el stub de CI no lo probaría.
-- **Verificación:** `AssistantReviewTest` (un test por control, citas con otro formato, citas de otro criterio, el orden de los controles, la numeración que saltea las rechazadas, `onlyTheFirstValidProposalForACriterionCanBeDecided`, `missingOrBlankRationaleCannotBecomeAProposal`).
+- **Verificación:** `AssistantReviewTest` (un test por control, citas con otro formato, citas de otro criterio, el orden de los controles, la numeración que saltea las rechazadas, `onlyTheFirstValidProposalForACriterionCanBeDecided`, `aBlankRationaleCannotBecomeAProposal`).
 
 ### D36. La llamada al modelo va fuera de la transacción
 
@@ -720,7 +720,7 @@ determinista y los tests usan un reloj controlable.
 | Las métricas del harness cuentan mal | `HarnessRunTest.metricsCountCriteriaAfterTheGuardrailsAndKeepWhatTheAssistantSaid`, `theStubBaselineIsExactOnTheWholeGoldenSet` |
 | Se comparan dos versiones con llamadas fallidas o entradas distintas | `ReportComparisonTest.incompleteReportsCannotClaimThatTheCandidateImproved`, `comparisonRequiresTheSameModelAndInput`, `totalsExcludeAnEntireIncompleteRepetitionInsteadOfTreatingFailuresAsZero` |
 | El modelo propone dos veces el mismo criterio y se decide dos veces | `AssistantReviewTest.onlyTheFirstValidProposalForACriterionCanBeDecided` |
-| Una propuesta sin fundamento llega al inspector | `AssistantReviewTest.missingOrBlankRationaleCannotBecomeAProposal`, `SpringAiInspectionAssistantTest.missingOrBlankRationaleMakesTheStructuredAnswerUnavailable` |
+| Una propuesta sin fundamento llega al inspector | `AssistantReviewTest.aBlankRationaleCannotBecomeAProposal`, `SpringAiInspectionAssistantTest.missingOrBlankRationaleMakesTheStructuredAnswerUnavailable` |
 | Una revisión muestra respuestas que el modelo no leyó | `AssistantReviewApiTest.changingAnAnswerDoesNotRewriteThePersistedReviewInput`, `JpaAssistantReviewRepositoryTest.legacyReviewsDoNotInventTheHistoricalInput` |
 | Un retroceso del reloj fecha una inspección antes que su esquema | `OrderedClockTest.aWallClockRollbackDoesNotDateAnInspectionBeforeItsSchemaPublication` |
 | El panel muestra como sugerencia algo que frenó un guardrail | `AssistantReviewCard.test.tsx` ("what a guardrail stopped is shown apart…"), `assistanceMapping.test.ts` |
@@ -765,7 +765,7 @@ Tipos de test:
 - **Del frontend:** tests rápidos de mapeo (contra respuestas reales de la API) y de pantalla, y la suite de contrato
   que corre en e2e contra el backend.
 
-Total del backend: 560 tests (135 de dominio, 33 de aplicación, 57 de infraestructura, 292 de web y 43 del harness). De los de web, 21 se omiten en una corrida local: los que solo corren con PostgreSQL y el de punta a punta con NVIDIA, que necesita `NVIDIA_API_KEY`. El frontend suma 165 tests rápidos y la suite de contrato en e2e, separada por contexto en `test-support/contract/`. Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total del backend: 561 tests (136 de dominio, 33 de aplicación, 57 de infraestructura, 292 de web y 43 del harness). De los de web, 21 se omiten en una corrida local: los que solo corren con PostgreSQL y el de punta a punta con NVIDIA, que necesita `NVIDIA_API_KEY`. El frontend suma 165 tests rápidos y la suite de contrato en e2e, separada por contexto en `test-support/contract/`. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 

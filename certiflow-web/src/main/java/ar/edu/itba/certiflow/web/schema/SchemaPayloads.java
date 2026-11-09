@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class SchemaPayloads {
 
@@ -73,7 +74,7 @@ public final class SchemaPayloads {
         @Override
         public RuleDescriber<RulePayload> decimal(String name, java.math.BigDecimal value) { parameters.put(name, value); return this; }
         @Override
-        public RuleDescriber<RulePayload> texts(String name, java.util.Set<String> value) { parameters.put(name, value); return this; }
+        public RuleDescriber<RulePayload> texts(String name, Set<String> value) { parameters.put(name, value); return this; }
         @Override
         public RulePayload ofKind(String kind) { return RulePayload.of(kind, parameters); }
     }

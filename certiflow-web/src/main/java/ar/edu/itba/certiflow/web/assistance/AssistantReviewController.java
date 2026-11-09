@@ -125,6 +125,6 @@ public class AssistantReviewController {
     }
 
     private DecisionResponse decision(String id, int position, DecisionResource resource) {
-        return findReview.execute(new ReviewId(id)).suggestion(position).decision().describedBy(resource);
+        return resource.of(findReview.execute(new ReviewId(id)).suggestion(position).decision());
     }
 }

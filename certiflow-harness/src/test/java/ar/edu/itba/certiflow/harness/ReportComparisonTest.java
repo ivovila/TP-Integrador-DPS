@@ -1,6 +1,7 @@
 package ar.edu.itba.certiflow.harness;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -8,6 +9,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,7 +21,7 @@ class ReportComparisonTest {
                 Map.of(Metric.CORRECT, correct, Metric.SEVERITY_HITS, new Statistic(5.0, 5, 5), Metric.INVENTED, invented,
                         Metric.MISSED, new Statistic(3.0, 2, 4)),
                 Map.of(), List.of(new CaseResult("case", "positive", "fixture", List.of(),
-                        java.util.stream.IntStream.rangeClosed(1, 5)
+                        IntStream.rangeClosed(1, 5)
                                 .mapToObj(index -> new RunResult(index, 1, 1, 0, 0, List.of(), List.of())).toList(),
                         List.of(), "same-input")));
     }
@@ -63,11 +65,12 @@ class ReportComparisonTest {
         assertTrue(Files.readString(results.resolve("v2").resolve("nvidia_nemotron.md")).startsWith("# Harness · prompt v2"));
         assertEquals(results.resolve("v2").resolve("comparison-with-v1.md"), comparison);
     }
+
     @Test
     void incompleteReportsCannotClaimThatTheCandidateImproved() {
         HarnessReport incomplete = new HarnessReport("v2", v1.model(), 5, v1.ranAt(), List.of(
                 new CaseResult("case", "positive", "fixture", List.of(), List.of(), List.of("timeout"), "same-input")));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> new ReportComparison(v1, incomplete));
     }
 
@@ -77,9 +80,9 @@ class ReportComparisonTest {
         CaseResult changed = new CaseResult("case", "positive", "fixture", List.of(),
                 v1.cases().getFirst().runs(), List.of(), "changed-input");
         HarnessReport differentInput = new HarnessReport("v2", v1.model(), 5, v1.ranAt(), List.of(changed));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> new ReportComparison(v1, differentModel));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> new ReportComparison(v1, differentInput));
     }
 
@@ -92,8 +95,7 @@ class ReportComparisonTest {
         HarnessReport report = new HarnessReport("v1", "model", 2, v1.ranAt(), List.of(first, second));
         assertEquals(1, report.completeRuns());
         assertEquals(new Statistic(4.0, 4, 4), report.totals().get(Metric.INVENTED));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> new ReportComparison(report, report));
     }
-
 }

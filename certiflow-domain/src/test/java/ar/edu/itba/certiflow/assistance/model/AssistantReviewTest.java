@@ -18,6 +18,7 @@ import ar.edu.itba.certiflow.shared.model.AuditEntry;
 import ar.edu.itba.certiflow.shared.model.AuditLog;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.shared.model.PersonId;
+import ar.edu.itba.certiflow.shared.model.RequiredValueMissingException;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -243,12 +244,12 @@ class AssistantReviewTest {
         }
     }
 
-    @Test
-    void missingOrBlankRationaleCannotBecomeAProposal() {
-        for (String rationale : new String[] {null, "", "  "}) {
-            assertThrows(ar.edu.itba.certiflow.shared.model.RequiredValueMissingException.class,
-                    () -> new ProposedFinding(hose.code(), StandardSeverity.MINOR, rationale, List.of(new Quote("grieta"))));
-        }
+    /** Una respuesta sin el campo la rechaza el adaptador como fuera de formato (SpringAiInspectionAssistantTest). */
+    @ParameterizedTest
+    @ValueSource(strings = {"", "  "})
+    void aBlankRationaleCannotBecomeAProposal(String rationale) {
+        assertThrows(RequiredValueMissingException.class,
+                () -> new ProposedFinding(hose.code(), StandardSeverity.MINOR, rationale, List.of(new Quote("grieta"))));
     }
 
     @Test
