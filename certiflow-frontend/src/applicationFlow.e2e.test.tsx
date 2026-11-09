@@ -414,6 +414,6 @@ test('an asset is registered and an inspection assigned through the forms', asyn
 
   await fill(page, 'Inspector', demoPeople.inspector.id);
   await press(page, 'Assign inspection');
-  await screen.findByText(/Inspection [0-9a-f-]{36}/);
+  await screen.findByText(/^Inspection [0-9a-f]{8}$/);
   expect(screen.getByText('0 of 2 evaluated')).toBeDefined();
 });

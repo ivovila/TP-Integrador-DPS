@@ -119,7 +119,7 @@ export function InspectionDetailPage() {
               }
               subtitle={
                 <>
-                  Inspection <span title={foundInspection.id}>{shortId(foundInspection.id)}</span> · asset{' '}
+                  <span title={foundInspection.id}>Inspection {shortId(foundInspection.id)}</span> · asset{' '}
                   <SectionLink to={`/assets/${encodeURIComponent(foundInspection.assetCode)}`}>{foundInspection.assetCode}</SectionLink>
                 </>
               }
