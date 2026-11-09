@@ -914,3 +914,9 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   harness. Va aparte de `certiflow-domain.puml`, que suma la cuarta categoría de excepciones y el puerto
   `Transactions`: juntos no entraban legibles y el layout sin Graphviz no los resolvía.
 
+## 2026-11-08 · Ajustes después de probar la app
+
+- El perfil `nvidia` usa el prompt `v2` por defecto: midió mejor que `v1` en el harness. `v1` sigue publicado y se
+  elige con `CERTIFLOW_ASSISTANT_PROMPT_VERSION=v1`.
+- El motivo para descartar una sugerencia usa `TextField`, como el resto de los formularios.
+

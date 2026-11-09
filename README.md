@@ -221,7 +221,7 @@ El modelo por defecto es Nemotron 3.5 Super (`nvidia/nemotron-3.5-super-vl-120b-
 `NVIDIA_MODEL`, y lo que ese modelo necesite de más en el cuerpo del pedido con `CERTIFLOW_ASSISTANT_EXTRA_BODY`
 (por ejemplo `{"reasoning_effort":"none"}` para Mistral Large 4). `CERTIFLOW_ASSISTANT_TIMEOUT` cambia el timeout
 (por defecto `PT300S`, porque el endpoint gratuito encola pedidos) y `CERTIFLOW_ASSISTANT_PROMPT_VERSION` el prompt
-publicado (por defecto `v1`). No hay reintentos ni fallback al stub: una falla del proveedor es un 503 y su causa
+publicado (por defecto `v2`, que midió mejor que `v1` en el harness). No hay reintentos ni fallback al stub: una falla del proveedor es un 503 y su causa
 queda en el log. Seleccionar el perfil sin key hace fallar el arranque.
 
 Para probar la integración sin levantar la aplicación, con la key en el entorno:

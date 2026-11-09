@@ -6,7 +6,7 @@ import { useSession } from '../app/SessionContext';
 import { Badge, StatusBadge } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
 import { formatInstant } from '../shared/format';
-import { Card, EmptyState } from '../shared/Page';
+import { Card, EmptyState, TextField } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
@@ -44,10 +44,7 @@ function DismissalForm({ onDismiss, running }: { onDismiss(reason: string): void
 
   return (
     <form onSubmit={dismiss} className="row">
-      <label>
-        Reason to dismiss
-        <input value={reason} onChange={(event) => setReason(event.target.value)} />
-      </label>
+      <TextField label="Reason to dismiss" value={reason} onChange={setReason} placeholder="Why the suggestion does not apply" />
       <button disabled={running || reason.trim() === ''}>Dismiss</button>
     </form>
   );
