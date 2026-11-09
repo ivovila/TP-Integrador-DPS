@@ -59,7 +59,7 @@ vacía cuando cambia la forma de una respuesta de la API.
 src
 ├── domain/            tipos del lenguaje ubicuo, sin lógica
 ├── ports/             lo que la interfaz le pide al sistema: una interfaz por contexto, comandos y errores
-│   └── certiflowContract.ts   suite de contrato que corre contra el backend
+│   (la suite de contrato está en test-support/contract/, un archivo por contexto)
 ├── adapters/
 │   └── http/          implementación sobre la API REST
 │       ├── HalClient.ts        fetch, headers, credenciales, errores, paginación

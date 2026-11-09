@@ -269,6 +269,9 @@ Aceptar y descartar solo trazan decisiones, incluso después del cierre. Tests: 
       Con Nemotron 3.5 Super, v1 acertó 10,8 de 11 hallazgos y 7,6 severidades, sin inventados ni omitidos;
       sobreestimaba la severidad de fallas menores. v2 define la escala: 11 de 11 y 9,8 severidades, pero
       ahora subestima la sobrepresión del caso 05 (MAJOR en lugar de CRITICAL). Queda como error conocido.
+- [ ] **Volver a medir v1 y v2** con el harness corregido (2026-11-09, `docs/AUDIT_FIXES.md`): esas corridas
+      son históricas y no comparables, porque en v1 una llamada fallida se contó como omitido y ninguna tiene
+      huella de entradas. `harness.yml` a mano mide las dos en el mismo checkout (150 llamadas).
 
 ### Fase 6 · Frontend
 - [x] Puerto y adaptador HTTP del asistente, con su mapeo probado contra respuestas reales guardadas.

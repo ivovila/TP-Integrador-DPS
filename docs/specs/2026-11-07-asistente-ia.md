@@ -53,7 +53,7 @@ de la inspección que motivan la sugerencia. Se numeran por posición dentro de 
 
 ### 2.3 Guardrails al armar la revisión
 
-La revisión no guarda la respuesta del modelo tal cual: la pasa por tres controles deterministas. Lo que no los
+La revisión no guarda la respuesta del modelo tal cual: la pasa por cuatro controles deterministas. Lo que no los
 supera queda registrado como **rechazado por guardrail, con su motivo**, nunca se muestra como sugerencia y no se
 puede aceptar.
 
@@ -62,6 +62,9 @@ puede aceptar.
 | El criterio no existe o no está en el alcance de la inspección | `OUT_OF_SCOPE` |
 | El criterio ya es no conforme: la regla ya levanta ese hallazgo | `ALREADY_NONCONFORMING` |
 | Alguna cita no aparece literal en las observaciones o descripciones de evidencia de la inspección | `UNSUPPORTED_QUOTE` |
+| Ya se admitió una propuesta para ese criterio: solo la primera válida se puede decidir | `DUPLICATE_CRITERION` |
+
+Además, una propuesta sin fundamento no existe: la respuesta del modelo no cumple el formato y es un 503.
 
 El tercero es la red principal contra hallazgos inventados: una sugerencia tiene que apoyarse en algo que el
 inspector escribió. "Literal" se compara después de normalizar mayúsculas y espacios, para no rechazar una cita
@@ -88,7 +91,8 @@ harness; nunca se usa para decidir nada.
 
 ### 2.6 Trazabilidad
 
-La revisión guarda: inspección, versión de prompt, modelo, quién la pidió y cuándo, las sugerencias, las rechazadas
+La revisión guarda: inspección, **lo que leyó el modelo** (la inspección traducida que se le mandó; las revisiones
+anteriores a esa captura declaran que no la tienen), versión de prompt, modelo, quién la pidió y cuándo, las sugerencias, las rechazadas
 por guardrail con su motivo, y cada decisión con su `Stamp`. La bitácora (`AuditLog<ReviewId>`) registra
 `REVIEW_REQUESTED` (con cuántas sugerencias y cuántas rechazadas), `SUGGESTION_ACCEPTED` y `SUGGESTION_DISMISSED`
 (con el motivo).

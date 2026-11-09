@@ -384,7 +384,7 @@ determinista y los tests usan un reloj controlable.
 ### D22. Frontend sobre puertos
 
 - **Principio:** DIP; los detalles dependen de las reglas de negocio (Clase 7). Strategy con selección por tipo para las reglas.
-- **Dónde:** `certiflow-frontend/src`: `ports/` (una interfaz por contexto, con un método por caso de uso y su mismo comando), `composition.ts` (único archivo que conoce el adaptador), `ui/shared/ruleKinds.tsx` (registro de tipos de regla), `ports/certiflowContract.ts` (suite de contrato).
+- **Dónde:** `certiflow-frontend/src`: `ports/` (una interfaz por contexto, con un método por caso de uso y su mismo comando), `composition.ts` (único archivo que conoce el adaptador), `ui/shared/ruleKinds.tsx` (registro de tipos de regla), `test-support/contract/` (suite de contrato, un archivo por contexto, fuera de los puertos de producción).
 - **Por qué:**
   - La interfaz se construyó mientras la API seguía cambiando por F1, F2 y F3, contra una implementación en memoria de los puertos. Los puertos llevan los nombres de los casos de uso del dominio, que es lo estable; de dónde salen los datos es un detalle. Cuando la API quedó definida se escribió el adaptador HTTP (D23) y se cambió `composition.ts`: las pantallas no se tocaron salvo el control de fecha, que dependía del reloj en memoria.
   - Cada recurso llega con la lista de **acciones disponibles** en su estado (`actions`), y la pantalla muestra un botón por acción. Ninguna pantalla repite la regla "si está cerrada, entonces…". La lista sale de los `_links` de HAL (D21), que traen solo las transiciones válidas.
@@ -497,10 +497,11 @@ determinista y los tests usan un reloj controlable.
 
 ### D29. El reloj entrega la precisión que se guarda
 
-- **Dónde:** `SharedConfiguration.clock()` es `Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000))`; `VersionRequest.requestedEffectiveDate()` trunca a microsegundos la única fecha que manda el cliente.
+- **Dónde:** `SharedConfiguration.clock()` es un `OrderedClock`: entrega microsegundos y nunca un instante anterior al último que entregó en el proceso. `VersionRequest.requestedEffectiveDate()` trunca a microsegundos la única fecha que manda el cliente.
 - **Por qué:** PostgreSQL guarda microsegundos. Antes había un `StoredInstant.normalize` en el shared kernel que el dominio y cuatro casos de uso tenían que acordarse de llamar, y un `Instants.asStored` en persistencia que redondeaba donde el otro truncaba. Ahora el instante ya nace con la precisión guardada y nadie lo normaliza después.
-- **Verificación:** `SharedConfigurationTest`, `VersionRequestTest`, `JpaInspectionRepositoryTest.aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed`.
-- **Costo:** un reloj de test tiene que entregar microsegundos; uno que entregue nanosegundos haría que lo leído de la base no sea igual a lo guardado.
+- **Por qué ordenado (noviembre de 2026):** al correr todos los flujos se midieron retrocesos de 0,8 y 1,3 s en el reloj de WSL, y una inspección quedaba fechada antes que la publicación de su esquema. `OrderedClock` sigue al reloj del sistema mientras avanza y, si retrocede, entrega el microsegundo siguiente al último.
+- **Verificación:** `SharedConfigurationTest`, `VersionRequestTest`, `JpaInspectionRepositoryTest.aRevisionKeepsTheSamePrecisionAsTheAnswerItSealed`, `OrderedClockTest` (con el retroceso real que se midió).
+- **Costo:** un reloj de test tiene que entregar microsegundos; uno que entregue nanosegundos haría que lo leído de la base no sea igual a lo guardado. El orden es por proceso: varias instancias siguen necesitando relojes sincronizados.
 
 ### D30. Reglas de arquitectura ejecutables
 
@@ -546,11 +547,12 @@ determinista y los tests usan un reloj controlable.
 
 ### D35. Guardrails deterministas antes de que una propuesta llegue al inspector
 
-- **Dónde:** `GuardrailRejection`, un enum con comportamiento: `OUT_OF_SCOPE` (el criterio no está en la inspección), `ALREADY_NONCONFORMING` (la regla ya levanta ese hallazgo) y `UNSUPPORTED_QUOTE` (sin citas, o con una que no aparece en el texto de la inspección). Se aplican en el orden en que están declarados y el primero que rechaza es el motivo. Los aplica el constructor de `AssistantReview`, así que no hay forma de armar una revisión sin pasarlos.
+- **Dónde:** `GuardrailRejection`, un enum con comportamiento: `OUT_OF_SCOPE` (el criterio no está en la inspección), `ALREADY_NONCONFORMING` (la regla ya levanta ese hallazgo) y `UNSUPPORTED_QUOTE` (sin citas, o con una que no aparece en el texto de la inspección) y `DUPLICATE_CRITERION` (ya se admitió una propuesta para ese criterio: solo la primera válida se puede decidir). Se aplican en el orden en que están declarados y el primero que rechaza es el motivo. Los aplica el constructor de `AssistantReview`, así que no hay forma de armar una revisión sin pasarlos.
 - **La cita es la red contra hallazgos inventados:** una sugerencia tiene que apoyarse en algo que el inspector escribió. `Quote.appearsIn` compara después de normalizar mayúsculas y espacios: un cambio de formato no la invalida, una paráfrasis sí. La cita puede venir de otro criterio, porque un inspector escribe donde le queda cómodo ("una estantería tapa el cartel" anotado en la altura de montaje es un problema de señalización).
+- **Una propuesta sin fundamento no existe:** `ProposedFinding` exige el fundamento; si el modelo no lo manda, la respuesta no cumple el formato y es un 503.
 - **Lo rechazado se guarda, con su motivo:** nunca se muestra como sugerencia ni se puede aceptar, pero queda en la revisión. Es lo que permite contar en el harness cuántas propuestas atrapa cada control.
 - **Descartadas:** *mostrarle todo al inspector y que él filtre*: un inspector que descarta cinco sugerencias inventadas deja de leer la sexta. *Validar en el adaptador del modelo*: cada adaptador tendría que repetirlo y el stub de CI no lo probaría.
-- **Verificación:** `AssistantReviewTest` (un test por control, citas con otro formato, citas de otro criterio, el orden de los controles, la numeración que saltea las rechazadas).
+- **Verificación:** `AssistantReviewTest` (un test por control, citas con otro formato, citas de otro criterio, el orden de los controles, la numeración que saltea las rechazadas, `onlyTheFirstValidProposalForACriterionCanBeDecided`, `missingOrBlankRationaleCannotBecomeAProposal`).
 
 ### D36. La llamada al modelo va fuera de la transacción
 
@@ -586,11 +588,12 @@ determinista y los tests usan un reloj controlable.
 
 - **Problema:** un modelo de lenguaje no responde siempre igual, así que un test de igualdad no dice si el asistente funciona. Hace falta medir tasas sobre casos conocidos, varias veces, y poder decir si un prompt nuevo es mejor o peor que el anterior.
 - **Decisión:** módulo `certiflow-harness`, fuera de la aplicación (ningún módulo depende de él). No reimplementa nada de lo que mide: carga cada caso en una `Inspection` del dominio con `InspectionService`, la traduce con `InspectionReviewTranslatorImpl`, compone el asistente con `SpringAiAssistantConfiguration` y las mismas properties, y aplica los guardrails con `AssistantReviewFactory`. Las métricas son sobre lo que el inspector vería, no sobre la respuesta cruda del modelo.
-- **Métricas:** hallazgos correctos, severidades acertadas e inventados (los de la consigna) y omitidos, por criterio y no por sugerencia, más las propuestas que frenó cada guardrail. Cada caso corre 5 veces y se reportan media y rango. Una versión de prompt **empeora** si la media de una métrica queda fuera del rango observado con la anterior, en la dirección mala (`Metric`): dentro del rango es ruido.
+- **Métricas:** hallazgos correctos, severidades acertadas e inventados (los de la consigna) y omitidos, por criterio y no por sugerencia, más las propuestas que frenó cada guardrail. Cada caso corre 5 veces y se reportan media y rango. Los totales usan solo las repeticiones en las que respondieron todos los casos: una llamada que falló no se cuenta como omitido. Una versión de prompt **empeora** si la media de una métrica queda fuera del rango observado con la anterior, en la dirección mala (`Metric`): dentro del rango es ruido.
 - **Resultados versionados:** `certiflow-harness/results/<versión>/<modelo>.json`, con lo que el asistente propuso en cada corrida, y su resumen en Markdown. El pull request que cambia un prompt muestra su efecto, y los errores del asistente quedan a la vista para escribir la versión siguiente.
-- **CI determinista:** CI corre los tests del módulo, sin red: el formato del conjunto dorado (`GoldenSetTest`), las métricas sobre respuestas fijas y la línea de base exacta del stub (`HarnessRunTest`), y la comparación (`ReportComparisonTest`). El modelo real corre aparte, en `harness.yml`, a mano o cuando cambia un prompt, y falla si la versión nueva empeora.
+- **CI determinista:** CI corre los tests del módulo, sin red: el formato del conjunto dorado (`GoldenSetTest`), las métricas sobre respuestas fijas y la línea de base exacta del stub (`HarnessRunTest`), y la comparación (`ReportComparisonTest`). El modelo real corre aparte, en `harness.yml`, a mano o cuando cambia un prompt: mide la versión anterior y la nueva en el mismo checkout y falla si la nueva empeora.
+- **Qué se puede comparar:** solo reportes completos, del mismo modelo y la misma cantidad de corridas, y con la misma huella SHA-256 de entradas y expectativas en cada caso (`EvaluationFingerprint`). `compare` rechaza cualquier otro par, y `run` guarda el reporte parcial y termina con error si hubo fallas.
 - **Descartadas:** *un modelo que juzga a otro* (los *evaluators* de Spring AI): agrega un segundo componente no determinista a lo que se quiere medir. *Correr el harness contra la API levantada*: mide lo mismo con base de datos, servidor y autenticación de por medio, y es más lento y frágil. *Un caso por inspección real de la base*: los datos reales no tienen la respuesta esperada escrita y no se le pueden mandar al proveedor gratuito.
-- **Resultados (Nemotron 3.5 Super, 5 corridas por caso):**
+- **Resultados históricos (Nemotron 3.5 Super, 5 corridas por caso), anteriores a esas reglas:**
 
   | Versión | Correctos (de 11) | Severidades | Inventados | Omitidos |
   |---|---|---|---|---|
@@ -603,7 +606,19 @@ determinista y los tests usan un reloj controlable.
   del conjunto dorado para no ajustar el prompt al examen. El harness mostró también el error que trajo: la
   sobrepresión del caso 05 pasó de CRITICAL a MAJOR, porque el modelo la lee como un problema de integridad del
   cilindro. Es la razón de que la severidad sea una sugerencia y la decisión siga siendo del inspector.
-- **Costo:** el harness duplica los dos esquemas de la demo (`DemoAssets`, igual a `seedDemoData.ts`); si cambia uno hay que cambiar el otro. `GoldenSetTest` falla si un caso deja de responder todos los criterios de su esquema.
+
+  **No son una comparación válida:** en v1 una llamada falló (caso 03) y se contó como omitido, así que su 10,8
+  está sesgado, y ninguna de las dos corridas tiene huella de entradas. Quedan como evidencia de los errores que
+  llevaron a escribir v2; la comparación hay que volver a medirla con el harness actual.
+- **Costo:** el seed del frontend y el harness leen los mismos esquemas de demo (`demo/schemas.json`); `GoldenSetTest` falla si un caso deja de responder todos los criterios de su esquema.
+
+### D41. La revisión guarda exactamente lo que leyó el modelo
+
+- **Dónde:** `ReviewInput` con dos variantes: `CapturedReviewInput` (la `InspectionUnderReview` que se le mandó al modelo) y `UnavailableReviewInput` (revisiones anteriores a la captura). Columna `assistant_review.reviewed_input` (migración V8); campo `reviewedInspection` en la API; el panel muestra "Answer read by the assistant" y de dónde sale cada cita dentro de esa captura.
+- **Por qué:** los guardrails se aplican sobre la inspección releída antes de guardar (D36), pero el modelo leyó la del primer paso, y el inspector puede cambiar una respuesta después de pedir la revisión. Mostrar la respuesta actual al lado de una sugerencia que se basó en otra hacía parecer que el asistente se contradecía. La revisión ahora es una foto de lo que se evaluó, y cambiar la respuesta no la reescribe.
+- **Descartada:** *reconstruir la entrada de las revisiones viejas desde la bitácora*: sería inventar qué leyó el modelo. Esas revisiones declaran que el dato no está disponible.
+- **Verificación:** `AssistantReviewTest.originalInputSurvivesConcurrentInspectionChangesAndSnapshotRestore`, `AssistantReviewApiTest.changingAnAnswerDoesNotRewriteThePersistedReviewInput`, `JpaAssistantReviewRepositoryTest.legacyReviewsDoNotInventTheHistoricalInput` y los tests del panel.
+- **Costo:** cada revisión guarda la inspección traducida como JSON, del tamaño de la inspección.
 
 ---
 
@@ -703,6 +718,11 @@ determinista y los tests usan un reloj controlable.
 | Un prompt nuevo empeora al asistente sin que nadie lo note | `ReportComparisonTest.aMeanOutsideTheObservedRangeInTheWrongDirectionIsARegression`; `harness.yml` falla con la versión nueva |
 | Un caso del conjunto dorado mide otra cosa que la que dice | `GoldenSetTest` (parametrizado: responde todo su esquema, solo los casos escondidos esperan hallazgos, la severidad esperada es la configurada) |
 | Las métricas del harness cuentan mal | `HarnessRunTest.metricsCountCriteriaAfterTheGuardrailsAndKeepWhatTheAssistantSaid`, `theStubBaselineIsExactOnTheWholeGoldenSet` |
+| Se comparan dos versiones con llamadas fallidas o entradas distintas | `ReportComparisonTest.incompleteReportsCannotClaimThatTheCandidateImproved`, `comparisonRequiresTheSameModelAndInput`, `totalsExcludeAnEntireIncompleteRepetitionInsteadOfTreatingFailuresAsZero` |
+| El modelo propone dos veces el mismo criterio y se decide dos veces | `AssistantReviewTest.onlyTheFirstValidProposalForACriterionCanBeDecided` |
+| Una propuesta sin fundamento llega al inspector | `AssistantReviewTest.missingOrBlankRationaleCannotBecomeAProposal`, `SpringAiInspectionAssistantTest.missingOrBlankRationaleMakesTheStructuredAnswerUnavailable` |
+| Una revisión muestra respuestas que el modelo no leyó | `AssistantReviewApiTest.changingAnAnswerDoesNotRewriteThePersistedReviewInput`, `JpaAssistantReviewRepositoryTest.legacyReviewsDoNotInventTheHistoricalInput` |
+| Un retroceso del reloj fecha una inspección antes que su esquema | `OrderedClockTest.aWallClockRollbackDoesNotDateAnInspectionBeforeItsSchemaPublication` |
 | El panel muestra como sugerencia algo que frenó un guardrail | `AssistantReviewCard.test.tsx` ("what a guardrail stopped is shown apart…"), `assistanceMapping.test.ts` |
 | Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
 | Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
@@ -745,7 +765,7 @@ Tipos de test:
 - **Del frontend:** tests rápidos de mapeo (contra respuestas reales de la API) y de pantalla, y la suite de contrato
   que corre en e2e contra el backend.
 
-Total del backend: 547 tests (132 de dominio, 33 de aplicación, 55 de infraestructura, 287 de web y 40 del harness). De los de web, 20 se omiten en una corrida local: los que solo corren con PostgreSQL y el de punta a punta con NVIDIA, que necesita `NVIDIA_API_KEY`. El frontend suma 159 tests rápidos y la suite de contrato en e2e. Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total del backend: 560 tests (135 de dominio, 33 de aplicación, 57 de infraestructura, 292 de web y 43 del harness). De los de web, 21 se omiten en una corrida local: los que solo corren con PostgreSQL y el de punta a punta con NVIDIA, que necesita `NVIDIA_API_KEY`. El frontend suma 165 tests rápidos y la suite de contrato en e2e, separada por contexto en `test-support/contract/`. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
@@ -758,7 +778,7 @@ Total del backend: 547 tests (132 de dominio, 33 de aplicación, 55 de infraestr
 - **Rectificación.** Levanta los hallazgos que introduce, pero no revisa ni cierra los ya levantados (S6). Si una rectificación demuestra que un hallazgo bloqueante era un error de carga, igual hay que cerrarlo por su flujo de acción correctiva.
 - **Suspensión.** No se puede levantar; la salida es renovar (S11).
 - **Paginación en memoria.** Las colecciones de la API se paginan después de traer todos los elementos del repositorio (`PageLinks`). Alcanza a esta escala; con muchos datos hay que paginar en la consulta.
-- **Severidades y tipos de evidencia estándar.** La persistencia resuelve severidades y tipos de evidencia por código contra los catálogos que arma la composición (D2), así que una escala propia se registra ahí. La API todavía los resuelve contra `StandardSeverity` y `StandardEvidenceKind` en `SchemaPayloads` y `VocabularyController`: queda para el plan del módulo web.
+- **Severidades y tipos de evidencia estándar.** La persistencia resuelve severidades y tipos de evidencia por código contra los catálogos que arma la composición (D2), así que una escala propia se registra ahí. La API ya publica la severidad por su código y arma las reglas con el catálogo de tipos de regla, sin casts; al leer un request todavía resuelve severidades y tipos de evidencia contra `StandardSeverity` y `StandardEvidenceKind` en `SchemaPayloads` y `VocabularyController`.
 - **El módulo web quedó fuera de la revisión de calidad.** La revisión de octubre de 2026 (D26 a D30) se aplicó a dominio, aplicación e infraestructura. En `certiflow-web` solo se tocó lo que dejaba de compilar, produciendo el mismo JSON. Lo pendiente está listado en `docs/plans/2026-10-13-calidad-backend.md`: los `null` de las respuestas, los `if` que deciden links por estado, los utilitarios estáticos, las excepciones de dominio que la capa web lanza para decir 400 o 404, y la paginación en memoria.
 - **Usuarios cargados por datos.** No hay alta, baja ni cambio de contraseña; los seis usuarios de ejemplo los crea `DemoUsersSeeder` con los perfiles `demo` y `demo-users` (D25).
 - **Un token por pestaña.** El frontend guarda el token en `sessionStorage`: un script inyectado en la página podría leerlo, aunque vence en una hora y el logout lo revoca. Al vencer hay que volver a ingresar; no hay refresh token.
@@ -772,9 +792,9 @@ Total del backend: 547 tests (132 de dominio, 33 de aplicación, 55 de infraestr
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
 - **El proveedor del modelo no tiene garantías.** El endpoint gratuito de NVIDIA encola pedidos y retira modelos: los Llama del plan ya no estaban, Gemma 4 y Mistral Large 4 no respondían. Un cambio de modelo es configuración, pero las mediciones del harness quedan atadas al modelo con que se hicieron. NVIDIA registra lo que recibe: solo se le mandan datos sintéticos.
 - **La revisión es sincrónica.** El pedido HTTP espera la respuesta del modelo, hasta 300 s en el perfil `nvidia`. La conexión a la base no queda tomada (D36), pero el inspector espera con la pantalla en "Reviewing…".
-- **Errores conocidos del asistente.** Con el prompt `v2`, la sobrepresión del caso 05 se estima MAJOR en lugar de CRITICAL (D40). La severidad es una sugerencia: la del hallazgo la fija el criterio cuando el inspector corrige la respuesta.
+- **Errores conocidos del asistente.** En la corrida histórica con el prompt `v2`, la sobrepresión del caso 05 se estimó MAJOR en lugar de CRITICAL (D40). La severidad es una sugerencia: la del hallazgo la fija el criterio cuando el inspector corrige la respuesta.
 - **Un conjunto dorado chico y escrito por el equipo.** Quince casos realistas sobre dos esquemas; no salen de inspecciones reales ni los revisó un inspector certificado. Las métricas dicen cómo se comporta el asistente en estos casos, no en cualquier inspección.
-- **El harness duplica los esquemas de la demo** (`DemoAssets` y `seedDemoData.ts`): si cambia uno hay que cambiar el otro.
+- **La comparación v1 contra v2 está pendiente de volver a medirse** con el harness actual: las corridas versionadas son anteriores a las reglas de D40 y no se pueden comparar.
 - **Interfaz en inglés, fundamento en el idioma del inspector.** El frontend está en inglés; el modelo escribe el fundamento en el idioma de las observaciones, así que con observaciones en español el panel queda mezclado.
 
 

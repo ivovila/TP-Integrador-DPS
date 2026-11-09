@@ -931,3 +931,25 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   dice cuánto falta para poder cerrar; un criterio ya respondido ofrece "Change answer"; la elegibilidad no muestra
   un "rejected" mientras la inspección sigue abierta; foco visible para navegar con teclado y filas resaltadas al
   pasar el mouse.
+
+## 2026-11-09 · Correcciones de la auditoría del asistente (`0d99bda`)
+
+Detalle y evidencia en `docs/AUDIT_FIXES.md`.
+
+- **La revisión guarda lo que leyó el modelo** (D41): migración `V8__assistant_review_input.sql`, `ReviewInput`
+  (`CapturedReviewInput`, `UnavailableReviewInput` para las revisiones anteriores), campo `reviewedInspection` en la
+  API y el panel muestra esa captura. Cambiar una respuesta ya no reescribe la revisión.
+- **Guardrails** (D35): `DUPLICATE_CRITERION`, una sola sugerencia decidible por criterio; el fundamento es
+  obligatorio.
+- **Harness** (D40): los totales excluyen las repeticiones incompletas; comparar exige reportes completos, del mismo
+  modelo y corridas, con huella SHA-256 de entradas y expectativas; `harness.yml` mide la versión anterior y la nueva
+  en el mismo checkout. Las corridas v1 y v2 versionadas quedan como históricas, no comparables: hay que volver a
+  medirlas. Seed del frontend y harness leen el mismo `demo/schemas.json`.
+- **Reloj** (D29): `OrderedClock` mantiene el orden ante los retrocesos del reloj de WSL que se midieron.
+- **Web:** las reglas se publican y se leen con el catálogo de tipos de regla, sin casts; los subrecursos
+  `acceptance` y `dismissal` se resuelven por la variante de la decisión; el listado de revisiones carga la
+  inspección una sola vez.
+- **Frontend:** la suite de contrato se separó en catorce archivos por contexto en `test-support/contract/`; el
+  adaptador rechaza decisiones incompletas; las tablas no ensanchan la página en el celular.
+- **Tests:** 560 del backend, 165 rápidos del frontend.
+

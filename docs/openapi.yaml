@@ -2298,6 +2298,33 @@ components:
         modelId: { type: string }
         requestedBy: { $ref: "#/components/schemas/Person" }
         requestedAt: { type: string, format: date-time }
+        reviewedInspection:
+          description: >-
+            Lo que leyó el modelo al pedir la revisión, no la inspección actual. Es null en las revisiones anteriores
+            a su captura (V8): ese dato no se reconstruye.
+          nullable: true
+          type: object
+          properties:
+            assetType: { type: string }
+            schemaVersion: { type: integer }
+            criteria:
+              type: array
+              items:
+                type: object
+                properties:
+                  code: { type: string }
+                  text: { type: string }
+                  rule: { type: string }
+                  answer: { type: string }
+                  outcome: { type: string, enum: [APPROVED, OBSERVED, REJECTED, PENDING] }
+                  observations: { type: array, items: { type: string } }
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string }
+                        description: { type: string }
         suggestions: { type: array, items: { $ref: "#/components/schemas/AssistantSuggestion" } }
         rejectedProposals:
           type: array
@@ -2308,7 +2335,7 @@ components:
               estimatedSeverity: { type: string }
               rationale: { type: string }
               quotes: { type: array, items: { type: string } }
-              reason: { type: string, enum: [OUT_OF_SCOPE, ALREADY_NONCONFORMING, UNSUPPORTED_QUOTE] }
+              reason: { type: string, enum: [OUT_OF_SCOPE, ALREADY_NONCONFORMING, UNSUPPORTED_QUOTE, DUPLICATE_CRITERION] }
         _links: { $ref: "#/components/schemas/Links" }
 
     AssistantReviewCollection:
