@@ -18,7 +18,10 @@ class ReportComparisonTest {
         return new HarnessReport(promptVersion, "nvidia/nemotron", 5, Instant.parse("2026-11-08T12:00:00Z"),
                 Map.of(Metric.CORRECT, correct, Metric.SEVERITY_HITS, new Statistic(5.0, 5, 5), Metric.INVENTED, invented,
                         Metric.MISSED, new Statistic(3.0, 2, 4)),
-                Map.of(), List.of());
+                Map.of(), List.of(new CaseResult("case", "positive", "fixture", List.of(),
+                        java.util.stream.IntStream.rangeClosed(1, 5)
+                                .mapToObj(index -> new RunResult(index, 1, 1, 0, 0, List.of(), List.of())).toList(),
+                        List.of(), "same-input")));
     }
 
     private final HarnessReport v1 = report("v1", new Statistic(8.0, 7, 9), new Statistic(1.0, 0, 2));
@@ -60,4 +63,37 @@ class ReportComparisonTest {
         assertTrue(Files.readString(results.resolve("v2").resolve("nvidia_nemotron.md")).startsWith("# Harness · prompt v2"));
         assertEquals(results.resolve("v2").resolve("comparison-with-v1.md"), comparison);
     }
+    @Test
+    void incompleteReportsCannotClaimThatTheCandidateImproved() {
+        HarnessReport incomplete = new HarnessReport("v2", v1.model(), 5, v1.ranAt(), List.of(
+                new CaseResult("case", "positive", "fixture", List.of(), List.of(), List.of("timeout"), "same-input")));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ReportComparison(v1, incomplete));
+    }
+
+    @Test
+    void comparisonRequiresTheSameModelAndInput() {
+        HarnessReport differentModel = new HarnessReport("v2", "other-model", 5, v1.ranAt(), v1.cases());
+        CaseResult changed = new CaseResult("case", "positive", "fixture", List.of(),
+                v1.cases().getFirst().runs(), List.of(), "changed-input");
+        HarnessReport differentInput = new HarnessReport("v2", v1.model(), 5, v1.ranAt(), List.of(changed));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ReportComparison(v1, differentModel));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ReportComparison(v1, differentInput));
+    }
+
+    @Test
+    void totalsExcludeAnEntireIncompleteRepetitionInsteadOfTreatingFailuresAsZero() {
+        RunResult measured = new RunResult(1, 1, 1, 2, 0, List.of(), List.of());
+        CaseResult first = new CaseResult("a", "positive", "a", List.of(), List.of(measured,
+                new RunResult(2, 1, 1, 0, 0, List.of(), List.of())), List.of(), "a");
+        CaseResult second = new CaseResult("b", "positive", "b", List.of(), List.of(measured), List.of("timeout"), "b");
+        HarnessReport report = new HarnessReport("v1", "model", 2, v1.ranAt(), List.of(first, second));
+        assertEquals(1, report.completeRuns());
+        assertEquals(new Statistic(4.0, 4, 4), report.totals().get(Metric.INVENTED));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ReportComparison(report, report));
+    }
+
 }

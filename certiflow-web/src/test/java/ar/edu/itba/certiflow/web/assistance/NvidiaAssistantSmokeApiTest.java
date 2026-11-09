@@ -35,7 +35,7 @@ class NvidiaAssistantSmokeApiTest extends ApiTest {
 
         String review = postAs("INSPECTOR", inspection + "/assistant-reviews", "")
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.promptVersion").value("v1"))
+                .andExpect(jsonPath("$.promptVersion").value("v2"))
                 .andExpect(jsonPath("$.suggestions[?(@.criterionCode == 'EXT-02')]").isNotEmpty())
                 .andReturn().getResponse().getContentAsString();
         Files.writeString(Path.of("target", "nvidia-smoke-review.json"), review);

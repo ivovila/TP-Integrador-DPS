@@ -36,6 +36,9 @@ public final class HarnessCommand {
             Path written = context.getBean(ReportFiles.class).write(report);
             System.out.println(new ReportMarkdown().render(report));
             System.out.println("Report written to " + written.toAbsolutePath());
+            if (report.failures() > 0 || report.completeRuns() != runs) {
+                throw new IllegalStateException("Incomplete evaluation: report saved, but not eligible for comparison");
+            }
         }
     }
 

@@ -19,22 +19,37 @@ public record HarnessReport(String promptVersion, String model, int runsPerCase,
                             Map<Metric, Statistic> totals, Map<String, Integer> rejectedByGuardrail, List<CaseResult> cases) {
 
     public HarnessReport {
-        totals = Collections.unmodifiableMap(new EnumMap<>(totals));
+        EnumMap<Metric, Statistic> ordered = new EnumMap<>(Metric.class);
+        ordered.putAll(totals);
+        totals = Collections.unmodifiableMap(ordered);
         rejectedByGuardrail = Collections.unmodifiableMap(new TreeMap<>(rejectedByGuardrail));
         cases = List.copyOf(cases);
     }
 
     public HarnessReport(String promptVersion, String model, int runsPerCase, Instant ranAt, List<CaseResult> cases) {
-        Map<Metric, Statistic> totals = Arrays.stream(Metric.values()).collect(Collectors.toMap(Function.identity(),
-                metric -> new Statistic(IntStream.rangeClosed(1, runsPerCase)
-                        .mapToObj(run -> cases.stream().flatMap(result -> result.runs().stream())
-                                .filter(result -> result.run() == run).mapToInt(metric::of).sum())
-                        .toList()),
-                (first, second) -> first, () -> new EnumMap<>(Metric.class)));
+        List<Integer> complete = completeRuns(cases, runsPerCase);
+        Map<Metric, Statistic> totals = Arrays.stream(Metric.values())
+                .filter(metric -> !complete.isEmpty())
+                .collect(Collectors.toMap(Function.identity(),
+                        metric -> new Statistic(complete.stream()
+                                .map(run -> cases.stream().flatMap(result -> result.runs().stream())
+                                        .filter(result -> result.run() == run).mapToInt(metric::of).sum()).toList()),
+                        (first, second) -> first, () -> new EnumMap<>(Metric.class)));
         Map<String, Integer> rejected = cases.stream().flatMap(result -> result.runs().stream())
                 .flatMap(run -> run.rejected().stream())
                 .collect(Collectors.groupingBy(RunResult.Rejection::guardrail, TreeMap::new, Collectors.summingInt(rejection -> 1)));
         this(promptVersion, model, runsPerCase, ranAt, totals, rejected, cases);
+    }
+
+    private static List<Integer> completeRuns(List<CaseResult> cases, int runsPerCase) {
+        return IntStream.rangeClosed(1, runsPerCase)
+                .filter(run -> !cases.isEmpty() && cases.stream()
+                        .allMatch(result -> result.runs().stream().anyMatch(measured -> measured.run() == run)))
+                .boxed().toList();
+    }
+
+    public int completeRuns() {
+        return completeRuns(cases, runsPerCase).size();
     }
 
     public int failures() {

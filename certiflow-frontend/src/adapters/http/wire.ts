@@ -296,6 +296,7 @@ export interface WireRejectedProposal {
 }
 
 export interface WireAssistantReview extends WireResource {
+  reviewedInspection?: import('../../domain/assistance').ReviewedInspection | null;
   id: string;
   inspectionId: string;
   promptVersion: string;

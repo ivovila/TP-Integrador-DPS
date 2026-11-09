@@ -8,8 +8,17 @@ function decisionOf(wire: WireSuggestionDecision): SuggestionDecision {
   if (wire.status === 'PENDING') {
     return { status: 'PENDING' };
   }
-  const decided = { decidedBy: wire.decidedBy!, decidedAt: wire.decidedAt! };
-  return wire.status === 'ACCEPTED' ? { status: 'ACCEPTED', ...decided } : { status: 'DISMISSED', ...decided, reason: wire.reason! };
+  if (wire.decidedBy == null || wire.decidedAt == null) {
+    throw new Error('An assistant decision is missing its author or date');
+  }
+  const decided = { decidedBy: wire.decidedBy, decidedAt: wire.decidedAt };
+  if (wire.status === 'ACCEPTED') {
+    return { status: 'ACCEPTED', ...decided };
+  }
+  if (wire.status === 'DISMISSED' && wire.reason != null && wire.reason.trim() !== '') {
+    return { status: 'DISMISSED', ...decided, reason: wire.reason };
+  }
+  throw new Error('Invalid assistant decision');
 }
 
 function suggestionOf(wire: WireSuggestion, vocabulary: Vocabulary): Suggestion {
@@ -37,6 +46,7 @@ function rejectedProposalOf(wire: WireRejectedProposal, vocabulary: Vocabulary):
 
 export function assistantReviewOf(wire: WireAssistantReview, vocabulary: Vocabulary): AssistantReview {
   return {
+    reviewedInspection: wire.reviewedInspection ?? undefined,
     id: wire.id,
     inspectionId: wire.inspectionId,
     promptVersion: wire.promptVersion,

@@ -1,3 +1,5 @@
+> **Reporte histórico, no válido para comparación.** Generado antes de corregir el tratamiento de corridas fallidas y sin huella de las entradas. La línea de base v1 tiene una falla; hay que volver a ejecutar ambas versiones con el harness actual. Las cifras siguientes se conservan solo como evidencia original.
+
 # Harness · prompt v1 · private/nvidia/nemotron-3.5-super-120b-a12b
 
 15 casos, 5 corridas por caso, 2026-11-08T22:28:27.715997572Z. Corridas sin respuesta del proveedor: 1.

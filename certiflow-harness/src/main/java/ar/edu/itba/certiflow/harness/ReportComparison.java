@@ -11,6 +11,30 @@ import java.util.stream.Collectors;
  */
 public record ReportComparison(HarnessReport baseline, HarnessReport candidate) {
 
+    public ReportComparison {
+        validate(baseline);
+        validate(candidate);
+        if (!baseline.model().equals(candidate.model()) || baseline.runsPerCase() != candidate.runsPerCase()) {
+            throw new IllegalArgumentException("Comparison requires the same model and repetitions");
+        }
+        java.util.Map<String, String> baselineInputs = inputs(baseline);
+        if (!baselineInputs.equals(inputs(candidate))) {
+            throw new IllegalArgumentException("Comparison requires the same versioned evaluation inputs and expectations");
+        }
+    }
+
+    private static java.util.Map<String, String> inputs(HarnessReport report) {
+        return report.cases().stream().collect(Collectors.toMap(CaseResult::id, CaseResult::inputFingerprint));
+    }
+
+    private static void validate(HarnessReport report) {
+        if (report.failures() != 0 || report.cases().isEmpty() || report.completeRuns() != report.runsPerCase()
+                || report.cases().stream().anyMatch(result -> result.inputFingerprint() == null
+                        || result.inputFingerprint().isBlank() || result.runs().size() != report.runsPerCase())) {
+            throw new IllegalArgumentException("Cannot compare incomplete or legacy reports: rerun the versioned evaluation");
+        }
+    }
+
     public List<Metric> regressions() {
         return Arrays.stream(Metric.values())
                 .filter(metric -> metric.worsened(baseline.totals().get(metric), candidate.totals().get(metric)))

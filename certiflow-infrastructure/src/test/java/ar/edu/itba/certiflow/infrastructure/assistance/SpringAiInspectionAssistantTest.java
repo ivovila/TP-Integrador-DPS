@@ -138,4 +138,12 @@ class SpringAiInspectionAssistantTest {
             throw new IllegalStateException("Connection refused");
         }
     }
+    @Test
+    void missingOrBlankRationaleMakesTheStructuredAnswerUnavailable() {
+        for (String replacement : List.of("", "\"rationale\": null,", "\"rationale\": \"  \",")) {
+            String malformed = ONE_FINDING.replace("\"rationale\": \"La observación describe una grieta\",", replacement);
+            assertThrows(AssistantUnavailableException.class,
+                    () -> assistantAnswering(new ScriptedChatModel(malformed, "m")).review(inspection));
+        }
+    }
 }

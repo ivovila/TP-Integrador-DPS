@@ -2,21 +2,17 @@ package ar.edu.itba.certiflow.web.schema;
 
 import ar.edu.itba.certiflow.schema.model.Answer;
 import ar.edu.itba.certiflow.schema.model.ApprovalRule;
+import ar.edu.itba.certiflow.schema.model.ApprovalRuleKindCatalog;
+import ar.edu.itba.certiflow.schema.model.RuleDescriber;
 import ar.edu.itba.certiflow.schema.model.Criterion;
 import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.EvidenceKind;
 import ar.edu.itba.certiflow.schema.model.EvidenceRequirement;
-import ar.edu.itba.certiflow.schema.model.NumericRangeRule;
-import ar.edu.itba.certiflow.schema.model.OptionInListRule;
-import ar.edu.itba.certiflow.schema.model.Range;
 import ar.edu.itba.certiflow.schema.model.Section;
 import ar.edu.itba.certiflow.schema.model.SectionTitle;
 import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.schema.model.StandardEvidenceKind;
 import ar.edu.itba.certiflow.schema.model.StandardSeverity;
-import ar.edu.itba.certiflow.schema.model.Unit;
-import ar.edu.itba.certiflow.schema.model.YesNoAnswer;
-import ar.edu.itba.certiflow.schema.model.YesNoRule;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidRuleConfigurationException;
 import ar.edu.itba.certiflow.schema.model.exceptions.InvalidSchemaException;
 import ar.edu.itba.certiflow.web.support.SubsystemCodeField;
@@ -24,38 +20,15 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 
 public final class SchemaPayloads {
-
-    /** Registro tipo de regla → cómo se arma desde el request. Agregar una regla es agregar una entrada. */
-    private static final Map<String, Function<RulePayload, ApprovalRule<?>>> RULE_READERS = new LinkedHashMap<>();
-
-    static {
-        RULE_READERS.put("numeric-range", rule -> new NumericRangeRule(new Unit(required(rule.unit(), "unit")),
-                new Range(required(rule.minimum(), "minimum"), required(rule.maximum(), "maximum"))));
-        RULE_READERS.put("yes-no", rule -> new YesNoRule(expected(rule.expected())));
-        RULE_READERS.put("option-in-list", rule -> new OptionInListRule(required(rule.options(), "options")));
-    }
-
-    /** Registro clase de regla → cómo se describe en la API. */
-    private static final Map<Class<?>, Function<ApprovalRule<?>, RulePayload>> RULE_WRITERS = Map.of(
-            NumericRangeRule.class, rule -> {
-                NumericRangeRule numeric = (NumericRangeRule) rule;
-                return new RulePayload("numeric-range", numeric.unit().symbol(), numeric.range().minimum(),
-                        numeric.range().maximum(), null, null);
-            },
-            YesNoRule.class, rule -> new RulePayload("yes-no", null, null, null, ((YesNoRule) rule).expected().name(), null),
-            OptionInListRule.class, rule -> new RulePayload("option-in-list", null, null, null, null,
-                    ((OptionInListRule) rule).acceptedOptions()));
 
     private SchemaPayloads() {
     }
 
-    public static List<Section> toSections(List<SectionPayload> sections) {
+    public static List<Section> toSections(List<SectionPayload> sections, ApprovalRuleKindCatalog ruleKinds) {
         return sections.stream()
-                .map(section -> new Section(new SectionTitle(section.title()), section.criteria().stream().<Criterion<?>>map(SchemaPayloads::criterion).toList(), new SubsystemCodeField(section.subsystemCode()).association()))
+                .map(section -> new Section(new SectionTitle(section.title()), section.criteria().stream().<Criterion<?>>map(payload -> criterion(payload, ruleKinds)).toList(), new SubsystemCodeField(section.subsystemCode()).association()))
                 .toList();
     }
 
@@ -66,17 +39,20 @@ public final class SchemaPayloads {
     }
 
     public static CriterionPayload payload(Criterion<?> criterion) {
-        return new CriterionPayload(criterion.code().value(), criterion.text(), ((StandardSeverity) criterion.severity()).name(),
+        return new CriterionPayload(criterion.code().value(), criterion.text(), criterion.severity().code(),
                 rulePayload(criterion.rule()),
                 criterion.requiredEvidence().stream()
                         .map(r -> new EvidenceRequirementPayload(r.kind().code(), r.minimum())).toList(), new SubsystemCodeField(criterion.subsystem()).subsystemCode());
     }
 
-    private static Criterion<?> criterion(CriterionPayload payload) {
+    private static Criterion<?> criterion(CriterionPayload payload, ApprovalRuleKindCatalog ruleKinds) {
         Severity severity = severity(payload.severity());
         List<EvidenceRequirement> evidence = payload.requiredEvidence().stream()
                 .map(r -> new EvidenceRequirement(evidenceKind(r.kind()), r.minimum())).toList();
-        return criterion(payload, rule(payload.rule()), severity, evidence);
+        ApprovalRule<?> rule = ruleKinds.named(payload.rule().type())
+                .orElseThrow(() -> new InvalidRuleConfigurationException("Unknown rule type " + payload.rule().type()))
+                .ruleFrom(payload.rule());
+        return criterion(payload, rule, severity, evidence);
     }
 
     private static <A extends Answer> Criterion<A> criterion(CriterionPayload payload, ApprovalRule<A> rule, Severity severity,
@@ -85,26 +61,21 @@ public final class SchemaPayloads {
                 new SubsystemCodeField(payload.subsystemCode()).association());
     }
 
-    private static ApprovalRule<?> rule(RulePayload rule) {
-        return Optional.ofNullable(RULE_READERS.get(rule.type()))
-                .orElseThrow(() -> new InvalidRuleConfigurationException("Unknown rule type " + rule.type()))
-                .apply(rule);
-    }
-
     private static RulePayload rulePayload(ApprovalRule<?> rule) {
-        return Optional.ofNullable(RULE_WRITERS.get(rule.getClass()))
-                .orElseThrow(() -> new IllegalStateException("No payload for rule " + rule.getClass().getName()))
-                .apply(rule);
+        return rule.describedBy(new PayloadDescriber());
     }
 
-    private static <T> T required(T value, String field) {
-        return Optional.ofNullable(value)
-                .orElseThrow(() -> new InvalidRuleConfigurationException("The rule needs a " + field));
-    }
+    private static final class PayloadDescriber implements RuleDescriber<RulePayload> {
+        private final Map<String, Object> parameters = new LinkedHashMap<>();
 
-    private static YesNoAnswer expected(String name) {
-        return Arrays.stream(YesNoAnswer.values()).filter(answer -> answer.name().equals(name)).findFirst()
-                .orElseThrow(() -> new InvalidRuleConfigurationException("A yes/no rule expects YES or NO, not " + name));
+        @Override
+        public RuleDescriber<RulePayload> text(String name, String value) { parameters.put(name, value); return this; }
+        @Override
+        public RuleDescriber<RulePayload> decimal(String name, java.math.BigDecimal value) { parameters.put(name, value); return this; }
+        @Override
+        public RuleDescriber<RulePayload> texts(String name, java.util.Set<String> value) { parameters.put(name, value); return this; }
+        @Override
+        public RulePayload ofKind(String kind) { return RulePayload.of(kind, parameters); }
     }
 
     private static Severity severity(String name) {

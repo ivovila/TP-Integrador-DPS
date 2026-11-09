@@ -12,10 +12,13 @@ public final class ReportMarkdown {
         return "# Harness · prompt " + report.promptVersion() + " · " + report.model() + "\n\n"
                 + report.cases().size() + " casos, " + report.runsPerCase() + " corridas por caso, " + report.ranAt()
                 + ". Corridas sin respuesta del proveedor: " + report.failures() + ".\n\n"
+                + "Repeticiones completas medidas: " + report.completeRuns() + " de " + report.runsPerCase()
+                + ". Las fallas no se cuentan como ceros.\n\n"
                 + "## Totales por corrida\n\n"
                 + "| Métrica | Media | Rango |\n|---|---|---|\n"
                 + Arrays.stream(Metric.values()).map(metric -> "| " + metric.label() + " | "
-                        + mean(report.totals().get(metric)) + " | " + range(report.totals().get(metric)) + " |")
+                        + Optional.ofNullable(report.totals().get(metric)).map(this::mean).orElse("—") + " | "
+                        + Optional.ofNullable(report.totals().get(metric)).map(this::range).orElse("—") + " |")
                         .collect(Collectors.joining("\n"))
                 + "\n\nPropuestas frenadas por guardrail (todas las corridas): "
                 + (report.rejectedByGuardrail().isEmpty() ? "ninguna" : report.rejectedByGuardrail().toString()) + ".\n\n"

@@ -242,4 +242,36 @@ class AssistantReviewTest {
             return List.copyOf(entries);
         }
     }
+
+    @Test
+    void missingOrBlankRationaleCannotBecomeAProposal() {
+        for (String rationale : new String[] {null, "", "  "}) {
+            assertThrows(ar.edu.itba.certiflow.shared.model.RequiredValueMissingException.class,
+                    () -> new ProposedFinding(hose.code(), StandardSeverity.MINOR, rationale, List.of(new Quote("grieta"))));
+        }
+    }
+
+    @Test
+    void onlyTheFirstValidProposalForACriterionCanBeDecided() {
+        ProposedFinding first = proposal("HOSE", "grieta");
+        ProposedFinding contradictory = new ProposedFinding(hose.code(), StandardSeverity.CRITICAL,
+                "Different severity", List.of(new Quote("grieta")));
+        AssistantReview review = reviewOf(proposal("HOSE", "inventada"), first, contradictory);
+        assertEquals(List.of(first), review.suggestions().stream().map(Suggestion::proposal).toList());
+        assertEquals(List.of(GuardrailRejection.UNSUPPORTED_QUOTE, GuardrailRejection.DUPLICATE_CRITERION),
+                review.rejectedProposals().stream().map(RejectedProposal::reason).toList());
+    }
+
+    @Test
+    void originalInputSurvivesConcurrentInspectionChangesAndSnapshotRestore() {
+        InspectionUnderReview original = openInspection();
+        InspectionUnderReview changed = new InspectionUnderReview(inspectionId, original.assetType(), 1, false,
+                List.of(new CriterionUnderReview(hose.code(), hose.text(), hose.rule(), "Worn", Outcome.REJECTED,
+                        hose.observations(), hose.evidence())));
+        AssistantReview review = service.record(reviewId, original, changed, reply(proposal("HOSE", "grieta")), requested);
+        assertEquals(new CapturedReviewInput(original), review.reviewedInput());
+        assertEquals(GuardrailRejection.ALREADY_NONCONFORMING, review.rejectedProposals().getFirst().reason());
+        assertEquals(review.reviewedInput(), factory.restore(review.snapshot()).reviewedInput());
+    }
+
 }

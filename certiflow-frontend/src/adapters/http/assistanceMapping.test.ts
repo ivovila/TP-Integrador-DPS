@@ -70,3 +70,17 @@ test('a proposal stopped by a guardrail is kept with the reason, and is never a 
 test('the reviews of an inspection come embedded as assistant-reviews', () => {
   expect(reviewsOfAnInspection._embedded['assistant-reviews'].map(reviewOf)).toMatchObject([{ id: decidedReview.id }]);
 });
+
+test('decided suggestions require an author, timestamp and dismissal reason', () => {
+  for (const patch of [{ decidedBy: null }, { decidedAt: null }, { reason: ' ' }]) {
+    const wire = structuredClone(decidedReview);
+    Object.assign(wire.suggestions[1]!.decision, patch);
+    expect(() => reviewOf(wire)).toThrow();
+  }
+});
+
+test('legacy reviews explicitly lack historical input while new reviews preserve it', () => {
+  expect(reviewOf(pendingReview).reviewedInspection).toBeUndefined();
+  const captured = { assetType: 'Fire extinguisher', schemaVersion: 1, criteria: [] };
+  expect(reviewOf({ ...pendingReview, reviewedInspection: captured }).reviewedInspection).toEqual(captured);
+});

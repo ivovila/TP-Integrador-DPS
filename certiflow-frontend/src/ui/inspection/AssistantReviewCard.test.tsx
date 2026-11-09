@@ -68,6 +68,10 @@ function suggestion(decision: SuggestionDecision): Suggestion {
 
 function review(decision: SuggestionDecision): AssistantReview {
   return {
+    reviewedInspection: { assetType: 'Fire extinguisher', schemaVersion: 1, criteria: [{
+      code: 'HOSE', text: 'Hose condition', rule: 'Good', answer: 'Good', outcome: 'APPROVED',
+      observations: ['La manguera tiene una grieta cerca del acople'], evidence: [],
+    }] },
     id: 'R-1',
     inspectionId: 'INS-1',
     promptVersion: 'v2',
@@ -153,7 +157,7 @@ test('before any review the inspector sees what the assistant does and how to as
 
   expect(screen.getByText(/It points out answers that may contradict what you wrote/)).toBeTruthy();
   fireEvent.click(screen.getByText('Review with AI'));
-  expect(screen.getByRole('status').textContent).toContain('This can take up to a minute');
+  expect(screen.getByRole('status').textContent).toContain('This may take several minutes');
 
   expect(await screen.findByText('AI suggestion')).toBeTruthy();
   expect(recorded.requested).toEqual([{ inspectionId: 'INS-1', requestedBy: inspector }]);
@@ -164,9 +168,9 @@ test('a suggestion compares the answer with what the inspector wrote, and says w
   show([review({ status: 'PENDING' })]);
 
   expect(await screen.findByText('Possible non-conformity in', { exact: false })).toBeTruthy();
-  expect(screen.getByText('Your answer').nextElementSibling!.textContent).toContain('Good');
+  expect(screen.getByText('Answer read by the assistant').nextElementSibling!.textContent).toContain('Good');
   expect(screen.getByText('“La manguera tiene una grieta cerca del acople”', { exact: false })).toBeTruthy();
-  expect(screen.getByText('Your observation')).toBeTruthy();
+  expect(screen.getByText('Observation read by the assistant')).toBeTruthy();
   expect(screen.getByText('The assistant found 1 answer that may contradict what you wrote. 1 needs your decision.')).toBeTruthy();
   expect(screen.getByText(/the assistant would rate it major/)).toBeTruthy();
   expect(screen.getByText(/The assistant can be wrong/).textContent).toContain('model nvidia/nemotron · prompt v2');
@@ -236,4 +240,18 @@ test('a closed inspection keeps its reviews but offers no new one', async () => 
 
   expect(await screen.findByText('AI suggestion')).toBeTruthy();
   expect(screen.queryByText('Review again')).toBeNull();
+});
+
+test('changing the answer does not rewrite the input of a historical review', async () => {
+  show([review({ status: 'PENDING' })], { response: hose('OBSERVED') });
+  await screen.findByText('Answer read by the assistant');
+  expect(screen.getByText('Answer read by the assistant').nextElementSibling!.textContent).toContain('Good');
+  expect(screen.getByText('Answer read by the assistant').nextElementSibling!.textContent).not.toContain('Cracked');
+});
+
+test('legacy reviews do not attribute their conclusions to current answers', async () => {
+  const legacy = review({ status: 'PENDING' });
+  delete legacy.reviewedInspection;
+  show([legacy]);
+  expect(await screen.findAllByText('Historical input unavailable')).toHaveLength(2);
 });

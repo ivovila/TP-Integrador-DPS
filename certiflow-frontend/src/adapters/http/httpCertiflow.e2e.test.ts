@@ -1,5 +1,5 @@
 import { demoLogins } from '../../demoLogins';
-import { describeCertiflowContract } from '../../ports/certiflowContract';
+import { describeCertiflowContract } from '../../test-support/contract';
 import { createHttpCertiflow } from './createHttpCertiflow';
 
 describeCertiflowContract('HTTP adapter against the running backend', () => ({

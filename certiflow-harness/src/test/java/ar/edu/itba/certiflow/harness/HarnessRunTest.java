@@ -59,12 +59,12 @@ class HarnessRunTest {
         RunResult run = result.runs().getFirst();
 
         assertEquals(List.of(1, 1, 1, 1), List.of(run.correct(), run.severityHits(), run.invented(), run.missed()));
-        assertEquals(List.of("RELIEF-VALVE", "RELIEF-VALVE", "LEAKS"),
+        assertEquals(List.of("RELIEF-VALVE", "LEAKS"),
                 run.suggestions().stream().map(RunResult.Proposal::criterion).toList());
-        assertEquals(List.of("UNSUPPORTED_QUOTE"), run.rejected().stream().map(RunResult.Rejection::guardrail).toList());
+        assertEquals(List.of("DUPLICATE_CRITERION", "UNSUPPORTED_QUOTE"), run.rejected().stream().map(RunResult.Rejection::guardrail).toList());
         assertEquals(new Statistic(1.0, 1, 1), result.statistics().get(Metric.CORRECT));
         assertEquals(new Statistic(1.0, 1, 1), report.totals().get(Metric.INVENTED));
-        assertEquals(Map.of("UNSUPPORTED_QUOTE", 3), report.rejectedByGuardrail());
+        assertEquals(Map.of("DUPLICATE_CRITERION", 3, "UNSUPPORTED_QUOTE", 3), report.rejectedByGuardrail());
         assertEquals(List.of("v1", "scripted-model", "RELIEF-VALVE CRITICAL, PANEL MINOR"),
                 List.of(report.promptVersion(), report.model(), String.join(", ", result.expected())));
         assertEquals(List.of("case-10: 3 of 3 runs measured"), progress);

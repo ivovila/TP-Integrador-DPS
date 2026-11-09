@@ -48,7 +48,7 @@ public final class RequestAssistantReviewUseCaseImpl implements RequestAssistant
     public ReviewId execute(RequestAssistantReviewCommand command) {
         InspectionUnderReview inspection = transactions.within(() -> openInspection(command.inspectionId()));
         AssistantReply reply = assistant.review(inspection);
-        return transactions.within(() -> record(command, reply));
+        return transactions.within(() -> record(command, inspection, reply));
     }
 
     private InspectionUnderReview openInspection(InspectionId inspectionId) {
@@ -57,10 +57,10 @@ public final class RequestAssistantReviewUseCaseImpl implements RequestAssistant
         return inspection;
     }
 
-    private ReviewId record(RequestAssistantReviewCommand command, AssistantReply reply) {
+    private ReviewId record(RequestAssistantReviewCommand command, InspectionUnderReview reviewed, AssistantReply reply) {
         assetLock.lock(translator.assetCodeOf(command.inspectionId()));
         InspectionUnderReview current = translator.translate(command.inspectionId());
-        AssistantReview review = reviewService.record(reviewRepository.nextId(), current, reply,
+        AssistantReview review = reviewService.record(reviewRepository.nextId(), reviewed, current, reply,
                 new Stamp(command.requestedBy(), clock.instant()));
         reviewRepository.save(review);
         return review.id();

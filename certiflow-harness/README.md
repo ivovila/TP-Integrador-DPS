@@ -21,7 +21,7 @@ Sobre las sugerencias que pasan los guardrails, por caso y en total (spec §7.2)
 
 Además, cuántas propuestas frenó cada guardrail. Cuenta criterios, no sugerencias: proponer dos veces el mismo
 criterio no es acertar dos veces. Cada caso corre 5 veces; se reportan la media y el rango. Los totales suman los
-casos de cada corrida. Una corrida en la que el proveedor no respondió queda como falla y no se mide.
+casos de cada corrida. Una corrida en la que el proveedor no respondió queda como falla y no se mide. Para los totales se excluye toda repetición que no haya completado todos los casos; se informa cuántas repeticiones quedaron completas. Una falla nunca se convierte en cero.
 
 **Cuándo empeora una versión:** cuando la media de una métrica queda fuera del rango que se observó con la versión
 anterior, en la dirección mala. Una diferencia dentro de ese rango es el ruido propio del modelo.
@@ -54,7 +54,11 @@ resumen en `.md`. Se versionan: el pull request que cambia un prompt muestra su 
 mvn -q -pl certiflow-harness exec:exec -Dharness.args="compare results/v1/<modelo>.json results/v2/<modelo>.json"
 ```
 
-Escribe `results/v2/comparison-with-v1.md` y termina con código 1 si alguna métrica empeoró.
+Escribe `results/v2/comparison-with-v1.md` y termina con código 1 si alguna métrica empeoró. También rechaza reportes incompletos, modelos distintos, cantidades de corridas distintas o huellas diferentes de criterios, respuestas y expectativas. `run` guarda el reporte parcial y termina con error si hubo fallas.
+
+Los reportes históricos de v1/v2 carecen de huellas y no son una comparación válida: volver a ejecutar ambas versiones. Los JSON originales se conservan como evidencia, sin inventar corridas ni huellas retrospectivas.
+
+El seed del frontend y los activos del harness cargan los esquemas de `certiflow-infrastructure/src/main/resources/demo/schemas.json`. Una única definición mantiene alineados reglas, severidades y evidencia requerida.
 
 ## En CI y fuera de CI
 

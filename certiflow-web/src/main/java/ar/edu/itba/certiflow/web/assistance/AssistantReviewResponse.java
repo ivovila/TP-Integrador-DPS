@@ -19,6 +19,7 @@ public class AssistantReviewResponse extends RepresentationModel<AssistantReview
         }
     }
 
+    public final ReviewedInspectionResponse reviewedInspection;
     public final String id;
     public final String inspectionId;
     public final String promptVersion;
@@ -29,6 +30,7 @@ public class AssistantReviewResponse extends RepresentationModel<AssistantReview
     public final List<RejectionResponse> rejectedProposals;
 
     AssistantReviewResponse(AssistantReview review, List<SuggestionResponse> suggestions) {
+        this.reviewedInspection = review.reviewedInput().describedBy(new ReviewedInspectionResponse.Describer());
         this.id = review.id().value();
         this.inspectionId = review.inspectionId().value();
         this.promptVersion = review.promptVersion().value();

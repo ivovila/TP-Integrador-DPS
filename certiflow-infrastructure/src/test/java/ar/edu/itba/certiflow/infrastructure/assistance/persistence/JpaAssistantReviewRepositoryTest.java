@@ -143,4 +143,17 @@ class JpaAssistantReviewRepositoryTest {
         assertTrue(repository.inspectionOf(new ReviewId("R-missing")).isEmpty());
         assertNotEquals(repository.nextId(), repository.nextId());
     }
+
+    @Test
+    void legacyReviewsDoNotInventTheHistoricalInput() {
+        AssistantReview review = reviewOf(savedInspection(), "R-legacy", 1000);
+        repository.save(review);
+        flushAndClear();
+        entityManager.createNativeQuery("update assistant_review set reviewed_input = null where id = :id")
+                .setParameter("id", review.id().value()).executeUpdate();
+        entityManager.clear();
+        assertEquals(new ar.edu.itba.certiflow.assistance.model.UnavailableReviewInput(),
+                repository.findById(review.id()).orElseThrow().reviewedInput());
+    }
+
 }

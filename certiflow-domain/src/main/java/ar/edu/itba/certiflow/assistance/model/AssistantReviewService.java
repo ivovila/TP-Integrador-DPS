@@ -15,7 +15,12 @@ public final class AssistantReviewService {
     }
 
     public AssistantReview record(ReviewId id, InspectionUnderReview inspection, AssistantReply reply, Stamp requested) {
-        AssistantReview review = reviewFactory.create(id, inspection, reply, requested);
+        return record(id, inspection, inspection, reply, requested);
+    }
+
+    public AssistantReview record(ReviewId id, InspectionUnderReview reviewed, InspectionUnderReview current,
+                                  AssistantReply reply, Stamp requested) {
+        AssistantReview review = reviewFactory.create(id, reviewed, current, reply, requested);
         recordAuditEntriesOf(review);
         return review;
     }

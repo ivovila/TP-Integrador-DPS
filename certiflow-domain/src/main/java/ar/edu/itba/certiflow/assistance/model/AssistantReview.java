@@ -7,6 +7,9 @@ import ar.edu.itba.certiflow.shared.model.AuditTrail;
 import ar.edu.itba.certiflow.shared.model.Stamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -22,25 +25,37 @@ public final class AssistantReview {
     private final PromptVersion promptVersion;
     private final ModelId modelId;
     private final Stamp requested;
+    private final ReviewInput reviewedInput;
     private final List<Suggestion> suggestions;
     private final List<RejectedProposal> rejectedProposals;
     private final AuditTrail auditTrail = new AuditTrail();
 
     AssistantReview(ReviewId id, InspectionUnderReview inspection, AssistantReply reply, Stamp requested) {
+        this(id, inspection, reply, requested, new CapturedReviewInput(inspection));
+    }
+
+    AssistantReview(ReviewId id, InspectionUnderReview inspection, AssistantReply reply, Stamp requested, ReviewInput reviewedInput) {
         inspection.ensureOpen();
+        this.reviewedInput = reviewedInput;
         this.id = id;
         this.inspectionId = inspection.inspectionId();
         this.promptVersion = reply.promptVersion();
         this.modelId = reply.modelId();
         this.requested = requested;
-        this.rejectedProposals = reply.proposals().stream()
-                .flatMap(proposal -> firstRejectionOf(proposal, inspection)
-                        .map(reason -> new RejectedProposal(proposal, reason))
-                        .stream())
-                .toList();
-        this.suggestions = numbered(reply.proposals().stream()
-                .filter(proposal -> firstRejectionOf(proposal, inspection).isEmpty())
-                .toList());
+        List<RejectedProposal> rejected = new ArrayList<>();
+        List<ProposedFinding> admitted = new ArrayList<>();
+        Set<CriterionCode> admittedCriteria = new HashSet<>();
+        for (ProposedFinding proposal : reply.proposals()) {
+            Optional<GuardrailRejection> rejection = firstRejectionOf(proposal, inspection, admittedCriteria);
+            if (rejection.isPresent()) {
+                rejected.add(new RejectedProposal(proposal, rejection.orElseThrow()));
+            } else {
+                admittedCriteria.add(proposal.criterion());
+                admitted.add(proposal);
+            }
+        }
+        this.rejectedProposals = List.copyOf(rejected);
+        this.suggestions = numbered(admitted);
         auditTrail.record(AssistanceAudit.REVIEW_REQUESTED, requested, suggestions.size() + " suggestions, "
                 + rejectedProposals.size() + " rejected by guardrails, prompt " + promptVersion.value()
                 + ", model " + modelId.value());
@@ -52,12 +67,13 @@ public final class AssistantReview {
         this.promptVersion = snapshot.promptVersion();
         this.modelId = snapshot.modelId();
         this.requested = snapshot.requested();
+        this.reviewedInput = snapshot.reviewedInput();
         this.suggestions = new ArrayList<>(snapshot.suggestions());
         this.rejectedProposals = snapshot.rejectedProposals();
     }
 
     public AssistantReviewSnapshot snapshot() {
-        return new AssistantReviewSnapshot(id, inspectionId, promptVersion, modelId, requested, suggestions, rejectedProposals);
+        return new AssistantReviewSnapshot(id, inspectionId, promptVersion, modelId, requested, suggestions, rejectedProposals, reviewedInput);
     }
 
     void accept(int position, Stamp accepted) {
@@ -95,6 +111,10 @@ public final class AssistantReview {
         return modelId;
     }
 
+    public ReviewInput reviewedInput() {
+        return reviewedInput;
+    }
+
     public Stamp requested() {
         return requested;
     }
@@ -112,9 +132,9 @@ public final class AssistantReview {
     }
 
     /** Los guardrails se aplican en el orden en que están declarados; el primero que rechaza es el motivo. */
-    private Optional<GuardrailRejection> firstRejectionOf(ProposedFinding proposal, InspectionUnderReview inspection) {
+    private Optional<GuardrailRejection> firstRejectionOf(ProposedFinding proposal, InspectionUnderReview inspection, Set<CriterionCode> admitted) {
         return Arrays.stream(GuardrailRejection.values())
-                .filter(guardrail -> guardrail.rejects(proposal, inspection))
+                .filter(guardrail -> guardrail.rejects(proposal, inspection, admitted))
                 .findFirst();
     }
 

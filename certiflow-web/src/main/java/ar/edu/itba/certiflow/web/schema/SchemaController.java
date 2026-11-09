@@ -6,6 +6,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import ar.edu.itba.certiflow.catalog.model.AssetType;
 import ar.edu.itba.certiflow.catalog.model.SubsystemCode;
 import ar.edu.itba.certiflow.schema.model.InspectionSchema;
+import ar.edu.itba.certiflow.schema.model.ApprovalRuleKindCatalog;
 import ar.edu.itba.certiflow.schema.model.SchemaVersion;
 import ar.edu.itba.certiflow.schema.usecase.CancelSchemaVersionCommand;
 import ar.edu.itba.certiflow.schema.usecase.CancelSchemaVersionUseCase;
@@ -46,6 +47,7 @@ import org.springframework.web.context.request.WebRequest;
 @RequestMapping("/api/v1/schemas")
 public class SchemaController {
 
+    private final ApprovalRuleKindCatalog ruleKinds;
     private final CreateInspectionSchemaUseCase createInspectionSchema;
     private final PublishSchemaVersionUseCase publishSchemaVersion;
     private final FindSchemaUseCase findSchema;
@@ -57,7 +59,9 @@ public class SchemaController {
 
     public SchemaController(CreateInspectionSchemaUseCase createInspectionSchema, PublishSchemaVersionUseCase publishSchemaVersion,
                             FindSchemaUseCase findSchema, SchemaHistoryUseCase schemaHistory, Clock clock, FindEffectiveSchemaVersionUseCase findEffective,
-                            ListSchemasUseCase listSchemas, CancelSchemaVersionUseCase cancelSchemaVersion) {
+                            ListSchemasUseCase listSchemas, CancelSchemaVersionUseCase cancelSchemaVersion,
+                            ApprovalRuleKindCatalog ruleKinds) {
+        this.ruleKinds = ruleKinds;
         this.createInspectionSchema = createInspectionSchema;
         this.publishSchemaVersion = publishSchemaVersion;
         this.findSchema = findSchema;
@@ -72,7 +76,7 @@ public class SchemaController {
     @PostMapping
     public ResponseEntity<SchemaResponse> create(@RequestBody SchemaRequest request, @ActingPerson Person createdBy) {
         InspectionSchema schema = createInspectionSchema.execute(new CreateInspectionSchemaCommand(request.name(),
-                new AssetType(request.assetType()), SchemaPayloads.toSections(request.sections()), createdBy, request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
+                new AssetType(request.assetType()), SchemaPayloads.toSections(request.sections(), ruleKinds), createdBy, request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
         SchemaResponse response = resource(schema);
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
     }
@@ -95,7 +99,7 @@ public class SchemaController {
     public ResponseEntity<VersionResponse> publish(@PathVariable String assetType, @RequestBody VersionRequest request,
                                                    @ActingPerson Person publishedBy) {
         SchemaVersion version = publishSchemaVersion.execute(new PublishSchemaVersionCommand(new AssetType(assetType),
-                SchemaPayloads.toSections(request.sections()), publishedBy, request.requestedEffectiveDate(), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
+                SchemaPayloads.toSections(request.sections(), ruleKinds), publishedBy, request.requestedEffectiveDate(), request.requiredSubsystems().stream().map(SubsystemCode::new).collect(Collectors.toSet())));
         VersionResponse response = versionResource(assetType, version);
         return ResponseEntity.created(response.getRequiredLink("self").toUri()).body(response);
     }

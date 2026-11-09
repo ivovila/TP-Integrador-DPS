@@ -32,7 +32,23 @@ export interface RejectedProposal {
   reason: string;
 }
 
+/** Captura de los datos leídos por el modelo, no de la inspección actual. */
+export interface ReviewedInspection {
+  assetType: string;
+  schemaVersion: number;
+  criteria: {
+    code: string;
+    text: string;
+    rule: string;
+    answer: string;
+    outcome: string;
+    observations: string[];
+    evidence: { kind: string; description: string }[];
+  }[];
+}
+
 export interface AssistantReview {
+  reviewedInspection?: ReviewedInspection;
   id: string;
   inspectionId: string;
   promptVersion: string;

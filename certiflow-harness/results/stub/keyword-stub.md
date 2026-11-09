@@ -1,6 +1,8 @@
 # Harness · prompt stub · keyword-stub
 
-15 casos, 5 corridas por caso, 2026-11-08T22:14:55.643729159Z. Corridas sin respuesta del proveedor: 0.
+15 casos, 5 corridas por caso, 2026-11-09T14:26:12.957748879Z. Corridas sin respuesta del proveedor: 0.
+
+Repeticiones completas medidas: 5 de 5. Las fallas no se cuentan como ceros.
 
 ## Totales por corrida
 

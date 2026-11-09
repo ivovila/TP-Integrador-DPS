@@ -141,4 +141,14 @@ public class AssistantReviewApiTest extends ApiTest {
         postAs("HUMAN", review + "/suggestions/1/acceptance", "").andExpect(status().isCreated());
         read(inspection).andExpect(jsonPath("$.closed").value(true));
     }
+    @Test
+    void changingAnAnswerDoesNotRewriteThePersistedReviewInput() throws Exception {
+        String inspection = openInspection();
+        String review = reviewWithTwoSuggestions(inspection);
+        putAs("INSPECTOR", inspection + "/responses/EXT-02/answer", "{\"value\":false}")
+                .andExpect(status().isNoContent());
+        read(review).andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewedInspection.criteria[?(@.code == 'EXT-02')].answer").value("true"))
+                .andExpect(jsonPath("$.reviewedInspection.criteria[?(@.code == 'EXT-02')].outcome").value("APPROVED"));
+    }
 }

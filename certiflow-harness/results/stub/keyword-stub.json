@@ -2,7 +2,7 @@
   "promptVersion" : "stub",
   "model" : "keyword-stub",
   "runsPerCase" : 5,
-  "ranAt" : "2026-11-08T22:14:55.643729159Z",
+  "ranAt" : "2026-11-09T14:26:12.957748879Z",
   "totals" : {
     "CORRECT" : {
       "mean" : 4.0,
@@ -121,7 +121,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "8ea364dfc6ce7424b07074606d3ac098be72a1f90531029cf61e3dca02923a6b"
   }, {
     "id" : "case-02",
     "kind" : "hidden",
@@ -190,7 +191,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "100fb898680f756bffb3c3a9d32098aef5625da2919bf875be594b592e32321b"
   }, {
     "id" : "case-03",
     "kind" : "hidden",
@@ -284,7 +286,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "147c121b9c5fc4149eb935d38e38f649f792d519cdda386634b0618353ee13a8"
   }, {
     "id" : "case-04",
     "kind" : "hidden",
@@ -378,7 +381,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "d3da1fa58b170ea1375313e0d9842f54fa5f08678c162e2a7a755da3bc5a4b93"
   }, {
     "id" : "case-05",
     "kind" : "hidden",
@@ -447,7 +451,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "dba4789802e539c342037fba5461fdb9fc31e36d8b6dc38432234d1165537be5"
   }, {
     "id" : "case-06",
     "kind" : "hidden",
@@ -541,7 +546,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "96efa3abe10627d4ac9d103571e410815254dcab06d78fd1a3dc99ff17c9d72f"
   }, {
     "id" : "case-07",
     "kind" : "hidden",
@@ -610,7 +616,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "58ddcc66d97d876ddf741083a8e740e81817124759018376f60a274a32362a25"
   }, {
     "id" : "case-08",
     "kind" : "hidden",
@@ -679,7 +686,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "6ec640b81a23eba99a4fd1b33dbc385ee874b297c435e63a95c57ecc71cdfd80"
   }, {
     "id" : "case-09",
     "kind" : "hidden",
@@ -773,7 +781,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "fde5609cac49385d7111ceab29d023ad10e4fadef90e615328268b9b5f9d7c1a"
   }, {
     "id" : "case-10",
     "kind" : "hidden",
@@ -842,7 +851,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "e8e56975ac682a0f2a13a3f7cfea227ee4f174f84b29041e7a3642f13cd0c7b9"
   }, {
     "id" : "case-11",
     "kind" : "clean",
@@ -911,7 +921,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "76d90f16bba39add812d068fa0049f8457bacb9c59ac3eca07204089e7004a35"
   }, {
     "id" : "case-12",
     "kind" : "clean",
@@ -980,7 +991,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "74eee25822d457029347619f05026aaa74dbf4583037114fc61a0c4d07a74b32"
   }, {
     "id" : "case-13",
     "kind" : "clean",
@@ -1049,7 +1061,8 @@
       "suggestions" : [ ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "2ec3eb5a2eeb880b1b411ede276dc909c3b1bfbca0f6e62d0d78631d7a440646"
   }, {
     "id" : "case-14",
     "kind" : "trap",
@@ -1143,7 +1156,8 @@
       } ],
       "rejected" : [ ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "14ccfbace3a36b05f281dd90cf9f02f2368493292a0911c0bbdaec4820005926"
   }, {
     "id" : "case-15",
     "kind" : "trap",
@@ -1252,6 +1266,7 @@
         "guardrail" : "ALREADY_NONCONFORMING"
       } ]
     } ],
-    "failures" : [ ]
+    "failures" : [ ],
+    "inputFingerprint" : "fd8e3d45b8a62340126b9bd138e2c9fc59ad097d2af19fa00d0021aff0d162ff"
   } ]
 }

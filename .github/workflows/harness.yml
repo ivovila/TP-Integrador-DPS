@@ -44,6 +44,14 @@ jobs:
           echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
           echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
       - run: mvn -B -q -DskipTests install
+      - name: Measure the baseline with the same inputs and model
+        if: steps.versions.outputs.baseline != ''
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          HARNESS_PROVIDER: spring-ai
+          HARNESS_PROMPT_VERSION: ${{ steps.versions.outputs.baseline }}
+          HARNESS_RUNS: ${{ inputs.runs || '5' }}
+        run: mvn -B -q -pl certiflow-harness exec:exec
       - name: Run the golden set against the real model
         env:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}

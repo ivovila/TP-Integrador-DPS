@@ -12,6 +12,7 @@ import { assistedReviewAnchor } from './anchors';
 import { type AssistantReviews, pendingSuggestions } from './useAssistantReviews';
 
 const discardedBecause: Record<string, string> = {
+  DUPLICATE_CRITERION: 'a suggestion for that criterion was already admitted',
   OUT_OF_SCOPE: 'that criterion is not part of this inspection',
   ALREADY_NONCONFORMING: 'the rule already flags that criterion, so closing raises its finding anyway',
   UNSUPPORTED_QUOTE: 'the quoted text does not appear in what you wrote',
@@ -56,6 +57,7 @@ function DiscardedProposals({ discarded }: { discarded: RejectedProposal[] }) {
 function ReviewView({ review, inspection, onDecided }: { review: AssistantReview; inspection: InspectionDetails; onDecided(): void }) {
   return (
     <div className="assistant-review">
+      <p className="muted">This review refers to the answers and notes captured when it was requested. Check the current inspection before deciding.</p>
       <Summary review={review} />
       {review.suggestions.map((suggestion) => (
         <AiSuggestionView key={suggestion.position} review={review} suggestion={suggestion} inspection={inspection} onDecided={onDecided} />
@@ -108,7 +110,7 @@ export function AssistantReviewCard({ inspection, reviews }: { inspection: Inspe
       )}
       {requesting.running && (
         <p className="callout tone-neutral" role="status">
-          The assistant is reading the inspection. This can take up to a minute.
+          The assistant is reading the inspection. This may take several minutes; keep this page open.
         </p>
       )}
       <ErrorBanner error={requesting.error} />

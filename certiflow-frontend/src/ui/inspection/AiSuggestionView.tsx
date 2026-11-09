@@ -3,11 +3,10 @@ import type { AssistantReview, Suggestion } from '../../domain/assistance';
 import type { CriterionResponse, InspectionDetails } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
-import { Badge, StatusBadge, type Tone } from '../shared/Badge';
+import { Badge, type Tone } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
 import { formatInstant } from '../shared/format';
 import { TextField } from '../shared/Page';
-import { formatAnswer } from '../shared/ruleKinds';
 import { useCommand } from '../shared/useCommand';
 import { criterionAnchor } from './anchors';
 
@@ -21,20 +20,22 @@ function normalized(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-/** De dónde sale una cita: el inspector tiene que reconocer su propio texto, y saber si lo escribió en otro criterio. */
-function sourceOf(quote: string, criterionCode: string, inspection: InspectionDetails): string {
-  const wanted = normalized(quote);
-  for (const response of inspection.responses) {
-    const where = response.criterion.code === criterionCode ? '' : ` on ${response.criterion.code}`;
-    if (response.observations.some((observation) => normalized(observation.text).includes(wanted))) {
-      return `Your observation${where}`;
+/** Las citas se localizan en la captura histórica y con la misma coincidencia textual que el guardrail. */
+function sourceOf(quote: string, criterionCode: string, review: AssistantReview): string {
+  if (review.reviewedInspection === undefined) {
+    return 'Historical input unavailable';
+  }
+  for (const criterion of review.reviewedInspection.criteria) {
+    const where = criterion.code === criterionCode ? '' : ` on ${criterion.code}`;
+    if (criterion.observations.some((text) => normalized(text).includes(normalized(quote)))) {
+      return `Observation read by the assistant${where}`;
     }
-    const attached = response.attachments.find((attachment) => normalized(attachment.evidence.description).includes(wanted));
-    if (attached !== undefined) {
-      return `${attached.evidence.kind.label} description${where}`;
+    const evidence = criterion.evidence.find((item) => normalized(item.description).includes(normalized(quote)));
+    if (evidence !== undefined) {
+      return `${evidence.kind} description read by the assistant${where}`;
     }
   }
-  return 'Your notes';
+  return 'Quote not found in the captured input';
 }
 
 function NextStep({ response }: { response: CriterionResponse | undefined }) {
@@ -93,6 +94,7 @@ export function AiSuggestionView({
   const [dismissing, setDismissing] = useState(false);
   const actions = permitted(suggestion.actions);
   const response = inspection.responses.find((candidate) => candidate.criterion.code === suggestion.criterionCode);
+  const reviewed = review.reviewedInspection?.criteria.find((criterion) => criterion.code === suggestion.criterionCode);
   const state = stateOfDecision[suggestion.decision.status];
   const decision = suggestion.decision;
 
@@ -128,14 +130,10 @@ export function AiSuggestionView({
       </header>
       <dl className="ai-comparison">
         <div>
-          <dt>Your answer</dt>
+          <dt>Answer read by the assistant</dt>
           <dd>
-            {response?.given === undefined ? 'Not answered' : <strong>{formatAnswer(response.criterion.rule, response.given.value)}</strong>}
-            {response !== undefined && (
-              <>
-                {' '}
-                <span className="muted">· the rule says</span> <StatusBadge status={response.outcome} />
-              </>
+            {reviewed === undefined ? 'Historical input unavailable' : (
+              <><strong>{reviewed.answer}</strong> <span className="muted">· {reviewed.outcome.toLowerCase()}</span></>
             )}
           </dd>
         </div>
@@ -144,7 +142,7 @@ export function AiSuggestionView({
           <dd>
             {suggestion.quotes.map((quote) => (
               <blockquote className="quote" key={quote}>
-                “{quote}”<span className="quote-source">{sourceOf(quote, suggestion.criterionCode, inspection)}</span>
+                “{quote}”<span className="quote-source">{sourceOf(quote, suggestion.criterionCode, review)}</span>
               </blockquote>
             ))}
           </dd>

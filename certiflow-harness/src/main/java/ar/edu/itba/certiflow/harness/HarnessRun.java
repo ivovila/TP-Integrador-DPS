@@ -63,7 +63,7 @@ public final class HarnessRun {
         progress.accept(goldenCase.id() + ": " + runs.size() + " of " + runsPerCase + " runs measured");
         return new CaseResult(goldenCase.id(), goldenCase.kind(), goldenCase.description(),
                 goldenCase.expected().stream().map(this::describe).toList(),
-                runs, failures);
+                runs, failures, new EvaluationFingerprint().of(inspection, goldenCase));
     }
 
     /** Un proveedor que falla no corta la corrida: esa vuelta queda como falla del caso y sigue la siguiente. */

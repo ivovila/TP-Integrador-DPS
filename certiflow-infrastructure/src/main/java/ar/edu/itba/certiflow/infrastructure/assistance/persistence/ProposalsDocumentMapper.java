@@ -10,6 +10,12 @@ import ar.edu.itba.certiflow.schema.model.CriterionCode;
 import ar.edu.itba.certiflow.schema.model.Severity;
 import ar.edu.itba.certiflow.schema.model.SeverityCatalog;
 import java.util.List;
+import java.util.Optional;
+import ar.edu.itba.certiflow.assistance.model.CapturedReviewInput;
+import ar.edu.itba.certiflow.assistance.model.InspectionUnderReview;
+import ar.edu.itba.certiflow.assistance.model.ReviewInput;
+import ar.edu.itba.certiflow.assistance.model.ReviewInputDescriber;
+import ar.edu.itba.certiflow.assistance.model.UnavailableReviewInput;
 import org.springframework.stereotype.Component;
 
 /**
@@ -52,6 +58,25 @@ public class ProposalsDocumentMapper {
                 .map(document -> new RejectedProposal(proposalOf(document.proposal()),
                         GuardrailRejection.valueOf(document.reason())))
                 .toList();
+    }
+
+    String writeInput(ReviewInput input) {
+        return input.describedBy(new ReviewInputDescriber<String>() {
+            @Override
+            public String captured(InspectionUnderReview inspection) {
+                return storedJson.write(inspection);
+            }
+            @Override
+            public String unavailable() {
+                return null;
+            }
+        });
+    }
+
+    ReviewInput readInput(String input) {
+        return Optional.ofNullable(input).<ReviewInput>map(value ->
+                new CapturedReviewInput(storedJson.read(value, InspectionUnderReview.class)))
+                .orElseGet(UnavailableReviewInput::new);
     }
 
     private ProposalDocument documentOf(ProposedFinding proposal) {

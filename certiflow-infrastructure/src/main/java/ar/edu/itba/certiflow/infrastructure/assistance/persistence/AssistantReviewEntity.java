@@ -42,6 +42,8 @@ public class AssistantReviewEntity {
     private String requestedByName;
     @Column(name = "requested_at")
     private Instant requestedAt;
+    @Column(name = "reviewed_input")
+    private String reviewedInput;
     private String suggestions;
     @Column(name = "rejected_proposals")
     private String rejectedProposals;
@@ -61,6 +63,7 @@ public class AssistantReviewEntity {
         this.requestedById = requestedBy.id();
         this.requestedByName = requestedBy.name();
         this.requestedAt = snapshot.requested().instant();
+        this.reviewedInput = proposalsDocuments.writeInput(snapshot.reviewedInput());
         this.suggestions = proposalsDocuments.writeProposals(snapshot.suggestions().stream().map(Suggestion::proposal).toList());
         this.rejectedProposals = proposalsDocuments.writeRejected(snapshot.rejectedProposals());
         copyDecisionsFrom(snapshot);
@@ -81,7 +84,7 @@ public class AssistantReviewEntity {
                 IntStream.range(0, proposals.size())
                         .mapToObj(index -> new Suggestion(index + 1, proposals.get(index), decisionAt(index + 1)))
                         .toList(),
-                proposalsDocuments.readRejected(rejectedProposals));
+                proposalsDocuments.readRejected(rejectedProposals), proposalsDocuments.readInput(reviewedInput));
     }
 
     private SuggestionDecision decisionAt(int position) {
