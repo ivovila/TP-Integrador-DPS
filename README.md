@@ -231,3 +231,16 @@ mvn -pl certiflow-web -am test -Dtest=NvidiaAssistantSmokeApiTest -Dsurefire.fai
 
 El proveedor recibe solo criterios, reglas, respuestas y texto libre, sin autores ni fechas. NVIDIA registra lo
 que recibe su API de prueba: no mandarle datos reales.
+
+### Harness de evaluación
+
+`certiflow-harness` mide al asistente contra un conjunto dorado de 15 casos, 5 corridas por caso, y compara
+versiones de prompt. Por defecto corre contra el stub:
+
+```bash
+mvn -q -DskipTests install
+mvn -q -pl certiflow-harness exec:exec
+```
+
+Con `HARNESS_PROVIDER=spring-ai` y `NVIDIA_API_KEY` corre contra el modelo real. Los resultados están en
+`certiflow-harness/results/` y cómo leerlos en [su README](certiflow-harness/README.md).

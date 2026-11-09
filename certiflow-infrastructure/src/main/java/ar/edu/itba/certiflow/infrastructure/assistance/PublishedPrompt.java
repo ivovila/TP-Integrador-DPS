@@ -9,7 +9,9 @@ import ar.edu.itba.certiflow.assistance.model.PromptVersion;
  */
 enum PublishedPrompt {
 
-    V1("v1", "310c8b85d96a635952ff998dc8e5be03628cc516f7bb0cb0cafcf1c813064ac6");
+    V1("v1", "310c8b85d96a635952ff998dc8e5be03628cc516f7bb0cb0cafcf1c813064ac6"),
+    /** v1 sobreestimaba la severidad (harness, 2026-11-08): define la escala y refuerza el formato de cada hallazgo. */
+    V2("v2", "a26133f374c192c19a1eb10a0af622ba79622ae5454571292f89a0eec3c14303");
 
     private final PromptVersion version;
     private final String checksum;

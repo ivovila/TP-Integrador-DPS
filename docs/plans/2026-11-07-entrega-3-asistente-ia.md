@@ -2,7 +2,7 @@
 
 > **Estado al 2026-11-08: fases 1 a 4 terminadas y validadas con el modelo real.** La revisión recorre la API de
 > punta a punta con Nemotron 3.5 Super en NVIDIA NIM (`docs/validation/2026-11-08-nvidia-first-review.json`).
-> Sigue la fase 5, el harness.
+> Fase 5 (harness) terminada; sigue la fase 6, el frontend.
 
 **Consigna:** [CertiFlow · Entrega 3](../consigna/certiflow-entrega-3.md), con las indicaciones de entrega de la cátedra al final.
 
@@ -191,7 +191,7 @@ que una versión de prompt no empeore las métricas respecto de la anterior.
 - **Métricas por caso y totales:** hallazgos correctos (criterio esperado sugerido), severidades acertadas (entre
   los correctos), hallazgos inventados (sugeridos y no esperados). Cada caso corre 5 veces; se reporta media y
   dispersión.
-- **Salida:** `harness/results/<versión de prompt>/<modelo>.json` y un resumen en Markdown, versionados en el repo
+- **Salida:** `certiflow-harness/results/<versión de prompt>/<modelo>.json` y un resumen en Markdown, versionados en el repo
   para que el cambio de un prompt muestre su comparación en el pull request.
 - **CI determinista:** un test del módulo corre el harness contra el stub y verifica que las métricas se calculen
   bien sobre salidas conocidas.
@@ -261,11 +261,14 @@ Aceptar y descartar solo trazan decisiones, incluso después del cierre. Tests: 
 `NvidiaAssistantSmokeApiTest`, que solo corre con `NVIDIA_API_KEY` y pasó con Nemotron 3.5 Super.
 
 ### Fase 5 · Harness
-- [ ] Módulo `certiflow-harness`: carga del conjunto dorado, ejecución repetida, métricas, reporte y comparación
+- [x] Módulo `certiflow-harness`: carga del conjunto dorado, ejecución repetida, métricas, reporte y comparación
       entre versiones.
-- [ ] Test de CI contra el stub; workflow `harness.yml` con el modelo real.
-- [ ] Primera corrida real con `v1`; escribir un `v2` que ataque los errores encontrados y comparar. Esa
-      comparación es material de la presentación.
+- [x] Test de CI contra el stub; workflow `harness.yml` con el modelo real.
+- [x] Primera corrida real con `v1`; escribir un `v2` que ataque los errores encontrados y comparar. Esa
+      comparación es material de la presentación: `certiflow-harness/results/v2/comparison-with-v1.md`.
+      Con Nemotron 3.5 Super, v1 acertó 10,8 de 11 hallazgos y 7,6 severidades, sin inventados ni omitidos;
+      sobreestimaba la severidad de fallas menores. v2 define la escala: 11 de 11 y 9,8 severidades, pero
+      ahora subestima la sobrepresión del caso 05 (MAJOR en lugar de CRITICAL). Queda como error conocido.
 
 ### Fase 6 · Frontend
 - [ ] Puerto y adaptador HTTP del asistente, con su mapeo probado contra respuestas reales guardadas.

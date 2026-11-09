@@ -875,3 +875,18 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   `NVIDIA_API_KEY` (omitido en CI); `NvidiaAssistantConfigurationTest` verifica el cuerpo extra y los headers.
   Evidencia en `docs/validation/2026-11-08-nvidia-first-review.json`. Total: 506 tests, 20 omitidos.
 
+## 2026-11-08 · Fase 5: harness de evaluación
+
+- **Módulo `certiflow-harness`** (D40), fuera de la aplicación: carga el conjunto dorado, arma cada caso como una
+  inspección del dominio, la traduce con el traductor de la aplicación, llama al asistente con la configuración de la
+  aplicación y aplica los guardrails reales. Mide hallazgos correctos, severidades acertadas, inventados y omitidos,
+  5 corridas por caso, con media y rango; compara versiones de prompt y marca las métricas que empeoraron fuera del
+  rango observado. Se corre con `mvn -pl certiflow-harness exec:exec` (README del módulo).
+- **Prompt `v2`:** define la escala de severidad y que cada hallazgo es un objeto JSON. Resultados versionados en
+  `certiflow-harness/results/`: stub 4/11; v1 10,8/11 con 7,6 severidades; v2 11/11 con 9,8, sin inventados ni
+  omitidos en ninguna. v2 subestima la sobrepresión del caso 05.
+- **CI:** los tests del módulo corren en `ci.yml` sin red (formato del conjunto dorado, métricas sobre respuestas
+  fijas, línea de base exacta del stub, comparación). `harness.yml` corre el modelo real a mano o cuando cambia un
+  prompt; necesita el secreto `NVIDIA_API_KEY`.
+- **Tests:** `GoldenSetTest`, `HarnessRunTest`, `ReportComparisonTest`; `PromptCatalogTest` cubre `v2`.
+

@@ -1,0 +1,1340 @@
+{
+  "promptVersion" : "v2",
+  "model" : "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "runsPerCase" : 5,
+  "ranAt" : "2026-11-09T00:04:23.887897490Z",
+  "totals" : {
+    "CORRECT" : {
+      "mean" : 11.0,
+      "min" : 11,
+      "max" : 11
+    },
+    "SEVERITY_HITS" : {
+      "mean" : 9.8,
+      "min" : 9,
+      "max" : 10
+    },
+    "INVENTED" : {
+      "mean" : 0.0,
+      "min" : 0,
+      "max" : 0
+    },
+    "MISSED" : {
+      "mean" : 0.0,
+      "min" : 0,
+      "max" : 0
+    }
+  },
+  "rejectedByGuardrail" : { },
+  "cases" : [ {
+    "id" : "case-01",
+    "kind" : "hidden",
+    "description" : "La manguera se respondió en buen estado, pero la observación describe una grieta",
+    "expected" : [ "HOSE MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.8,
+        "min" : 0,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MINOR",
+        "rationale" : "La manguera tiene una grieta cerca del acople, lo que daña un accesorio secundario aunque el cilindro y la carga estén correctos. Se elige MINOR por duda entre MAJOR y MINOR, ya que la grieta no compromete claramente el cuerpo ni el contenido del extintor.",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MINOR",
+        "rationale" : "La observación indica una grieta en la manguera cerca del acople, aunque la respuesta fue Bueno y el resultado APROBADO. Se clasifica como MINOR porque la manguera es un accesorio dañado, con duda respecto a MAJOR por la posible pérdida de integridad bajo presión.",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MINOR",
+        "rationale" : "El cilindro está en buen estado, pero la manguera tiene una grieta cerca del acople. Se elige MINOR por duda entre MAJOR y MINOR, pues la manguera es una parte secundaria aunque su deterioro afecte el funcionamiento.",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "La manguera presenta una grieta cerca del acople, lo que compromete la integridad del equipo aunque aún pueda funcionar.",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MINOR",
+        "rationale" : "La manguera tiene una grieta cerca del acople, lo que contradice la respuesta \"Good\" y el resultado APROBADO.",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-02",
+    "kind" : "hidden",
+    "description" : "El precinto se respondió intacto, pero la foto del cabezal lo muestra cortado",
+    "expected" : [ "SEAL MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SEAL",
+        "severity" : "MAJOR",
+        "rationale" : "El precinto está cortado y solo queda el alambre, por lo que el sello de seguridad no está intacto aunque la respuesta lo apruebe.",
+        "quotes" : [ "Foto del cabezal: el precinto está cortado, solo queda el alambre" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SEAL",
+        "severity" : "MAJOR",
+        "rationale" : "El precinto de seguridad está cortado y solo queda el alambre, lo que compromete la protección contra manipulación del extintor.",
+        "quotes" : [ "Foto del cabezal: el precinto está cortado, solo queda el alambre" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SEAL",
+        "severity" : "MAJOR",
+        "rationale" : "El precinto de seguridad está cortado y solo queda el alambre, por lo que el sello no está intacto y la protección contra manipulación está comprometida.",
+        "quotes" : [ "Foto del cabezal: el precinto está cortado, solo queda el alambre" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SEAL",
+        "severity" : "MAJOR",
+        "rationale" : "El precinto está cortado y solo queda el alambre, por lo que el sello de seguridad no está intacto aunque la respuesta indique que sí. La protección contra manipulación está comprometida.",
+        "quotes" : [ "Foto del cabezal: el precinto está cortado, solo queda el alambre" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SEAL",
+        "severity" : "MAJOR",
+        "rationale" : "El precinto de seguridad está cortado, por lo que la protección contra manipulación del extintor está comprometida.",
+        "quotes" : [ "Foto del cabezal: el precinto está cortado, solo queda el alambre" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-03",
+    "kind" : "hidden",
+    "description" : "El cilindro se respondió sin corrosión, pero la observación describe óxido en la base",
+    "expected" : [ "CORROSION MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "El inspector reporta óxido en la base del cilindro y pintura que se desprende al tacto, lo que contradice la respuesta de cilindro libre de corrosión y compromete la integridad del cuerpo del extintor.",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "El cilindro presenta óxido en la base y la pintura se desprende al tacto, lo que compromete la integridad del cuerpo del extintor aunque la presión indicada sea correcta.",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "El cilindro presenta óxido en la base y la pintura se desprende al tacto, lo que indica corrosión a pesar de que la respuesta indica que está libre de corrosión.",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "El texto describe óxido en la base del cilindro y pintura que se desprende al tocarla, lo que contradice la respuesta de que el cilindro está libre de corrosión y compromete la integridad del cuerpo del extintor.",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "El inspector reporta óxido en la base del cilindro y pintura que se desprende al tacto, lo que demuestra corrosión del cuerpo aunque el criterio fue aprobado. Esto compromete la integridad del cilindro sin que el extintor deje de funcionar de inmediato.",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-04",
+    "kind" : "hidden",
+    "description" : "La tarjeta se respondió vigente, pero la descripción del documento dice que está vencida",
+    "expected" : [ "TAG MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "La tarjeta de mantenimiento está vencida y carece del sello del último servicio, por lo que no está vigente aunque la respuesta indique lo contrario.",
+        "quotes" : [ "El encargado dice que el servicio anual se postergó", "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "La tarjeta de mantenimiento está vencida y carece del sello del último servicio, por lo que el registro no está actualizado a pesar de la respuesta aprobada.",
+        "quotes" : [ "El encargado dice que el servicio anual se postergó", "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "La tarjeta de mantenimiento está vencida y carece del sello del último servicio, aunque la respuesta indica que está actualizada.",
+        "quotes" : [ "El encargado dice que el servicio anual se postergó", "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "La tarjeta de mantenimiento está vencida y sin sello del último servicio, por lo que el registro que acredita el mantenimiento está comprometido aunque la respuesta indique que está actualizada.",
+        "quotes" : [ "El encargado dice que el servicio anual se postergó", "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "La tarjeta de mantenimiento está vencida y sin el sello del último servicio, por lo que no está actualizada aunque la respuesta indique lo contrario.",
+        "quotes" : [ "El encargado dice que el servicio anual se postergó", "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-05",
+    "kind" : "hidden",
+    "description" : "La presión cargada está en rango, pero la foto del manómetro muestra sobrecarga",
+    "expected" : [ "PRESSURE CRITICAL" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "PRESSURE",
+        "severity" : "MAJOR",
+        "rationale" : "El manómetro está en la zona roja de sobrecarga aunque la respuesta numérica fue aprobada, lo que indica una presión indebida que compromete la integridad del cilindro.",
+        "quotes" : [ "Manómetro con la aguja en la zona roja de sobrecarga" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "PRESSURE",
+        "severity" : "MAJOR",
+        "rationale" : "El manómetro muestra la aguja en la zona roja de sobrecarga, lo que indica una presión excesiva aunque la respuesta registre 14.0 bar y el criterio esté aprobado.",
+        "quotes" : [ "Manómetro con la aguja en la zona roja de sobrecarga" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "PRESSURE",
+        "severity" : "MAJOR",
+        "rationale" : "El manómetro muestra la aguja en la zona roja de sobrecarga, lo que indica una presión excesiva que compromete la integridad del cilindro aunque la respuesta numérica esté dentro del rango.",
+        "quotes" : [ "Manómetro con la aguja en la zona roja de sobrecarga" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "PRESSURE",
+        "severity" : "MAJOR",
+        "rationale" : "El manómetro muestra la aguja en la zona roja de sobrecarga, lo que indica una presión superior al máximo permitido y compromete la integridad del cilindro.",
+        "quotes" : [ "Manómetro con la aguja en la zona roja de sobrecarga" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "PRESSURE",
+        "severity" : "MAJOR",
+        "rationale" : "La evidencia fotográfica indica que el manómetro está en la zona roja de sobrecarga, lo que contradice el valor numérico aprobado y señala una presión excesiva no reflejada en la respuesta.",
+        "quotes" : [ "Manómetro con la aguja en la zona roja de sobrecarga" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-06",
+    "kind" : "hidden",
+    "description" : "La señalización se respondió visible, pero en la observación de la altura se anota que una estantería tapa el cartel",
+    "expected" : [ "SIGNAGE MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SIGNAGE",
+        "severity" : "MINOR",
+        "rationale" : "Una estantería nueva tapa el cartel señalizador desde el pasillo, por lo que la señalización no es visible aunque el criterio fue aprobado.",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SIGNAGE",
+        "severity" : "MINOR",
+        "rationale" : "Una estantería nueva tapa el cartel señalizador desde el pasillo, por lo que la señalización no es visible desde el pasillo aunque el criterio esté aprobado.",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SIGNAGE",
+        "severity" : "MINOR",
+        "rationale" : "El cartel señalizador está cubierto por una estantería nueva y no es visible desde el pasillo, aunque la respuesta indica que sí lo está.",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SIGNAGE",
+        "severity" : "MINOR",
+        "rationale" : "El cartel señalizador no es visible desde el pasillo porque una estantería nueva lo tapa, por lo que el criterio no se cumple aunque esté aprobado.",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "SIGNAGE",
+        "severity" : "MINOR",
+        "rationale" : "Una estantería nueva tapa el cartel señalizador desde el pasillo, por lo que la señalización no es visible desde el pasillo aunque el criterio esté aprobado.",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-07",
+    "kind" : "hidden",
+    "description" : "La altura cargada está en rango, pero la observación dice que está colgado mucho más alto",
+    "expected" : [ "HEIGHT MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MINOR",
+        "rationale" : "El extintor está montado a 1,90 m, por encima del máximo permitido de 1,5 m, lo que lo deja fuera del alcance de una persona de estatura media.",
+        "quotes" : [ "Está colgado a 1,90 m del piso, fuera del alcance de una persona de estatura media" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MINOR",
+        "rationale" : "El extintor está instalado a 1,90 m, por encima del máximo de 1,5 m y fuera del alcance de una persona de estatura media, por lo que su ubicación no cumple el requisito.",
+        "quotes" : [ "Está colgado a 1,90 m del piso, fuera del alcance de una persona de estatura media" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MINOR",
+        "rationale" : "El extintor está colgado a 1,90 m, por encima del máximo de 1,5 m y fuera del alcance de una persona de estatura media, por lo que la ubicación no cumple el requisito aunque la respuesta numérica fue aprobada.",
+        "quotes" : [ "Está colgado a 1,90 m del piso, fuera del alcance de una persona de estatura media" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MINOR",
+        "rationale" : "El extintor está instalado a 1,90 m, superando el límite máximo de 1,5 m y quedando fuera del alcance de una persona de estatura media.",
+        "quotes" : [ "Está colgado a 1,90 m del piso, fuera del alcance de una persona de estatura media" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MINOR",
+        "rationale" : "El texto de observación indica que el extintor está colgado a 1,90 m y fuera del alcance, lo que contradice la respuesta de 1,2 m y el requisito de altura de montaje.",
+        "quotes" : [ "Está colgado a 1,90 m del piso, fuera del alcance de una persona de estatura media" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-08",
+    "kind" : "hidden",
+    "description" : "Las fugas se respondieron ausentes, pero en la observación de la aislación se anota un goteo",
+    "expected" : [ "LEAKS MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "El texto describe un goteo constante de agua bajo la brida de salida, lo que indica una fuga visible no reflejada en la respuesta aprobada.",
+        "quotes" : [ "Goteo de agua constante bajo la brida de salida" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "El texto reporta goteo constante de agua bajo la brida de salida, lo que indica una fuga visible no reflejada en la respuesta aprobada.",
+        "quotes" : [ "Goteo de agua constante bajo la brida de salida" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "Se observa goteo constante de agua bajo la brida de salida, lo que indica una fuga visible no reflejada en la respuesta del criterio LEAKS.",
+        "quotes" : [ "Goteo de agua constante bajo la brida de salida" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "Se reporta goteo constante de agua bajo la brida de salida, lo que indica una fuga visible no considerada en la respuesta aprobada del criterio de fugas.",
+        "quotes" : [ "Goteo de agua constante bajo la brida de salida" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "Se reporta goteo constante de agua bajo la brida de salida, lo que indica una fuga visible no reflejada en la respuesta y compromete la integridad del cuerpo del recipiente a presión.",
+        "quotes" : [ "Goteo de agua constante bajo la brida de salida" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-09",
+    "kind" : "hidden",
+    "description" : "La puesta a tierra se respondió verificada, pero la observación describe el cable suelto",
+    "expected" : [ "GROUNDING MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "El cable de tierra está suelto en el borne del quemador, lo que compromete la seguridad eléctrica del activo aunque este aún pueda operar.",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "La observación indica que el cable de tierra está suelto en el borne del quemador, lo que compromete la seguridad eléctrica aunque la respuesta marcó la verificación como aprobada.",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "El cable de tierra suelto en el borne del quemador compromete la seguridad eléctrica del activo, aunque este aún puede funcionar.",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "El observador indica que el cable de tierra está suelto en el borne del quemador, lo que compromete la seguridad eléctrica aunque la respuesta apruebe el criterio.",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "El cable de tierra está suelto en el borne del quemador, lo que compromete la seguridad eléctrica del activo aunque este aún pueda funcionar.",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-10",
+    "kind" : "hidden",
+    "description" : "Dos no conformidades: el informe de banco contradice la presión de apertura cargada, y faltan rótulos en el tablero",
+    "expected" : [ "RELIEF-VALVE CRITICAL", "PANEL MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 2.0,
+        "min" : 2,
+        "max" : 2
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 2.0,
+        "min" : 2,
+        "max" : 2
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 2,
+      "severityHits" : 2,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "RELIEF-VALVE",
+        "severity" : "CRITICAL",
+        "rationale" : "La válvula de alivio abrió a 9,2 bar, superando el máximo permitido de 8,5 bar, por lo que no cumple su función de seguridad.",
+        "quotes" : [ "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar" ]
+      }, {
+        "criterion" : "PANEL",
+        "severity" : "MINOR",
+        "rationale" : "Faltan las etiquetas de los interruptores del tablero de control, por lo que el etiquetado no cumple el requisito.",
+        "quotes" : [ "Faltan las etiquetas de los interruptores del tablero de control" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 2,
+      "severityHits" : 2,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "RELIEF-VALVE",
+        "severity" : "CRITICAL",
+        "rationale" : "La válvula de alivio abrió a 9,2 bar, por encima del máximo permitido de 8,5 bar, por lo que su función de seguridad contra sobrepresión no se cumple.",
+        "quotes" : [ "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar" ]
+      }, {
+        "criterion" : "PANEL",
+        "severity" : "MINOR",
+        "rationale" : "Faltan las etiquetas de los interruptores del tablero de control, por lo que el tablero no cumple el requisito de etiquetado.",
+        "quotes" : [ "Faltan las etiquetas de los interruptores del tablero de control" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 2,
+      "severityHits" : 2,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "RELIEF-VALVE",
+        "severity" : "CRITICAL",
+        "rationale" : "La válvula abrió a 9,2 bar, fuera del rango de 7,5 a 8,5 bar, por lo que no cumple su función de seguridad de alivio de presión.",
+        "quotes" : [ "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar" ]
+      }, {
+        "criterion" : "PANEL",
+        "severity" : "MINOR",
+        "rationale" : "Faltan las etiquetas de los interruptores del tablero de control, por lo que el etiquetado no cumple el requisito aunque el equipo funcione.",
+        "quotes" : [ "Faltan las etiquetas de los interruptores del tablero de control" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 2,
+      "severityHits" : 2,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "RELIEF-VALVE",
+        "severity" : "CRITICAL",
+        "rationale" : "El informe de prueba indica que la válvula abrió a 9,2 bar, superando el máximo permitido de 8,5 bar, por lo que la función de seguridad contra sobrepresión no está garantizada.",
+        "quotes" : [ "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar" ]
+      }, {
+        "criterion" : "PANEL",
+        "severity" : "MINOR",
+        "rationale" : "La observación indica que faltan las etiquetas de los interruptores del tablero de control, aunque la respuesta aprobó el criterio.",
+        "quotes" : [ "Faltan las etiquetas de los interruptores del tablero de control" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 2,
+      "severityHits" : 2,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "RELIEF-VALVE",
+        "severity" : "CRITICAL",
+        "rationale" : "La evidencia indica que la válvula abrió a 9,2 bar, superando el máximo permitido de 8,5 bar, por lo que no cumple el rango de presión de apertura requerido.",
+        "quotes" : [ "Informe de la prueba en banco: la válvula recién abrió a 9,2 bar" ]
+      }, {
+        "criterion" : "PANEL",
+        "severity" : "MINOR",
+        "rationale" : "La observación indica que faltan las etiquetas de los interruptores del tablero de control, por lo que el panel no cumple el requisito de etiquetado.",
+        "quotes" : [ "Faltan las etiquetas de los interruptores del tablero de control" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-11",
+    "kind" : "clean",
+    "description" : "Matafuego en orden; las observaciones solo confirman lo respondido",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-12",
+    "kind" : "clean",
+    "description" : "Recipiente a presión en orden; las observaciones describen verificaciones que salieron bien",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-13",
+    "kind" : "clean",
+    "description" : "Matafuego en orden; una observación registra un pedido del encargado que no es una falla del equipo",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-14",
+    "kind" : "trap",
+    "description" : "Negación: la observación nombra fugas y humedad, pero para decir que no hay",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  }, {
+    "id" : "case-15",
+    "kind" : "trap",
+    "description" : "La manguera ya es no conforme por su respuesta, y una recomendación sobre el soporte no es una falla del cilindro",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ]
+  } ]
+}

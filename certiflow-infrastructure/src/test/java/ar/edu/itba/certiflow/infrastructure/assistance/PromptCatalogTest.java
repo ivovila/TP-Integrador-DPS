@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ar.edu.itba.certiflow.assistance.model.PromptVersion;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Si este test falla porque cambió la suma de una versión, no se corrige la suma: se deshace la edición y se
@@ -15,11 +17,12 @@ class PromptCatalogTest {
 
     private final PromptCatalog catalog = new PromptCatalog();
 
-    @Test
-    void thePublishedVersionLoadsUnchangedAndReceivesTheInspection() {
-        ActivePrompt prompt = catalog.published(new PromptVersion("v1"));
+    @ParameterizedTest
+    @ValueSource(strings = {"v1", "v2"})
+    void everyPublishedVersionLoadsUnchangedAndReceivesTheInspection(String version) {
+        ActivePrompt prompt = catalog.published(new PromptVersion(version));
 
-        assertEquals(new PromptVersion("v1"), prompt.version());
+        assertEquals(new PromptVersion(version), prompt.version());
         assertTrue(prompt.template().contains("{inspection}"));
     }
 

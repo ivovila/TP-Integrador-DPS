@@ -581,6 +581,29 @@ determinista y los tests usan un reloj controlable.
 - **Descartadas:** *el SDK oficial de un proveedor*: más simple, pero ata el adaptador a ese proveedor y obliga a reescribirlo si ese proveedor no sirve. *HTTP directo con Jackson*: sin dependencias nuevas, pero hay que escribir a mano el cliente, la salida estructurada y los reintentos de cada proveedor.
 - **Costo:** una dependencia más y una segunda abstracción sobre la que ya da el puerto. **Condición:** Spring AI no sale de infraestructura; `ArchitectureRulesTest.onlyTheInfrastructureKnowsSpringAi` lo verifica.
 
+### D40. El harness mide lo mismo que corre la aplicación, desde un módulo aparte
+
+- **Problema:** un modelo de lenguaje no responde siempre igual, así que un test de igualdad no dice si el asistente funciona. Hace falta medir tasas sobre casos conocidos, varias veces, y poder decir si un prompt nuevo es mejor o peor que el anterior.
+- **Decisión:** módulo `certiflow-harness`, fuera de la aplicación (ningún módulo depende de él). No reimplementa nada de lo que mide: carga cada caso en una `Inspection` del dominio con `InspectionService`, la traduce con `InspectionReviewTranslatorImpl`, compone el asistente con `SpringAiAssistantConfiguration` y las mismas properties, y aplica los guardrails con `AssistantReviewFactory`. Las métricas son sobre lo que el inspector vería, no sobre la respuesta cruda del modelo.
+- **Métricas:** hallazgos correctos, severidades acertadas e inventados (los de la consigna) y omitidos, por criterio y no por sugerencia, más las propuestas que frenó cada guardrail. Cada caso corre 5 veces y se reportan media y rango. Una versión de prompt **empeora** si la media de una métrica queda fuera del rango observado con la anterior, en la dirección mala (`Metric`): dentro del rango es ruido.
+- **Resultados versionados:** `certiflow-harness/results/<versión>/<modelo>.json`, con lo que el asistente propuso en cada corrida, y su resumen en Markdown. El pull request que cambia un prompt muestra su efecto, y los errores del asistente quedan a la vista para escribir la versión siguiente.
+- **CI determinista:** CI corre los tests del módulo, sin red: el formato del conjunto dorado (`GoldenSetTest`), las métricas sobre respuestas fijas y la línea de base exacta del stub (`HarnessRunTest`), y la comparación (`ReportComparisonTest`). El modelo real corre aparte, en `harness.yml`, a mano o cuando cambia un prompt, y falla si la versión nueva empeora.
+- **Descartadas:** *un modelo que juzga a otro* (los *evaluators* de Spring AI): agrega un segundo componente no determinista a lo que se quiere medir. *Correr el harness contra la API levantada*: mide lo mismo con base de datos, servidor y autenticación de por medio, y es más lento y frágil. *Un caso por inspección real de la base*: los datos reales no tienen la respuesta esperada escrita y no se le pueden mandar al proveedor gratuito.
+- **Resultados (Nemotron 3.5 Super, 5 corridas por caso):**
+
+  | Versión | Correctos (de 11) | Severidades | Inventados | Omitidos |
+  |---|---|---|---|---|
+  | stub | 4 | 3 | 2 | 7 |
+  | v1 | 10,8 (10–11) | 7,6 (7–8) | 0 | 0 |
+  | v2 | 11 (11–11) | 9,8 (9–10) | 0 | 0 |
+
+  v1 marcaba como MAJOR fallas que el esquema considera menores (manguera, cartel, altura de montaje) y una de 75
+  respuestas no respetó el formato. v2 define la escala de severidad y refuerza el formato, sin ejemplos sacados
+  del conjunto dorado para no ajustar el prompt al examen. El harness mostró también el error que trajo: la
+  sobrepresión del caso 05 pasó de CRITICAL a MAJOR, porque el modelo la lee como un problema de integridad del
+  cilindro. Es la razón de que la severidad sea una sugerencia y la decisión siga siendo del inspector.
+- **Costo:** el harness duplica los dos esquemas de la demo (`DemoAssets`, igual a `seedDemoData.ts`); si cambia uno hay que cambiar el otro. `GoldenSetTest` falla si un caso deja de responder todos los criterios de su esquema.
+
 ---
 
 ## 4. Patrones que se decidió no aplicar
