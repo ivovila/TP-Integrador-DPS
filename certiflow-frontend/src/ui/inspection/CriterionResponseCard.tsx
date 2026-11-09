@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import type { Suggestion } from '../../domain/assistance';
 import type { CriterionResponse, InspectionAction } from '../../domain/inspection';
 import type { EvidenceKind, RawAnswer } from '../../domain/schema';
 import { useCertiflow } from '../app/CertiflowContext';
@@ -9,6 +10,7 @@ import { ErrorBanner } from '../shared/ErrorBanner';
 import { formatInstant } from '../shared/format';
 import { describeRule, formatAnswer, RuleAnswerInput } from '../shared/ruleKinds';
 import { useCommand } from '../shared/useCommand';
+import { assistedReviewAnchor, criterionAnchor } from './anchors';
 
 interface ResponseFormProps {
   inspectionId: string;
@@ -149,9 +151,19 @@ function ObservationForm({ inspectionId, response, onRecorded }: ResponseFormPro
   );
 }
 
-/** El ancla de cada criterio en la página, para llegar a corregir su respuesta desde otra parte. */
-export function criterionAnchor(criterionCode: string): string {
-  return `criterion-${criterionCode}`;
+/** La marca que deja la revisión de IA en el criterio que señaló, para no tener que ir y volver entre el panel y él. */
+function AiFlag({ suggestion, response }: { suggestion: Suggestion | undefined; response: CriterionResponse }) {
+  if (suggestion?.decision.status === 'PENDING') {
+    return (
+      <p className="callout tone-warning">
+        AI suggestion: this answer may contradict what you wrote. <a href={`#${assistedReviewAnchor}`}>See the AI review</a>
+      </p>
+    );
+  }
+  if (suggestion?.decision.status === 'ACCEPTED' && response.outcome === 'APPROVED') {
+    return <p className="callout tone-warning">You confirmed the AI suggestion: change this answer.</p>;
+  }
+  return null;
 }
 
 export function CriterionResponseCard({
@@ -160,10 +172,12 @@ export function CriterionResponseCard({
   actions,
   evidenceKinds,
   onRecorded,
-}: ResponseFormProps & { actions: InspectionAction[]; evidenceKinds: EvidenceKind[] }) {
+  aiSuggestion,
+}: ResponseFormProps & { actions: InspectionAction[]; evidenceKinds: EvidenceKind[]; aiSuggestion?: Suggestion }) {
   const criterion = response.criterion;
   return (
     <div className="criterion" id={criterionAnchor(criterion.code)}>
+      <AiFlag suggestion={aiSuggestion} response={response} />
       <div className="criterion-heading">
         <div>
           <span className="criterion-code">{criterion.code}</span> <strong>{criterion.text}</strong>

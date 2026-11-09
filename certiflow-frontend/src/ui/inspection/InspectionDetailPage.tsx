@@ -13,11 +13,13 @@ import { QueryView } from '../shared/QueryView';
 import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
+import { assistedReviewAnchor } from './anchors';
 import { AssistantReviewCard } from './AssistantReviewCard';
 import { CriterionResponseCard } from './CriterionResponseCard';
 import { describeScope } from './InspectionListPage';
 import { RectificationForm } from './RectificationForm';
 import { SectionLink } from '../shared/SectionLink';
+import { pendingSuggestions, suggestionFor, useAssistantReviews } from './useAssistantReviews';
 
 function groupBySection(responses: CriterionResponse[]): [string, CriterionResponse[]][] {
   const sectionTitles = [...new Set(responses.map((response) => response.sectionTitle))];
@@ -58,6 +60,7 @@ export function InspectionDetailPage() {
     return certiflow.catalog.findAsset(found.assetCode);
   }, [inspectionId]);
   const vocabulary = useQuery(() => certiflow.schemas.vocabulary(), []);
+  const reviews = useAssistantReviews(inspectionId);
 
   const recordChange = () => setChangeCount((count) => count + 1);
 
@@ -80,6 +83,7 @@ export function InspectionDetailPage() {
         const pendingCount = foundInspection.responses.filter((response) => response.outcome === 'PENDING').length;
         const assetType = asset.data?.type;
         const permittedActions = permitted(foundInspection.actions);
+        const undecided = pendingSuggestions(reviews.latest).length;
         return (
           <>
             <PageHeader
@@ -99,6 +103,11 @@ export function InspectionDetailPage() {
                 <SectionLink className="button" to={`/inspections/${foundInspection.id}/act`}>
                   Inspection act
                 </SectionLink>
+              )}
+              {permittedActions.includes('closeInspection') && undecided > 0 && (
+                <a className="muted" href={`#${assistedReviewAnchor}`}>
+                  {undecided === 1 ? '1 AI suggestion awaits' : `${undecided} AI suggestions await`} your decision
+                </a>
               )}
               {permittedActions.includes('closeInspection') && (
                 <button className="primary" onClick={close} disabled={closure.running}>
@@ -129,7 +138,7 @@ export function InspectionDetailPage() {
               />
             </Card>
             <RaisedFindings findingIds={raisedFindingIds} />
-            <AssistantReviewCard inspection={foundInspection} />
+            <AssistantReviewCard inspection={foundInspection} reviews={reviews} />
             {groupBySection(foundInspection.responses).map(([sectionTitle, responses]) => (
               <Card title={sectionTitle} key={sectionTitle}>
                 {responses.map((response) => (
@@ -140,6 +149,7 @@ export function InspectionDetailPage() {
                     actions={permittedActions}
                     evidenceKinds={vocabulary.data?.evidenceKinds ?? [{ name: '', label: '' }]}
                     onRecorded={recordChange}
+                    aiSuggestion={suggestionFor(reviews.latest, response.criterion.code)}
                   />
                 ))}
               </Card>

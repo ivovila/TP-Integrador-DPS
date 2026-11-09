@@ -919,4 +919,10 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
 - El perfil `nvidia` usa el prompt `v2` por defecto: midió mejor que `v1` en el harness. `v1` sigue publicado y se
   elige con `CERTIFLOW_ASSISTANT_PROMPT_VERSION=v1`.
 - El motivo para descartar una sugerencia usa `TextField`, como el resto de los formularios.
+- **Panel de revisión con IA rediseñado** para que se entienda qué se sugiere y qué pasa al decidir: cada sugerencia
+  compara la respuesta con lo que escribió el inspector y dice de dónde sale la cita; una sola severidad que cuenta
+  (la del criterio); botones que dicen la consecuencia y el siguiente paso después de aceptar; el criterio señalado
+  queda marcado y el encabezado avisa cuántas sugerencias esperan decisión; lenguaje simple para lo que descartaron
+  los guardrails; aviso de espera y de que el asistente puede equivocarse. Las revisiones se comparten entre el
+  panel y los criterios con `useAssistantReviews`.
 

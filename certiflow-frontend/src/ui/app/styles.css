@@ -381,17 +381,108 @@ details.more form {
   margin-top: 0.5rem;
 }
 
-.suggestion {
-  border-left: 3px solid var(--accent);
-  padding-left: 0.75rem;
+/* Revisión con IA: cada sugerencia es una comparación entre la respuesta y lo que escribió el inspector. */
+.ai-review-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-review-heading h2 {
+  margin: 0;
+}
+
+.ai-steps {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.callout {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  font-size: 0.92rem;
+}
+
+.ai-suggestion {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--warning);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  background: var(--surface);
+}
+
+.ai-suggestion.state-accepted {
+  border-left-color: var(--positive);
+}
+
+.ai-suggestion.state-dismissed {
+  border-left-color: var(--line);
+  opacity: 0.85;
+}
+
+.ai-suggestion-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.ai-comparison {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.ai-comparison > div {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 0.75rem;
+}
+
+.ai-comparison dt {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  padding-top: 0.1rem;
+}
+
+.ai-comparison dd {
+  margin: 0;
 }
 
 blockquote.quote {
-  margin: 0.35rem 0;
-  padding: 0.25rem 0.75rem;
-  border-left: 3px solid var(--line);
+  margin: 0 0 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-left: 3px solid var(--warning);
+  background: var(--warning-soft);
+  border-radius: 0 6px 6px 0;
+}
+
+.quote-source {
+  display: block;
+  font-size: 0.78rem;
   color: var(--ink-soft);
-  font-style: italic;
+}
+
+.ai-actions {
+  margin-top: 0.5rem;
+}
+
+.decision-line,
+.provenance {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .ai-comparison > div {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
 }
 
 .criterion form {
