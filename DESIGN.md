@@ -101,6 +101,7 @@ flowchart TD
 | `certiflow-application` | `application.<ctx>` | `XxxUseCaseImpl implements XxxUseCase`, el traductor del ACL | `domain` |
 | `certiflow-infrastructure` | `infrastructure.<ctx>.persistence`, `infrastructure.assistance` | entidades JPA, Spring Data, adaptadores `JpaXxxRepository`, mappers de documentos JSON (`XxxDocumentMapper`), espejos de columnas; los asistentes y los prompts versionados (D37, D38) | `domain`, Spring Data JPA, Flyway, Jackson, cliente de Spring AI |
 | `certiflow-web` | `web.<ctx>`, `web.config`, `web.support` | controladores REST, DTOs, recursos HAL, composición, errores | todos, Spring Web, Spring HATEOAS |
+| `certiflow-harness` | `harness`, `harness.golden` | el harness de evaluación del asistente y su conjunto dorado (D40); no es parte de la aplicación y ningún módulo depende de él | `application`, `infrastructure` |
 
 La dirección de dependencias la impone el compilador: un módulo solo ve lo que declara. `certiflow-domain`
 y `certiflow-application` no importan `org.springframework`, `jakarta.persistence` ni Jackson. Los
@@ -617,6 +618,10 @@ determinista y los tests usan un reloj controlable.
 | **Colección de primera clase para toda lista** | Se aplica donde la colección tiene una invariante o un comportamiento propio: `Characteristics` (nombres únicos), `SchemaSections` (títulos y códigos únicos, búsqueda por título y por código, subsistemas asignados), `SchemaVersionLog` (numeración consecutiva, vigente en un instante), `AssetCertificates` (un certificado vigente por alcance), `Requirements` (qué reglas no cumple un candidato), `Evaluation` (resultado de cada criterio, pendientes, no conformidades), `Revisions` (numeración desde 1, la original no cambia) y `CorrectiveActions` (numeración dentro del hallazgo, cancelar las abiertas al aceptar una). | `suspensions()`, `verifications()` y `evidence()` siguen devolviendo `List` inmutable: son registros cronológicos sin regla propia, y envolverlos sumaría clases que solo reenvían. Si mañana una de ellas gana una regla (por ejemplo "no se puede suspender dos veces seguidas"), ahí se extrae su colección. |
 | **CQRS** | Las consultas usan los mismos repositorios y devuelven el agregado, que desde afuera de su paquete solo se puede leer (D13, D14). No hay una necesidad de lectura que el modelo de escritura no cubra. | Si los informes o listados necesitan otra forma de los datos (por ejemplo un tablero por jurisdicción), se agrega un modelo de lectura propio. |
 | **Event Sourcing** en la persistencia | La bitácora (`audit_entry`) registra quién hizo qué, pero el estado se persiste por snapshot. | No se puede reconstruir un agregado desde la bitácora; la bitácora es informativa. |
+| **Retry y Circuit Breaker** sobre el proveedor del modelo | Una revisión es una llamada cara y lenta que pide el inspector. Reintentar a ciegas duplica el costo y la espera, y un circuit breaker no aporta con un solo usuario que pide de a una. `maxRetries(0)`: una falla es un 503 claro. | Si el proveedor falla de a ratos, el inspector vuelve a pedir la revisión. Con tráfico real habría que reconsiderarlo. |
+| **Fallback al stub** cuando el modelo no responde | Mostrar las sugerencias del stub como si fueran del modelo engañaría al inspector, que confía en que vienen del asistente real. | Sin proveedor no hay revisión; la inspección se cierra igual, porque la revisión es optativa. |
+| **RAG o tool calling** para el asistente | El modelo recibe la inspección entera, que entra holgada en su contexto. No hay nada que buscar afuera ni acciones que el modelo deba ejecutar: que no pueda cambiar nada es justamente un guardrail. | Si el asistente tuviera que consultar normativa o inspecciones anteriores, habría que sumar recuperación de contexto. |
+| **Un modelo que juzga a otro** en el harness | Agrega un segundo componente no determinista a lo que se quiere medir (D40). | Las métricas solo comparan criterios y severidades con lo esperado; no evalúan la calidad del fundamento. |
 ---
 
 ## 5. Riesgo de negocio → test que lo cubre
@@ -689,9 +694,16 @@ determinista y los tests usan un reloj controlable.
 | Se revisa una inspección cerrada, o se guarda la revisión de una que se cerró mientras respondía el modelo | `RequestAssistantReviewUseCaseImplTest.aClosedInspectionIsRejectedBeforeCallingTheModel`, `anInspectionClosedWhileTheModelAnsweredIsRejectedAndNothingIsSaved` |
 | La llamada al modelo retiene una conexión de la base | `RequestAssistantReviewUseCaseImplTest.theModelIsCalledBetweenTwoTransactionsAndTheReviewIsSavedInTheSecond` |
 | Una falla o una respuesta mal formada del proveedor se guarda como revisión | `SpringAiInspectionAssistantTest.anAnswerThatIsNotTheAgreedFormatIsUnavailable`, `RequestAssistantReviewUseCaseImplTest.anUnavailableModelSavesNothing` |
-| Se edita un prompt publicado y las revisiones viejas cambian de significado | `PromptCatalogTest.thePublishedVersionLoadsUnchangedAndReceivesTheInspection` |
+| Se edita un prompt publicado y las revisiones viejas cambian de significado | `PromptCatalogTest.everyPublishedVersionLoadsUnchangedAndReceivesTheInspection` (parametrizado) |
 | Lo que decidió el inspector se pierde al guardar | `JpaAssistantReviewRepositoryTest.decisionsAreKeptAndPendingSuggestionsStayPending` |
-
+| Aceptar una sugerencia cambia la inspección | `AssistantReviewApiTest.aHumanDecidesOnceAndTheInspectionDoesNotChange`; en e2e, el contrato "accepting only records the decision: the inspection does not change" |
+| Una falla del proveedor deja una revisión o una entrada de bitácora a medias | `AssistantUnavailableApiTest.aProviderFailureIs503AndLeavesNeitherAReviewNorAnAuditEntry` |
+| Otro rol pide una revisión o decide una sugerencia | `RoleAccessApiTest`, `RoleReadAccessApiTest` (parametrizados); en el frontend, `AssistantReviewCard.test.tsx` |
+| La configuración del proveedor manda otro modelo, la key en el cuerpo o reintenta | `NvidiaAssistantConfigurationTest` (servidor HTTP local) |
+| Un prompt nuevo empeora al asistente sin que nadie lo note | `ReportComparisonTest.aMeanOutsideTheObservedRangeInTheWrongDirectionIsARegression`; `harness.yml` falla con la versión nueva |
+| Un caso del conjunto dorado mide otra cosa que la que dice | `GoldenSetTest` (parametrizado: responde todo su esquema, solo los casos escondidos esperan hallazgos, la severidad esperada es la configurada) |
+| Las métricas del harness cuentan mal | `HarnessRunTest.metricsCountCriteriaAfterTheGuardrailsAndKeepWhatTheAssistantSaid`, `theStubBaselineIsExactOnTheWholeGoldenSet` |
+| El panel muestra como sugerencia algo que frenó un guardrail | `AssistantReviewCard.test.tsx` ("what a guardrail stopped is shown apart…"), `assistanceMapping.test.ts` |
 | Una respuesta del tipo equivocado se acepta o termina en un error genérico | `RawAnswerTest` (parametrizado), `InspectionExecutionTest.answeringWithTheWrongTypeOfValueIsRejectedAndChangesNothing`, `InspectionApiTest.anAnswerOfTheWrongTypeIs400` |
 | Un código de criterio inexistente cambia algo o responde como conflicto | `InspectionExecutionTest.answeringAnUnknownCriterionCodeIsRejectedAndChangesNothing`, `InspectionApiTest.anUnknownCriterionCodeIs404` |
 | Certificación depende del modelo interno de Inspección | No compila: `certification.model` no importa `Finding` ni `InspectionView` (D16). `JurisdictionPoliciesTest` (parametrizado), `InspectionResultTranslatorImplTest` |
@@ -728,8 +740,12 @@ Tipos de test:
 - **De API** en `certiflow-web`: `@SpringBootTest` + `MockMvc` sobre la aplicación completa con H2.
 
 - **De arquitectura** en `certiflow-web`: `ArchitectureRulesTest` (ArchUnit).
+- **Del harness** en `certiflow-harness`: el formato del conjunto dorado, las métricas sobre respuestas fijas, la línea
+  de base del stub y la comparación entre versiones, sin red. El modelo real se mide aparte (D40).
+- **Del frontend:** tests rápidos de mapeo (contra respuestas reales de la API) y de pantalla, y la suite de contrato
+  que corre en e2e contra el backend.
 
-Total: 482 tests (132 de dominio, 33 de aplicación, 49 de infraestructura y 268 de web; 15 de estos últimos solo corren con PostgreSQL). Los mocks no reemplazan las pruebas de persistencia ni de API.
+Total del backend: 547 tests (132 de dominio, 33 de aplicación, 55 de infraestructura, 287 de web y 40 del harness). De los de web, 20 se omiten en una corrida local: los que solo corren con PostgreSQL y el de punta a punta con NVIDIA, que necesita `NVIDIA_API_KEY`. El frontend suma 159 tests rápidos y la suite de contrato en e2e. Los mocks no reemplazan las pruebas de persistencia ni de API.
 
 ---
 
@@ -754,6 +770,12 @@ Total: 482 tests (132 de dominio, 33 de aplicación, 49 de infraestructura y 268
 - **Políticas sin descripción.** `CertificationPolicy` expone solo su código y versión, así que el alta de activos muestra "DEMO-STRICT · policy STRICT" y no qué implica cada jurisdicción.
 - **Elegibilidad del activo entero con subsistemas.** `GET …/certification-eligibility` sin `?subsystem` responde 409 en un esquema con subsistemas, en lugar de la decisión rechazada que preveía la spec de F3.
 - **Ids sintéticos aleatorios.** Inspecciones y hallazgos usan UUID generados por el repositorio; los números de certificado salen de una secuencia de la base (`certificate_number_seq`).
+- **El proveedor del modelo no tiene garantías.** El endpoint gratuito de NVIDIA encola pedidos y retira modelos: los Llama del plan ya no estaban, Gemma 4 y Mistral Large 4 no respondían. Un cambio de modelo es configuración, pero las mediciones del harness quedan atadas al modelo con que se hicieron. NVIDIA registra lo que recibe: solo se le mandan datos sintéticos.
+- **La revisión es sincrónica.** El pedido HTTP espera la respuesta del modelo, hasta 300 s en el perfil `nvidia`. La conexión a la base no queda tomada (D36), pero el inspector espera con la pantalla en "Reviewing…".
+- **Errores conocidos del asistente.** Con el prompt `v2`, la sobrepresión del caso 05 se estima MAJOR en lugar de CRITICAL (D40). La severidad es una sugerencia: la del hallazgo la fija el criterio cuando el inspector corrige la respuesta.
+- **Un conjunto dorado chico y escrito por el equipo.** Quince casos realistas sobre dos esquemas; no salen de inspecciones reales ni los revisó un inspector certificado. Las métricas dicen cómo se comporta el asistente en estos casos, no en cualquier inspección.
+- **El harness duplica los esquemas de la demo** (`DemoAssets` y `seedDemoData.ts`): si cambia uno hay que cambiar el otro.
+- **Interfaz en inglés, fundamento en el idioma del inspector.** El frontend está en inglés; el modelo escribe el fundamento en el idioma de las observaciones, así que con observaciones en español el panel queda mezclado.
 
 
 ## 7. Funcionalidades nuevas F1, F2 y F3

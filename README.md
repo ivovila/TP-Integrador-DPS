@@ -151,6 +151,7 @@ gh api -X PUT repos/ivovila/TP-Integrador-DPS/branches/main/protection \
 - [docs/consigna](docs/consigna): enunciado de la entrega.
 - [docs/clases](docs/clases): apuntes de las clases que guían la arquitectura.
 - [docs/certiflow-domain.puml](docs/certiflow-domain.puml): diagrama de clases en PlantUML.
+- [docs/certiflow-assistance.puml](docs/certiflow-assistance.puml): el contexto Asistencia y el harness.
 
 
 ## F1, F2 y F3

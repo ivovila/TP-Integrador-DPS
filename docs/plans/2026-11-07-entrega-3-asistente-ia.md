@@ -2,7 +2,7 @@
 
 > **Estado al 2026-11-08: fases 1 a 4 terminadas y validadas con el modelo real.** La revisión recorre la API de
 > punta a punta con Nemotron 3.5 Super en NVIDIA NIM (`docs/validation/2026-11-08-nvidia-first-review.json`).
-> Fases 5 (harness) y 6 (frontend) terminadas; siguen la documentación final y el video.
+> Fases 1 a 7 terminadas; siguen el video y el pull request.
 
 **Consigna:** [CertiFlow · Entrega 3](../consigna/certiflow-entrega-3.md), con las indicaciones de entrega de la cátedra al final.
 
@@ -278,9 +278,10 @@ Aceptar y descartar solo trazan decisiones, incluso después del cierre. Tests: 
       `AssistantReviewCard` y sus tests, `assistanceMapping.test.ts` y el bloque "assisted review" del contrato.
 
 ### Fase 7 · Documentación
-- [ ] `DESIGN.md`: decisiones nuevas para el puerto y el contexto, guardrails, prompts versionados, harness y CI;
+- [x] `DESIGN.md`: decisiones nuevas para el puerto y el contexto, guardrails, prompts versionados, harness y CI;
       por qué esta funcionalidad y no el acta; patrones no aplicados; tabla riesgo → test; limitaciones.
-- [ ] `README.md` (cómo correr con stub o con el modelo real), `CHANGES.md` y diagrama PlantUML.
+- [x] `README.md` (cómo correr con stub o con el modelo real), `CHANGES.md` y diagrama PlantUML
+      (`docs/certiflow-assistance.puml`, aparte del de dominio para que se pueda leer).
 
 ### Fase 8 · Video de presentación
 

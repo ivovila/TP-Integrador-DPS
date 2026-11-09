@@ -903,3 +903,14 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   (marca, decisiones, motivo, guardrails, roles, inspección cerrada) y el bloque "assisted review" de
   `certiflowContract.ts`, que corre en e2e contra el backend con el stub. 159 tests rápidos del frontend.
 
+## 2026-11-08 · Fase 7: documentación
+
+- **`DESIGN.md`:** el módulo `certiflow-harness` en la tabla de módulos; patrones que se decidió no aplicar para el
+  asistente (Retry y Circuit Breaker, fallback al stub, RAG o tool calling, un modelo que juzga a otro); nueve
+  riesgos más en la tabla riesgo → test (aceptar no cambia la inspección, 503 sin revisión a medias, roles, la
+  configuración del proveedor, el harness y el panel); los tipos de test del harness y del frontend y el total
+  (547 del backend, 159 del frontend); seis limitaciones del asistente.
+- **Diagrama:** `docs/certiflow-assistance.puml` con el contexto Asistencia, su aplicación e infraestructura y el
+  harness. Va aparte de `certiflow-domain.puml`, que suma la cuarta categoría de excepciones y el puerto
+  `Transactions`: juntos no entraban legibles y el layout sin Graphviz no los resolvía.
+
