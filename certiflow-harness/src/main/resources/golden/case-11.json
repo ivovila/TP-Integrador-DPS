@@ -1,0 +1,20 @@
+{
+  "id": "case-11",
+  "kind": "clean",
+  "description": "Matafuego en orden; las observaciones solo confirman lo respondido",
+  "assetType": "Fire extinguisher",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "PRESSURE", "answer": "13.2", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro con la aguja en la zona verde"}]},
+    {"code": "WEIGHT", "answer": "6.0", "observations": ["Peso verificado con balanza calibrada"], "evidence": []},
+    {"code": "SEAL", "answer": "true", "observations": ["Precinto y pasador en su lugar"], "evidence": []},
+    {"code": "HOSE", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "CORROSION", "answer": "true", "observations": [], "evidence": []},
+    {"code": "SIGNAGE", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HEIGHT", "answer": "1.2", "observations": [], "evidence": []},
+    {"code": "TAG", "answer": "Current", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Tarjeta de mantenimiento con el último servicio sellado"}]}
+  ],
+  "expected": []
+}

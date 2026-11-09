@@ -213,7 +213,11 @@ test('a partial inspection names the sections in its scope', () => {
 });
 
 const inspectionActions: [string, () => { actions: InspectionAction[] }, InspectionAction[]][] = [
-  ['an open inspection offers execution and closure', openInspectionDetails, ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection']],
+  [
+    'an open inspection offers execution, closure and the assisted review before closing',
+    openInspectionDetails,
+    ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection', 'requestAssistantReview'],
+  ],
   ['a closed inspection offers rectification and its act', closedInspectionDetails, ['rectifyInspection', 'generateInspectionAct']],
 ];
 

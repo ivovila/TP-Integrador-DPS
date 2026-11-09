@@ -1,0 +1,21 @@
+{
+  "id": "case-04",
+  "kind": "hidden",
+  "description": "La tarjeta se respondió vigente, pero la descripción del documento dice que está vencida",
+  "assetType": "Fire extinguisher",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "PRESSURE", "answer": "12.8", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro con la aguja en la zona verde"}]},
+    {"code": "WEIGHT", "answer": "6.0", "observations": [], "evidence": []},
+    {"code": "SEAL", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HOSE", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "CORROSION", "answer": "true", "observations": [], "evidence": []},
+    {"code": "SIGNAGE", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HEIGHT", "answer": "1.3", "observations": [], "evidence": []},
+    {"code": "TAG", "answer": "Current",
+     "observations": ["El encargado dice que el servicio anual se postergó"],
+     "evidence": [{"kind": "DOCUMENT", "description": "Tarjeta de mantenimiento vencida, sin sello del último servicio"}]}
+  ],
+  "expected": [{"criterion": "TAG", "severity": "MAJOR"}]
+}

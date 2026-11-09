@@ -14,6 +14,11 @@ export function formatInstant(instant: Instant): string {
   return `${localDateFormat.format(moment)}, ${localTimeFormat.format(moment)}`;
 }
 
+/** Los ids sintéticos son UUID: se muestran cortos y se leen enteros en el tooltip y en la URL. */
+export function shortId(id: string): string {
+  return id.length > 12 ? id.slice(0, 8) : id;
+}
+
 export function formatPerson(person: Person): string {
   return `${person.name} (${person.id})`;
 }

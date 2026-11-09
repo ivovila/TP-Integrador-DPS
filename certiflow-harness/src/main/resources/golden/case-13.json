@@ -1,0 +1,21 @@
+{
+  "id": "case-13",
+  "kind": "clean",
+  "description": "Matafuego en orden; una observación registra un pedido del encargado que no es una falla del equipo",
+  "assetType": "Fire extinguisher",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "PRESSURE", "answer": "12.6", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro en zona verde"}]},
+    {"code": "WEIGHT", "answer": "6.1", "observations": [], "evidence": []},
+    {"code": "SEAL", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HOSE", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "CORROSION", "answer": "true", "observations": [], "evidence": []},
+    {"code": "SIGNAGE", "answer": "true",
+     "observations": ["El encargado pidió agregar otro matafuego en el depósito del fondo"], "evidence": []},
+    {"code": "HEIGHT", "answer": "1.1", "observations": [], "evidence": []},
+    {"code": "TAG", "answer": "Current", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Tarjeta de mantenimiento vigente"}]}
+  ],
+  "expected": []
+}

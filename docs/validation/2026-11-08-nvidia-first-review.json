@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-08",
+  "endpoint": "https://integrate.api.nvidia.com/v1/chat/completions",
+  "input": "synthetic data only",
+  "credentialStorage": "process environment only, not in the repository",
+  "test": "certiflow-web NvidiaAssistantSmokeApiTest (runs only with NVIDIA_API_KEY set)",
+  "runs": [
+    {
+      "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+      "extraBody": {},
+      "result": "201 Created: review persisted through the API with prompt v1",
+      "modelReported": "private/nvidia/nemotron-3.5-super-120b-a12b",
+      "suggestions": [
+        {
+          "criterionCode": "EXT-02",
+          "criterionSeverity": "CRITICAL",
+          "estimatedSeverity": "MAJOR",
+          "quotes": ["El precinto está roto y falta el alambre de seguridad"],
+          "rationale": "El precinto está roto y falta el alambre de seguridad, por lo que el sello de seguridad no está intacto aunque la respuesta lo apruebe."
+        }
+      ],
+      "rejectedProposals": 0,
+      "directLatencySeconds": 5.4
+    },
+    {
+      "model": "mistralai/mistral-large-4-1t-a52b",
+      "extraBody": {"reasoning_effort": "none"},
+      "headers": {"NVCF-POLL-SECONDS": "300"},
+      "result": "not usable: a one-word greeting answered after 208 s of queue; the real prompt returned 400 Invalid request (Java after 47 s, direct after 250 s) and a later direct call timed out",
+      "structuredOutputValidated": false
+    }
+  ],
+  "conclusion": "The integration works end to end with a model that answers: API, Spring AI structured output, guardrails and persistence. The free Mistral Large 4 endpoint was not usable on this date.",
+  "notMeasured": ["accuracy over the golden set", "hallucinations", "severity agreement", "repeatability"],
+  "nextStep": "Choose the model with the harness (phase 5), comparing the ones that answer."
+}

@@ -1,0 +1,233 @@
+@startuml certiflow-assistance
+!pragma layout smetana
+title Certiflow - Revision asistida con IA y harness (Entrega 3)
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+note as Scope
+  El asistente vive en su propio contexto (D34) y conoce la inspeccion
+  solo por su id y por lo que arma su traductor (capa anticorrupcion).
+  Las sugerencias pasan guardrails deterministas (D35); aceptar o
+  descartar solo deja la decision del inspector: la inspeccion no cambia.
+  Las clases de otros contextos se dibujan sin detalle;
+  estan en certiflow-domain.puml.
+end note
+
+package "otros contextos (ver certiflow-domain.puml)" {
+  class InspectionId <<identificador>>
+  class AssetCode <<value object>>
+  class AssetType <<value object>>
+  class CriterionCode <<value object>>
+  enum Outcome
+  interface Severity <<enum extensible>>
+  class Stamp <<value object>>
+  interface "AuditLog<S>" as AuditLog <<puerto>>
+  interface AuditAction <<enum extensible>>
+  interface InspectionRepository <<puerto>>
+  interface AssetLock <<puerto>>
+  class InspectionService
+  interface Transactions <<puerto>> {
+    +within(Supplier<T>): T
+  }
+  abstract class UnavailableException <<exception>>
+}
+package "assistance.model" {
+  interface InspectionAssistant <<puerto>> {
+    +review(InspectionUnderReview): AssistantReply
+  }
+  interface InspectionReviewTranslator <<puerto>> {
+    +assetCodeOf(InspectionId): AssetCode
+    +translate(InspectionId): InspectionUnderReview
+  }
+  class InspectionUnderReview <<value object>> {
+    inspectionId: InspectionId
+    assetType: AssetType
+    schemaVersion: int
+    closed: boolean
+    +ensureOpen()
+    +includes(CriterionCode): boolean
+    +isNonConforming(CriterionCode): boolean
+    +mentions(Quote): boolean
+  }
+  class CriterionUnderReview <<value object>> {
+    code: CriterionCode
+    text: String
+    rule: String
+    answer: String
+    outcome: Outcome
+    observations: List<String>
+  }
+  class EvidenceUnderReview <<value object>> {
+    kind: String
+    description: String
+  }
+  class AssistantReply <<value object>> {
+    promptVersion: PromptVersion
+    modelId: ModelId
+  }
+  class ProposedFinding <<value object>> {
+    criterion: CriterionCode
+    estimatedSeverity: Severity
+    rationale: String
+  }
+  class Quote <<value object>> {
+    text: String
+    +appearsIn(String): boolean
+  }
+  class PromptVersion <<value object>>
+  class ModelId <<value object>>
+  class ReviewId <<identificador>>
+  enum GuardrailRejection {
+    OUT_OF_SCOPE
+    ALREADY_NONCONFORMING
+    UNSUPPORTED_QUOTE
+    +rejects(ProposedFinding, InspectionUnderReview): boolean
+  }
+  class AssistantReview <<aggregate root>> {
+    id: ReviewId
+    inspectionId: InspectionId
+    requested: Stamp
+    ~accept(int, Stamp)
+    ~dismiss(int, String, Stamp)
+    +suggestion(int): Suggestion
+    +snapshot(): AssistantReviewSnapshot
+  }
+  class Suggestion <<value object>> {
+    position: int
+    +isPending(): boolean
+  }
+  class RejectedProposal <<value object>> {
+    reason: GuardrailRejection
+  }
+  interface SuggestionDecision <<variante>> {
+    +isPending(): boolean
+    +describedBy(SuggestionDecisionDescriber<T>): T
+  }
+  class PendingDecision
+  class Acceptance {
+    accepted: Stamp
+  }
+  class Dismissal {
+    dismissed: Stamp
+    reason: String
+  }
+  class AssistantReviewFactory {
+    +create(ReviewId, InspectionUnderReview, AssistantReply, Stamp): AssistantReview
+    +restore(AssistantReviewSnapshot): AssistantReview
+  }
+  class AssistantReviewService {
+    -reviewLog: AuditLog<ReviewId>
+    +record(ReviewId, InspectionUnderReview, AssistantReply, Stamp): AssistantReview
+    +accept(AssistantReview, int, Stamp)
+    +dismiss(AssistantReview, int, String, Stamp)
+  }
+  enum AssistanceAudit {
+    REVIEW_REQUESTED
+    SUGGESTION_ACCEPTED
+    SUGGESTION_DISMISSED
+  }
+  InspectionAssistant ..> InspectionUnderReview
+  InspectionAssistant ..> AssistantReply
+  InspectionReviewTranslator ..> InspectionUnderReview
+  InspectionUnderReview *-- "*" CriterionUnderReview
+  CriterionUnderReview *-- "*" EvidenceUnderReview
+  AssistantReply --> PromptVersion
+  AssistantReply --> ModelId
+  AssistantReply *-- "*" ProposedFinding
+  ProposedFinding *-- "1..*" Quote
+  AssistantReview --> ReviewId
+  AssistantReview ..> InspectionId : solo el id
+  AssistantReview *-- "*" Suggestion
+  AssistantReview *-- "*" RejectedProposal
+  AssistantReview ..> GuardrailRejection : al crearse
+  Suggestion --> ProposedFinding
+  Suggestion --> SuggestionDecision
+  RejectedProposal --> ProposedFinding
+  SuggestionDecision <|.. PendingDecision
+  SuggestionDecision <|.. Acceptance
+  SuggestionDecision <|.. Dismissal
+  AssistantReviewFactory ..> AssistantReview : crea
+  AssistantReviewService ..> AssistantReviewFactory
+  AssistantReviewService ..> AuditLog : vuelca la bitacora
+  AssistanceAudit ..|> AuditAction
+}
+
+package "assistance.repository" {
+  interface AssistantReviewRepository <<puerto>> {
+    +nextId(): ReviewId
+    +save(AssistantReview)
+    +findById(ReviewId): Optional<AssistantReview>
+    +inspectionOf(ReviewId): Optional<InspectionId>
+    +findByInspection(InspectionId): List<AssistantReview>
+  }
+}
+
+package "application.assistance (certiflow-application)" {
+  class InspectionReviewTranslatorImpl <<ACL>>
+  class RuleInWords
+  class RequestAssistantReviewUseCaseImpl
+  class AcceptSuggestionUseCaseImpl
+  class DismissSuggestionUseCaseImpl
+  InspectionReviewTranslator <|.. InspectionReviewTranslatorImpl
+  InspectionReviewTranslatorImpl ..> InspectionRepository : lee la inspeccion
+  InspectionReviewTranslatorImpl ..> RuleInWords
+  RequestAssistantReviewUseCaseImpl ..> Transactions : el modelo se llama entre dos transacciones
+  RequestAssistantReviewUseCaseImpl ..> InspectionAssistant
+  RequestAssistantReviewUseCaseImpl ..> InspectionReviewTranslator
+  RequestAssistantReviewUseCaseImpl ..> AssetLock : bloquea antes de guardar
+  RequestAssistantReviewUseCaseImpl ..> AssistantReviewService
+  RequestAssistantReviewUseCaseImpl ..> AssistantReviewRepository
+  AcceptSuggestionUseCaseImpl ..> AssistantReviewService
+  DismissSuggestionUseCaseImpl ..> AssistantReviewService
+}
+
+package "infrastructure.assistance (certiflow-infrastructure)" {
+  class StubInspectionAssistant <<determinista, para CI>>
+  class SpringAiInspectionAssistant <<Spring AI>>
+  class SpringAiAssistantConfiguration
+  class PromptCatalog {
+    +published(PromptVersion): ActivePrompt
+  }
+  enum PublishedPrompt {
+    V1
+    V2
+  }
+  class JpaAssistantReviewRepository
+  class SpringTransactions
+  InspectionAssistant <|.. StubInspectionAssistant
+  InspectionAssistant <|.. SpringAiInspectionAssistant
+  SpringAiAssistantConfiguration ..> SpringAiInspectionAssistant : compone (NVIDIA NIM)
+  SpringAiAssistantConfiguration ..> PromptCatalog
+  PromptCatalog ..> PublishedPrompt : verifica la suma
+  AssistantReviewRepository <|.. JpaAssistantReviewRepository
+  Transactions <|.. SpringTransactions
+}
+
+package "harness (certiflow-harness, fuera de la aplicacion)" {
+  class HarnessRun
+  class CaseInspections
+  class Scoring
+  class ReportComparison
+  enum Metric {
+    CORRECT
+    SEVERITY_HITS
+    INVENTED
+    MISSED
+  }
+  HarnessRun ..> InspectionAssistant : el mismo de la aplicacion
+  HarnessRun ..> AssistantReviewFactory : los mismos guardrails
+  HarnessRun ..> CaseInspections
+  HarnessRun ..> Scoring
+  CaseInspections ..> InspectionService : arma cada caso
+  CaseInspections ..> InspectionReviewTranslatorImpl : lo traduce
+  ReportComparison ..> Metric
+}
+
+note as Persistence
+  AssistantReview exporta snapshot() y se reconstruye con
+  AssistantReviewFactory.restore(snapshot) sin volver a correr
+  los guardrails. Las sugerencias y las rechazadas se guardan
+  como JSON (D19); las decisiones, en su propia tabla.
+end note
+@enduml

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import type { InspectionScope } from '../../domain/inspection';
+import type { InspectionScope, InspectionSummary } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { StatusBadge } from '../shared/Badge';
-import { formatDate } from '../shared/format';
+import { formatDate, shortId } from '../shared/format';
 import { Card, EmptyState, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { useQuery } from '../shared/useQuery';
@@ -13,6 +13,15 @@ type StatusFilter = '' | 'open' | 'closed';
 
 export function describeScope(scope: InspectionScope): string {
   return scope.kind === 'full' ? 'Whole schema' : scope.titles.join(', ');
+}
+
+/** Primero lo que hay que trabajar: las abiertas, por fecha prevista; después las cerradas, de la más reciente. */
+function inWorkOrder(inspections: InspectionSummary[]): InspectionSummary[] {
+  const open = inspections.filter((inspection) => !inspection.closed);
+  const closed = inspections.filter((inspection) => inspection.closed);
+  const byPlannedDate = (first: InspectionSummary, second: InspectionSummary) =>
+    first.assignment.plannedDate.localeCompare(second.assignment.plannedDate);
+  return [...open.sort(byPlannedDate), ...closed.sort(byPlannedDate).reverse()];
 }
 
 export function InspectionListPage() {
@@ -71,30 +80,32 @@ export function InspectionListPage() {
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Inspection</th>
+                    <th>Status</th>
                     <th>Asset</th>
                     <th>Planned</th>
                     <th>Inspector</th>
-                    <th>Schema version</th>
                     <th>Scope</th>
-                    <th>Status</th>
+                    <th>Schema</th>
+                    <th>Inspection</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {listedInspections.map((inspection) => (
-                    <tr key={inspection.id}>
+                  {inWorkOrder(listedInspections).map((inspection) => (
+                    <tr key={inspection.id} className={inspection.closed ? '' : 'actionable'}>
                       <td>
-                        <SectionLink to={`/inspections/${inspection.id}`}>{inspection.id}</SectionLink>
+                        <StatusBadge status={inspection.closed ? 'CLOSED' : 'OPEN'} />
                       </td>
                       <td>
                         <SectionLink to={`/assets/${encodeURIComponent(inspection.assetCode)}`}>{inspection.assetCode}</SectionLink>
                       </td>
                       <td>{formatDate(inspection.assignment.plannedDate)}</td>
                       <td>{inspection.assignment.inspector.name}</td>
-                      <td>v{inspection.schemaVersion}</td>
                       <td>{describeScope(inspection.assignment.scope)}</td>
+                      <td>v{inspection.schemaVersion}</td>
                       <td>
-                        <StatusBadge status={inspection.closed ? 'CLOSED' : 'OPEN'} />
+                        <SectionLink to={`/inspections/${inspection.id}`} title={inspection.id}>
+                          {inspection.closed ? 'View' : 'Open'} {shortId(inspection.id)}
+                        </SectionLink>
                       </td>
                     </tr>
                   ))}

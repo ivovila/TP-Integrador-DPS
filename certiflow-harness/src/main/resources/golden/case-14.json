@@ -1,0 +1,16 @@
+{
+  "id": "case-14",
+  "kind": "trap",
+  "description": "Negación: la observación nombra fugas y humedad, pero para decir que no hay",
+  "assetType": "Pressure vessel",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "RELIEF-VALVE", "answer": "7.8", "observations": [], "evidence": []},
+    {"code": "LEAKS", "answer": "true",
+     "observations": ["No se observan fugas ni manchas de humedad en las uniones"], "evidence": []},
+    {"code": "INSULATION", "answer": "Good", "observations": [], "evidence": []},
+    {"code": "GROUNDING", "answer": "true", "observations": [], "evidence": []},
+    {"code": "PANEL", "answer": "true", "observations": [], "evidence": []}
+  ],
+  "expected": []
+}

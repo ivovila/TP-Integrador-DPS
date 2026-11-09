@@ -1,0 +1,21 @@
+{
+  "id": "case-03",
+  "kind": "hidden",
+  "description": "El cilindro se respondió sin corrosión, pero la observación describe óxido en la base",
+  "assetType": "Fire extinguisher",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "PRESSURE", "answer": "14.2", "observations": [],
+     "evidence": [{"kind": "PHOTO", "description": "Manómetro en zona verde"}]},
+    {"code": "WEIGHT", "answer": "6.1", "observations": [], "evidence": []},
+    {"code": "SEAL", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HOSE", "answer": "Acceptable", "observations": [], "evidence": []},
+    {"code": "CORROSION", "answer": "true",
+     "observations": ["Óxido en la base del cilindro, la pintura se desprende al tocarla"], "evidence": []},
+    {"code": "SIGNAGE", "answer": "true", "observations": [], "evidence": []},
+    {"code": "HEIGHT", "answer": "1.0", "observations": [], "evidence": []},
+    {"code": "TAG", "answer": "Current", "observations": [],
+     "evidence": [{"kind": "DOCUMENT", "description": "Tarjeta de mantenimiento al día"}]}
+  ],
+  "expected": [{"criterion": "CORROSION", "severity": "MAJOR"}]
+}

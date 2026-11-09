@@ -803,3 +803,153 @@ arrancar) quedan escritos.
   `CertificationConfiguration` es código y el cambio exige un deploy. D10 aclara lo mismo sobre registrar una
   jurisdicción. Limitación nueva: las reglas de certificación están en código y la versión de una política se
   sube a mano, sin un test que verifique que se subió.
+
+---
+
+# Entrega 3 · Revisión asistida con IA
+
+Plan: `docs/plans/2026-11-07-entrega-3-asistente-ia.md`. Spec: `docs/specs/2026-11-07-asistente-ia.md`.
+
+## 2026-11-07 · Fases 1 a 3: dominio, aplicación e infraestructura
+
+- **Dominio:** contexto nuevo `assistance` (D34). Puertos `InspectionAssistant` e `InspectionReviewTranslator`;
+  agregado `AssistantReview` con `Suggestion`, las decisiones `PendingDecision`, `Acceptance` y `Dismissal`, las
+  propuestas rechazadas con su motivo y su bitácora `AssistanceAudit`; guardrails `GuardrailRejection` (D35);
+  `AssistantReviewService`, `AssistantReviewFactory` y `AssistantReviewSnapshot`; repositorio
+  `AssistantReviewRepository`; seis casos de uso con sus comandos. En el shared kernel, el puerto `Transactions`
+  (D36) y la cuarta categoría de excepciones, `UnavailableException` (D28), que `ApiExceptionHandler` responde
+  con 503.
+- **Aplicación:** `RequestAssistantReviewUseCaseImpl` en tres pasos, con el modelo fuera de la transacción (D36);
+  aceptar y descartar bloquean el activo antes de leer la revisión (D27); consultas por id, por inspección y
+  bitácora. `InspectionReviewTranslatorImpl` y `RuleInWords`.
+- **Infraestructura:** migración `V7__assistant_reviews.sql` (`assistant_review`, con las sugerencias y las
+  rechazadas como JSON, D19, y `suggestion_decision`); `JpaAssistantReviewRepository`; `SpringTransactions`;
+  `StubInspectionAssistant` y `SpringAiInspectionAssistant` (D38); prompt `v1` con `PromptCatalog` y su suma de
+  verificación (D37); dependencia `spring-ai-client-chat` 2.0.2, sin proveedor (D39).
+- **Arquitectura:** `ArchitectureRulesTest` suma Asistencia a las reglas de capas y frameworks, comprueba que
+  conoce la inspección solo por su id, que solo su traductor lee Inspección, que nadie la conoce, que no conoce a
+  Certificación, y que solo la infraestructura depende de Spring AI.
+- **CI:** el workflow corre también en los push a `entrega-3*`, así la rama se prueba contra PostgreSQL antes del
+  pull request.
+- **Tests:** `AssistantReviewTest`, `InspectionReviewTranslatorImplTest`, `RequestAssistantReviewUseCaseImplTest`,
+  `JpaAssistantReviewRepositoryTest`, `PromptCatalogTest`, `StubInspectionAssistantTest`,
+  `SpringAiInspectionAssistantTest`. Total: 482.
+- **Pendiente:** el proveedor y su API key (plan, §5.4). Con eso se agrega el *starter* y se compone
+  `SpringAiInspectionAssistant`; mientras tanto la composición usará el stub.
+
+
+## 2026-11-08 · Fase 4 implementada; integración real SIN VALIDAR
+
+**No hubo ninguna revisión exitosa con NVIDIA.** Este cambio permite trabajar con el stub; el proveedor
+real queda como preparación experimental. No afirmar que la IA funciona de extremo a extremo.
+El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el punto de entrada del próximo agente.
+
+- Composición de seis casos de uso, traductor, servicio y bitácora. Pedir mantiene sus límites transaccionales
+  explícitos y llama al proveedor afuera; decidir y consultar usan el proxy habitual.
+- API HAL de revisiones, sugerencias, aceptación/descarte, GET de decisiones creadas y auditoría. Permisos por
+  rol, DTOs propios y severidad configurada/estimada separadas. Aceptar solo traza y no cambia la inspección.
+- El link `assistant-reviews` permanece al cerrar para conservar historia; pedir otra revisión cerrada da 409.
+- `AssistanceAudit` registrado y limpieza de tablas nuevas entre tests. OpenAPI, README, spec y plan al día.
+- Preparación NVIDIA en infraestructura con `spring-ai-openai` 2.0.2, selección condicional y perfil opt-in.
+  Modelo `google/gemma-4-31b-it`, key por entorno y razonamiento opcional desactivado. Los Llama inicialmente
+  propuestos tienen retirado su endpoint gratuito. Falta verificar otro modelo para la comparación pequeña.
+- Tests locales actuales: `mvn -q clean verify`, 486 aprobados y 19 omitidos, sin fallas/errores. Incluye API con
+  stub, HTTP contra servidor local y ArchUnit. Una corrida previa de la API con PostgreSQL 17 aprobó 500 tests,
+  antes de seleccionar Gemma; la configuración final con PostgreSQL y el CI del nuevo push deben comprobarse.
+- Intentos externos: timeout directo de 45 segundos, timeout del adaptador Java de 120 segundos, consulta
+  mínima 504 y repetición 504 en 35.62 segundos. `GET /v1/models` es público: su 200 no valida autenticación.
+  Evidencia sanitizada en `docs/validation/2026-11-08-nvidia-gemma-connectivity.json`.
+- La key no se guarda ni se publica; no hubo persistencia local porque el usuario la condicionó a que funcionara.
+  Falta una inferencia válida, recorrer API/guardrails/persistencia con ella y registrar evidencia real.
+  Harness ejecutable, métricas, comparación de prompts/modelos y frontend del asistente siguen pendientes.
+
+## 2026-11-08 · Integración real validada con Nemotron 3.5 Super
+
+- **Modelo:** el perfil `nvidia` usa Nemotron 3.5 Super, que contestó el prompt real en 5 s. Gemma 4 no respondió
+  y Mistral Large 4 tardó minutos en cola y devolvió 400. Se saca del plan la comparación de modelos: la consigna
+  pide comparar versiones de prompt.
+- **Configuración por modelo:** `certiflow.assistant.extra-body` y `certiflow.assistant.headers` reciben JSON, en
+  lugar del parámetro fijo de Gemma; el perfil manda `NVCF-POLL-SECONDS: 300` y espera hasta 300 s.
+- **Diagnóstico:** el 503 registra la causa con un `warn`; antes se perdía.
+- **Tests:** `NvidiaAssistantSmokeApiTest` recorre la API de punta a punta contra NVIDIA cuando hay
+  `NVIDIA_API_KEY` (omitido en CI); `NvidiaAssistantConfigurationTest` verifica el cuerpo extra y los headers.
+  Evidencia en `docs/validation/2026-11-08-nvidia-first-review.json`. Total: 506 tests, 20 omitidos.
+
+## 2026-11-08 · Fase 5: harness de evaluación
+
+- **Módulo `certiflow-harness`** (D40), fuera de la aplicación: carga el conjunto dorado, arma cada caso como una
+  inspección del dominio, la traduce con el traductor de la aplicación, llama al asistente con la configuración de la
+  aplicación y aplica los guardrails reales. Mide hallazgos correctos, severidades acertadas, inventados y omitidos,
+  5 corridas por caso, con media y rango; compara versiones de prompt y marca las métricas que empeoraron fuera del
+  rango observado. Se corre con `mvn -pl certiflow-harness exec:exec` (README del módulo).
+- **Prompt `v2`:** define la escala de severidad y que cada hallazgo es un objeto JSON. Resultados versionados en
+  `certiflow-harness/results/`: stub 4/11; v1 10,8/11 con 7,6 severidades; v2 11/11 con 9,8, sin inventados ni
+  omitidos en ninguna. v2 subestima la sobrepresión del caso 05.
+- **CI:** los tests del módulo corren en `ci.yml` sin red (formato del conjunto dorado, métricas sobre respuestas
+  fijas, línea de base exacta del stub, comparación). `harness.yml` corre el modelo real a mano o cuando cambia un
+  prompt; necesita el secreto `NVIDIA_API_KEY`.
+- **Tests:** `GoldenSetTest`, `HarnessRunTest`, `ReportComparisonTest`; `PromptCatalogTest` cubre `v2`.
+
+## 2026-11-08 · Fase 6: panel de revisión asistida en el frontend
+
+- **Puerto `AssistancePort`** y su adaptador `HttpAssistancePort`: pedir una revisión, listar las de una inspección,
+  aceptar y descartar. `assistanceMapping.ts` traduce la respuesta HAL; las acciones de cada sugerencia salen de sus
+  links `acceptance` y `dismissal`, y pedir la revisión se ofrece con el link `closure`, porque es previa al cierre.
+- **`AssistantReviewCard`** en el detalle de la inspección: "Review with AI", la última revisión y las anteriores
+  plegadas, cada sugerencia marcada "Suggested by AI" con las dos severidades, el fundamento y las citas; aceptar
+  registra la decisión y lleva al criterio para corregir la respuesta; descartar pide motivo; lo que frenaron los
+  guardrails se muestra aparte. Solo el inspector pide y decide.
+- **Tests:** `assistanceMapping.test.ts` contra respuestas reales capturadas con el stub, `AssistantReviewCard.test.tsx`
+  (marca, decisiones, motivo, guardrails, roles, inspección cerrada) y el bloque "assisted review" de
+  `certiflowContract.ts`, que corre en e2e contra el backend con el stub. 159 tests rápidos del frontend.
+
+## 2026-11-08 · Fase 7: documentación
+
+- **`DESIGN.md`:** el módulo `certiflow-harness` en la tabla de módulos; patrones que se decidió no aplicar para el
+  asistente (Retry y Circuit Breaker, fallback al stub, RAG o tool calling, un modelo que juzga a otro); nueve
+  riesgos más en la tabla riesgo → test (aceptar no cambia la inspección, 503 sin revisión a medias, roles, la
+  configuración del proveedor, el harness y el panel); los tipos de test del harness y del frontend y el total
+  (547 del backend, 159 del frontend); seis limitaciones del asistente.
+- **Diagrama:** `docs/certiflow-assistance.puml` con el contexto Asistencia, su aplicación e infraestructura y el
+  harness. Va aparte de `certiflow-domain.puml`, que suma la cuarta categoría de excepciones y el puerto
+  `Transactions`: juntos no entraban legibles y el layout sin Graphviz no los resolvía.
+
+## 2026-11-08 · Ajustes después de probar la app
+
+- El perfil `nvidia` usa el prompt `v2` por defecto: midió mejor que `v1` en el harness. `v1` sigue publicado y se
+  elige con `CERTIFLOW_ASSISTANT_PROMPT_VERSION=v1`.
+- El motivo para descartar una sugerencia usa `TextField`, como el resto de los formularios.
+- **Panel de revisión con IA rediseñado** para que se entienda qué se sugiere y qué pasa al decidir: cada sugerencia
+  compara la respuesta con lo que escribió el inspector y dice de dónde sale la cita; una sola severidad que cuenta
+  (la del criterio); botones que dicen la consecuencia y el siguiente paso después de aceptar; el criterio señalado
+  queda marcado y el encabezado avisa cuántas sugerencias esperan decisión; lenguaje simple para lo que descartaron
+  los guardrails; aviso de espera y de que el asistente puede equivocarse. Las revisiones se comparten entre el
+  panel y los criterios con `useAssistantReviews`.
+
+- **Mejoras de usabilidad en el flujo de inspección:** el listado muestra primero las inspecciones abiertas, con el
+  estado en la primera columna y el id corto (entero en el tooltip); el detalle se titula con el nombre del activo y
+  dice cuánto falta para poder cerrar; un criterio ya respondido ofrece "Change answer"; la elegibilidad no muestra
+  un "rejected" mientras la inspección sigue abierta; foco visible para navegar con teclado y filas resaltadas al
+  pasar el mouse.
+
+## 2026-11-09 · Correcciones de la auditoría del asistente (`0d99bda`)
+
+Detalle y evidencia en `docs/AUDIT_FIXES.md`.
+
+- **La revisión guarda lo que leyó el modelo** (D41): migración `V8__assistant_review_input.sql`, `ReviewInput`
+  (`CapturedReviewInput`, `UnavailableReviewInput` para las revisiones anteriores), campo `reviewedInspection` en la
+  API y el panel muestra esa captura. Cambiar una respuesta ya no reescribe la revisión.
+- **Guardrails** (D35): `DUPLICATE_CRITERION`, una sola sugerencia decidible por criterio; el fundamento es
+  obligatorio.
+- **Harness** (D40): los totales excluyen las repeticiones incompletas; comparar exige reportes completos, del mismo
+  modelo y corridas, con huella SHA-256 de entradas y expectativas; `harness.yml` mide la versión anterior y la nueva
+  en el mismo checkout. Las corridas v1 y v2 versionadas quedan como históricas, no comparables: hay que volver a
+  medirlas. Seed del frontend y harness leen el mismo `demo/schemas.json`.
+- **Reloj** (D29): `OrderedClock` mantiene el orden ante los retrocesos del reloj de WSL que se midieron.
+- **Web:** las reglas se publican y se leen con el catálogo de tipos de regla, sin casts; los subrecursos
+  `acceptance` y `dismissal` se resuelven por la variante de la decisión; el listado de revisiones carga la
+  inspección una sola vez.
+- **Frontend:** la suite de contrato se separó en catorce archivos por contexto en `test-support/contract/`; el
+  adaptador rechaza decisiones incompletas; las tablas no ensanchan la página en el celular.
+- **Tests:** 560 del backend, 165 rápidos del frontend (561 después de las correcciones de estilo).
+

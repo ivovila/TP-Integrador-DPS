@@ -1,0 +1,1272 @@
+{
+  "promptVersion" : "stub",
+  "model" : "keyword-stub",
+  "runsPerCase" : 5,
+  "ranAt" : "2026-11-09T14:26:12.957748879Z",
+  "totals" : {
+    "CORRECT" : {
+      "mean" : 4.0,
+      "min" : 4,
+      "max" : 4
+    },
+    "SEVERITY_HITS" : {
+      "mean" : 3.0,
+      "min" : 3,
+      "max" : 3
+    },
+    "INVENTED" : {
+      "mean" : 2.0,
+      "min" : 2,
+      "max" : 2
+    },
+    "MISSED" : {
+      "mean" : 7.0,
+      "min" : 7,
+      "max" : 7
+    }
+  },
+  "rejectedByGuardrail" : {
+    "ALREADY_NONCONFORMING" : 5
+  },
+  "cases" : [ {
+    "id" : "case-01",
+    "kind" : "hidden",
+    "description" : "La manguera se respondió en buen estado, pero la observación describe una grieta",
+    "expected" : [ "HOSE MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "HOSE",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "La manguera tiene una grieta cerca del acople" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "8ea364dfc6ce7424b07074606d3ac098be72a1f90531029cf61e3dca02923a6b"
+  }, {
+    "id" : "case-02",
+    "kind" : "hidden",
+    "description" : "El precinto se respondió intacto, pero la foto del cabezal lo muestra cortado",
+    "expected" : [ "SEAL MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "100fb898680f756bffb3c3a9d32098aef5625da2919bf875be594b592e32321b"
+  }, {
+    "id" : "case-03",
+    "kind" : "hidden",
+    "description" : "El cilindro se respondió sin corrosión, pero la observación describe óxido en la base",
+    "expected" : [ "CORROSION MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "CORROSION",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Óxido en la base del cilindro, la pintura se desprende al tocarla" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "147c121b9c5fc4149eb935d38e38f649f792d519cdda386634b0618353ee13a8"
+  }, {
+    "id" : "case-04",
+    "kind" : "hidden",
+    "description" : "La tarjeta se respondió vigente, pero la descripción del documento dice que está vencida",
+    "expected" : [ "TAG MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "TAG",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Tarjeta de mantenimiento vencida, sin sello del último servicio" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "d3da1fa58b170ea1375313e0d9842f54fa5f08678c162e2a7a755da3bc5a4b93"
+  }, {
+    "id" : "case-05",
+    "kind" : "hidden",
+    "description" : "La presión cargada está en rango, pero la foto del manómetro muestra sobrecarga",
+    "expected" : [ "PRESSURE CRITICAL" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "dba4789802e539c342037fba5461fdb9fc31e36d8b6dc38432234d1165537be5"
+  }, {
+    "id" : "case-06",
+    "kind" : "hidden",
+    "description" : "La señalización se respondió visible, pero en la observación de la altura se anota que una estantería tapa el cartel",
+    "expected" : [ "SIGNAGE MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "MISSED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 1,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 1,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 1,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 1,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 1,
+      "suggestions" : [ {
+        "criterion" : "HEIGHT",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "Una estantería nueva tapa el cartel señalizador desde el pasillo" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "96efa3abe10627d4ac9d103571e410815254dcab06d78fd1a3dc99ff17c9d72f"
+  }, {
+    "id" : "case-07",
+    "kind" : "hidden",
+    "description" : "La altura cargada está en rango, pero la observación dice que está colgado mucho más alto",
+    "expected" : [ "HEIGHT MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "58ddcc66d97d876ddf741083a8e740e81817124759018376f60a274a32362a25"
+  }, {
+    "id" : "case-08",
+    "kind" : "hidden",
+    "description" : "Las fugas se respondieron ausentes, pero en la observación de la aislación se anota un goteo",
+    "expected" : [ "LEAKS MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 1,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "6ec640b81a23eba99a4fd1b33dbc385ee874b297c435e63a95c57ecc71cdfd80"
+  }, {
+    "id" : "case-09",
+    "kind" : "hidden",
+    "description" : "La puesta a tierra se respondió verificada, pero la observación describe el cable suelto",
+    "expected" : [ "GROUNDING MAJOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 1,
+      "severityHits" : 1,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "GROUNDING",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "El cable de tierra está suelto en el borne del quemador" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "fde5609cac49385d7111ceab29d023ad10e4fadef90e615328268b9b5f9d7c1a"
+  }, {
+    "id" : "case-10",
+    "kind" : "hidden",
+    "description" : "Dos no conformidades: el informe de banco contradice la presión de apertura cargada, y faltan rótulos en el tablero",
+    "expected" : [ "RELIEF-VALVE CRITICAL", "PANEL MINOR" ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 2.0,
+        "min" : 2,
+        "max" : 2
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 2,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 2,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 2,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 2,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 2,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "e8e56975ac682a0f2a13a3f7cfea227ee4f174f84b29041e7a3642f13cd0c7b9"
+  }, {
+    "id" : "case-11",
+    "kind" : "clean",
+    "description" : "Matafuego en orden; las observaciones solo confirman lo respondido",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "76d90f16bba39add812d068fa0049f8457bacb9c59ac3eca07204089e7004a35"
+  }, {
+    "id" : "case-12",
+    "kind" : "clean",
+    "description" : "Recipiente a presión en orden; las observaciones describen verificaciones que salieron bien",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "74eee25822d457029347619f05026aaa74dbf4583037114fc61a0c4d07a74b32"
+  }, {
+    "id" : "case-13",
+    "kind" : "clean",
+    "description" : "Matafuego en orden; una observación registra un pedido del encargado que no es una falla del equipo",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "2ec3eb5a2eeb880b1b411ede276dc909c3b1bfbca0f6e62d0d78631d7a440646"
+  }, {
+    "id" : "case-14",
+    "kind" : "trap",
+    "description" : "Negación: la observación nombra fugas y humedad, pero para decir que no hay",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 1.0,
+        "min" : 1,
+        "max" : 1
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "No se observan fugas ni manchas de humedad en las uniones" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "No se observan fugas ni manchas de humedad en las uniones" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "No se observan fugas ni manchas de humedad en las uniones" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "No se observan fugas ni manchas de humedad en las uniones" ]
+      } ],
+      "rejected" : [ ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 1,
+      "missed" : 0,
+      "suggestions" : [ {
+        "criterion" : "LEAKS",
+        "severity" : "MAJOR",
+        "rationale" : "The inspector wrote something that names a failure",
+        "quotes" : [ "No se observan fugas ni manchas de humedad en las uniones" ]
+      } ],
+      "rejected" : [ ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "14ccfbace3a36b05f281dd90cf9f02f2368493292a0911c0bbdaec4820005926"
+  }, {
+    "id" : "case-15",
+    "kind" : "trap",
+    "description" : "La manguera ya es no conforme por su respuesta, y una recomendación sobre el soporte no es una falla del cilindro",
+    "expected" : [ ],
+    "statistics" : {
+      "CORRECT" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "SEVERITY_HITS" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "INVENTED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      },
+      "MISSED" : {
+        "mean" : 0.0,
+        "min" : 0,
+        "max" : 0
+      }
+    },
+    "runs" : [ {
+      "run" : 1,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ {
+        "proposal" : {
+          "criterion" : "HOSE",
+          "severity" : "MAJOR",
+          "rationale" : "The inspector wrote something that names a failure",
+          "quotes" : [ "Manguera reseca y con grietas finas" ]
+        },
+        "guardrail" : "ALREADY_NONCONFORMING"
+      } ]
+    }, {
+      "run" : 2,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ {
+        "proposal" : {
+          "criterion" : "HOSE",
+          "severity" : "MAJOR",
+          "rationale" : "The inspector wrote something that names a failure",
+          "quotes" : [ "Manguera reseca y con grietas finas" ]
+        },
+        "guardrail" : "ALREADY_NONCONFORMING"
+      } ]
+    }, {
+      "run" : 3,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ {
+        "proposal" : {
+          "criterion" : "HOSE",
+          "severity" : "MAJOR",
+          "rationale" : "The inspector wrote something that names a failure",
+          "quotes" : [ "Manguera reseca y con grietas finas" ]
+        },
+        "guardrail" : "ALREADY_NONCONFORMING"
+      } ]
+    }, {
+      "run" : 4,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ {
+        "proposal" : {
+          "criterion" : "HOSE",
+          "severity" : "MAJOR",
+          "rationale" : "The inspector wrote something that names a failure",
+          "quotes" : [ "Manguera reseca y con grietas finas" ]
+        },
+        "guardrail" : "ALREADY_NONCONFORMING"
+      } ]
+    }, {
+      "run" : 5,
+      "correct" : 0,
+      "severityHits" : 0,
+      "invented" : 0,
+      "missed" : 0,
+      "suggestions" : [ ],
+      "rejected" : [ {
+        "proposal" : {
+          "criterion" : "HOSE",
+          "severity" : "MAJOR",
+          "rationale" : "The inspector wrote something that names a failure",
+          "quotes" : [ "Manguera reseca y con grietas finas" ]
+        },
+        "guardrail" : "ALREADY_NONCONFORMING"
+      } ]
+    } ],
+    "failures" : [ ],
+    "inputFingerprint" : "fd8e3d45b8a62340126b9bd138e2c9fc59ad097d2af19fa00d0021aff0d162ff"
+  } ]
+}

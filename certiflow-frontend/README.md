@@ -59,7 +59,7 @@ vacía cuando cambia la forma de una respuesta de la API.
 src
 ├── domain/            tipos del lenguaje ubicuo, sin lógica
 ├── ports/             lo que la interfaz le pide al sistema: una interfaz por contexto, comandos y errores
-│   └── certiflowContract.ts   suite de contrato que corre contra el backend
+│   (la suite de contrato está en test-support/contract/, un archivo por contexto)
 ├── adapters/
 │   └── http/          implementación sobre la API REST
 │       ├── HalClient.ts        fetch, headers, credenciales, errores, paginación
@@ -93,7 +93,7 @@ el flujo completo hay que ir cambiando de usuario, porque ninguno ve todas las s
 |---|---|---|---|
 | `ana.torres` | Administrator | Assets, Schemas | Registrar activos, crear esquemas, publicar versiones |
 | `paula.rios` | Inspection coordinator | Inspections, Assets | Asignar inspecciones |
-| `ines.duarte` | Inspector | Inspections | Responder, adjuntar evidencia, observar, cerrar, rectificar |
+| `ines.duarte` | Inspector | Inspections | Responder, adjuntar evidencia, observar, pedir la revisión con IA y decidir sus sugerencias, cerrar, rectificar |
 | `raul.mendez` | Asset responsible | Findings, Assets | Planificar acciones correctivas |
 | `vera.soto` | Verifier | Findings | Aceptar o rechazar acciones correctivas |
 | `carlos.vidal` | Certification officer | Certificates, Inspections, Assets | Emitir, suspender y renovar certificados, incluidos los globales |
@@ -119,6 +119,30 @@ y responde 403 cuando el rol no corresponde, así que llamarla directamente tamp
   en `RejectedRequestError`. Las pantallas muestran siempre el motivo que dio el servidor.
 - **Fechas.** Los instantes se muestran en la hora local del navegador. Las fechas sin hora viajan como
   `AAAA-MM-DD`.
+
+## Revisión asistida con IA
+
+El detalle de una inspección tiene la tarjeta "AI review before closing" (`AssistantReviewCard`). Está pensada
+para que el inspector entienda qué le señalan y qué pasa con cada decisión:
+
+- **Antes de pedirla**, tres pasos cortos explican qué hace el asistente y que nunca cambia la inspección. Mientras
+  el modelo responde, un aviso dice que puede tardar hasta un minuto.
+- **Un resumen** arriba dice cuántas respuestas pueden contradecir lo escrito y cuántas faltan decidir.
+- **Cada sugerencia es una comparación** (`AiSuggestionView`): la respuesta del inspector y lo que dice la regla,
+  contra lo que escribió, con la cita y de dónde sale (su observación, la descripción de una foto, otro criterio).
+  Debajo, por qué puede no cumplir y la severidad que tendría el hallazgo, que es la del criterio; la estimación del
+  modelo solo aparece si es distinta.
+- **Dos botones paralelos, la decisión y no una instrucción:** "Confirm issue" registra la decisión y lleva al criterio;
+  hasta que la regla lo marque no conforme, la sugerencia muestra el siguiente paso, y después confirma que el cierre
+  levantará el hallazgo. "Not an issue" pide el motivo, y se puede cancelar.
+- **El criterio señalado se marca** en su propia tarjeta, con un link de vuelta a la revisión, y junto a "Close
+  inspection" se avisa cuántas sugerencias esperan una decisión. Cerrar no se bloquea: la revisión es optativa.
+- **Lo que descartaron los controles automáticos** (los guardrails) se lista aparte, en palabras simples.
+- **Procedencia:** quién pidió la revisión, el modelo, la versión de prompt y que el asistente puede equivocarse.
+
+Los demás roles que leen inspecciones ven las revisiones sin poder pedir ni decidir. Pedir la revisión se ofrece
+con el link `closure`: la revisión es previa al cierre. Las respuestas guardadas de `assistant-review-*.json` se
+capturaron de la API con el asistente stub.
 
 ## Cómo se extiende
 

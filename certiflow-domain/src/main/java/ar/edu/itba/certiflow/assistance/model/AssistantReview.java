@@ -1,0 +1,169 @@
+package ar.edu.itba.certiflow.assistance.model;
+
+import ar.edu.itba.certiflow.assistance.model.exceptions.SuggestionNotFoundException;
+import ar.edu.itba.certiflow.inspection.model.InspectionId;
+import ar.edu.itba.certiflow.shared.model.AuditEntry;
+import ar.edu.itba.certiflow.shared.model.AuditTrail;
+import ar.edu.itba.certiflow.shared.model.Stamp;
+import ar.edu.itba.certiflow.schema.model.CriterionCode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * Lo que sugirió el asistente sobre una inspección abierta y lo que decidió el inspector. Nunca toca la inspección:
+ * aceptar o descartar solo deja la decisión trazada.
+ */
+public final class AssistantReview {
+
+    private final ReviewId id;
+    private final InspectionId inspectionId;
+    private final PromptVersion promptVersion;
+    private final ModelId modelId;
+    private final Stamp requested;
+    private final ReviewInput reviewedInput;
+    private final List<Suggestion> suggestions;
+    private final List<RejectedProposal> rejectedProposals;
+    private final AuditTrail auditTrail = new AuditTrail();
+
+    AssistantReview(ReviewId id, InspectionUnderReview inspection, AssistantReply reply, Stamp requested) {
+        this(id, inspection, reply, requested, new CapturedReviewInput(inspection));
+    }
+
+    AssistantReview(ReviewId id, InspectionUnderReview inspection, AssistantReply reply, Stamp requested, ReviewInput reviewedInput) {
+        inspection.ensureOpen();
+        this.reviewedInput = reviewedInput;
+        this.id = id;
+        this.inspectionId = inspection.inspectionId();
+        this.promptVersion = reply.promptVersion();
+        this.modelId = reply.modelId();
+        this.requested = requested;
+        List<ProposedFinding> proposals = reply.proposals();
+        Map<Integer, GuardrailRejection> rejections = IntStream.range(0, proposals.size()).boxed()
+                .flatMap(index -> firstRejectionOf(proposals.get(index), inspection,
+                        criteriaAdmittedBefore(index, proposals, inspection))
+                        .map(reason -> Map.entry(index, reason)).stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first,
+                        LinkedHashMap::new));
+        this.rejectedProposals = rejections.entrySet().stream()
+                .map(rejection -> new RejectedProposal(proposals.get(rejection.getKey()), rejection.getValue()))
+                .toList();
+        this.suggestions = numbered(IntStream.range(0, proposals.size())
+                .filter(index -> !rejections.containsKey(index))
+                .mapToObj(proposals::get)
+                .toList());
+        auditTrail.record(AssistanceAudit.REVIEW_REQUESTED, requested, suggestions.size() + " suggestions, "
+                + rejectedProposals.size() + " rejected by guardrails, prompt " + promptVersion.value()
+                + ", model " + modelId.value());
+    }
+
+    AssistantReview(AssistantReviewSnapshot snapshot) {
+        this.id = snapshot.id();
+        this.inspectionId = snapshot.inspectionId();
+        this.promptVersion = snapshot.promptVersion();
+        this.modelId = snapshot.modelId();
+        this.requested = snapshot.requested();
+        this.reviewedInput = snapshot.reviewedInput();
+        this.suggestions = new ArrayList<>(snapshot.suggestions());
+        this.rejectedProposals = snapshot.rejectedProposals();
+    }
+
+    public AssistantReviewSnapshot snapshot() {
+        return new AssistantReviewSnapshot(id, inspectionId, promptVersion, modelId, requested, suggestions, rejectedProposals, reviewedInput);
+    }
+
+    void accept(int position, Stamp accepted) {
+        Suggestion acceptedSuggestion = suggestion(position).accepted(accepted);
+        replace(acceptedSuggestion);
+        auditTrail.record(AssistanceAudit.SUGGESTION_ACCEPTED, accepted, describe(acceptedSuggestion));
+    }
+
+    void dismiss(int position, String reason, Stamp dismissed) {
+        Suggestion dismissedSuggestion = suggestion(position).dismissed(reason, dismissed);
+        replace(dismissedSuggestion);
+        auditTrail.record(AssistanceAudit.SUGGESTION_DISMISSED, dismissed, describe(dismissedSuggestion) + ": " + reason);
+    }
+
+    public Suggestion suggestion(int position) {
+        return suggestions.stream()
+                .filter(suggestion -> suggestion.position() == position)
+                .findFirst()
+                .orElseThrow(() -> new SuggestionNotFoundException(id, position));
+    }
+
+    public ReviewId id() {
+        return id;
+    }
+
+    public InspectionId inspectionId() {
+        return inspectionId;
+    }
+
+    public PromptVersion promptVersion() {
+        return promptVersion;
+    }
+
+    public ModelId modelId() {
+        return modelId;
+    }
+
+    public ReviewInput reviewedInput() {
+        return reviewedInput;
+    }
+
+    public Stamp requested() {
+        return requested;
+    }
+
+    public List<Suggestion> suggestions() {
+        return List.copyOf(suggestions);
+    }
+
+    public List<RejectedProposal> rejectedProposals() {
+        return rejectedProposals;
+    }
+
+    List<AuditEntry> pullAuditEntries() {
+        return auditTrail.pull();
+    }
+
+    /** Los guardrails se aplican en el orden en que están declarados; el primero que rechaza es el motivo. */
+    private Optional<GuardrailRejection> firstRejectionOf(ProposedFinding proposal, InspectionUnderReview inspection,
+                                                          Set<CriterionCode> admitted) {
+        return Arrays.stream(GuardrailRejection.values())
+                .filter(guardrail -> guardrail.rejects(proposal, inspection, admitted))
+                .findFirst();
+    }
+
+    /**
+     * Los criterios ya admitidos antes de una propuesta: los de las anteriores que pasan los controles sobre su
+     * contenido. La primera de cada criterio queda admitida, así que solo las siguientes son un duplicado.
+     */
+    private Set<CriterionCode> criteriaAdmittedBefore(int index, List<ProposedFinding> proposals,
+                                                      InspectionUnderReview inspection) {
+        return proposals.subList(0, index).stream()
+                .filter(earlier -> firstRejectionOf(earlier, inspection, Set.of()).isEmpty())
+                .map(ProposedFinding::criterion)
+                .collect(Collectors.toSet());
+    }
+
+    private List<Suggestion> numbered(List<ProposedFinding> admitted) {
+        return new ArrayList<>(IntStream.range(0, admitted.size())
+                .mapToObj(index -> new Suggestion(index + 1, admitted.get(index), new PendingDecision()))
+                .toList());
+    }
+
+    private void replace(Suggestion decided) {
+        suggestions.set(suggestions.indexOf(suggestion(decided.position())), decided);
+    }
+
+    private String describe(Suggestion suggestion) {
+        return "Suggestion " + suggestion.position() + " on " + suggestion.proposal().criterion().value();
+    }
+}

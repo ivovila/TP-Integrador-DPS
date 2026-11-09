@@ -1,3 +1,4 @@
+import type { SuggestionAction } from '../../domain/assistance';
 import type { CertificateAction, CertificationDecisionAction } from '../../domain/certification';
 import type { CorrectiveActionAction, FindingAction } from '../../domain/finding';
 import type { InspectionAction } from '../../domain/inspection';
@@ -8,6 +9,8 @@ type ActionByRel<Action extends string> = [rel: string, action: Action][];
 
 export const inspectionActionByRel: ActionByRel<InspectionAction> = [
   ['closure', 'closeInspection'],
+  // La revisión asistida es previa al cierre: se ofrece mientras la inspección se puede cerrar.
+  ['closure', 'requestAssistantReview'],
   ['rectifications', 'rectifyInspection'],
   ['act', 'generateInspectionAct'],
 ];
@@ -16,6 +19,11 @@ export const responseActionByRel: ActionByRel<InspectionAction> = [
   ['answer', 'recordAnswer'],
   ['evidence', 'attachEvidence'],
   ['observations', 'addObservation'],
+];
+
+export const suggestionActionByRel: ActionByRel<SuggestionAction> = [
+  ['acceptance', 'acceptSuggestion'],
+  ['dismissal', 'dismissSuggestion'],
 ];
 
 export const eligibilityActionByRel: ActionByRel<CertificationDecisionAction> = [['certificates', 'issueCertificate']];

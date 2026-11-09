@@ -11,6 +11,7 @@ import ar.edu.itba.certiflow.shared.model.DomainException;
 import ar.edu.itba.certiflow.shared.model.InvalidValueException;
 import ar.edu.itba.certiflow.shared.model.NotFoundException;
 import ar.edu.itba.certiflow.shared.model.RuleViolationException;
+import ar.edu.itba.certiflow.shared.model.UnavailableException;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -30,6 +31,7 @@ class ArchitectureRulesTest {
     private static final String SCHEMA = "ar.edu.itba.certiflow.schema..";
     private static final String INSPECTION = "ar.edu.itba.certiflow.inspection..";
     private static final String CERTIFICATION = "ar.edu.itba.certiflow.certification..";
+    private static final String ASSISTANCE = "ar.edu.itba.certiflow.assistance..";
     private static final String APPLICATION = "ar.edu.itba.certiflow.application..";
     private static final String INFRASTRUCTURE = "ar.edu.itba.certiflow.infrastructure..";
     private static final String WEB = "ar.edu.itba.certiflow.web..";
@@ -40,7 +42,7 @@ class ArchitectureRulesTest {
 
     @Test
     void theDomainDependsOnNoOtherLayer() {
-        noClasses().that().resideInAnyPackage(SHARED, CATALOG, SCHEMA, INSPECTION, CERTIFICATION)
+        noClasses().that().resideInAnyPackage(SHARED, CATALOG, SCHEMA, INSPECTION, CERTIFICATION, ASSISTANCE)
                 .should().dependOnClassesThat().resideInAnyPackage(APPLICATION, INFRASTRUCTURE, WEB)
                 .check(productionClasses);
     }
@@ -54,7 +56,7 @@ class ArchitectureRulesTest {
 
     @Test
     void theDomainAndTheApplicationUseNoFramework() {
-        noClasses().that().resideInAnyPackage(SHARED, CATALOG, SCHEMA, INSPECTION, CERTIFICATION, APPLICATION)
+        noClasses().that().resideInAnyPackage(SHARED, CATALOG, SCHEMA, INSPECTION, CERTIFICATION, ASSISTANCE, APPLICATION)
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "jakarta..", "tools.jackson..",
                         "com.fasterxml..", "org.hibernate..")
                 .check(productionClasses);
@@ -63,28 +65,28 @@ class ArchitectureRulesTest {
     @Test
     void theSharedKernelImportsNoContext() {
         noClasses().that().resideInAPackage(SHARED)
-                .should().dependOnClassesThat().resideInAnyPackage(CATALOG, SCHEMA, INSPECTION, CERTIFICATION)
+                .should().dependOnClassesThat().resideInAnyPackage(CATALOG, SCHEMA, INSPECTION, CERTIFICATION, ASSISTANCE)
                 .check(productionClasses);
     }
 
     @Test
     void theCatalogOnlyKnowsTheSharedKernel() {
         noClasses().that().resideInAPackage(CATALOG)
-                .should().dependOnClassesThat().resideInAnyPackage(SCHEMA, INSPECTION, CERTIFICATION)
+                .should().dependOnClassesThat().resideInAnyPackage(SCHEMA, INSPECTION, CERTIFICATION, ASSISTANCE)
                 .check(productionClasses);
     }
 
     @Test
     void theSchemaKnowsNeitherInspectionNorCertification() {
         noClasses().that().resideInAPackage(SCHEMA)
-                .should().dependOnClassesThat().resideInAnyPackage(INSPECTION, CERTIFICATION)
+                .should().dependOnClassesThat().resideInAnyPackage(INSPECTION, CERTIFICATION, ASSISTANCE)
                 .check(productionClasses);
     }
 
     @Test
-    void inspectionDoesNotKnowCertification() {
+    void inspectionKnowsNeitherCertificationNorAssistance() {
         noClasses().that().resideInAPackage(INSPECTION)
-                .should().dependOnClassesThat().resideInAPackage(CERTIFICATION)
+                .should().dependOnClassesThat().resideInAnyPackage(CERTIFICATION, ASSISTANCE)
                 .check(productionClasses);
     }
 
@@ -103,14 +105,49 @@ class ArchitectureRulesTest {
                 .check(productionClasses);
     }
 
-    /** La categoría decide el estado HTTP: una excepción fuera de las tres no tendría quién la responda. */
+    /** Asistencia y Certificación no se conocen: las dos solo leen la inspección, cada una por su traductor. */
     @Test
-    void everyDomainExceptionBelongsToOneOfTheThreeCategories() {
+    void certificationAndAssistanceDoNotKnowEachOther() {
+        noClasses().that().resideInAPackage(CERTIFICATION)
+                .should().dependOnClassesThat().resideInAPackage(ASSISTANCE)
+                .check(productionClasses);
+        noClasses().that().resideInAPackage(ASSISTANCE)
+                .should().dependOnClassesThat().resideInAPackage(CERTIFICATION)
+                .check(productionClasses);
+    }
+
+    @Test
+    void assistanceKnowsAnInspectionOnlyByItsIdentifier() {
+        noClasses().that().resideInAPackage(ASSISTANCE)
+                .should().dependOnClassesThat(resideInAPackage(INSPECTION).and(not(equivalentTo(InspectionId.class))))
+                .check(productionClasses);
+    }
+
+    @Test
+    void onlyTheTranslatorOfAssistanceReadsTheInspectionContext() {
+        noClasses().that().resideInAPackage("ar.edu.itba.certiflow.application.assistance..")
+                .and().doNotHaveSimpleName("InspectionReviewTranslatorImpl")
+                .should().dependOnClassesThat(resideInAPackage(INSPECTION).and(not(equivalentTo(InspectionId.class))))
+                .check(productionClasses);
+    }
+
+    /** El proveedor del modelo es un detalle: solo lo conoce su adaptador, en infraestructura. */
+    @Test
+    void onlyTheInfrastructureKnowsSpringAi() {
+        noClasses().that().resideOutsideOfPackage(INFRASTRUCTURE)
+                .should().dependOnClassesThat().resideInAPackage("org.springframework.ai..")
+                .check(productionClasses);
+    }
+
+    /** La categoría decide el estado HTTP: una excepción fuera de las cuatro no tendría quién la responda. */
+    @Test
+    void everyDomainExceptionBelongsToOneOfTheFourCategories() {
         classes().that().areAssignableTo(DomainException.class)
                 .and().doNotHaveModifier(JavaModifier.ABSTRACT)
                 .should().beAssignableTo(NotFoundException.class)
                 .orShould().beAssignableTo(InvalidValueException.class)
                 .orShould().beAssignableTo(RuleViolationException.class)
+                .orShould().beAssignableTo(UnavailableException.class)
                 .check(productionClasses);
     }
 }

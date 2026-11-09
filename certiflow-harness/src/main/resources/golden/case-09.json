@@ -1,0 +1,16 @@
+{
+  "id": "case-09",
+  "kind": "hidden",
+  "description": "La puesta a tierra se respondió verificada, pero la observación describe el cable suelto",
+  "assetType": "Pressure vessel",
+  "schemaVersion": 1,
+  "criteria": [
+    {"code": "RELIEF-VALVE", "answer": "7.9", "observations": [], "evidence": []},
+    {"code": "LEAKS", "answer": "true", "observations": [], "evidence": []},
+    {"code": "INSULATION", "answer": "Acceptable", "observations": [], "evidence": []},
+    {"code": "GROUNDING", "answer": "true",
+     "observations": ["El cable de tierra está suelto en el borne del quemador"], "evidence": []},
+    {"code": "PANEL", "answer": "true", "observations": [], "evidence": []}
+  ],
+  "expected": [{"criterion": "GROUNDING", "severity": "MAJOR"}]
+}

@@ -10,7 +10,7 @@ public final class TestDatabase {
     public static final String USER = "spring.datasource.username=sa";
     public static final String PASSWORD = "spring.datasource.password=";
 
-    private static final String[] TABLES = {"certificate_backing", "audit_entry", "suspension", "certificate", "verification",
+    private static final String[] TABLES = {"suggestion_decision", "assistant_review", "certificate_backing", "audit_entry", "suspension", "certificate", "verification",
             "corrective_action", "finding_evidence", "finding", "revision", "observation", "attached_evidence", "criterion_response",
             "inspection", "schema_version", "inspection_schema", "asset_characteristic", "asset", "revoked_token", "user_account"};
 

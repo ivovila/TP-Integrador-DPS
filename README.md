@@ -151,6 +151,7 @@ gh api -X PUT repos/ivovila/TP-Integrador-DPS/branches/main/protection \
 - [docs/consigna](docs/consigna): enunciado de la entrega.
 - [docs/clases](docs/clases): apuntes de las clases que guían la arquitectura.
 - [docs/certiflow-domain.puml](docs/certiflow-domain.puml): diagrama de clases en PlantUML.
+- [docs/certiflow-assistance.puml](docs/certiflow-assistance.puml): el contexto Asistencia y el harness.
 
 
 ## F1, F2 y F3
@@ -183,3 +184,64 @@ la decisión conserva resultado, motivos, condiciones, vigencia y la referencia 
 dos decisiones de `STANDARD` con plazos distintos dicen bajo qué versión se tomó cada una.
 El resumen general de hallazgos muestra severidad y resolución. Los impedimentos de certificación
 se consultan en la evaluación de una inspección y alcance, no como propiedad absoluta de un hallazgo.
+
+
+## Entrega 3 · API de revisión asistida
+
+> La revisión funciona de punta a punta con el modelo real (Nemotron 3.5 Super en NVIDIA NIM). El harness y el
+> panel de frontend siguen pendientes.
+
+La rama `entrega-3` incorpora el contexto Asistencia. Un inspector pide una revisión sin cuerpo con
+`POST /api/v1/inspections/{id}/assistant-reviews`; recibe 201 con la URL de la revisión. Se consulta desde
+el link `assistant-reviews` de la inspección, incluso después del cierre. Los lectores son los mismos que
+los de inspecciones. Cada sugerencia informa severidad configurada, estimación del asistente, fundamento y citas.
+Una sugerencia pendiente ofrece `acceptance` y `dismissal`; solo el inspector puede usarlos. Descartar exige
+`{"reason":"..."}`. Cada decisión devuelve 201 con un `Location` consultable y queda en `audit-entries`.
+Aceptar solo registra la decisión: el inspector corrige la respuesta por el flujo habitual.
+
+Por defecto `certiflow.assistant.provider=stub`: usa un asistente determinista sin red ni API key, que informa
+prompt `stub` y modelo `keyword-stub`. Un error del proveedor devuelve 503 sin guardar una revisión;
+pedir una revisión de una inspección cerrada devuelve 409.
+
+### NVIDIA NIM (opcional, sin cambiar el modo por defecto)
+
+El perfil `nvidia` selecciona el adaptador Spring AI con la API compatible de NVIDIA. Conseguir una key en
+[NVIDIA Build](https://build.nvidia.com/settings/api-keys) y cargarla en la misma terminal WSL, sin que quede en
+el historial:
+
+```bash
+read -rsp 'NVIDIA API key: ' NVIDIA_API_KEY
+export NVIDIA_API_KEY
+printf '\n'
+mvn -q -DskipTests install
+mvn -pl certiflow-web spring-boot:run -Dspring-boot.run.profiles=demo,nvidia
+```
+
+El modelo por defecto es Nemotron 3.5 Super (`nvidia/nemotron-3.5-super-vl-120b-a12b`). Se cambia con
+`NVIDIA_MODEL`, y lo que ese modelo necesite de más en el cuerpo del pedido con `CERTIFLOW_ASSISTANT_EXTRA_BODY`
+(por ejemplo `{"reasoning_effort":"none"}` para Mistral Large 4). `CERTIFLOW_ASSISTANT_TIMEOUT` cambia el timeout
+(por defecto `PT300S`, porque el endpoint gratuito encola pedidos) y `CERTIFLOW_ASSISTANT_PROMPT_VERSION` el prompt
+publicado (por defecto `v2`, que midió mejor que `v1` en el harness). No hay reintentos ni fallback al stub: una falla del proveedor es un 503 y su causa
+queda en el log. Seleccionar el perfil sin key hace fallar el arranque.
+
+Para probar la integración sin levantar la aplicación, con la key en el entorno:
+
+```bash
+mvn -pl certiflow-web -am test -Dtest=NvidiaAssistantSmokeApiTest -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+El proveedor recibe solo criterios, reglas, respuestas y texto libre, sin autores ni fechas. NVIDIA registra lo
+que recibe su API de prueba: no mandarle datos reales.
+
+### Harness de evaluación
+
+`certiflow-harness` mide al asistente contra un conjunto dorado de 15 casos, 5 corridas por caso, y compara
+versiones de prompt. Por defecto corre contra el stub:
+
+```bash
+mvn -q -DskipTests install
+mvn -q -pl certiflow-harness exec:exec
+```
+
+Con `HARNESS_PROVIDER=spring-ai` y `NVIDIA_API_KEY` corre contra el modelo real. Los resultados están en
+`certiflow-harness/results/` y cómo leerlos en [su README](certiflow-harness/README.md).

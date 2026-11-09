@@ -77,8 +77,12 @@ async function cardTitled(title: string) {
   return within((await screen.findByText(title)).closest('.card') as HTMLElement);
 }
 
-async function openFromMenu(section: string, record: string): Promise<void> {
+async function openFromMenu(section: string, record: string, assetCode?: string): Promise<void> {
   fireEvent.click(within(await screen.findByRole('navigation')).getByRole('link', { name: section }));
+  if (assetCode !== undefined) {
+    await page.findByRole('option', { name: new RegExp(`^${assetCode} ·`) });
+    fireEvent.change(await page.findByRole('combobox', { name: 'Asset' }), { target: { value: assetCode } });
+  }
   fireEvent.click(await page.findByRole('link', { name: record }));
 }
 
@@ -145,7 +149,7 @@ async function extinguisherWithAnAssignedInspection(): Promise<{ assetCode: stri
 }
 
 test('an inspection is executed, closed, corrected and certified through the screens', async () => {
-  const { inspectionId } = await extinguisherWithAnAssignedInspection();
+  const { inspectionId, assetCode } = await extinguisherWithAnAssignedInspection();
   open(`/inspections/${inspectionId}`);
   await logInAs(demoPeople.inspector);
 
@@ -192,7 +196,7 @@ test('an inspection is executed, closed, corrected and certified through the scr
   expect(screen.queryByText('Accept')).toBeNull();
 
   await logInAs(demoPeople.certifier);
-  await openFromMenu('Inspections', inspectionId);
+  await openFromMenu('Inspections', `View ${inspectionId.slice(0, 8)}`, assetCode);
   await press(page, 'Issue certificate');
   const certificateNumber = await certificateNumberShown();
   expect(screen.getByText('active')).toBeDefined();
@@ -414,6 +418,6 @@ test('an asset is registered and an inspection assigned through the forms', asyn
 
   await fill(page, 'Inspector', demoPeople.inspector.id);
   await press(page, 'Assign inspection');
-  await screen.findByText(/Inspection [0-9a-f-]{36}/);
+  await screen.findByText(/^Inspection [0-9a-f]{8}$/);
   expect(screen.getByText('0 of 2 evaluated')).toBeDefined();
 });

@@ -59,6 +59,7 @@ function certiflowReturning(inspection: InspectionDetails): Certiflow {
       evaluateCertification: async () => ({ inspectionId: 'INS-1', eligible: false, ineligibilities: [], actions: [] }),
     },
     audit: { auditHistory: async () => [] },
+    assistance: { listReviews: async () => [] },
   } as unknown as Certiflow;
 }
 
@@ -79,7 +80,7 @@ async function showInspectionOffering(actions: InspectionAction[], role: Role = 
   await screen.findByText('Safety seal intact');
 }
 
-const buttonLabels = ['Close inspection', 'Record answer', 'Rectify', 'Inspection act'];
+const buttonLabels = ['Close inspection', 'Review with AI', 'Record answer', 'Rectify', 'Inspection act'];
 
 const offeredActions: [string, InspectionAction[], string[]][] = [
   ['an inspection that offers nothing shows no action', [], []],
@@ -94,7 +95,13 @@ test.each(offeredActions)('%s', async (_description, actions, expectedLabels) =>
   expect(shownLabels).toEqual(expectedLabels);
 });
 
-const everyActionOfAnOpenInspection: InspectionAction[] = ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection'];
+const everyActionOfAnOpenInspection: InspectionAction[] = [
+  'recordAnswer',
+  'attachEvidence',
+  'addObservation',
+  'closeInspection',
+  'requestAssistantReview',
+];
 
 const rolesThatOnlyRead: Role[] = ['inspectionCoordinator', 'certificationOfficer'];
 
@@ -106,7 +113,7 @@ test.each(rolesThatOnlyRead)('the %s reads an open inspection but is offered non
 
 test('the inspector is offered the actions of an open inspection and sees no read-only notice', async () => {
   await showInspectionOffering(everyActionOfAnOpenInspection);
-  expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Close inspection', 'Record answer']);
+  expect(buttonLabels.filter((label) => screen.queryByText(label) !== null)).toEqual(['Close inspection', 'Review with AI', 'Record answer']);
   expect(screen.queryByText(/you can read this inspection but not change it/)).toBeNull();
 });
 

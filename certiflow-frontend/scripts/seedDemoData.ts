@@ -1,3 +1,5 @@
+import demoSchemas from '../../certiflow-infrastructure/src/main/resources/demo/schemas.json';
+import { criterionOf } from '../src/adapters/http/schemaMapping';
 import { createHttpCertiflow } from '../src/adapters/http/createHttpCertiflow';
 import { demoLogins } from '../src/demoLogins';
 import type { RawAnswer, Section, Vocabulary } from '../src/domain/schema';
@@ -29,77 +31,16 @@ function chosen(value: string): RawAnswer {
 const yes: RawAnswer = { kind: 'yes-no', value: true };
 const no: RawAnswer = { kind: 'yes-no', value: false };
 
+/** Esquemas compartidos con el harness: una sola fuente versionada. */
+function demoSections(assetType: keyof typeof demoSchemas, vocabulary: Vocabulary): Section[] {
+  return demoSchemas[assetType].map((section) => ({
+    ...section,
+    criteria: section.criteria.map((criterion) => criterionOf(criterion as import('../src/adapters/http/wire').WireCriterion, vocabulary)),
+  }));
+}
+
 function extinguisherSections(vocabulary: Vocabulary): Section[] {
-  const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
-  const evidenceKindNamed = (name: string) => vocabulary.evidenceKinds.find((kind) => kind.name === name)!;
-  return [
-    {
-      title: 'Physical condition',
-      criteria: [
-        {
-          code: 'PRESSURE',
-          text: 'Gauge pressure',
-          severity: severityNamed('CRITICAL'),
-          rule: { type: 'numeric-range', unit: 'bar', minimum: '10', maximum: '16' },
-          requiredEvidence: [{ kind: evidenceKindNamed('PHOTO'), minimum: 1 }],
-        },
-        {
-          code: 'WEIGHT',
-          text: 'Extinguishing agent weight',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'numeric-range', unit: 'kg', minimum: '5.8', maximum: '6.2' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'SEAL',
-          text: 'Safety seal intact',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'HOSE',
-          text: 'Hose condition',
-          severity: severityNamed('MINOR'),
-          rule: { type: 'option-in-list', acceptedOptions: ['Good', 'Acceptable'] },
-          requiredEvidence: [],
-        },
-        {
-          code: 'CORROSION',
-          text: 'Cylinder free of corrosion',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-      ],
-    },
-    {
-      title: 'Installation and records',
-      criteria: [
-        {
-          code: 'SIGNAGE',
-          text: 'Signage visible from the corridor',
-          severity: severityNamed('MINOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'HEIGHT',
-          text: 'Mounting height',
-          severity: severityNamed('MINOR'),
-          rule: { type: 'numeric-range', unit: 'm', minimum: '0.8', maximum: '1.5' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'TAG',
-          text: 'Maintenance tag status',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'option-in-list', acceptedOptions: ['Current'] },
-          requiredEvidence: [{ kind: evidenceKindNamed('DOCUMENT'), minimum: 1 }],
-        },
-      ],
-    },
-  ];
+  return demoSections('Fire extinguisher', vocabulary);
 }
 
 function nextExtinguisherVersion(vocabulary: Vocabulary): Section[] {
@@ -130,56 +71,7 @@ function nextExtinguisherVersion(vocabulary: Vocabulary): Section[] {
 }
 
 function pressureVesselSections(vocabulary: Vocabulary): Section[] {
-  const severityNamed = (name: string) => vocabulary.severities.find((severity) => severity.name === name)!;
-  return [
-    {
-      title: 'Pressure system',
-      subsystemCode: 'PRESSURE',
-      criteria: [
-        {
-          code: 'RELIEF-VALVE',
-          text: 'Relief valve opening pressure',
-          severity: severityNamed('CRITICAL'),
-          rule: { type: 'numeric-range', unit: 'bar', minimum: '7.5', maximum: '8.5' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'LEAKS',
-          text: 'No visible leaks',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'INSULATION',
-          text: 'Insulation condition',
-          severity: severityNamed('MINOR'),
-          rule: { type: 'option-in-list', acceptedOptions: ['Good', 'Acceptable'] },
-          requiredEvidence: [],
-        },
-      ],
-    },
-    {
-      title: 'Electrical installation',
-      subsystemCode: 'ELECTRICAL',
-      criteria: [
-        {
-          code: 'GROUNDING',
-          text: 'Burner grounding verified',
-          severity: severityNamed('MAJOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-        {
-          code: 'PANEL',
-          text: 'Control panel labelled',
-          severity: severityNamed('MINOR'),
-          rule: { type: 'yes-no', expected: 'YES' },
-          requiredEvidence: [],
-        },
-      ],
-    },
-  ];
+  return demoSections('Pressure vessel', vocabulary);
 }
 
 const compliantExtinguisherAnswers: Record<string, RawAnswer> = {

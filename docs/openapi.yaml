@@ -21,9 +21,9 @@ info:
     trabaja; activos, esquemas, vocabulario y raíz los lee cualquier usuario autenticado. Un rol que no
     corresponde recibe 403.
 
-    **Errores.** Siempre `application/problem+json`. Las excepciones de dominio pertenecen a una de tres
+    **Errores.** Siempre `application/problem+json`. Las excepciones de dominio pertenecen a una de cuatro
     categorías y la categoría decide el estado: valor inválido 400, recurso inexistente 404, regla de negocio
-    violada 409. El `title` del problema es el nombre de la excepción.
+    violada 409, servicio externo no disponible 503. El `title` del problema es el nombre de la excepción.
 
     **Fechas.** Los instantes son ISO-8601 con offset y se guardan con precisión de microsegundos; las fechas
     de calendario viajan como `AAAA-MM-DD`.
@@ -49,6 +49,8 @@ tags:
     description: Plantillas de inspección y sus versiones
   - name: Inspecciones
     description: Asignación, ejecución, cierre y rectificación
+  - name: Asistencia
+    description: Revisión asistida y decisiones humanas trazadas
   - name: Hallazgos
     description: No conformidades y sus acciones correctivas
   - name: Certificación
@@ -1189,6 +1191,183 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/NotEligible" }
 
+
+  /api/v1/inspections/{id}/assistant-reviews:
+    parameters:
+      - $ref: "#/components/parameters/inspectionId"
+    get:
+      tags: [Asistencia]
+      summary: Revisiones de una inspección, también después de cerrarla
+      description: Lectores de inspecciones (coordinador, inspector y certificador).
+      responses:
+        "200":
+          description: Revisiones con sus sugerencias y links
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantReviewCollection" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Asistencia]
+      summary: Pedir una revisión de una inspección abierta
+      description: |
+        Solo INSPECTOR. Sin cuerpo. La llamada al proveedor se realiza fuera de la transacción.
+        Se vuelve a verificar que siga abierta antes de guardar. No cambia respuestas ni hallazgos.
+      responses:
+        "201":
+          description: Revisión creada
+          headers:
+            Location:
+              description: URL de la revisión creada
+              schema: { type: string, format: uri }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantReview" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /api/v1/assistant-reviews/{id}:
+    parameters:
+      - $ref: "#/components/parameters/reviewId"
+    get:
+      tags: [Asistencia]
+      summary: Revisión, sugerencias y propuestas rechazadas por guardrails
+      description: Lectores de inspecciones. Las propuestas rechazadas son traza y no se pueden decidir.
+      responses:
+        "200":
+          description: Revisión
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantReview" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assistant-reviews/{id}/suggestions/{position}:
+    parameters:
+      - $ref: "#/components/parameters/reviewId"
+      - $ref: "#/components/parameters/SuggestionPosition"
+    get:
+      tags: [Asistencia]
+      summary: Sugerencia y decisión humana
+      description: |
+        Lectores de inspecciones. Ofrece acceptance y dismissal solo mientras está pendiente.
+        criterion apunta a la respuesta del criterio, donde el inspector puede corregirla.
+      responses:
+        "200":
+          description: Sugerencia
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantSuggestion" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assistant-reviews/{id}/audit-entries:
+    parameters:
+      - $ref: "#/components/parameters/reviewId"
+    get:
+      tags: [Asistencia]
+      summary: Bitácora de la revisión
+      description: Lectores de inspecciones. Pedido y decisiones con autor e instante.
+      responses:
+        "200":
+          description: Entradas de auditoría
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AuditEntries" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assistant-reviews/{id}/suggestions/{position}/acceptance:
+    parameters:
+      - $ref: "#/components/parameters/reviewId"
+      - $ref: "#/components/parameters/SuggestionPosition"
+    post:
+      tags: [Asistencia]
+      summary: Aceptar una sugerencia pendiente
+      description: Solo INSPECTOR. Solo registra la decisión; la inspección no cambia. No se puede volver a decidir.
+      responses:
+        "201":
+          description: Decisión registrada
+          headers:
+            Location:
+              description: URL de la decisión creada, consultable por GET
+              schema: { type: string, format: uri }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantDecision" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+    get:
+      tags: [Asistencia]
+      summary: Consultar la decisión acceptance
+      description: Lectores de inspecciones. 404 si todavía no existe o se decidió la otra transición.
+      responses:
+        "200":
+          description: Decisión humana
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantDecision" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/assistant-reviews/{id}/suggestions/{position}/dismissal:
+    parameters:
+      - $ref: "#/components/parameters/reviewId"
+      - $ref: "#/components/parameters/SuggestionPosition"
+    post:
+      tags: [Asistencia]
+      summary: Descartar una sugerencia pendiente
+      description: Solo INSPECTOR. Solo registra la decisión; la inspección no cambia. No se puede volver a decidir.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 1, description: Motivo no vacío }
+      responses:
+        "201":
+          description: Decisión registrada
+          headers:
+            Location:
+              description: URL de la decisión creada, consultable por GET
+              schema: { type: string, format: uri }
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantDecision" }
+        "400": { $ref: "#/components/responses/InvalidValue" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+    get:
+      tags: [Asistencia]
+      summary: Consultar la decisión dismissal
+      description: Lectores de inspecciones. 404 si todavía no existe o se decidió la otra transición.
+      responses:
+        "200":
+          description: Decisión humana
+          content:
+            application/hal+json:
+              schema: { $ref: "#/components/schemas/AssistantDecision" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
 
   securitySchemes:
@@ -1203,6 +1382,18 @@ components:
       description: Token obtenido al ingresar. Vence a la hora y se revoca con `DELETE /api/v1/tokens/current`.
 
   parameters:
+    reviewId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Identidad de la revisión asistida
+    SuggestionPosition:
+      name: position
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+      description: Posición de la sugerencia dentro de la revisión, desde 1
     page:
       name: page
       in: query
@@ -1257,6 +1448,11 @@ components:
       schema: { type: string }
 
   responses:
+    Unavailable:
+      description: El proveedor no respondió o su salida fue inválida; no se guardó ninguna revisión
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
     Unauthorized:
       description: Falta autenticación, o el token venció o fue revocado
       content:
@@ -2069,4 +2265,84 @@ components:
         suspensions:
           type: array
           items: { $ref: "#/components/schemas/Suspension" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+
+    AssistantDecision:
+      type: object
+      properties:
+        status: { type: string, enum: [PENDING, ACCEPTED, DISMISSED] }
+        decidedBy: { anyOf: [{ $ref: "#/components/schemas/Person" }, { type: "null" }] }
+        decidedAt: { type: [string, "null"], format: date-time }
+        reason: { type: [string, "null"] }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AssistantSuggestion:
+      type: object
+      properties:
+        position: { type: integer, minimum: 1 }
+        criterionCode: { type: string }
+        criterionSeverity: { type: string, description: Severidad configurada en el criterio capturado }
+        estimatedSeverity: { type: string, description: Estimación del asistente; no decide el hallazgo }
+        rationale: { type: string }
+        quotes: { type: array, items: { type: string } }
+        decision: { $ref: "#/components/schemas/AssistantDecision" }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AssistantReview:
+      type: object
+      properties:
+        id: { type: string }
+        inspectionId: { type: string }
+        promptVersion: { type: string }
+        modelId: { type: string }
+        requestedBy: { $ref: "#/components/schemas/Person" }
+        requestedAt: { type: string, format: date-time }
+        reviewedInspection:
+          description: >-
+            Lo que leyó el modelo al pedir la revisión, no la inspección actual. Es null en las revisiones anteriores
+            a su captura (V8): ese dato no se reconstruye.
+          nullable: true
+          type: object
+          properties:
+            assetType: { type: string }
+            schemaVersion: { type: integer }
+            criteria:
+              type: array
+              items:
+                type: object
+                properties:
+                  code: { type: string }
+                  text: { type: string }
+                  rule: { type: string }
+                  answer: { type: string }
+                  outcome: { type: string, enum: [APPROVED, OBSERVED, REJECTED, PENDING] }
+                  observations: { type: array, items: { type: string } }
+                  evidence:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string }
+                        description: { type: string }
+        suggestions: { type: array, items: { $ref: "#/components/schemas/AssistantSuggestion" } }
+        rejectedProposals:
+          type: array
+          items:
+            type: object
+            properties:
+              criterionCode: { type: string }
+              estimatedSeverity: { type: string }
+              rationale: { type: string }
+              quotes: { type: array, items: { type: string } }
+              reason: { type: string, enum: [OUT_OF_SCOPE, ALREADY_NONCONFORMING, UNSUPPORTED_QUOTE, DUPLICATE_CRITERION] }
+        _links: { $ref: "#/components/schemas/Links" }
+
+    AssistantReviewCollection:
+      type: object
+      properties:
+        _embedded:
+          type: object
+          properties:
+            assistant-reviews: { type: array, items: { $ref: "#/components/schemas/AssistantReview" } }
         _links: { $ref: "#/components/schemas/Links" }

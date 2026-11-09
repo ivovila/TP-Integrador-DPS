@@ -12,6 +12,7 @@ import ar.edu.itba.certiflow.inspection.usecase.InspectionHistoryUseCase;
 import ar.edu.itba.certiflow.inspection.usecase.ListInspectionsUseCase;
 import ar.edu.itba.certiflow.shared.model.Person;
 import ar.edu.itba.certiflow.web.certification.EligibilityController;
+import ar.edu.itba.certiflow.web.assistance.AssistantReviewController;
 import ar.edu.itba.certiflow.web.security.AllowedRole;
 import ar.edu.itba.certiflow.web.security.ReadableBy;
 import ar.edu.itba.certiflow.web.security.StaffRole;
@@ -111,7 +112,8 @@ public class InspectionController {
                 linkTo(methodOn(CriterionResponseController.class).responses(id)).withRel("responses"),
                 linkTo(methodOn(RevisionController.class).revisions(id)).withRel("revisions"),
                 linkTo(methodOn(EligibilityController.class).eligibility(id, null)).withRel("certification-eligibility"),
-                linkTo(methodOn(InspectionController.class).history(id)).withRel("audit-entries"));
+                linkTo(methodOn(InspectionController.class).history(id)).withRel("audit-entries"),
+                linkTo(methodOn(AssistantReviewController.class).list(id)).withRel("assistant-reviews"));
         if (inspection.isClosed()) {
             response.add(linkTo(methodOn(RevisionController.class).rectify(id, null, null)).withRel("rectifications"),
                     linkTo(methodOn(RevisionController.class).act(id)).withRel("act"),

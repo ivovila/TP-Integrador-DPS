@@ -270,6 +270,43 @@ export interface WireCertificateDocument extends WireResource {
   suspensions: WireSuspension[];
 }
 
+export interface WireSuggestionDecision {
+  status: 'PENDING' | 'ACCEPTED' | 'DISMISSED';
+  decidedBy: WirePerson | null;
+  decidedAt: Instant | null;
+  reason: string | null;
+}
+
+export interface WireSuggestion extends WireResource {
+  position: number;
+  criterionCode: string;
+  criterionSeverity: string;
+  estimatedSeverity: string;
+  rationale: string;
+  quotes: string[];
+  decision: WireSuggestionDecision;
+}
+
+export interface WireRejectedProposal {
+  criterionCode: string;
+  estimatedSeverity: string;
+  rationale: string;
+  quotes: string[];
+  reason: string;
+}
+
+export interface WireAssistantReview extends WireResource {
+  reviewedInspection?: import('../../domain/assistance').ReviewedInspection | null;
+  id: string;
+  inspectionId: string;
+  promptVersion: string;
+  modelId: string;
+  requestedBy: WirePerson;
+  requestedAt: Instant;
+  suggestions: WireSuggestion[];
+  rejectedProposals: WireRejectedProposal[];
+}
+
 export interface WireProblem {
   title?: string;
   detail?: string;

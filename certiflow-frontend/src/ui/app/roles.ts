@@ -1,3 +1,4 @@
+import type { SuggestionAction } from '../../domain/assistance';
 import type { AssetAction } from '../../domain/catalog';
 import type { CertificateAction, CertificationDecisionAction } from '../../domain/certification';
 import type { CorrectiveActionAction, FindingAction } from '../../domain/finding';
@@ -23,6 +24,7 @@ export type SystemAction =
   | CorrectiveActionAction
   | CertificationDecisionAction
   | CertificateAction
+  | SuggestionAction
   | 'registerAsset'
   | 'createInspectionSchema';
 
@@ -53,6 +55,9 @@ export const roleThatMayDo: Record<RoleAction, Role> = {
   addObservation: 'inspector',
   closeInspection: 'inspector',
   rectifyInspection: 'inspector',
+  requestAssistantReview: 'inspector',
+  acceptSuggestion: 'inspector',
+  dismissSuggestion: 'inspector',
   planCorrectiveAction: 'assetResponsible',
   verifyCorrectiveAction: 'verifier',
   issueCertificate: 'certificationOfficer',

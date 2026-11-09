@@ -1,0 +1,184 @@
+{
+  "Fire extinguisher": [
+    {
+      "title": "Physical condition",
+      "criteria": [
+        {
+          "code": "PRESSURE",
+          "text": "Gauge pressure",
+          "severity": "CRITICAL",
+          "rule": {
+            "type": "numeric-range",
+            "unit": "bar",
+            "minimum": 10.0,
+            "maximum": 16.0
+          },
+          "requiredEvidence": [
+            {
+              "kind": "PHOTO",
+              "minimum": 1
+            }
+          ]
+        },
+        {
+          "code": "WEIGHT",
+          "text": "Extinguishing agent weight",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "numeric-range",
+            "unit": "kg",
+            "minimum": 5.8,
+            "maximum": 6.2
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "SEAL",
+          "text": "Safety seal intact",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "HOSE",
+          "text": "Hose condition",
+          "severity": "MINOR",
+          "rule": {
+            "type": "option-in-list",
+            "options": [
+              "Good",
+              "Acceptable"
+            ]
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "CORROSION",
+          "text": "Cylinder free of corrosion",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        }
+      ]
+    },
+    {
+      "title": "Installation and records",
+      "criteria": [
+        {
+          "code": "SIGNAGE",
+          "text": "Signage visible from the corridor",
+          "severity": "MINOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "HEIGHT",
+          "text": "Mounting height",
+          "severity": "MINOR",
+          "rule": {
+            "type": "numeric-range",
+            "unit": "m",
+            "minimum": 0.8,
+            "maximum": 1.5
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "TAG",
+          "text": "Maintenance tag status",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "option-in-list",
+            "options": [
+              "Current"
+            ]
+          },
+          "requiredEvidence": [
+            {
+              "kind": "DOCUMENT",
+              "minimum": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "Pressure vessel": [
+    {
+      "title": "Pressure system",
+      "subsystemCode": "PRESSURE",
+      "criteria": [
+        {
+          "code": "RELIEF-VALVE",
+          "text": "Relief valve opening pressure",
+          "severity": "CRITICAL",
+          "rule": {
+            "type": "numeric-range",
+            "unit": "bar",
+            "minimum": 7.5,
+            "maximum": 8.5
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "LEAKS",
+          "text": "No visible leaks",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "INSULATION",
+          "text": "Insulation condition",
+          "severity": "MINOR",
+          "rule": {
+            "type": "option-in-list",
+            "options": [
+              "Good",
+              "Acceptable"
+            ]
+          },
+          "requiredEvidence": []
+        }
+      ]
+    },
+    {
+      "title": "Electrical installation",
+      "subsystemCode": "ELECTRICAL",
+      "criteria": [
+        {
+          "code": "GROUNDING",
+          "text": "Burner grounding verified",
+          "severity": "MAJOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        },
+        {
+          "code": "PANEL",
+          "text": "Control panel labelled",
+          "severity": "MINOR",
+          "rule": {
+            "type": "yes-no",
+            "expected": "YES"
+          },
+          "requiredEvidence": []
+        }
+      ]
+    }
+  ]
+}

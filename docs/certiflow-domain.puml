@@ -1,6 +1,6 @@
 @startuml certiflow-domain
 !pragma layout smetana
-title Certiflow - Modelo de dominio (Entrega 2)
+title Certiflow - Modelo de dominio (Entrega 3)
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 hide empty members
@@ -9,10 +9,11 @@ note as ExceptionsNote
   Las excepciones concretas de dominio no se dibujan.
   Viven en el subpaquete exceptions de cada concepto
   (inspection.model.exceptions, schema.model.exceptions,
-  certification.model.exceptions, catalog.model.exceptions;
-  las genericas, en shared.model)
-  y cada una extiende una de las tres categorias de shared.model:
-  NotFoundException, InvalidValueException o RuleViolationException.
+  certification.model.exceptions, catalog.model.exceptions,
+  assistance.model.exceptions; las genericas, en shared.model)
+  y cada una extiende una de las cuatro categorias de shared.model:
+  NotFoundException, InvalidValueException, RuleViolationException
+  o UnavailableException (el proveedor del asistente no respondio).
 end note
 
 package "shared.model" {
@@ -28,10 +29,15 @@ package "shared.model" {
   abstract class NotFoundException <<exception>>
   abstract class InvalidValueException <<exception>>
   abstract class RuleViolationException <<exception>>
+  abstract class UnavailableException <<exception>>
+  interface Transactions <<puerto>> {
+    +within(Supplier<T>): T
+  }
   Stamp --> Person
   DomainException <|-- NotFoundException
   DomainException <|-- InvalidValueException
   DomainException <|-- RuleViolationException
+  DomainException <|-- UnavailableException
 }
 
 package "shared.model (auditoria)" {
@@ -1232,10 +1238,11 @@ package "infrastructure.certification.policy (certiflow-infrastructure)" {
 }
 
 note as Snapshots
-  Inspection, Finding y Certificate exportan snapshot()
-  (InspectionSnapshot, FindingSnapshot, CertificateSnapshot)
+  Inspection, Finding, Certificate y AssistantReview exportan snapshot()
+  (InspectionSnapshot, FindingSnapshot, CertificateSnapshot, AssistantReviewSnapshot)
   y se reconstruyen con XxxFactory.restore(snapshot).
   Los adaptadores JPA (infrastructure.<contexto>.persistence)
   traducen snapshots a entidades.
+  El contexto Asistencia y el harness estan en certiflow-assistance.puml.
 end note
 @enduml

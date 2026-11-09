@@ -5,7 +5,19 @@ import { roster } from './roster';
 const whatEachRoleDoes: [Role, RoleAction[]][] = [
   ['administrator', ['registerAsset', 'createInspectionSchema', 'publishSchemaVersion']],
   ['inspectionCoordinator', ['assignInspection']],
-  ['inspector', ['recordAnswer', 'attachEvidence', 'addObservation', 'closeInspection', 'rectifyInspection']],
+  [
+    'inspector',
+    [
+      'recordAnswer',
+      'attachEvidence',
+      'addObservation',
+      'closeInspection',
+      'rectifyInspection',
+      'requestAssistantReview',
+      'acceptSuggestion',
+      'dismissSuggestion',
+    ],
+  ],
   ['assetResponsible', ['planCorrectiveAction']],
   ['verifier', ['verifyCorrectiveAction']],
   [
