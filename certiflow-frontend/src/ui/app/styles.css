@@ -381,6 +381,19 @@ details.more form {
   margin-top: 0.5rem;
 }
 
+.suggestion {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.75rem;
+}
+
+blockquote.quote {
+  margin: 0.35rem 0;
+  padding: 0.25rem 0.75rem;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
 .criterion form {
   margin-top: 0.5rem;
 }

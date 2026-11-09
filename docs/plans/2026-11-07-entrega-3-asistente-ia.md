@@ -2,7 +2,7 @@
 
 > **Estado al 2026-11-08: fases 1 a 4 terminadas y validadas con el modelo real.** La revisión recorre la API de
 > punta a punta con Nemotron 3.5 Super en NVIDIA NIM (`docs/validation/2026-11-08-nvidia-first-review.json`).
-> Fase 5 (harness) terminada; sigue la fase 6, el frontend.
+> Fases 5 (harness) y 6 (frontend) terminadas; siguen la documentación final y el video.
 
 **Consigna:** [CertiFlow · Entrega 3](../consigna/certiflow-entrega-3.md), con las indicaciones de entrega de la cátedra al final.
 
@@ -271,10 +271,11 @@ Aceptar y descartar solo trazan decisiones, incluso después del cierre. Tests: 
       ahora subestima la sobrepresión del caso 05 (MAJOR en lugar de CRITICAL). Queda como error conocido.
 
 ### Fase 6 · Frontend
-- [ ] Puerto y adaptador HTTP del asistente, con su mapeo probado contra respuestas reales guardadas.
-- [ ] Panel "Revisar con IA" en `InspectionDetailPage`: cada sugerencia con criterio, severidad del criterio y la
+- [x] Puerto y adaptador HTTP del asistente, con su mapeo probado contra respuestas reales guardadas.
+- [x] Panel "Revisar con IA" en `InspectionDetailPage`: cada sugerencia con criterio, severidad del criterio y la
       estimada, fundamento y citas; aceptar lleva al criterio para corregir la respuesta; descartar pide motivo.
-- [ ] Marca visible de lo sugerido por IA y lo decidido por el inspector; tests de pantalla y e2e contra el stub.
+- [x] Marca visible de lo sugerido por IA y lo decidido por el inspector; tests de pantalla y e2e contra el stub.
+      `AssistantReviewCard` y sus tests, `assistanceMapping.test.ts` y el bloque "assisted review" del contrato.
 
 ### Fase 7 · Documentación
 - [ ] `DESIGN.md`: decisiones nuevas para el puerto y el contexto, guardrails, prompts versionados, harness y CI;

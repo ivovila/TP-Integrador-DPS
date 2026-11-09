@@ -49,6 +49,12 @@ export const domainErrorNames = [
   'InvalidPageRequestException',
   'FindingRequiresNonConformityException',
   'InvalidValidityPeriodException',
+  'AssistantReviewNotFoundException',
+  'SuggestionNotFoundException',
+  'ReviewOfClosedInspectionException',
+  'SuggestionAlreadyDecidedException',
+  'DismissalReasonRequiredException',
+  'AssistantUnavailableException',
 ] as const;
 
 export type DomainErrorName = (typeof domainErrorNames)[number];

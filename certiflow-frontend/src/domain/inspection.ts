@@ -62,7 +62,8 @@ export type InspectionAction =
   | 'addObservation'
   | 'closeInspection'
   | 'rectifyInspection'
-  | 'generateInspectionAct';
+  | 'generateInspectionAct'
+  | 'requestAssistantReview';
 
 export interface InspectionSummary {
   id: string;

@@ -13,6 +13,7 @@ import { QueryView } from '../shared/QueryView';
 import { ReadOnlyNotice } from '../shared/RoleNotices';
 import { useCommand } from '../shared/useCommand';
 import { useQuery } from '../shared/useQuery';
+import { AssistantReviewCard } from './AssistantReviewCard';
 import { CriterionResponseCard } from './CriterionResponseCard';
 import { describeScope } from './InspectionListPage';
 import { RectificationForm } from './RectificationForm';
@@ -128,6 +129,7 @@ export function InspectionDetailPage() {
               />
             </Card>
             <RaisedFindings findingIds={raisedFindingIds} />
+            <AssistantReviewCard inspection={foundInspection} />
             {groupBySection(foundInspection.responses).map(([sectionTitle, responses]) => (
               <Card title={sectionTitle} key={sectionTitle}>
                 {responses.map((response) => (

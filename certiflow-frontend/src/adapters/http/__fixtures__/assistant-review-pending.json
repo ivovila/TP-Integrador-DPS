@@ -1,0 +1,101 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38"
+        },
+        "inspection": {
+            "href": "http://localhost/api/v1/inspections/1cef4028-ee3a-4fe9-8816-3954406d0636"
+        },
+        "audit-entries": {
+            "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/audit-entries"
+        }
+    },
+    "id": "dfa96625-6456-44cb-89c6-03c4ea5e7c38",
+    "inspectionId": "1cef4028-ee3a-4fe9-8816-3954406d0636",
+    "modelId": "keyword-stub",
+    "promptVersion": "stub",
+    "rejectedProposals": [
+        {
+            "criterionCode": "EXT-03",
+            "estimatedSeverity": "MAJOR",
+            "rationale": "The inspector wrote something that names a failure",
+            "quotes": [
+                "Una caja tapa el cartel"
+            ],
+            "reason": "ALREADY_NONCONFORMING"
+        }
+    ],
+    "requestedAt": "2026-11-09T00:34:37.227021Z",
+    "requestedBy": {
+        "id": "INSPECTOR",
+        "name": "Person INSPECTOR"
+    },
+    "suggestions": [
+        {
+            "_links": {
+                "self": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/1"
+                },
+                "review": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38"
+                },
+                "criterion": {
+                    "href": "http://localhost/api/v1/inspections/1cef4028-ee3a-4fe9-8816-3954406d0636/responses/EXT-01"
+                },
+                "acceptance": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/1/acceptance"
+                },
+                "dismissal": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/1/dismissal"
+                }
+            },
+            "criterionCode": "EXT-01",
+            "criterionSeverity": "MAJOR",
+            "decision": {
+                "status": "PENDING",
+                "decidedBy": null,
+                "decidedAt": null,
+                "reason": null
+            },
+            "estimatedSeverity": "MAJOR",
+            "position": 1,
+            "quotes": [
+                "Pérdida de presión en la válvula"
+            ],
+            "rationale": "The inspector wrote something that names a failure"
+        },
+        {
+            "_links": {
+                "self": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/2"
+                },
+                "review": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38"
+                },
+                "criterion": {
+                    "href": "http://localhost/api/v1/inspections/1cef4028-ee3a-4fe9-8816-3954406d0636/responses/EXT-02"
+                },
+                "acceptance": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/2/acceptance"
+                },
+                "dismissal": {
+                    "href": "http://localhost/api/v1/assistant-reviews/dfa96625-6456-44cb-89c6-03c4ea5e7c38/suggestions/2/dismissal"
+                }
+            },
+            "criterionCode": "EXT-02",
+            "criterionSeverity": "CRITICAL",
+            "decision": {
+                "status": "PENDING",
+                "decidedBy": null,
+                "decidedAt": null,
+                "reason": null
+            },
+            "estimatedSeverity": "MAJOR",
+            "position": 2,
+            "quotes": [
+                "El precinto está roto"
+            ],
+            "rationale": "The inspector wrote something that names a failure"
+        }
+    ]
+}

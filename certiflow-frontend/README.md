@@ -93,7 +93,7 @@ el flujo completo hay que ir cambiando de usuario, porque ninguno ve todas las s
 |---|---|---|---|
 | `ana.torres` | Administrator | Assets, Schemas | Registrar activos, crear esquemas, publicar versiones |
 | `paula.rios` | Inspection coordinator | Inspections, Assets | Asignar inspecciones |
-| `ines.duarte` | Inspector | Inspections | Responder, adjuntar evidencia, observar, cerrar, rectificar |
+| `ines.duarte` | Inspector | Inspections | Responder, adjuntar evidencia, observar, pedir la revisión con IA y decidir sus sugerencias, cerrar, rectificar |
 | `raul.mendez` | Asset responsible | Findings, Assets | Planificar acciones correctivas |
 | `vera.soto` | Verifier | Findings | Aceptar o rechazar acciones correctivas |
 | `carlos.vidal` | Certification officer | Certificates, Inspections, Assets | Emitir, suspender y renovar certificados, incluidos los globales |
@@ -119,6 +119,19 @@ y responde 403 cuando el rol no corresponde, así que llamarla directamente tamp
   en `RejectedRequestError`. Las pantallas muestran siempre el motivo que dio el servidor.
 - **Fechas.** Los instantes se muestran en la hora local del navegador. Las fechas sin hora viajan como
   `AAAA-MM-DD`.
+
+## Revisión asistida con IA
+
+El detalle de una inspección tiene la tarjeta "Assisted review" (`AssistantReviewCard`). Mientras la inspección se
+puede cerrar, el inspector ve "Review with AI": pide una revisión y el panel muestra la última, con las anteriores
+plegadas. Cada sugerencia lleva la marca "Suggested by AI", el criterio, su severidad configurada junto a la que
+estimó el asistente, el fundamento y las citas del texto. "Accept" solo registra la decisión y lleva al criterio
+para que el inspector corrija la respuesta; "Dismiss" pide un motivo. Lo que frenaron los guardrails se lista
+aparte, con el motivo, y no se puede decidir. Los demás roles que leen inspecciones ven las revisiones sin poder
+pedir ni decidir.
+
+Pedir la revisión se ofrece con el link `closure`: la revisión es previa al cierre. Las respuestas guardadas de
+`assistant-review-*.json` se capturaron de la API con el asistente stub.
 
 ## Cómo se extiende
 

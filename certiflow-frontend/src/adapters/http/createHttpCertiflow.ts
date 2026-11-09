@@ -1,6 +1,7 @@
 import type { Certiflow } from '../../ports/Certiflow';
 import type { CredentialSource } from './CredentialSource';
 import { type FetchFunction, HalClient } from './HalClient';
+import { createHttpAssistancePort } from './HttpAssistancePort';
 import { createHttpAuditPort } from './HttpAuditPort';
 import { createHttpCatalogPort } from './HttpCatalogPort';
 import { createHttpCertificationPort } from './HttpCertificationPort';
@@ -18,5 +19,6 @@ export function createHttpCertiflow(baseUrl: string, credentials: CredentialSour
     findings: createHttpFindingPort(client, schemas),
     certification: createHttpCertificationPort(client, schemas),
     audit: createHttpAuditPort(client),
+    assistance: createHttpAssistancePort(client, schemas),
   };
 }

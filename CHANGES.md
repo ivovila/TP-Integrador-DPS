@@ -890,3 +890,16 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   prompt; necesita el secreto `NVIDIA_API_KEY`.
 - **Tests:** `GoldenSetTest`, `HarnessRunTest`, `ReportComparisonTest`; `PromptCatalogTest` cubre `v2`.
 
+## 2026-11-08 · Fase 6: panel de revisión asistida en el frontend
+
+- **Puerto `AssistancePort`** y su adaptador `HttpAssistancePort`: pedir una revisión, listar las de una inspección,
+  aceptar y descartar. `assistanceMapping.ts` traduce la respuesta HAL; las acciones de cada sugerencia salen de sus
+  links `acceptance` y `dismissal`, y pedir la revisión se ofrece con el link `closure`, porque es previa al cierre.
+- **`AssistantReviewCard`** en el detalle de la inspección: "Review with AI", la última revisión y las anteriores
+  plegadas, cada sugerencia marcada "Suggested by AI" con las dos severidades, el fundamento y las citas; aceptar
+  registra la decisión y lleva al criterio para corregir la respuesta; descartar pide motivo; lo que frenaron los
+  guardrails se muestra aparte. Solo el inspector pide y decide.
+- **Tests:** `assistanceMapping.test.ts` contra respuestas reales capturadas con el stub, `AssistantReviewCard.test.tsx`
+  (marca, decisiones, motivo, guardrails, roles, inspección cerrada) y el bloque "assisted review" de
+  `certiflowContract.ts`, que corre en e2e contra el backend con el stub. 159 tests rápidos del frontend.
+

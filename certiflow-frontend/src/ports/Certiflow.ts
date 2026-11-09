@@ -1,3 +1,4 @@
+import type { AssistancePort } from './AssistancePort';
 import type { AuditPort } from './AuditPort';
 import type { CatalogPort } from './CatalogPort';
 import type { CertificationPort } from './CertificationPort';
@@ -12,4 +13,5 @@ export interface Certiflow {
   findings: FindingPort;
   certification: CertificationPort;
   audit: AuditPort;
+  assistance: AssistancePort;
 }

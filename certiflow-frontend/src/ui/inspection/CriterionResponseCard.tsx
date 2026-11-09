@@ -149,6 +149,11 @@ function ObservationForm({ inspectionId, response, onRecorded }: ResponseFormPro
   );
 }
 
+/** El ancla de cada criterio en la página, para llegar a corregir su respuesta desde otra parte. */
+export function criterionAnchor(criterionCode: string): string {
+  return `criterion-${criterionCode}`;
+}
+
 export function CriterionResponseCard({
   inspectionId,
   response,
@@ -158,7 +163,7 @@ export function CriterionResponseCard({
 }: ResponseFormProps & { actions: InspectionAction[]; evidenceKinds: EvidenceKind[] }) {
   const criterion = response.criterion;
   return (
-    <div className="criterion">
+    <div className="criterion" id={criterionAnchor(criterion.code)}>
       <div className="criterion-heading">
         <div>
           <span className="criterion-code">{criterion.code}</span> <strong>{criterion.text}</strong>
