@@ -192,7 +192,7 @@ test('an inspection is executed, closed, corrected and certified through the scr
   expect(screen.queryByText('Accept')).toBeNull();
 
   await logInAs(demoPeople.certifier);
-  await openFromMenu('Inspections', inspectionId);
+  await openFromMenu('Inspections', `View ${inspectionId.slice(0, 8)}`);
   await press(page, 'Issue certificate');
   const certificateNumber = await certificateNumberShown();
   expect(screen.getByText('active')).toBeDefined();
