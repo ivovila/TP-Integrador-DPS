@@ -926,3 +926,8 @@ El [traspaso](docs/handoffs/2026-11-08-fase-4-asistencia-pendiente.md) es el pun
   los guardrails; aviso de espera y de que el asistente puede equivocarse. Las revisiones se comparten entre el
   panel y los criterios con `useAssistantReviews`.
 
+- **Mejoras de usabilidad en el flujo de inspección:** el listado muestra primero las inspecciones abiertas, con el
+  estado en la primera columna y el id corto (entero en el tooltip); el detalle se titula con el nombre del activo y
+  dice cuánto falta para poder cerrar; un criterio ya respondido ofrece "Change answer"; la elegibilidad no muestra
+  un "rejected" mientras la inspección sigue abierta; foco visible para navegar con teclado y filas resaltadas al
+  pasar el mouse.

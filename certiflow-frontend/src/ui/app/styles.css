@@ -159,6 +159,14 @@ table.data th {
   font-weight: 600;
 }
 
+table.data tbody tr:hover {
+  background: var(--paper);
+}
+
+table.data tr.actionable td {
+  font-weight: 600;
+}
+
 table.data tr:last-child td {
   border-bottom: none;
 }
@@ -299,6 +307,17 @@ button.quiet {
   border-color: transparent;
   color: var(--ink-soft);
   padding: 0.2rem 0.4rem;
+}
+
+button.primary:hover:not(:disabled),
+.button.primary:hover {
+  filter: brightness(1.1);
+}
+
+/* Foco visible para quien navega con teclado; el mouse no lo muestra. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button:disabled {

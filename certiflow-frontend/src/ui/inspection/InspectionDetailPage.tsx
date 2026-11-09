@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
-import type { CriterionResponse } from '../../domain/inspection';
+import type { CriterionResponse, InspectionAction, InspectionDetails } from '../../domain/inspection';
 import { useCertiflow } from '../app/CertiflowContext';
 import { useSession } from '../app/SessionContext';
 import { CertificationEligibilityCard } from '../certification/CertificationEligibilityCard';
 import { AuditHistory } from '../shared/AuditHistory';
 import { StatusBadge } from '../shared/Badge';
 import { ErrorBanner } from '../shared/ErrorBanner';
-import { formatDate, formatInstant, formatPerson } from '../shared/format';
+import { formatDate, formatInstant, formatPerson, shortId } from '../shared/format';
 import { Card, Details, PageHeader } from '../shared/Page';
 import { QueryView } from '../shared/QueryView';
 import { ReadOnlyNotice } from '../shared/RoleNotices';
@@ -44,6 +44,31 @@ function RaisedFindings({ findingIds }: { findingIds: string[] | undefined }) {
         </ul>
       )}
     </Card>
+  );
+}
+
+/** Dónde está la inspección respecto del cierre: es lo primero que necesita saber quien la abre. */
+function ProgressTowardsClosing({ inspection, actions }: { inspection: InspectionDetails; actions: InspectionAction[] }) {
+  if (inspection.closed) {
+    return null;
+  }
+  const total = inspection.responses.length;
+  const pending = inspection.responses.filter((response) => response.outcome === 'PENDING').length;
+  if (pending > 0) {
+    return (
+      <p className="callout tone-neutral">
+        {pending} of {total} criteria still need an answer or their required evidence. The inspection can be closed once every
+        criterion is evaluated.
+      </p>
+    );
+  }
+  return (
+    <p className="callout tone-positive">
+      All {total} criteria are evaluated.{' '}
+      {actions.includes('closeInspection')
+        ? 'You can ask the AI to check your notes against the answers, then close the inspection.'
+        : 'The inspector can close it.'}
+    </p>
   );
 }
 
@@ -89,13 +114,13 @@ export function InspectionDetailPage() {
             <PageHeader
               title={
                 <>
-                  Inspection {foundInspection.id} <StatusBadge status={foundInspection.closed ? 'CLOSED' : 'OPEN'} />
+                  {asset.data?.name ?? 'Inspection'} <StatusBadge status={foundInspection.closed ? 'CLOSED' : 'OPEN'} />
                 </>
               }
               subtitle={
                 <>
-                  Asset <SectionLink to={`/assets/${encodeURIComponent(foundInspection.assetCode)}`}>{foundInspection.assetCode}</SectionLink>
-                  {asset.data !== undefined && ` · ${asset.data.name}`}
+                  Inspection <span title={foundInspection.id}>{shortId(foundInspection.id)}</span> · asset{' '}
+                  <SectionLink to={`/assets/${encodeURIComponent(foundInspection.assetCode)}`}>{foundInspection.assetCode}</SectionLink>
                 </>
               }
             >
@@ -116,6 +141,7 @@ export function InspectionDetailPage() {
               )}
             </PageHeader>
             <ErrorBanner error={closure.error} />
+            <ProgressTowardsClosing inspection={foundInspection} actions={permittedActions} />
             <ReadOnlyNotice offeredActions={foundInspection.actions} record="inspection" />
             <Card>
               <Details
@@ -198,7 +224,13 @@ export function InspectionDetailPage() {
                 />
               </Card>
             )}
-            <CertificationEligibilityCard inspectionId={foundInspection.id} refreshKey={changeCount} />
+            {foundInspection.closed ? (
+              <CertificationEligibilityCard inspectionId={foundInspection.id} refreshKey={changeCount} />
+            ) : (
+              <Card title="Certification eligibility">
+                <p className="muted">Certification is evaluated once the inspection is closed.</p>
+              </Card>
+            )}
             <AuditHistory subject={{ kind: 'inspection', id: foundInspection.id }} refreshKey={changeCount} />
           </>
         );

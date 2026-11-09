@@ -46,7 +46,9 @@ function AnswerForm({ inspectionId, response, onRecorded }: ResponseFormProps) {
       <ErrorBanner error={recording.error} />
       <div className="row">
         <RuleAnswerInput rule={response.criterion.rule} answer={answer} onChange={setAnswer} />
-        <button disabled={recording.running || answer === undefined}>Record answer</button>
+        <button disabled={recording.running || answer === undefined}>
+          {response.given === undefined ? 'Record answer' : 'Change answer'}
+        </button>
       </div>
     </form>
   );
