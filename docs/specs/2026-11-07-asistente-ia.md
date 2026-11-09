@@ -279,7 +279,7 @@ Además, cuántas propuestas atrapó cada guardrail. Cada caso corre **5 veces**
 ### 7.3 Ejecución
 
 - Módulo `certiflow-harness`, con dependencia de dominio e infraestructura; no forma parte de la aplicación.
-- Resultado en `harness/results/<versión de prompt>/<modelo>.json` y un resumen en Markdown, versionados.
+- Resultado en `certiflow-harness/results/<versión de prompt>/<modelo>.json` y un resumen en Markdown, versionados.
 - **CI:** un test del módulo corre el harness contra el stub con salidas conocidas y verifica las métricas exactas.
 - **Modelo real:** `.github/workflows/harness.yml`, disparado por cambios en los prompts y a mano, con la API key como
   secreto; compara con la versión anterior y falla si alguna métrica empeora fuera del rango observado.

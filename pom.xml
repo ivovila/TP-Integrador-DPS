@@ -15,6 +15,7 @@
     <module>certiflow-application</module>
     <module>certiflow-infrastructure</module>
     <module>certiflow-web</module>
+    <module>certiflow-harness</module>
   </modules>
 
   <properties>

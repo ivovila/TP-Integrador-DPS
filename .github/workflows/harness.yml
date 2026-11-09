@@ -1,0 +1,66 @@
+name: Harness
+
+# El harness contra el modelo real. No es parte de CI, que usa el stub y es determinista: corre a mano y cuando
+# cambia un prompt, mide la versión nueva y la compara con la anterior. Falla si alguna métrica empeora fuera del
+# rango observado. Necesita el secreto NVIDIA_API_KEY en el repositorio.
+on:
+  workflow_dispatch:
+    inputs:
+      prompt-version:
+        description: Versión de prompt a medir (vacío = la última publicada)
+        required: false
+      baseline:
+        description: Versión contra la que comparar (vacío = la anterior a la medida)
+        required: false
+      runs:
+        description: Corridas por caso
+        required: false
+        default: '5'
+  push:
+    branches: [main, 'entrega-3*']
+    paths:
+      - 'certiflow-infrastructure/src/main/resources/prompts/**'
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Choose the versions
+        id: versions
+        run: |
+          versions=$(ls certiflow-infrastructure/src/main/resources/prompts/inspection-review/*.st | xargs -n1 basename | sed 's/\.st$//' | sort -V)
+          candidate="${{ inputs.prompt-version }}"
+          [ -n "$candidate" ] || candidate=$(echo "$versions" | tail -1)
+          baseline="${{ inputs.baseline }}"
+          [ -n "$baseline" ] || baseline=$(echo "$versions" | grep -x -B1 "$candidate" | head -1)
+          [ "$baseline" != "$candidate" ] || baseline=""
+          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+      - run: mvn -B -q -DskipTests install
+      - name: Run the golden set against the real model
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          HARNESS_PROVIDER: spring-ai
+          HARNESS_PROMPT_VERSION: ${{ steps.versions.outputs.candidate }}
+          HARNESS_RUNS: ${{ inputs.runs || '5' }}
+        run: mvn -B -q -pl certiflow-harness exec:exec
+      - name: Compare with the previous version
+        if: steps.versions.outputs.baseline != ''
+        run: |
+          results="$GITHUB_WORKSPACE/certiflow-harness/results"
+          candidate=$(ls -t "$results/${{ steps.versions.outputs.candidate }}"/*.json | head -1)
+          baseline="$results/${{ steps.versions.outputs.baseline }}/$(basename "$candidate")"
+          mvn -B -q -pl certiflow-harness exec:exec -Dharness.args="compare $baseline $candidate"
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-results
+          path: certiflow-harness/results
